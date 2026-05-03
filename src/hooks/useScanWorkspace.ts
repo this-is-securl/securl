@@ -11,6 +11,17 @@ import { useMonitoredTargets } from "./useMonitoredTargets";
 import { useScanHistory } from "./useScanHistory";
 import { exportReportJson, exportReportMarkdown, exportReportHtml, exportReportPdf } from "@/lib/exportUtils";
 
+// Runtime type guard so we never blindly trust raw server response payloads.
+function isAnalysisResult(value: unknown): value is AnalysisResult {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as AnalysisResult).host === "string" &&
+    typeof (value as AnalysisResult).grade === "string" &&
+    typeof (value as AnalysisResult).finalUrl === "string"
+  );
+}
+
 export const useScanWorkspace = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null);
@@ -95,7 +106,14 @@ export const useScanWorkspace = () => {
       return existing;
     }
 
-    const generated = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    // Use crypto.randomUUID when available, otherwise fall back to
+    // crypto.getRandomValues (never Math.random — that is not cryptographically secure).
+    const generated = globalThis.crypto?.randomUUID?.()
+      ?? (() => {
+        const bytes = new Uint8Array(16);
+        globalThis.crypto.getRandomValues(bytes);
+        return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+      })();
     await writeBrowserStorage(SCAN_OWNER_KEY, generated, STORAGE_SCHEMA_VERSION);
     return generated;
   };
@@ -128,7 +146,10 @@ export const useScanWorkspace = () => {
       const scan = scanPayload.scan;
 
       if (scan?.status === "completed" && scan.result) {
-        const payload = scan.result as AnalysisResult;
+        if (!isAnalysisResult(scan.result)) {
+          throw new Error("Unexpected scan result shape received from server.");
+        }
+        const payload = scan.result;
         persistAnalysis(payload, setAsCurrent);
         return payload;
       }

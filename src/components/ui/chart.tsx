@@ -74,6 +74,17 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null
   }
 
+  // Sanitise color values before interpolating into a <style> block to prevent
+  // XSS if arbitrary config is ever passed. Allow hex, hsl/rgb functions, and
+  // simple CSS keyword identifiers only.
+  const sanitizeColor = (raw: string): string => {
+    const trimmed = raw.trim()
+    if (/^#[0-9a-fA-F]{3,8}$/.test(trimmed)) return trimmed
+    if (/^(?:hsl|hsla|rgb|rgba)\s*\(/i.test(trimmed)) return trimmed
+    if (/^[a-zA-Z][a-zA-Z0-9-]*$/.test(trimmed)) return trimmed
+    return "transparent"
+  }
+
   return (
     <style
       dangerouslySetInnerHTML={{
@@ -86,7 +97,7 @@ ${colorConfig
     const color =
       itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
       itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
+    return color ? `  --color-${key}: ${sanitizeColor(color)};` : null
   })
   .join("\n")}
 }

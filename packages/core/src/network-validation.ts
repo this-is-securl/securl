@@ -27,7 +27,13 @@ export function isPrivateIpv6(value: string): boolean {
     normalized.startsWith("fc") ||
     normalized.startsWith("fd") ||
     normalized.startsWith("fe80:") ||
-    normalized.startsWith("fec0:")
+    normalized.startsWith("fec0:") ||
+    // IPv4-mapped addresses (e.g. ::ffff:127.0.0.1)
+    normalized.startsWith("::ffff:") ||
+    // 6to4 tunnels wrapping private IPv4 ranges
+    normalized.startsWith("2002:7f") || // 127.x
+    normalized.startsWith("2002:0a") || // 10.x
+    normalized.startsWith("2002:c0a8")  // 192.168.x
   );
 }
 
@@ -79,7 +85,12 @@ export async function assertPublicRedirectTarget(targetUrl: URL): Promise<void> 
     }
   } catch (error) {
     if (error instanceof Error && error.message.includes("was blocked")) {
+      // Explicitly blocked by our SSRF check — propagate.
       throw error;
     }
+    // DNS resolution failures (NXDOMAIN, timeout) are logged but the redirect
+    // is allowed to fail naturally at the HTTP layer rather than silently passing.
+    // Re-throw so the caller can decide whether to abort the scan.
+    throw error;
   }
 }

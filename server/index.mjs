@@ -193,7 +193,8 @@ function getPresentedScanOwner(request) {
 }
 
 function tokenFingerprint(token) {
-  return crypto.pbkdf2Sync(token, API_KEY_FINGERPRINT_SALT, 120000, 12, "sha256").toString("hex");
+  // HMAC-SHA256 is fast, non-blocking, and constant-time — no event-loop stall.
+  return crypto.createHmac("sha256", API_KEY_FINGERPRINT_SALT).update(token).digest("hex");
 }
 
 function getRequesterScope(clientIp, presentedApiKey) {
@@ -610,8 +611,10 @@ const server = http.createServer(async (request, response) => {
       return;
     }
 
+    const rawLimit = Number(requestUrl.searchParams.get("limit"));
+    const clampedLimit = Number.isFinite(rawLimit) ? Math.min(100, Math.max(1, rawLimit)) : 20;
     const scans = scanRepository.listScans({
-      limit: Number(requestUrl.searchParams.get("limit") || 20),
+      limit: clampedLimit,
       ownerId: authState.ownerId,
     });
     sendJson(response, 200, {
@@ -865,6 +868,19 @@ if (
   });
   process.exit(1);
 }
+
+process.on("unhandledRejection", (reason) => {
+  log("error", "unhandled_rejection", {
+    message: reason instanceof Error ? reason.message : String(reason),
+  });
+});
+
+process.on("uncaughtException", (error) => {
+  log("error", "uncaught_exception", {
+    message: error instanceof Error ? error.message : String(error),
+  });
+  process.exit(1);
+});
 
 server.listen(port, () => {
   log("info", "server_started", {
