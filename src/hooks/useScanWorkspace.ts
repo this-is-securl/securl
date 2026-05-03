@@ -1,57 +1,64 @@
 import { startTransition, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import type { AnalysisResult, HistoryDiff } from "@/types/analysis";
+import type { AnalysisResult } from "@/types/analysis";
 import { getAreaScores } from "@/lib/posture";
-import { buildHtmlReport, buildMarkdownReport } from "@/lib/reportExport";
 import { readBrowserStorage, writeBrowserStorage } from "@/lib/browserStorage";
-import {
-  buildHistoryState,
-  buildRecentScans,
-  downloadFile,
-  HISTORY_KEY,
-  MONITORED_TARGET_LIMIT,
-  MONITORED_TARGETS_KEY,
-  type MonitoredTarget,
-  RECENT_SCANS_KEY,
-  type RecentScan,
-  SCAN_OWNER_KEY,
-  saveHistorySnapshot,
-  STORAGE_SCHEMA_VERSION,
-  type StoredHistorySnapshot,
-  syncMonitoredTargetFromAnalysis,
-  toMonitoredTargetView,
-} from "@/lib/scanWorkspace";
+import { SCAN_OWNER_KEY, STORAGE_SCHEMA_VERSION } from "@/lib/scanWorkspace";
 import type { ReportWorkspaceSectionKey } from "@/lib/reportWorkspace";
+
+import { useRecentScans } from "./useRecentScans";
+import { useMonitoredTargets } from "./useMonitoredTargets";
+import { useScanHistory } from "./useScanHistory";
+import { exportReportJson, exportReportMarkdown, exportReportHtml, exportReportPdf } from "@/lib/exportUtils";
 
 export const useScanWorkspace = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null);
-  const [recentScans, setRecentScans] = useState<RecentScan[]>([]);
-  const [history, setHistory] = useState<StoredHistorySnapshot[]>([]);
-  const [historyDiff, setHistoryDiff] = useState<HistoryDiff | null>(null);
-  const [monitoredTargets, setMonitoredTargets] = useState<MonitoredTarget[]>([]);
-  const [activeRecentScanUrl, setActiveRecentScanUrl] = useState<string | null>(null);
   const [activeReportSection, setActiveReportSection] = useState<ReportWorkspaceSectionKey>("overview");
   const autoScanRanRef = useRef(false);
   const analyzeUrlRef = useRef<(url: string, setAsCurrent?: boolean) => Promise<AnalysisResult>>();
-  const historyByHostRef = useRef<Record<string, StoredHistorySnapshot[]>>({});
   const areaScores = analysisData ? getAreaScores(analysisData) : [];
+
+  const {
+    recentScans,
+    setRecentScans,
+    activeRecentScanUrl,
+    setActiveRecentScanUrl,
+    loadRecentScans,
+    addRecentScan,
+  } = useRecentScans();
+
+  const {
+    monitoredTargets,
+    setMonitoredTargets,
+    monitoredViews,
+    loadMonitoredTargets,
+    saveCurrentAsMonitored,
+    removeMonitoredTarget,
+    syncMonitoredTarget,
+  } = useMonitoredTargets();
+
+  const {
+    history,
+    historyDiff,
+    loadHistory,
+    addHistorySnapshot,
+  } = useScanHistory();
 
   useEffect(() => {
     let cancelled = false;
 
     void (async () => {
-      const [storedRecentScans, storedMonitoredTargets, storedHistory] = await Promise.all([
-        readBrowserStorage<RecentScan[]>(RECENT_SCANS_KEY, [], STORAGE_SCHEMA_VERSION),
-        readBrowserStorage<MonitoredTarget[]>(MONITORED_TARGETS_KEY, [], STORAGE_SCHEMA_VERSION),
-        readBrowserStorage<Record<string, StoredHistorySnapshot[]>>(HISTORY_KEY, {}, STORAGE_SCHEMA_VERSION),
+      const [storedRecentScans, storedMonitoredTargets] = await Promise.all([
+        loadRecentScans(),
+        loadMonitoredTargets(),
+        loadHistory(),
       ]);
 
       if (cancelled) {
         return;
       }
 
-      historyByHostRef.current = storedHistory;
       startTransition(() => {
         setRecentScans(storedRecentScans);
         setMonitoredTargets(storedMonitoredTargets);
@@ -61,37 +68,16 @@ export const useScanWorkspace = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadRecentScans, loadMonitoredTargets, loadHistory, setRecentScans, setMonitoredTargets]);
 
   const persistAnalysis = (payload: AnalysisResult, setAsCurrent = true) => {
     startTransition(() => {
       if (setAsCurrent) {
         setAnalysisData(payload);
       }
-      setRecentScans((current) => {
-        const next = buildRecentScans(current, {
-          url: payload.finalUrl,
-          grade: payload.grade,
-          scannedAt: payload.scannedAt,
-        });
-        void writeBrowserStorage(RECENT_SCANS_KEY, next, STORAGE_SCHEMA_VERSION);
-        return next;
-      });
-      const { next, nextForHost } = saveHistorySnapshot(historyByHostRef.current, payload, getAreaScores(payload));
-      historyByHostRef.current = next;
-      void writeBrowserStorage(HISTORY_KEY, next, STORAGE_SCHEMA_VERSION);
-      if (setAsCurrent) {
-        const historyState = buildHistoryState(nextForHost);
-        setHistory(historyState.history);
-        setHistoryDiff(historyState.diff);
-      }
-      setMonitoredTargets((current) => {
-        const next = syncMonitoredTargetFromAnalysis(current, payload);
-        if (next !== current) {
-          void writeBrowserStorage(MONITORED_TARGETS_KEY, next, STORAGE_SCHEMA_VERSION);
-        }
-        return next;
-      });
+      addRecentScan(payload);
+      addHistorySnapshot(payload, setAsCurrent);
+      syncMonitoredTarget(payload);
     });
   };
 
@@ -202,43 +188,6 @@ export const useScanWorkspace = () => {
     })();
   }, []);
 
-  const saveCurrentAsMonitored = (cadence: MonitoredTarget["cadence"]) => {
-    if (!analysisData) {
-      return;
-    }
-
-    const alreadyTracked = monitoredTargets.some((target) => target.url === analysisData.finalUrl);
-    if (!alreadyTracked && monitoredTargets.length >= MONITORED_TARGET_LIMIT) {
-      toast.error(`You can save up to ${MONITORED_TARGET_LIMIT} monitoring targets in this browser. Remove one first to add another.`);
-      return;
-    }
-
-    setMonitoredTargets((current) => {
-      const next = [
-        {
-          url: analysisData.finalUrl,
-          label: analysisData.host,
-          cadence,
-          addedAt: new Date().toISOString(),
-          lastScannedAt: analysisData.scannedAt,
-        },
-        ...current.filter((target) => target.url !== analysisData.finalUrl),
-      ].slice(0, MONITORED_TARGET_LIMIT);
-      void writeBrowserStorage(MONITORED_TARGETS_KEY, next, STORAGE_SCHEMA_VERSION);
-      return next;
-    });
-
-    toast.success(`Saved ${analysisData.host} as a ${cadence} monitoring target.`);
-  };
-
-  const removeMonitoredTarget = (url: string) => {
-    setMonitoredTargets((current) => {
-      const next = current.filter((target) => target.url !== url);
-      void writeBrowserStorage(MONITORED_TARGETS_KEY, next, STORAGE_SCHEMA_VERSION);
-      return next;
-    });
-  };
-
   const runTargetScan = async (url: string, setAsCurrent = true) => {
     setIsLoading(true);
     try {
@@ -252,7 +201,7 @@ export const useScanWorkspace = () => {
   };
 
   const runDueScans = async () => {
-    const dueTargets = monitoredTargets.map(toMonitoredTargetView).filter((target) => target.due);
+    const dueTargets = monitoredViews.filter((target) => target.due);
     if (!dueTargets.length) {
       toast.message("No monitoring targets are due right now.");
       return;
@@ -282,81 +231,6 @@ export const useScanWorkspace = () => {
     setIsLoading(false);
   };
 
-  const exportReport = () => {
-    if (!analysisData) {
-      return;
-    }
-
-    downloadFile(
-      `security-report-${analysisData.host}.json`,
-      JSON.stringify(analysisData, null, 2),
-      "application/json;charset=utf-8",
-    );
-  };
-
-  const exportMarkdown = () => {
-    if (!analysisData) return;
-    downloadFile(
-      `security-report-${analysisData.host}.md`,
-      buildMarkdownReport(analysisData, historyDiff),
-      "text/markdown;charset=utf-8",
-    );
-  };
-
-  const exportHtml = () => {
-    if (!analysisData) return;
-    downloadFile(
-      `security-report-${analysisData.host}.html`,
-      buildHtmlReport(analysisData, historyDiff),
-      "text/html;charset=utf-8",
-    );
-  };
-
-  const exportPdf = () => {
-    if (!analysisData) return;
-    const iframe = document.createElement("iframe");
-    iframe.style.position = "fixed";
-    iframe.style.right = "0";
-    iframe.style.bottom = "0";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "0";
-    iframe.setAttribute("aria-hidden", "true");
-
-    const cleanup = () => {
-      window.setTimeout(() => {
-        iframe.remove();
-      }, 1000);
-    };
-
-    iframe.onload = () => {
-      const frameWindow = iframe.contentWindow;
-      if (!frameWindow) {
-        toast.error("Could not prepare the PDF export.");
-        cleanup();
-        return;
-      }
-
-      frameWindow.focus();
-      window.setTimeout(() => {
-        frameWindow.print();
-        cleanup();
-      }, 250);
-    };
-
-    document.body.appendChild(iframe);
-    const frameDocument = iframe.contentDocument;
-    if (!frameDocument) {
-      toast.error("Could not prepare the PDF export.");
-      cleanup();
-      return;
-    }
-
-    frameDocument.open();
-    frameDocument.write(buildHtmlReport(analysisData, historyDiff));
-    frameDocument.close();
-  };
-
   return {
     isLoading,
     analysisData,
@@ -367,16 +241,16 @@ export const useScanWorkspace = () => {
     activeRecentScanUrl,
     activeReportSection,
     areaScores,
-    monitoredViews: monitoredTargets.map(toMonitoredTargetView),
+    monitoredViews,
     setActiveReportSection,
     handleAnalyze,
-    saveCurrentAsMonitored,
+    saveCurrentAsMonitored: (cadence: "daily" | "weekly") => saveCurrentAsMonitored(cadence, analysisData),
     removeMonitoredTarget,
     runTargetScan,
     runDueScans,
-    exportReport,
-    exportMarkdown,
-    exportHtml,
-    exportPdf,
+    exportReport: () => exportReportJson(analysisData),
+    exportMarkdown: () => exportReportMarkdown(analysisData, historyDiff),
+    exportHtml: () => exportReportHtml(analysisData, historyDiff),
+    exportPdf: () => exportReportPdf(analysisData, historyDiff),
   };
 };
