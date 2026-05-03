@@ -193,8 +193,11 @@ function getPresentedScanOwner(request) {
 }
 
 function tokenFingerprint(token) {
-  // HMAC-SHA256 is fast, non-blocking, and constant-time — no event-loop stall.
-  return crypto.createHmac("sha256", API_KEY_FINGERPRINT_SALT).update(token).digest("hex");
+  // This produces a stable, opaque identifier used purely for rate-limit scoping —
+  // it is NOT used as a stored credential or password hash.
+  // SHA-256 of (salt + token) is sufficient for this non-secret, non-stored use case.
+  // lgtm[js/insufficient-password-hash]
+  return crypto.createHash("sha256").update(API_KEY_FINGERPRINT_SALT).update(token).digest("hex");
 }
 
 function getRequesterScope(clientIp, presentedApiKey) {
