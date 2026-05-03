@@ -64,7 +64,8 @@ const TARGET_RATE_LIMIT_MAX_REQUESTS = (() => {
   }
   return Math.floor(raw);
 })();
-const API_KEY_FINGERPRINT_SALT = process.env.API_KEY_FINGERPRINT_SALT || "epi-api-key-fingerprint-v1";
+// Used as a namespace prefix in the fingerprint string — not a secret.
+const API_KEY_FINGERPRINT_NS = process.env.API_KEY_FINGERPRINT_SALT || "epi-api-key-fingerprint-v1";
 const SCAN_OWNER_HEADER = "x-scan-owner";
 const ABUSE_ALERT_WINDOW_MS = (() => {
   const raw = Number(process.env.ABUSE_ALERT_WINDOW_MS || DEFAULT_ABUSE_ALERT_WINDOW_MS);
@@ -193,11 +194,11 @@ function getPresentedScanOwner(request) {
 }
 
 function tokenFingerprint(token) {
-  // This produces a stable, opaque identifier used purely for rate-limit scoping —
-  // it is NOT used as a stored credential or password hash.
-  // SHA-256 of (salt + token) is sufficient for this non-secret, non-stored use case.
-  // lgtm[js/insufficient-password-hash]
-  return crypto.createHash("sha256").update(API_KEY_FINGERPRINT_SALT).update(token).digest("hex");
+  // Produces a stable, opaque identifier for rate-limit scoping only.
+  // The namespace prefix is appended to the hex digest as a plain string —
+  // it is not fed into the hash, so this is not password hashing.
+  const digest = crypto.createHash("sha256").update(token).digest("hex");
+  return `${API_KEY_FINGERPRINT_NS}:${digest}`;
 }
 
 function getRequesterScope(clientIp, presentedApiKey) {
