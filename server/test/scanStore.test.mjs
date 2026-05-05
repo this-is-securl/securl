@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { buildPersistedScanRecord, createInMemoryScanRepository } from "../scanRepository.mjs";
 
-test("scan repository tracks queued, running, and completed scans", () => {
+test("scan repository tracks queued, running, and completed scans", async () => {
   const repository = createInMemoryScanRepository();
-  const scan = repository.createScan({
+  const scan = await repository.createScan({
     url: "https://example.com",
     mode: "standard",
     requesterScope: "ip:test",
@@ -13,8 +13,8 @@ test("scan repository tracks queued, running, and completed scans", () => {
 
   assert.equal(scan.status, "queued");
 
-  repository.markRunning(scan.id);
-  repository.markCompleted(scan.id, {
+  await repository.markRunning(scan.id);
+  await repository.markCompleted(scan.id, {
     score: 74,
     grade: "C",
     title: "Example title",
@@ -23,7 +23,7 @@ test("scan repository tracks queued, running, and completed scans", () => {
     issues: [{ id: "one" }, { id: "two" }],
   });
 
-  const saved = repository.getScan(scan.id);
+  const saved = await repository.getScan(scan.id);
   assert.equal(saved.status, "completed");
   assert.equal(saved.summary.score, 74);
   assert.equal(saved.summary.grade, "C");
@@ -31,41 +31,41 @@ test("scan repository tracks queued, running, and completed scans", () => {
   assert.equal(saved.summary.mainRisk, "Browser hardening gaps");
 });
 
-test("scan repository summarizes failed scans and newest-first ordering", () => {
+test("scan repository summarizes failed scans and newest-first ordering", async () => {
   const repository = createInMemoryScanRepository();
-  const first = repository.createScan({
+  const first = await repository.createScan({
     url: "https://first.example",
     mode: "standard",
     requesterScope: "ip:test",
     clientIp: "127.0.0.1",
   });
-  const second = repository.createScan({
+  const second = await repository.createScan({
     url: "https://second.example",
     mode: "quiet",
     requesterScope: "ip:test",
     clientIp: "127.0.0.1",
   });
 
-  repository.markFailed(first.id, "scan_runtime_failure", "Socket hang up");
-  repository.markFailed(second.id, "invalid_target_private", "Private targets are not allowed.");
+  await repository.markFailed(first.id, "scan_runtime_failure", "Socket hang up");
+  await repository.markFailed(second.id, "invalid_target_private", "Private targets are not allowed.");
 
-  const list = repository.listScans();
+  const list = await repository.listScans();
   assert.equal(list[0].id, second.id);
   assert.equal(list[0].status, "failed");
   assert.equal(list[0].failureClass, "invalid_target_private");
   assert.equal(list[1].id, first.id);
 });
 
-test("scan repository can expose a persisted record shape", () => {
+test("scan repository can expose a persisted record shape", async () => {
   const repository = createInMemoryScanRepository();
-  const scan = repository.createScan({
+  const scan = await repository.createScan({
     url: "https://example.com",
     mode: "standard",
     requesterScope: "ip:test",
     clientIp: "127.0.0.1",
   });
 
-  repository.markCompleted(scan.id, {
+  await repository.markCompleted(scan.id, {
     score: 81,
     grade: "B",
     title: "Example title",
@@ -74,7 +74,7 @@ test("scan repository can expose a persisted record shape", () => {
     issues: [],
   });
 
-  const persisted = buildPersistedScanRecord(repository.getScan(scan.id));
+  const persisted = buildPersistedScanRecord(await repository.getScan(scan.id));
   assert.equal(persisted.id, scan.id);
   assert.equal(persisted.summary.score, 81);
   assert.equal(persisted.summary.grade, "B");
