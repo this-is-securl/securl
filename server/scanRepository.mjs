@@ -301,7 +301,7 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       const scan = scans.get(id);
       return matchesScope(scan, scope) ? enrichScan(scan) : null;
     },
-    async listScans({ limit = 20, requesterScope = null, ownerId = null } = {}) {
+    async listScans({ limit = 20, requesterScope = null, ownerId = null, url = null } = {}) {
       const scopedOrder = ownerId
         ? order.filter((id) => scans.get(id)?.ownerId === ownerId)
         : requesterScope
@@ -309,11 +309,12 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
           : order;
 
       return scopedOrder
+        .filter((id) => !url || scans.get(id)?.url === url)
         .slice(0, Math.max(1, limit))
         .map((id) => enrichScan(scans.get(id))?.summary)
         .filter(Boolean);
     },
-    async listPersistedRecords({ limit = 20, requesterScope = null, ownerId = null } = {}) {
+    async listPersistedRecords({ limit = 20, requesterScope = null, ownerId = null, url = null } = {}) {
       const scopedOrder = ownerId
         ? order.filter((id) => scans.get(id)?.ownerId === ownerId)
         : requesterScope
@@ -321,6 +322,7 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
           : order;
 
       return scopedOrder
+        .filter((id) => !url || scans.get(id)?.url === url)
         .slice(0, Math.max(1, limit))
         .map((id) => scans.get(id))
         .filter(Boolean)
@@ -554,7 +556,7 @@ export function createPostgresScanRepository({
       const { rows } = await pool.query(`select * from ${table} where ${filters.join(" and ")} limit 1`, params);
       return hydrateScanFromRow(rows[0]);
     },
-    async listScans({ limit = 20, requesterScope = null, ownerId = null } = {}) {
+    async listScans({ limit = 20, requesterScope = null, ownerId = null, url = null } = {}) {
       const filters = [];
       const params = [];
       if (ownerId) {
@@ -564,6 +566,10 @@ export function createPostgresScanRepository({
         params.push(requesterScope);
         filters.push(`requester_scope = $${params.length}`);
       }
+      if (url) {
+        params.push(url);
+        filters.push(`url = $${params.length}`);
+      }
       params.push(Math.max(1, limit));
       const where = filters.length ? `where ${filters.join(" and ")}` : "";
       const { rows } = await pool.query(
@@ -572,7 +578,7 @@ export function createPostgresScanRepository({
       );
       return rows.map((row) => hydrateScanFromRow(row)?.summary).filter(Boolean);
     },
-    async listPersistedRecords({ limit = 20, requesterScope = null, ownerId = null } = {}) {
+    async listPersistedRecords({ limit = 20, requesterScope = null, ownerId = null, url = null } = {}) {
       const filters = [];
       const params = [];
       if (ownerId) {
@@ -581,6 +587,10 @@ export function createPostgresScanRepository({
       } else if (requesterScope) {
         params.push(requesterScope);
         filters.push(`requester_scope = $${params.length}`);
+      }
+      if (url) {
+        params.push(url);
+        filters.push(`url = $${params.length}`);
       }
       params.push(Math.max(1, limit));
       const where = filters.length ? `where ${filters.join(" and ")}` : "";

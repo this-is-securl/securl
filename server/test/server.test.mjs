@@ -327,6 +327,47 @@ test("scan resources start empty and return 404 for unknown ids", async () => {
   }
 });
 
+test("scan collection can return target-scoped history for the same url", async () => {
+  const server = await startServer();
+
+  try {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const createResponse = await fetch(`${server.baseUrl}/api/scans`, {
+        method: "POST",
+        headers: scanOwnerJsonHeaders(),
+        body: JSON.stringify({
+          url: "https://example.com",
+        }),
+      });
+      assert.equal(createResponse.status, 202);
+    }
+
+    let completed = 0;
+    for (let attempt = 0; attempt < 60 && completed < 2; attempt += 1) {
+      const historyResponse = await fetch(
+        `${server.baseUrl}/api/scans?url=${encodeURIComponent("https://example.com")}`,
+        {
+          headers: scanOwnerHeaders(),
+        },
+      );
+      const historyPayload = await historyResponse.json();
+      completed = historyPayload.scans.filter((scan) => scan.status === "completed" || scan.status === "failed").length;
+      if (completed >= 2) {
+        assert.equal(historyResponse.status, 200);
+        assert.equal(historyPayload.target.url, "https://example.com/");
+        assert.equal(historyPayload.scans.length, 2);
+        assert.ok(historyPayload.scans.every((scan) => scan.url === "https://example.com/"));
+        return;
+      }
+      await wait(100);
+    }
+
+    assert.fail("Timed out waiting for target-scoped scan history.");
+  } finally {
+    await server.stop();
+  }
+});
+
 test("scan resources require the same requester scope that created the scan", async () => {
   const server = await startServer({
     API_KEY: "test-secret",

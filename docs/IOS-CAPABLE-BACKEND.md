@@ -25,6 +25,7 @@ As of the first `0.8.3` backend step, the server now has:
 
 - `GET /api/telemetry`
 - `GET /api/scans`
+- `GET /api/scans?url=...`
 - `POST /api/scans`
 - `GET /api/scans/:id`
 - `GET /api/scans/:id/summary`
@@ -51,6 +52,7 @@ Phase 1:
 
 - `POST /api/scans`
 - `GET /api/scans`
+- `GET /api/scans?url=...`
 - `GET /api/scans/:id`
 
 Phase 2:
@@ -112,6 +114,28 @@ The `result` payload can remain rich for now, but the long-term goal is to split
 - findings
 - evidence
 - history
+
+### Target history
+
+Repeated scans of the same canonical target URL should be retrievable as a server-owned summary timeline.
+
+Current transitional shape:
+
+```json
+{
+  "target": {
+    "url": "https://example.com/"
+  },
+  "scans": [
+    {
+      "id": "uuid",
+      "status": "completed",
+      "score": 74,
+      "grade": "C"
+    }
+  ]
+}
+```
 
 ## Persistence Roadmap
 
