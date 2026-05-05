@@ -5,7 +5,12 @@ import { createRateLimiter } from "./rateLimiter.mjs";
 import { sendJson, sendMethodNotAllowed, sendRateLimited } from "./httpResponses.mjs";
 import { handleAnalyzeRequest } from "./analyzeHandler.mjs";
 import { createRequestGuards, getRequestedScanMode, normalizeScanErrorMessage, readJsonBody } from "./requestGuards.mjs";
-import { buildScanEvidencePayload, buildScanFindingsPayload, buildScanSummaryPayload } from "./scanDtos.mjs";
+import {
+  buildScanEvidencePayload,
+  buildScanFindingsPayload,
+  buildScanHistoryPayload,
+  buildScanSummaryPayload,
+} from "./scanDtos.mjs";
 import { handleScanCollectionRequest, handleScanResourceRequest } from "./scanResourceHandlers.mjs";
 import { createStaticHandler } from "./staticServer.mjs";
 import { enforceStartupConfiguration, initializeScanRepository } from "./startupValidation.mjs";
@@ -259,6 +264,7 @@ const server = http.createServer(async (request, response) => {
       buildScanSummaryPayload,
       buildScanFindingsPayload,
       buildScanEvidencePayload,
+      buildScanHistoryPayload,
       sendJson,
       sendMethodNotAllowed,
       sendRepositoryUnavailable,

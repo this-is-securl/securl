@@ -3,6 +3,7 @@ import { Pool } from "pg";
 
 export function buildScanRepositorySchemaStatements(schema = "public") {
   const qualifiedTable = `${schema}.scans`;
+  const qualifiedEventsTable = `${schema}.scan_events`;
   return [
     `create schema if not exists ${schema}`,
     `create table if not exists ${qualifiedTable} (
@@ -21,9 +22,20 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
       summary jsonb not null,
       result jsonb null
     )`,
+    `create table if not exists ${qualifiedEventsTable} (
+      id uuid primary key,
+      scan_id uuid not null references ${qualifiedTable}(id) on delete cascade,
+      event_type text not null,
+      occurred_at timestamptz not null,
+      status text not null,
+      failure_class text null,
+      message text null,
+      metadata jsonb not null default '{}'::jsonb
+    )`,
     `create index if not exists scans_requested_at_idx on ${qualifiedTable} (requested_at desc)`,
     `create index if not exists scans_owner_requested_at_idx on ${qualifiedTable} (owner_id, requested_at desc)`,
     `create index if not exists scans_requester_requested_at_idx on ${qualifiedTable} (requester_scope, requested_at desc)`,
+    `create index if not exists scan_events_scan_occurred_idx on ${qualifiedEventsTable} (scan_id, occurred_at desc)`,
   ];
 }
 
@@ -71,6 +83,27 @@ export function buildPersistedScanRecord(scan) {
   };
 }
 
+export function buildScanEvent({
+  scanId,
+  eventType,
+  status,
+  occurredAt = new Date().toISOString(),
+  failureClass = null,
+  message = null,
+  metadata = {},
+}) {
+  return {
+    id: crypto.randomUUID(),
+    scanId,
+    eventType,
+    occurredAt,
+    status,
+    failureClass,
+    message,
+    metadata,
+  };
+}
+
 function enrichScan(scan) {
   if (!scan) {
     return null;
@@ -103,6 +136,23 @@ function hydrateScanFromRow(row) {
   });
 }
 
+function hydrateScanEventFromRow(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    scanId: row.scan_id,
+    eventType: row.event_type,
+    occurredAt: row.occurred_at?.toISOString?.() ?? row.occurred_at,
+    status: row.status,
+    failureClass: row.failure_class,
+    message: row.message,
+    metadata: row.metadata ?? {},
+  };
+}
+
 function matchesScope(scan, { requesterScope = null, ownerId = null } = {}) {
   if (!scan) {
     return false;
@@ -119,6 +169,7 @@ function matchesScope(scan, { requesterScope = null, ownerId = null } = {}) {
 export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
   const scans = new Map();
   const order = [];
+  const events = new Map();
 
   const touchOrder = (id) => {
     const index = order.indexOf(id);
@@ -160,6 +211,18 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
         result: null,
       };
       scans.set(scan.id, scan);
+      events.set(scan.id, [
+        buildScanEvent({
+          scanId: scan.id,
+          eventType: "queued",
+          status: "queued",
+          occurredAt: scan.requestedAt,
+          metadata: {
+            url: scan.url,
+            mode: scan.mode,
+          },
+        }),
+      ]);
       touchOrder(scan.id);
       return enrichScan(scan);
     },
@@ -170,6 +233,16 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       }
       scan.status = "running";
       scan.startedAt = new Date().toISOString();
+      const scanEvents = events.get(id) ?? [];
+      scanEvents.unshift(
+        buildScanEvent({
+          scanId: id,
+          eventType: "started",
+          status: "running",
+          occurredAt: scan.startedAt,
+        }),
+      );
+      events.set(id, scanEvents);
       touchOrder(id);
       return enrichScan(scan);
     },
@@ -181,6 +254,22 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       scan.status = "completed";
       scan.completedAt = new Date().toISOString();
       scan.result = result;
+      const scanEvents = events.get(id) ?? [];
+      scanEvents.unshift(
+        buildScanEvent({
+          scanId: id,
+          eventType: "completed",
+          status: "completed",
+          occurredAt: scan.completedAt,
+          metadata: {
+            score: result?.score ?? null,
+            grade: result?.grade ?? null,
+            limited: result?.assessmentLimitation?.limited ?? false,
+            limitedKind: result?.assessmentLimitation?.kind ?? null,
+          },
+        }),
+      );
+      events.set(id, scanEvents);
       touchOrder(id);
       return enrichScan(scan);
     },
@@ -193,6 +282,18 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       scan.completedAt = new Date().toISOString();
       scan.failureClass = failureClass;
       scan.error = message;
+      const scanEvents = events.get(id) ?? [];
+      scanEvents.unshift(
+        buildScanEvent({
+          scanId: id,
+          eventType: "failed",
+          status: "failed",
+          occurredAt: scan.completedAt,
+          failureClass,
+          message,
+        }),
+      );
+      events.set(id, scanEvents);
       touchOrder(id);
       return enrichScan(scan);
     },
@@ -225,6 +326,13 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
         .filter(Boolean)
         .map((scan) => buildPersistedScanRecord(scan));
     },
+    async listScanEvents(id, scope = {}) {
+      const scan = scans.get(id);
+      if (!matchesScope(scan, scope)) {
+        return [];
+      }
+      return [...(events.get(id) ?? [])];
+    },
     async close() {
       return undefined;
     },
@@ -244,6 +352,7 @@ export function createPostgresScanRepository({
   });
 
   const table = `${schema}.scans`;
+  const eventsTable = `${schema}.scan_events`;
   const schemaStatements = buildScanRepositorySchemaStatements(schema);
 
   const repository = {
@@ -303,6 +412,32 @@ export function createPostgresScanRepository({
           record.result ? JSON.stringify(record.result) : null,
         ],
       );
+      const queuedEvent = buildScanEvent({
+        scanId: record.id,
+        eventType: "queued",
+        status: "queued",
+        occurredAt: record.requestedAt,
+        metadata: {
+          url: record.url,
+          mode: record.mode,
+        },
+      });
+      await pool.query(
+        `insert into ${eventsTable}
+          (id, scan_id, event_type, occurred_at, status, failure_class, message, metadata)
+         values
+          ($1, $2, $3, $4::timestamptz, $5, $6, $7, $8::jsonb)`,
+        [
+          queuedEvent.id,
+          queuedEvent.scanId,
+          queuedEvent.eventType,
+          queuedEvent.occurredAt,
+          queuedEvent.status,
+          queuedEvent.failureClass,
+          queuedEvent.message,
+          JSON.stringify(queuedEvent.metadata),
+        ],
+      );
       return scan;
     },
     async markRunning(id) {
@@ -313,6 +448,19 @@ export function createPostgresScanRepository({
          where id = $1
          returning *`,
         [id, startedAt],
+      );
+      const event = buildScanEvent({
+        scanId: id,
+        eventType: "started",
+        status: "running",
+        occurredAt: startedAt,
+      });
+      await pool.query(
+        `insert into ${eventsTable}
+          (id, scan_id, event_type, occurred_at, status, failure_class, message, metadata)
+         values
+          ($1, $2, $3, $4::timestamptz, $5, $6, $7, $8::jsonb)`,
+        [event.id, event.scanId, event.eventType, event.occurredAt, event.status, null, null, JSON.stringify({})],
       );
       return hydrateScanFromRow(rows[0]);
     },
@@ -342,6 +490,25 @@ export function createPostgresScanRepository({
          returning *`,
         [id, completedAt, JSON.stringify(summary), JSON.stringify(result)],
       );
+      const event = buildScanEvent({
+        scanId: id,
+        eventType: "completed",
+        status: "completed",
+        occurredAt: completedAt,
+        metadata: {
+          score: result?.score ?? null,
+          grade: result?.grade ?? null,
+          limited: result?.assessmentLimitation?.limited ?? false,
+          limitedKind: result?.assessmentLimitation?.kind ?? null,
+        },
+      });
+      await pool.query(
+        `insert into ${eventsTable}
+          (id, scan_id, event_type, occurred_at, status, failure_class, message, metadata)
+         values
+          ($1, $2, $3, $4::timestamptz, $5, $6, $7, $8::jsonb)`,
+        [event.id, event.scanId, event.eventType, event.occurredAt, event.status, null, null, JSON.stringify(event.metadata)],
+      );
       return hydrateScanFromRow(rows[0]);
     },
     async markFailed(id, failureClass, message) {
@@ -356,6 +523,21 @@ export function createPostgresScanRepository({
          where id = $1
          returning *`,
         [id, completedAt, failureClass, message],
+      );
+      const event = buildScanEvent({
+        scanId: id,
+        eventType: "failed",
+        status: "failed",
+        occurredAt: completedAt,
+        failureClass,
+        message,
+      });
+      await pool.query(
+        `insert into ${eventsTable}
+          (id, scan_id, event_type, occurred_at, status, failure_class, message, metadata)
+         values
+          ($1, $2, $3, $4::timestamptz, $5, $6, $7, $8::jsonb)`,
+        [event.id, event.scanId, event.eventType, event.occurredAt, event.status, event.failureClass, event.message, JSON.stringify({})],
       );
       return hydrateScanFromRow(rows[0]);
     },
@@ -407,6 +589,26 @@ export function createPostgresScanRepository({
         params,
       );
       return rows.map((row) => buildPersistedScanRecord(hydrateScanFromRow(row)));
+    },
+    async listScanEvents(id, { requesterScope = null, ownerId = null } = {}) {
+      const filters = [`s.id = $1`];
+      const params = [id];
+      if (ownerId) {
+        params.push(ownerId);
+        filters.push(`s.owner_id = $${params.length}`);
+      } else if (requesterScope) {
+        params.push(requesterScope);
+        filters.push(`s.requester_scope = $${params.length}`);
+      }
+      const { rows } = await pool.query(
+        `select e.*
+         from ${eventsTable} e
+         join ${table} s on s.id = e.scan_id
+         where ${filters.join(" and ")}
+         order by e.occurred_at desc`,
+        params,
+      );
+      return rows.map(hydrateScanEventFromRow).filter(Boolean);
     },
     async close() {
       await pool.end();

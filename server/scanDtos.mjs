@@ -59,3 +59,15 @@ export function buildScanEvidencePayload(scan) {
   };
 }
 
+export function buildScanHistoryPayload(scan, events) {
+  return {
+    scan: {
+      id: scan.id,
+      status: scan.status,
+      requestedAt: scan.requestedAt,
+      startedAt: scan.startedAt,
+      completedAt: scan.completedAt,
+    },
+    events: normalizeArray(events),
+  };
+}

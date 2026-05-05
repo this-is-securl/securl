@@ -459,7 +459,7 @@ test("scan resources return a sanitized error for invalid targets", async () => 
   }
 });
 
-test("scan detail endpoints return summary, findings, and evidence payloads", async () => {
+test("scan detail endpoints return summary, findings, evidence, and history payloads", async () => {
   const server = await startServer();
 
   try {
@@ -498,10 +498,14 @@ test("scan detail endpoints return summary, findings, and evidence payloads", as
     const evidenceResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/evidence`, {
       headers: scanOwnerHeaders(),
     });
+    const historyResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/history`, {
+      headers: scanOwnerHeaders(),
+    });
 
     const summaryPayload = await summaryResponse.json();
     const findingsPayload = await findingsResponse.json();
     const evidencePayload = await evidenceResponse.json();
+    const historyPayload = await historyResponse.json();
 
     assert.equal(summaryResponse.status, 200);
     assert.equal(summaryPayload.summary.id, scanId);
@@ -513,6 +517,11 @@ test("scan detail endpoints return summary, findings, and evidence payloads", as
     assert.ok(Array.isArray(evidencePayload.evidence.headers));
     assert.ok(Array.isArray(evidencePayload.evidence.cookies));
     assert.ok(Array.isArray(evidencePayload.evidence.redirects));
+    assert.equal(historyResponse.status, 200);
+    assert.equal(historyPayload.scan.id, scanId);
+    assert.ok(Array.isArray(historyPayload.events));
+    assert.ok(historyPayload.events.length >= 3);
+    assert.equal(historyPayload.events[0].eventType, "completed");
   } finally {
     await server.stop();
   }
