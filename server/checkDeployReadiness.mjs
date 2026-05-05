@@ -115,6 +115,7 @@ if (errors.length === 0 && scanRepositoryBackend === "postgres") {
   });
 
   try {
+    await repository.initialize?.();
     await repository.ping();
   } catch (error) {
     errors.push(`Configured Postgres scan repository is unavailable: ${error?.message || String(error)}`);
