@@ -192,6 +192,16 @@ Suggested first cut:
 
 This is not the final ideal relational model. It is the fastest safe step toward durability.
 
+### Initialization behavior
+
+The first Postgres-backed implementation should be able to bootstrap itself safely in a fresh environment:
+
+- create the configured schema if missing
+- create the `scans` table if missing
+- create the basic ownership and recency indexes if missing
+
+That keeps Railway-style deployments practical while we are still pre-migrations-framework.
+
 ## Auth Roadmap
 
 The current shared API key model is not suitable for a multi-user client platform.

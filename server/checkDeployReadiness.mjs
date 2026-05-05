@@ -1,3 +1,5 @@
+import { createScanRepository } from "./scanRepository.mjs";
+
 function asNumber(value, fallback) {
   const parsed = Number(value ?? fallback);
   return Number.isFinite(parsed) ? parsed : Number.NaN;
@@ -10,6 +12,9 @@ const apiKey = env.API_KEY || "";
 const deploymentMode = env.DEPLOYMENT_MODE === "multi-instance" ? "multi-instance" : "single-instance";
 const configuredBackend = (env.RATE_LIMIT_BACKEND || "").trim().toLowerCase();
 const rateLimitBackend = configuredBackend || (deploymentMode === "multi-instance" ? "upstash" : "in-memory");
+const configuredScanRepositoryBackend = (env.SCAN_REPOSITORY_BACKEND || "").trim().toLowerCase();
+const scanRepositoryBackend = configuredScanRepositoryBackend || "memory";
+const databaseUrl = (env.DATABASE_URL || "").trim();
 const upstashUrl = (env.UPSTASH_REDIS_REST_URL || "").trim();
 const upstashToken = (env.UPSTASH_REDIS_REST_TOKEN || "").trim();
 const rateLimitWindowMs = asNumber(env.RATE_LIMIT_WINDOW_MS, 900000);
@@ -34,8 +39,16 @@ if (!["in-memory", "upstash"].includes(rateLimitBackend)) {
   errors.push("RATE_LIMIT_BACKEND must be either 'in-memory' or 'upstash'.");
 }
 
+if (!["memory", "postgres"].includes(scanRepositoryBackend)) {
+  errors.push("SCAN_REPOSITORY_BACKEND must be either 'memory' or 'postgres'.");
+}
+
 if (deploymentMode === "multi-instance" && rateLimitBackend !== "upstash") {
   errors.push("DEPLOYMENT_MODE=multi-instance requires RATE_LIMIT_BACKEND=upstash.");
+}
+
+if (scanRepositoryBackend === "postgres" && !databaseUrl) {
+  errors.push("DATABASE_URL is required when SCAN_REPOSITORY_BACKEND=postgres.");
 }
 
 if (rateLimitBackend === "upstash") {
@@ -83,6 +96,7 @@ const summary = {
   nodeEnv,
   deploymentMode,
   rateLimitBackend,
+  scanRepositoryBackend,
   allowUnauthenticated,
   trustProxy: env.TRUST_PROXY === "true",
   rateLimitWindowMs,
@@ -92,6 +106,23 @@ const summary = {
   abuseAlertWindowMs,
   abuseAlertThreshold,
 };
+
+if (errors.length === 0 && scanRepositoryBackend === "postgres") {
+  const repository = createScanRepository({
+    backend: scanRepositoryBackend,
+    databaseUrl,
+    log: () => {},
+  });
+
+  try {
+    await repository.initialize?.();
+    await repository.ping();
+  } catch (error) {
+    errors.push(`Configured Postgres scan repository is unavailable: ${error?.message || String(error)}`);
+  } finally {
+    await repository.close?.();
+  }
+}
 
 console.log(JSON.stringify({ ok: errors.length === 0, summary, warnings, errors }, null, 2));
 
