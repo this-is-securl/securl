@@ -218,6 +218,39 @@ test("analyze endpoint requires API key when configured", async () => {
   }
 });
 
+test("static frontend responses include the hardened browser headers", async () => {
+  const server = await startServer();
+
+  try {
+    const response = await fetch(`${server.baseUrl}/`);
+
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("strict-transport-security"), "max-age=31536000; includeSubDomains; preload");
+    assert.equal(response.headers.get("permissions-policy"), "camera=(), microphone=(), geolocation=(), browsing-topics=()");
+    assert.equal(response.headers.get("cross-origin-opener-policy"), "same-origin");
+    assert.equal(response.headers.get("cross-origin-resource-policy"), "same-origin");
+  } finally {
+    await server.stop();
+  }
+});
+
+test("security.txt is served as a real file instead of the SPA shell", async () => {
+  const server = await startServer();
+
+  try {
+    const response = await fetch(`${server.baseUrl}/.well-known/security.txt`);
+    const body = await response.text();
+
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get("content-type") || "", /application\/octet-stream|text\/plain/i);
+    assert.match(body, /Contact:\s+mailto:ktbatterham@me\.com/i);
+    assert.match(body, /Expires:\s+2027-05-05T00:00:00\.000Z/i);
+    assert.doesNotMatch(body, /<html/i);
+  } finally {
+    await server.stop();
+  }
+});
+
 test("health endpoint includes deployment and rate-limit metadata", async () => {
   const server = await startServer({
     DEPLOYMENT_MODE: "single-instance",
