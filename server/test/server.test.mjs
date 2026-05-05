@@ -18,6 +18,24 @@ const scanOwnerJsonHeaders = (owner = SCAN_OWNER_ONE) => ({
   ...scanOwnerHeaders(owner),
 });
 
+const postScan = (baseUrl, url, options = {}) =>
+  fetch(`${baseUrl}/api/scans`, {
+    method: "POST",
+    headers: scanOwnerJsonHeaders(options.owner),
+    body: JSON.stringify({
+      url,
+      ...(options.mode ? { mode: options.mode } : {}),
+    }),
+    ...("headers" in options
+      ? {
+          headers: {
+            ...scanOwnerJsonHeaders(options.owner),
+            ...options.headers,
+          },
+        }
+      : {}),
+  });
+
 const getFreePort = () =>
   new Promise((resolve, reject) => {
     const server = net.createServer();
@@ -202,13 +220,13 @@ test("server blocks startup when postgres scan repository is unreachable", async
   assert.match(getStderr(), /scan repository is unavailable|connect/i);
 });
 
-test("analyze endpoint requires API key when configured", async () => {
+test("scan resources require API key when configured", async () => {
   const server = await startServer({
     API_KEY: "test-secret",
   });
 
   try {
-    const response = await fetch(`${server.baseUrl}/api/analyze?url=${encodeURIComponent("https://example.com")}`);
+    const response = await fetch(`${server.baseUrl}/api/scans`);
     const payload = await response.json();
 
     assert.equal(response.status, 401);
@@ -300,10 +318,8 @@ test("telemetry endpoint returns aggregate page-load and failure counters", asyn
     const pageResponse = await fetch(server.baseUrl);
     assert.equal(pageResponse.status, 200);
 
-    const badAnalyze = await fetch(
-      `${server.baseUrl}/api/analyze?url=${encodeURIComponent("https://user:pass@example.com")}`,
-    );
-    assert.equal(badAnalyze.status, 400);
+    const badScan = await postScan(server.baseUrl, "https://user:pass@example.com");
+    assert.equal(badScan.status, 400);
 
     const telemetryResponse = await fetch(`${server.baseUrl}/api/telemetry`);
     const payload = await telemetryResponse.json();
@@ -606,52 +622,35 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
   }
 });
 
-test("analyze endpoint returns a sanitized error for invalid targets", async () => {
+test("scan collection rejects unsupported methods", async () => {
   const server = await startServer();
 
   try {
-    const response = await fetch(
-      `${server.baseUrl}/api/analyze?url=${encodeURIComponent("https://user:pass@example.com")}`,
-    );
-    const payload = await response.json();
-
-    assert.equal(response.status, 400);
-    assert.equal(payload.error, "Unable to analyze that target. Please check the URL and try again.");
-    assert.doesNotMatch(JSON.stringify(payload), /embedded credentials|user:pass|stack/i);
-  } finally {
-    await server.stop();
-  }
-});
-
-test("analyze endpoint rejects unsupported methods", async () => {
-  const server = await startServer();
-
-  try {
-    const response = await fetch(
-      `${server.baseUrl}/api/analyze?url=${encodeURIComponent("https://example.com")}`,
-      { method: "POST" },
-    );
+    const response = await fetch(`${server.baseUrl}/api/scans`, {
+      method: "PUT",
+      headers: scanOwnerHeaders(),
+    });
     const payload = await response.json();
 
     assert.equal(response.status, 405);
-    assert.equal(response.headers.get("allow"), "GET");
+    assert.equal(response.headers.get("allow"), "GET, POST");
     assert.match(payload.error, /Method not allowed/i);
   } finally {
     await server.stop();
   }
 });
 
-test("analyze endpoint rejects HEAD requests without triggering scan work", async () => {
+test("scan collection rejects HEAD requests without triggering scan work", async () => {
   const server = await startServer();
 
   try {
-    const response = await fetch(
-      `${server.baseUrl}/api/analyze?url=${encodeURIComponent("https://example.com")}`,
-      { method: "HEAD" },
-    );
+    const response = await fetch(`${server.baseUrl}/api/scans`, {
+      method: "HEAD",
+      headers: scanOwnerHeaders(),
+    });
 
     assert.equal(response.status, 405);
-    assert.equal(response.headers.get("allow"), "GET");
+    assert.equal(response.headers.get("allow"), "GET, POST");
     assert.doesNotMatch(server.getStdout(), /analysis_requested/);
   } finally {
     await server.stop();
@@ -664,14 +663,11 @@ test("rate limiting ignores spoofed forwarded headers unless trust proxy is enab
   try {
     let limitedResponse = null;
     for (let index = 0; index < 31; index += 1) {
-      const response = await fetch(
-        `${server.baseUrl}/api/analyze?url=${encodeURIComponent(`https://localhost-${index}.example.com`)}`,
-        {
-          headers: {
-            "X-Forwarded-For": `198.51.100.${index}`,
-          },
+      const response = await postScan(server.baseUrl, `https://localhost-${index}.example.com`, {
+        headers: {
+          "X-Forwarded-For": `198.51.100.${index}`,
         },
-      );
+      });
       if (response.status === 429) {
         limitedResponse = response;
         break;
@@ -693,14 +689,11 @@ test("trusted proxy mode uses forwarded headers for client attribution", async (
 
   try {
     for (let index = 0; index < 31; index += 1) {
-      const response = await fetch(
-        `${server.baseUrl}/api/analyze?url=${encodeURIComponent(`https://localhost-${index}.example.com`)}`,
-        {
-          headers: {
-            "X-Forwarded-For": `198.51.100.${index}`,
-          },
+      const response = await postScan(server.baseUrl, `https://localhost-${index}.example.com`, {
+        headers: {
+          "X-Forwarded-For": `198.51.100.${index}`,
         },
-      );
+      });
       assert.equal(response.status, 400);
     }
   } finally {
@@ -715,9 +708,9 @@ test("rate limiting supports environment overrides", async () => {
   });
 
   try {
-    const one = await fetch(`${server.baseUrl}/api/analyze?url=${encodeURIComponent("https://localhost-1.example.com")}`);
-    const two = await fetch(`${server.baseUrl}/api/analyze?url=${encodeURIComponent("https://localhost-2.example.com")}`);
-    const three = await fetch(`${server.baseUrl}/api/analyze?url=${encodeURIComponent("https://localhost-3.example.com")}`);
+    const one = await postScan(server.baseUrl, "https://localhost-1.example.com");
+    const two = await postScan(server.baseUrl, "https://localhost-2.example.com");
+    const three = await postScan(server.baseUrl, "https://localhost-3.example.com");
 
     assert.equal(one.status, 400);
     assert.equal(two.status, 400);
@@ -738,9 +731,9 @@ test("upstash limiter falls back to local throttling when backend requests fail"
   });
 
   try {
-    const one = await fetch(`${server.baseUrl}/api/analyze?url=${encodeURIComponent("https://localhost-1.example.com")}`);
-    const two = await fetch(`${server.baseUrl}/api/analyze?url=${encodeURIComponent("https://localhost-2.example.com")}`);
-    const three = await fetch(`${server.baseUrl}/api/analyze?url=${encodeURIComponent("https://localhost-3.example.com")}`);
+    const one = await postScan(server.baseUrl, "https://localhost-1.example.com");
+    const two = await postScan(server.baseUrl, "https://localhost-2.example.com");
+    const three = await postScan(server.baseUrl, "https://localhost-3.example.com");
 
     assert.equal(one.status, 400);
     assert.equal(two.status, 400);
@@ -758,9 +751,9 @@ test("target quota limits repeated requests to the same host per requester scope
   });
 
   try {
-    const one = await fetch(`${server.baseUrl}/api/analyze?url=${encodeURIComponent("https://repeat-target.example.com")}`);
-    const two = await fetch(`${server.baseUrl}/api/analyze?url=${encodeURIComponent("https://repeat-target.example.com")}`);
-    const three = await fetch(`${server.baseUrl}/api/analyze?url=${encodeURIComponent("https://repeat-target.example.com")}`);
+    const one = await postScan(server.baseUrl, "https://repeat-target.example.com");
+    const two = await postScan(server.baseUrl, "https://repeat-target.example.com");
+    const three = await postScan(server.baseUrl, "https://repeat-target.example.com");
 
     assert.equal(one.status, 400);
     assert.equal(two.status, 400);

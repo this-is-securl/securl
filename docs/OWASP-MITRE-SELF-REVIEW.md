@@ -5,7 +5,7 @@ This document tracks how the scanner application itself is hardened before publi
 ## Current Controls
 
 1. `A01 Broken Access Control` / `MITRE Initial Access`
-- `/api/analyze` supports API key enforcement (`API_KEY`) with explicit production opt-in required for unauthenticated mode.
+- Scan resources under `/api/scans` support API key enforcement (`API_KEY`) with explicit production opt-in required for unauthenticated mode.
 - Production startup is blocked when auth is not configured and `ALLOW_UNAUTHENTICATED` is not explicitly set.
 
 2. `A05 Security Misconfiguration` / `MITRE Reconnaissance`
@@ -18,7 +18,7 @@ This document tracks how the scanner application itself is hardened before publi
 - DNS resolution is validated before scan dispatch; mixed/private resolution is blocked.
 
 4. `A04 Insecure Design` / `MITRE Reconnaissance`
-- Rate limiting is applied to `/api/analyze`.
+- Rate limiting is applied to `POST /api/scans`.
 - Distributed rate limiting via Upstash REST is available and enforced for `DEPLOYMENT_MODE=multi-instance`.
 - Client IP attribution defaults to socket peer; forwarded headers are used only when trust-proxy mode is enabled and the direct peer is private/local.
 - Rate-limit bucket count is capped to prevent unbounded in-memory growth.

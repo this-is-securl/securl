@@ -48,18 +48,18 @@ Confirm:
 2. API key enforcement:
 
 ```sh
-curl -i "https://<your-domain>/api/analyze?url=https://example.com"
+curl -i "https://<your-domain>/api/scans"
 ```
 
 Expect `401` when key is missing or invalid.
 
 3. Requester quota:
 
-Send repeated analyze requests from same client; confirm `429` and `Retry-After` appear after threshold.
+Send repeated `POST /api/scans` requests from same client; confirm `429` and `Retry-After` appear after threshold.
 
 4. Target quota:
 
-Hit the same target repeatedly from one client; confirm target-specific `429` response text appears.
+Hit the same target repeatedly with `POST /api/scans` from one client; confirm target-specific `429` response text appears.
 
 ## 4) Validation Signals in Logs
 

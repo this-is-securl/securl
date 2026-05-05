@@ -3,7 +3,6 @@ import path from "node:path";
 import { fileURLToPath, URL } from "node:url";
 import { createRateLimiter } from "./rateLimiter.mjs";
 import { sendJson, sendMethodNotAllowed, sendRateLimited } from "./httpResponses.mjs";
-import { handleAnalyzeRequest } from "./analyzeHandler.mjs";
 import { createRequestGuards, getRequestedScanMode, normalizeScanErrorMessage, readJsonBody } from "./requestGuards.mjs";
 import {
   buildScanEvidencePayload,
@@ -94,7 +93,6 @@ const upstashRestToken = (process.env.UPSTASH_REDIS_REST_TOKEN || "").trim();
 const abuseSignalBuckets = new Map();
 const exposeDetailedHealth = !isProduction;
 const exposeTelemetry = process.env.EXPOSE_TELEMETRY === "true" || !isProduction;
-const allowLegacyAnalyze = process.env.ALLOW_LEGACY_ANALYZE === "true" || !isProduction;
 const telemetry = createTelemetryTracker();
 let scanRepository;
 
@@ -244,6 +242,7 @@ const server = http.createServer(async (request, response) => {
       assertPublicHttpUrl,
       buildTargetHistoryPayload,
       sendJson,
+      sendMethodNotAllowed,
       sendRepositoryUnavailable,
       telemetry,
       classifyScanFailure,
@@ -271,33 +270,6 @@ const server = http.createServer(async (request, response) => {
       sendMethodNotAllowed,
       sendRepositoryUnavailable,
       requireScanOwner: true,
-    });
-    return;
-  }
-
-  if (requestUrl.pathname === "/api/analyze") {
-    if (!allowLegacyAnalyze) {
-      sendJson(response, 410, {
-        error: "Legacy GET analysis is disabled. Create scans with POST /api/scans.",
-      });
-      return;
-    }
-
-    await handleAnalyzeRequest({
-      request,
-      response,
-      requestUrl,
-      authorizeAnalysisRequest,
-      getRequestedScanMode,
-      checkTargetQuota,
-      assertPublicHttpUrl,
-      runScanAnalysis,
-      telemetry,
-      classifyScanFailure,
-      formatErrorMessage,
-      sendJson,
-      sendMethodNotAllowed,
-      log,
     });
     return;
   }
