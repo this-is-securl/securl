@@ -130,7 +130,7 @@ export async function handleScanCollectionRequest({
           return true;
         }
 
-        const scans = await scanRepository.listScans({
+        const scans = await scanRepository.listPersistedRecords({
           limit: Number(requestUrl.searchParams.get("limit") || 20),
           ownerId: authState.ownerId,
           url: validatedTarget.toString(),

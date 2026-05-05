@@ -357,6 +357,11 @@ test("scan collection can return target-scoped history for the same url", async 
         assert.equal(historyPayload.target.url, "https://example.com/");
         assert.equal(historyPayload.scans.length, 2);
         assert.ok(historyPayload.scans.every((scan) => scan.url === "https://example.com/"));
+        assert.ok(historyPayload.comparison);
+        assert.equal(historyPayload.comparison.currentScanId, historyPayload.scans[0].id);
+        assert.equal(historyPayload.comparison.previousScanId, historyPayload.scans[1].id);
+        assert.equal(typeof historyPayload.comparison.diff.scoreDelta, "number");
+        assert.ok(Array.isArray(historyPayload.comparison.diff.summary));
         return;
       }
       await wait(100);

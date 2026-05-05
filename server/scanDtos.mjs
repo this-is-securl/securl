@@ -1,5 +1,24 @@
+import { buildHistoryDiffFromSnapshots, snapshotFromAnalysis } from "../packages/core/dist/historyDiff.js";
+
 function normalizeArray(value) {
   return Array.isArray(value) ? value : [];
+}
+
+function buildStoredTargetDiff(records) {
+  const completedWithResults = normalizeArray(records).filter((scan) => scan?.status === "completed" && scan?.result);
+  if (completedWithResults.length < 2) {
+    return null;
+  }
+
+  const [current, previous] = completedWithResults;
+  return {
+    currentScanId: current.id,
+    previousScanId: previous.id,
+    diff: buildHistoryDiffFromSnapshots(
+      snapshotFromAnalysis(current.result),
+      snapshotFromAnalysis(previous.result),
+    ),
+  };
 }
 
 export function buildScanSummaryPayload(scan) {
@@ -72,11 +91,12 @@ export function buildScanHistoryPayload(scan, events) {
   };
 }
 
-export function buildTargetHistoryPayload(url, scans) {
+export function buildTargetHistoryPayload(url, records) {
   return {
     target: {
       url,
     },
-    scans: normalizeArray(scans),
+    scans: normalizeArray(records).map((record) => record.summary).filter(Boolean),
+    comparison: buildStoredTargetDiff(records),
   };
 }
