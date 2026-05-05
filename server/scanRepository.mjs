@@ -98,6 +98,9 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
 
   return {
     kind: "memory",
+    async ping() {
+      return true;
+    },
     async createScan({ url, mode, requesterScope, clientIp, ownerId = null }) {
       const scan = {
         id: crypto.randomUUID(),
@@ -167,6 +170,9 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
         .filter(Boolean)
         .map((scan) => buildPersistedScanRecord(scan));
     },
+    async close() {
+      return undefined;
+    },
   };
 }
 
@@ -188,6 +194,8 @@ export function createPostgresScanRepository({
     kind: "postgres",
     async ping() {
       await pool.query("SELECT 1");
+      await pool.query(`select 1 from ${table} limit 1`);
+      return true;
     },
     async createScan({ url, mode, requesterScope, clientIp, ownerId = null }) {
       const scan = {
@@ -326,4 +334,3 @@ export function createScanRepository({ backend = "memory", databaseUrl = "", log
 
   return createInMemoryScanRepository();
 }
-

@@ -1,3 +1,5 @@
+import { createScanRepository } from "./scanRepository.mjs";
+
 function asNumber(value, fallback) {
   const parsed = Number(value ?? fallback);
   return Number.isFinite(parsed) ? parsed : Number.NaN;
@@ -104,6 +106,22 @@ const summary = {
   abuseAlertWindowMs,
   abuseAlertThreshold,
 };
+
+if (errors.length === 0 && scanRepositoryBackend === "postgres") {
+  const repository = createScanRepository({
+    backend: scanRepositoryBackend,
+    databaseUrl,
+    log: () => {},
+  });
+
+  try {
+    await repository.ping();
+  } catch (error) {
+    errors.push(`Configured Postgres scan repository is unavailable: ${error?.message || String(error)}`);
+  } finally {
+    await repository.close?.();
+  }
+}
 
 console.log(JSON.stringify({ ok: errors.length === 0, summary, warnings, errors }, null, 2));
 
