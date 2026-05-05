@@ -89,9 +89,13 @@ export function createStaticHandler({
 
     response.writeHead(200, {
       "Content-Type": getMimeType(preferredPath),
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
       "X-Content-Type-Options": "nosniff",
       "X-Frame-Options": "DENY",
       "Referrer-Policy": "no-referrer",
+      "Permissions-Policy": "camera=(), microphone=(), geolocation=(), browsing-topics=()",
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Resource-Policy": "same-origin",
       "Content-Security-Policy": `default-src 'self'; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; connect-src ${connectSources.join(" ")};`,
     });
     if (method === "HEAD") {
