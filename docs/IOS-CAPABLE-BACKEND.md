@@ -27,8 +27,12 @@ As of the first `0.8.3` backend step, the server now has:
 - `GET /api/scans`
 - `POST /api/scans`
 - `GET /api/scans/:id`
+- `GET /api/scans/:id/summary`
+- `GET /api/scans/:id/findings`
+- `GET /api/scans/:id/evidence`
+- `GET /api/scans/:id/history`
 
-These scan resources are intentionally **in-memory** for now. They are not the final storage model, but they establish the API shape we want to grow into.
+These scan resources still default to **in-memory** storage for local development, but the same API shape can now be backed by Postgres for durable deployments.
 
 ## Target Service Model
 
@@ -119,6 +123,7 @@ The in-memory store is only a stepping stone. The durable version should store:
 - monitoring targets
 - comparison history
 - telemetry aggregates
+- scan lifecycle events
 
 Recommended first tables/documents:
 
@@ -146,6 +151,7 @@ Current repository responsibilities:
 - `markFailed`
 - `getScan`
 - `listScans`
+- `listScanEvents`
 
 Current persisted-record shape:
 
@@ -190,6 +196,16 @@ Suggested first cut:
   - `summary jsonb not null`
   - `result jsonb null`
 
+- `scan_events`
+  - `id uuid primary key`
+  - `scan_id uuid not null references scans(id) on delete cascade`
+  - `event_type text not null`
+  - `occurred_at timestamptz not null`
+  - `status text not null`
+  - `failure_class text null`
+  - `message text null`
+  - `metadata jsonb not null default '{}'::jsonb`
+
 This is not the final ideal relational model. It is the fastest safe step toward durability.
 
 ### Initialization behavior
@@ -198,6 +214,7 @@ The first Postgres-backed implementation should be able to bootstrap itself safe
 
 - create the configured schema if missing
 - create the `scans` table if missing
+- create the `scan_events` table if missing
 - create the basic ownership and recency indexes if missing
 
 That keeps Railway-style deployments practical while we are still pre-migrations-framework.

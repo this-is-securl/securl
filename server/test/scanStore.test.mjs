@@ -28,11 +28,16 @@ test("scan repository tracks queued, running, and completed scans", async () => 
   });
 
   const saved = await repository.getScan(scan.id);
+  const events = await repository.listScanEvents(scan.id);
   assert.equal(saved.status, "completed");
   assert.equal(saved.summary.score, 74);
   assert.equal(saved.summary.grade, "C");
   assert.equal(saved.summary.findingsCount, 2);
   assert.equal(saved.summary.mainRisk, "Browser hardening gaps");
+  assert.deepEqual(
+    events.map((event) => event.eventType),
+    ["completed", "started", "queued"],
+  );
 });
 
 test("scan repository summarizes failed scans and newest-first ordering", async () => {
@@ -91,7 +96,9 @@ test("scan repository schema statements create the scans table and scoped indexe
   assert.match(statements[0], /create schema if not exists public/i);
   assert.match(statements[1], /create table if not exists public\.scans/i);
   assert.match(statements[1], /owner_id text null/i);
-  assert.match(statements[2], /scans_requested_at_idx/i);
-  assert.match(statements[3], /scans_owner_requested_at_idx/i);
-  assert.match(statements[4], /scans_requester_requested_at_idx/i);
+  assert.match(statements[2], /create table if not exists public\.scan_events/i);
+  assert.match(statements[3], /scans_requested_at_idx/i);
+  assert.match(statements[4], /scans_owner_requested_at_idx/i);
+  assert.match(statements[5], /scans_requester_requested_at_idx/i);
+  assert.match(statements[6], /scan_events_scan_occurred_idx/i);
 });

@@ -209,6 +209,7 @@ export async function handleScanResourceRequest({
   buildScanSummaryPayload,
   buildScanFindingsPayload,
   buildScanEvidencePayload,
+  buildScanHistoryPayload,
   sendJson,
   sendMethodNotAllowed,
   sendRepositoryUnavailable,
@@ -267,6 +268,14 @@ export async function handleScanResourceRequest({
 
     if (resource === "evidence") {
       sendJson(response, 200, buildScanEvidencePayload(scan));
+      return true;
+    }
+
+    if (resource === "history") {
+      const events = await scanRepository.listScanEvents(scanId, {
+        ownerId: authState.ownerId,
+      });
+      sendJson(response, 200, buildScanHistoryPayload(scan, events));
       return true;
     }
 
