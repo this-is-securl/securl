@@ -94,6 +94,7 @@ export async function handleScanCollectionRequest({
   assertPublicHttpUrl,
   buildTargetHistoryPayload,
   sendJson,
+  sendMethodNotAllowed,
   sendRepositoryUnavailable,
   telemetry,
   classifyScanFailure,
@@ -151,7 +152,8 @@ export async function handleScanCollectionRequest({
   }
 
   if (request.method !== "POST") {
-    return false;
+    sendMethodNotAllowed(response, ["GET", "POST"]);
+    return true;
   }
 
   const authState = await authorizeAnalysisRequest({

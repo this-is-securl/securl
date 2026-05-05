@@ -38,7 +38,7 @@ In `multi-instance`, startup is blocked unless the rate-limit backend is distrib
 
 ## 3) API and abuse protections
 
-- Confirm `/api/analyze` requires API key when `API_KEY` is set.
+- Confirm `/api/scans` requires API key when `API_KEY` is set.
 - Confirm rate limiting behavior from expected client origin path (through proxy in production).
 - Confirm proxy IP attribution works as expected in your topology.
 - Configure abuse alert thresholds:

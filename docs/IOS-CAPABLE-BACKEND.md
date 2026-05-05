@@ -6,11 +6,12 @@ This document defines the service boundary we are moving toward so web, future m
 
 ## Why This Shift Matters
 
-The current browser app is built around a helper endpoint:
+The original browser app started with a single helper endpoint, which was convenient early on but not a good long-term service boundary. Moving to server-owned scan resources gives us capabilities that endpoint never could:
 
-- `GET /api/analyze?url=...`
+- `POST /api/scans`
+- `GET /api/scans/:id`
 
-That works for a single-page web app, but it does not give us:
+That shift matters because it gives us:
 
 - server-owned history across devices
 - async scan jobs
