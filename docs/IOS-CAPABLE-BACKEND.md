@@ -133,7 +133,12 @@ Current transitional shape:
       "score": 74,
       "grade": "C"
     }
-  ]
+  ],
+  "comparison": {
+    "currentScanId": "uuid",
+    "previousScanId": "uuid",
+    "diff": {}
+  }
 }
 ```
 
