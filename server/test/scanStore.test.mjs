@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildPersistedScanRecord, createInMemoryScanRepository } from "../scanRepository.mjs";
+import {
+  buildPersistedScanRecord,
+  buildScanRepositorySchemaStatements,
+  createInMemoryScanRepository,
+} from "../scanRepository.mjs";
 
 test("scan repository tracks queued, running, and completed scans", async () => {
   const repository = createInMemoryScanRepository();
@@ -79,4 +83,15 @@ test("scan repository can expose a persisted record shape", async () => {
   assert.equal(persisted.summary.score, 81);
   assert.equal(persisted.summary.grade, "B");
   assert.equal(persisted.result.grade, "B");
+});
+
+test("scan repository schema statements create the scans table and scoped indexes", () => {
+  const statements = buildScanRepositorySchemaStatements("public");
+
+  assert.match(statements[0], /create schema if not exists public/i);
+  assert.match(statements[1], /create table if not exists public\.scans/i);
+  assert.match(statements[1], /owner_id text null/i);
+  assert.match(statements[2], /scans_requested_at_idx/i);
+  assert.match(statements[3], /scans_owner_requested_at_idx/i);
+  assert.match(statements[4], /scans_requester_requested_at_idx/i);
 });
