@@ -34,7 +34,36 @@ const POSTURE_WEIGHTS: Record<PostureAreaKey, number> = {
   ai: 0.05,
 };
 
+const HOSTED_PLATFORM_SUFFIXES = [
+  ".up.railway.app",
+  ".vercel.app",
+  ".netlify.app",
+  ".pages.dev",
+  ".onrender.com",
+  ".fly.dev",
+  ".herokuapp.com",
+  ".github.io",
+];
+
 const clamp = (value: number) => Math.max(0, Math.min(100, value));
+
+const isHostedPlatformTarget = (analysis: PostureScoringInput) => {
+  let hostname = "";
+  try {
+    hostname = new URL(analysis.finalUrl).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+
+  if (HOSTED_PLATFORM_SUFFIXES.some((suffix) => hostname.endsWith(suffix))) {
+    return true;
+  }
+
+  return analysis.infrastructure?.providers?.some((provider) =>
+    provider.category === "paas"
+    && ["Vercel", "Netlify", "Heroku"].includes(provider.provider),
+  ) ?? false;
+};
 
 const severeAssessmentCaps: Record<
   NonNullable<PostureScoringInput["assessmentLimitation"]["kind"]>,
@@ -186,6 +215,7 @@ export function scoreAnalysis({
 }
 
 export function getPostureAreaScores(analysis: PostureScoringInput): PostureAreaScore[] {
+  const hostedPlatformTarget = isHostedPlatformTarget(analysis);
   const cspHeaderFindings = analysis.headers.filter(
     (header) => header.key === "content-security-policy" && header.status !== "present",
   );
@@ -222,10 +252,11 @@ export function getPostureAreaScores(analysis: PostureScoringInput): PostureArea
     analysis.htmlSecurity.issues.length * 10 +
     cookieIssueCount * 6;
 
-  const domainPenalty =
+  const domainPenaltyRaw =
     analysis.domainSecurity.issues.length * 8 +
     analysis.securityTxt.issues.length * 5 +
     analysis.publicSignals.issues.length * 4;
+  const domainPenalty = hostedPlatformTarget ? Math.min(domainPenaltyRaw, 30) : domainPenaltyRaw;
 
   const exposurePenalty =
     analysis.exposure.issues.length * 20 +
