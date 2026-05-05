@@ -65,6 +65,32 @@ test("scan repository summarizes failed scans and newest-first ordering", async 
   assert.equal(list[1].id, first.id);
 });
 
+test("scan repository can filter summaries by target url", async () => {
+  const repository = createInMemoryScanRepository();
+  await repository.createScan({
+    url: "https://example.com",
+    mode: "standard",
+    requesterScope: "ip:test",
+    clientIp: "127.0.0.1",
+  });
+  await repository.createScan({
+    url: "https://example.com",
+    mode: "quiet",
+    requesterScope: "ip:test",
+    clientIp: "127.0.0.1",
+  });
+  await repository.createScan({
+    url: "https://other.example",
+    mode: "standard",
+    requesterScope: "ip:test",
+    clientIp: "127.0.0.1",
+  });
+
+  const list = await repository.listScans({ url: "https://example.com" });
+  assert.equal(list.length, 2);
+  assert.ok(list.every((scan) => scan.url === "https://example.com"));
+});
+
 test("scan repository can expose a persisted record shape", async () => {
   const repository = createInMemoryScanRepository();
   const scan = await repository.createScan({

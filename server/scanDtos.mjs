@@ -71,3 +71,12 @@ export function buildScanHistoryPayload(scan, events) {
     events: normalizeArray(events),
   };
 }
+
+export function buildTargetHistoryPayload(url, scans) {
+  return {
+    target: {
+      url,
+    },
+    scans: normalizeArray(scans),
+  };
+}

@@ -92,6 +92,7 @@ export async function handleScanCollectionRequest({
   getRequestedScanMode,
   checkTargetQuota,
   assertPublicHttpUrl,
+  buildTargetHistoryPayload,
   sendJson,
   sendRepositoryUnavailable,
   telemetry,
@@ -114,7 +115,30 @@ export async function handleScanCollectionRequest({
       return true;
     }
 
+    const historyTarget = requestUrl.searchParams.get("url");
+
     try {
+      if (historyTarget) {
+        let validatedTarget;
+        try {
+          validatedTarget = await assertPublicHttpUrl(historyTarget);
+        } catch (error) {
+          telemetry.recordFailure(classifyScanFailure(error));
+          sendJson(response, 400, {
+            error: normalizeScanErrorMessage(error),
+          });
+          return true;
+        }
+
+        const scans = await scanRepository.listScans({
+          limit: Number(requestUrl.searchParams.get("limit") || 20),
+          ownerId: authState.ownerId,
+          url: validatedTarget.toString(),
+        });
+        sendJson(response, 200, buildTargetHistoryPayload(validatedTarget.toString(), scans));
+        return true;
+      }
+
       const scans = await scanRepository.listScans({
         limit: Number(requestUrl.searchParams.get("limit") || 20),
         ownerId: authState.ownerId,

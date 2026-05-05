@@ -10,6 +10,7 @@ import {
   buildScanFindingsPayload,
   buildScanHistoryPayload,
   buildScanSummaryPayload,
+  buildTargetHistoryPayload,
 } from "./scanDtos.mjs";
 import { handleScanCollectionRequest, handleScanResourceRequest } from "./scanResourceHandlers.mjs";
 import { createStaticHandler } from "./staticServer.mjs";
@@ -241,6 +242,7 @@ const server = http.createServer(async (request, response) => {
       getRequestedScanMode,
       checkTargetQuota,
       assertPublicHttpUrl,
+      buildTargetHistoryPayload,
       sendJson,
       sendRepositoryUnavailable,
       telemetry,
