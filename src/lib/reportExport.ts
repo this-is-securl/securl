@@ -121,6 +121,9 @@ const sentenceJoin = (items: string[]) => {
   return `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`;
 };
 
+const shortenEvidence = (value: string, maxLength = 140) =>
+  value.length > maxLength ? `${value.slice(0, maxLength - 1).trimEnd()}…` : value;
+
 const getWeakestAreas = (analysis: AnalysisResult, limit = 3) =>
   [...getAreaScores(analysis)]
     .sort((left, right) => left.score - right.score)
@@ -191,11 +194,11 @@ const buildEvidenceForAction = (analysis: AnalysisResult, actionTitle: string) =
   const normalized = actionTitle.toLowerCase();
   if (normalized.includes("https") || normalized.includes("hsts")) {
     const hsts = analysis.headers.find((header) => header.key === "strict-transport-security");
-    return hsts?.value ? `Observed HSTS value: ${hsts.value}` : "Strict-Transport-Security was not present on the scanned response.";
+    return hsts?.value ? `Observed HSTS value: ${shortenEvidence(hsts.value)}` : "Strict-Transport-Security was not present on the scanned response.";
   }
   if (normalized.includes("content security") || normalized.includes("csp")) {
     const csp = analysis.headers.find((header) => header.key === "content-security-policy");
-    return csp?.value ? `Observed CSP value: ${csp.value}` : "Content-Security-Policy was not present on the scanned response.";
+    return csp?.value ? `Observed CSP value: ${shortenEvidence(csp.value)}` : "Content-Security-Policy was not present on the scanned response.";
   }
   if (normalized.includes("third-party")) {
     return `${analysis.thirdPartyTrust.totalProviders} provider${analysis.thirdPartyTrust.totalProviders === 1 ? "" : "s"} detected; ${analysis.thirdPartyTrust.highRiskProviders} marked higher risk.`;
@@ -204,7 +207,10 @@ const buildEvidenceForAction = (analysis: AnalysisResult, actionTitle: string) =
     return `security.txt status: ${analysis.securityTxt.status}.`;
   }
   if (normalized.includes("email") || normalized.includes("dmarc")) {
-    return `SPF: ${analysis.domainSecurity.spf ?? "not found"}; DMARC: ${analysis.domainSecurity.dmarc ?? "not found"}.`;
+    const spfPresent = Boolean(analysis.domainSecurity.spf);
+    const dmarcPresent = Boolean(analysis.domainSecurity.dmarc);
+    const mtaStsPresent = analysis.domainSecurity.mtaSts.status === "present";
+    return `SPF ${spfPresent ? "is present" : "was not found"}, DMARC ${dmarcPresent ? "is present" : "was not found"}, and MTA-STS ${mtaStsPresent ? "is published" : "was not observed"}.`;
   }
   if (normalized.includes("api")) {
     return `${analysis.apiSurface.probes.filter((probe) => probe.classification !== "absent").length} API-style probe${analysis.apiSurface.probes.length === 1 ? "" : "s"} returned a non-absent classification.`;
@@ -248,90 +254,112 @@ const buildFormLines = (analysis: AnalysisResult) =>
       })
     : ["- No forms were observed on the fetched page."];
 
-const buildNarrativeMarkdown = (analysis: AnalysisResult, diff: HistoryDiff | null, priorityActions: ReturnType<typeof getPriorityActions>) => [
-  "## What This Means",
-  "",
-  ...buildPostureNarrative(analysis, diff).map((line) => `- ${line}`),
-  "",
-  "## Most Important Observed Findings",
-  "",
-  ...(getTopFindings(analysis).length
-    ? getTopFindings(analysis).map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.detail}`)
-    : ["- No core findings were recorded."]),
-  "",
-  "## Decision View",
+const getChangeHeadline = (diff: HistoryDiff | null) =>
+  diff
+    ? `Score ${diff.scoreDelta !== null && diff.scoreDelta > 0 ? "+" : ""}${diff.scoreDelta ?? 0}; ${diff.newIssues.length} new issue${diff.newIssues.length === 1 ? "" : "s"} and ${diff.resolvedIssues.length} resolved.`
+    : "No previous local snapshot was available, so this report should be treated as a baseline.";
+
+const buildCategoryTableMarkdown = (areas: ReturnType<typeof getAreaScores>) => [
+  "| Area | Score | Status |",
+  "| --- | ---: | --- |",
+  ...areas.map((area) => `| ${area.label} | ${area.score}/100 | ${area.status} |`),
+];
+
+const buildMetricLinesMarkdown = (
+  analysis: AnalysisResult,
+  diff: HistoryDiff | null,
+  summary: ReturnType<typeof getUnifiedIssueSummary>,
+  weakestAreas: ReturnType<typeof getWeakestAreas>,
+  strongestAreas: ReturnType<typeof getStrongestAreas>,
+) => [
+  `- Grade: **${analysis.grade}**`,
+  `- Score: **${analysis.score}/100**`,
+  `- Main visible risk: ${analysis.executiveSummary.mainRisk}`,
+  `- Weakest areas: ${weakestAreas.length ? weakestAreas.map((area) => `${area.label} (${area.score}/100)`).join(", ") : "No obvious weak cluster recorded."}`,
+  `- Strongest areas: ${strongestAreas.length ? strongestAreas.map((area) => `${area.label} (${area.score}/100)`).join(", ") : "No obviously compensating strengths recorded."}`,
+  `- Findings mix: ${summary.critical} critical, ${summary.priorityWarnings} priority warning, ${summary.supportingWatchItems} watch, ${summary.observedSignals} informational signals`,
+  `- Change headline: ${getChangeHeadline(diff)}`,
+];
+
+const buildDecisionMarkdown = (analysis: AnalysisResult, priorityActions: ReturnType<typeof getPriorityActions>) => [
+  "## What to do next",
   "",
   ...(priorityActions.length
     ? priorityActions.flatMap((action, index) => [
-        `### ${index + 1}. ${action.title}`,
-        "",
-        `- Why it matters: ${action.detail}`,
-        `- Evidence: ${buildEvidenceForAction(analysis, action.title)}`,
-        ...(action.priorityReason ? [`- Priority rationale: ${action.priorityReason}`] : []),
-        "",
+        `${index + 1}. **${action.title}**`,
+        `   Why it matters: ${action.detail}`,
+        `   Evidence: ${buildEvidenceForAction(analysis, action.title)}`,
+        ...(action.priorityReason ? [`   Priority rationale: ${action.priorityReason}`] : []),
       ])
-    : ["- No high-priority remediation actions were generated from this scan.", ""]),
-  "## Questions To Resolve",
-  "",
-  ...buildStakeholderQuestions(analysis).map((question) => `- ${question}`),
-  "",
-  "## Assessment Boundaries",
-  "",
-  ...buildAssessmentLimits(analysis).map((limit) => `- ${limit}`),
+    : ["1. No high-priority remediation actions were generated from this scan."]),
   "",
 ];
 
-const buildNarrativeHtml = (analysis: AnalysisResult, diff: HistoryDiff | null, priorityActions: ReturnType<typeof getPriorityActions>) => `
-    <div class="card insight">
-      <h2>What This Means</h2>
-      ${buildPostureNarrative(analysis, diff).map((line) => `<p>${escapeHtml(line)}</p>`).join("")}
-    </div>
-    <div class="card">
-      <h2>Most Important Observed Findings</h2>
-      <ul>${getTopFindings(analysis).length
-        ? getTopFindings(analysis).map((issue) => `<li><strong>[${escapeHtml(issue.severity)}] ${escapeHtml(issue.title)}</strong><br>${escapeHtml(issue.detail)}</li>`).join("")
-        : "<li>No core findings were recorded.</li>"}</ul>
-    </div>
-    <div class="card">
-      <h2>Decision View</h2>
-      ${priorityActions.length
-        ? priorityActions
-            .map(
-              (action, index) => `
-      <div class="action">
-        <h3>${index + 1}. ${escapeHtml(action.title)}</h3>
-        <p><strong>Why it matters:</strong> ${escapeHtml(action.detail)}</p>
-        <p><strong>Evidence:</strong> ${escapeHtml(buildEvidenceForAction(analysis, action.title))}</p>
-        ${action.priorityReason ? `<p class="muted">${escapeHtml(action.priorityReason)}</p>` : ""}
-      </div>`,
-            )
-            .join("")
-        : "<p>No high-priority remediation actions were generated from this scan.</p>"}
-    </div>
-    <div class="card">
-      <h2>Questions To Resolve</h2>
-      <ul>${buildStakeholderQuestions(analysis).map((question) => `<li>${escapeHtml(question)}</li>`).join("")}</ul>
-    </div>
-    <div class="card">
-      <h2>Assessment Boundaries</h2>
-      <ul>${buildAssessmentLimits(analysis).map((limit) => `<li>${escapeHtml(limit)}</li>`).join("")}</ul>
-    </div>`;
+const buildNarrativeMarkdown = (
+  analysis: AnalysisResult,
+  diff: HistoryDiff | null,
+  priorityActions: ReturnType<typeof getPriorityActions>,
+  areas: ReturnType<typeof getAreaScores>,
+  summary: ReturnType<typeof getUnifiedIssueSummary>,
+) => {
+  const weakestAreas = getWeakestAreas(analysis);
+  const strongestAreas = getStrongestAreas(analysis);
 
-const buildExportHeadlineMarkdown = (diff: HistoryDiff | null) =>
-  diff
-    ? [
-        `- Change headline: score ${diff.scoreDelta !== null && diff.scoreDelta > 0 ? "+" : ""}${diff.scoreDelta ?? 0}, ${diff.newIssues.length} new issue${diff.newIssues.length === 1 ? "" : "s"}, ${diff.resolvedIssues.length} resolved.`,
-        "- Category deltas are intentionally omitted from the export headline because per-category baseline snapshots are not embedded in exported reports.",
-      ]
-    : ["- Change headline: no previous local snapshot was available for comparison."];
+  return [
+    "## At a glance",
+    "",
+    ...buildMetricLinesMarkdown(analysis, diff, summary, weakestAreas, strongestAreas),
+    "",
+    ...buildDecisionMarkdown(analysis, priorityActions),
+    "## Why this matters",
+    "",
+    ...buildPostureNarrative(analysis, diff).map((line) => `- ${line}`),
+    "",
+    "## Top findings",
+    "",
+    ...(getTopFindings(analysis).length
+      ? getTopFindings(analysis).map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.detail}`)
+      : ["- No core findings were recorded."]),
+    "",
+    "## Analyst prompts",
+    "",
+    ...buildStakeholderQuestions(analysis).map((question) => `- ${question}`),
+    "",
+    "## Assessment boundaries",
+    "",
+    ...buildAssessmentLimits(analysis).map((limit) => `- ${limit}`),
+    "",
+    "## Category posture",
+    "",
+    ...buildCategoryTableMarkdown(areas),
+    "",
+  ];
+};
 
-const buildExportHeadlineHtml = (diff: HistoryDiff | null) =>
-  diff
-    ? [
-        `<p>Change headline: score ${diff.scoreDelta !== null && diff.scoreDelta > 0 ? "+" : ""}${diff.scoreDelta ?? 0}, ${diff.newIssues.length} new issue${diff.newIssues.length === 1 ? "" : "s"}, ${diff.resolvedIssues.length} resolved.</p>`,
-        "<p>Category deltas are intentionally omitted from the export headline because per-category baseline snapshots are not embedded in exported reports.</p>",
-      ].join("")
-    : "<p>Change headline: no previous local snapshot was available for comparison.</p>";
+const buildSeverityTone = (analysis: AnalysisResult) => {
+  if (analysis.assessmentLimitation.limited) return "limited";
+  if (analysis.grade === "A" || analysis.grade === "B") return "strong";
+  if (analysis.grade === "C") return "watch";
+  return "weak";
+};
+
+const buildCategoryBarsHtml = (areas: ReturnType<typeof getAreaScores>) =>
+  areas
+    .map(
+      (area) => `
+        <div class="bar-row">
+          <div class="bar-copy">
+            <strong>${escapeHtml(area.label)}</strong>
+            <span>${escapeHtml(area.status)}</span>
+          </div>
+          <div class="bar-track"><span style="width:${Math.max(6, area.score)}%"></span></div>
+          <div class="bar-score">${area.score}</div>
+        </div>`,
+    )
+    .join("");
+
+const buildCompactListHtml = (items: string[]) =>
+  items.length ? `<ul class="compact-list">${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : "<p class=\"muted\">No additional items recorded.</p>";
 
 export const buildMarkdownReport = (analysis: AnalysisResult, diff: HistoryDiff | null = null) => {
   const areas = getAreaScores(analysis);
@@ -348,19 +376,15 @@ export const buildMarkdownReport = (analysis: AnalysisResult, diff: HistoryDiff 
     "",
     `- Final URL: ${analysis.finalUrl}`,
     `- Scanned: ${new Date(analysis.scannedAt).toLocaleString()}`,
-    `- Grade: ${analysis.grade}`,
-    `- Score: ${analysis.score}/100`,
     `- Status: ${analysis.statusCode}`,
-    ...buildExportHeadlineMarkdown(diff),
     "",
-    "## Executive Readout",
+    ...buildNarrativeMarkdown(analysis, diff, priorityActions, areas, summary),
+    "## Executive readout",
     "",
     `- Overview: ${analysis.executiveSummary.overview}`,
-    `- Main risk: ${analysis.executiveSummary.mainRisk}`,
     ...analysis.executiveSummary.takeaways.map((takeaway) => `- ${takeaway}`),
     "",
-    ...buildNarrativeMarkdown(analysis, diff, priorityActions),
-    "## Summary",
+    "## Findings mix",
     "",
     `- Critical findings: ${summary.critical}`,
     `- Priority warning findings: ${summary.priorityWarnings}`,
@@ -372,12 +396,6 @@ export const buildMarkdownReport = (analysis: AnalysisResult, diff: HistoryDiff 
     `- Summary: ${taxonomy.summary}`,
     ...buildThemeMarkdownLines("OWASP", taxonomy.owasp),
     ...buildThemeMarkdownLines("MITRE", taxonomy.mitre),
-    "",
-    "## Category Scores",
-    "",
-    "- These category scores are directional breakdowns by posture area. They explain where risk is concentrated, but they are not intended to exactly match the single overall score.",
-    "",
-    ...areas.map((area) => `- ${area.label}: ${area.score}/100 (${area.status})`),
     "",
     "## Key Findings",
     "",
@@ -397,7 +415,7 @@ export const buildMarkdownReport = (analysis: AnalysisResult, diff: HistoryDiff 
         ])
       : ["- No priority actions generated."]),
     "",
-    "## Changes Since Last Scan",
+    "## Changes since last scan",
     "",
     ...(diff
       ? [
@@ -412,13 +430,15 @@ export const buildMarkdownReport = (analysis: AnalysisResult, diff: HistoryDiff 
         ]
       : ["- No previous local snapshot available for comparison."]),
     "",
-    "## security.txt",
+    "## Analyst workbook",
+    "",
+    "### security.txt",
     "",
     `- Status: ${analysis.securityTxt.status}`,
     ...(analysis.securityTxt.url ? [`- URL: ${analysis.securityTxt.url}`] : []),
     ...(analysis.securityTxt.issues.length ? analysis.securityTxt.issues.map((issue) => `- ${issue}`) : ["- No security.txt issues recorded."]),
     "",
-    "## Domain & Email Security",
+    "### Domain & Email Security",
     "",
     `- SPF: ${analysis.domainSecurity.spf ?? "Not found"}`,
     `- DMARC: ${analysis.domainSecurity.dmarc ?? "Not found"}`,
@@ -426,7 +446,7 @@ export const buildMarkdownReport = (analysis: AnalysisResult, diff: HistoryDiff 
     `- MX count: ${analysis.domainSecurity.mxRecords.length}`,
     `- CAA count: ${analysis.domainSecurity.caaRecords.length}`,
     "",
-    "## Identity Provider & OAuth Surface",
+    "### Identity Provider & OAuth Surface",
     "",
     `- Detected: ${analysis.identityProvider.detected ? "Yes" : "No"}`,
     `- Provider: ${analysis.identityProvider.provider ?? "Not identified"}`,
@@ -440,7 +460,7 @@ export const buildMarkdownReport = (analysis: AnalysisResult, diff: HistoryDiff 
       ? analysis.identityProvider.redirectUriSignals.map((signal) => `- Review redirect URI signal: ${signal}`)
       : ["- No public redirect_uri-style parameters were recorded."]),
     "",
-    "## Certificate Transparency",
+    "### Certificate Transparency",
     "",
     `- Queried domain: ${analysis.ctDiscovery.queriedDomain}`,
     `- Coverage summary: ${analysis.ctDiscovery.coverageSummary}`,
@@ -454,7 +474,7 @@ export const buildMarkdownReport = (analysis: AnalysisResult, diff: HistoryDiff 
           .map((host) => `- Possible takeover: ${host.host} via ${host.suspectedTakeover?.provider} (${host.suspectedTakeover?.confidence} confidence)`)
       : ["- No takeover-style signatures were observed in the sampled CT hosts."]),
     "",
-    "## WAF & Edge Fingerprint",
+    "### WAF & Edge Fingerprint",
     "",
     `- Summary: ${analysis.wafFingerprint.summary}`,
     ...buildWafLines(analysis),
@@ -462,12 +482,12 @@ export const buildMarkdownReport = (analysis: AnalysisResult, diff: HistoryDiff 
       ? analysis.wafFingerprint.edgeSignals.map((signal) => `- Edge evidence: ${signal}`)
       : ["- No extra edge evidence recorded."]),
     "",
-    "## Public Trust Signals",
+    "### Public Trust Signals",
     "",
     `- HSTS preload status: ${analysis.publicSignals.hstsPreload.status}`,
     `- HSTS preload note: ${analysis.publicSignals.hstsPreload.summary}`,
     "",
-    "## Disclosure & Trust",
+    "### Disclosure & Trust",
     "",
     `- Summary: ${disclosure.summary}`,
     ...(disclosure.discoveredPages.length
@@ -476,7 +496,7 @@ export const buildMarkdownReport = (analysis: AnalysisResult, diff: HistoryDiff 
     ...disclosure.strengths.map((item) => `- ${item}`),
     ...disclosure.issues.map((item) => `- ${item}`),
     "",
-    "## Passive Discovery",
+    "### Passive Discovery",
     "",
     `- Page title: ${analysis.htmlSecurity.pageTitle ?? "Unavailable"}`,
     `- Discovery sources: ${analysis.crawl.discoverySources.length ? analysis.crawl.discoverySources.join(", ") : "None recorded"}`,
@@ -487,7 +507,7 @@ export const buildMarkdownReport = (analysis: AnalysisResult, diff: HistoryDiff 
     ...buildPassiveLeakLines(analysis),
     ...buildLibraryRiskLines(analysis),
     "",
-    "## Auth Surface",
+    "### Auth Surface",
     "",
     `- Summary: ${authSurface.summary}`,
     `- Auth paths: ${authSurface.authPaths.length}`,
@@ -497,7 +517,7 @@ export const buildMarkdownReport = (analysis: AnalysisResult, diff: HistoryDiff 
       ? authSurface.authPaths.map((item) => `- ${item.path} (${item.category})`)
       : ["- No auth-adjacent paths discovered passively."]),
     "",
-    "## Data Collection Surface",
+    "### Data Collection Surface",
     "",
     `- Summary: ${dataCollection.summary}`,
     `- Public forms: ${dataCollection.totalForms}`,
@@ -509,11 +529,11 @@ export const buildMarkdownReport = (analysis: AnalysisResult, diff: HistoryDiff 
       ? dataCollection.externalForms.map((target) => `- External target: ${target}`)
       : ["- No external form targets were detected."]),
     "",
-    "## Detected Stack",
+    "### Detected Stack",
     "",
     ...buildTechnologyLines(analysis),
     "",
-    "## Third-Party Trust",
+    "### Third-Party Trust",
     "",
     `- Providers detected: ${analysis.thirdPartyTrust.totalProviders}`,
     `- Higher-risk providers: ${analysis.thirdPartyTrust.highRiskProviders}`,
@@ -523,7 +543,7 @@ export const buildMarkdownReport = (analysis: AnalysisResult, diff: HistoryDiff 
       ? analysis.thirdPartyTrust.issues.map((issue) => `- ${issue}`)
       : ["- No third-party trust issues recorded."]),
     "",
-    "## AI Surface",
+    "### AI Surface",
     "",
     `- Classification: ${aiSummary}`,
     `- AI detected: ${analysis.aiSurface.detected ? "Yes" : "No"}`,
@@ -534,7 +554,7 @@ export const buildMarkdownReport = (analysis: AnalysisResult, diff: HistoryDiff 
     ...(analysis.aiSurface.governanceSignals.length ? analysis.aiSurface.governanceSignals.map((signal) => `- ${signal}`) : ["- No explicit AI governance language detected."]),
     ...(analysis.aiSurface.issues.length ? analysis.aiSurface.issues.map((issue) => `- ${issue}`) : ["- No AI-surface issues recorded."]),
     "",
-    "## Low-Noise Exposure Checks",
+    "### Low-Noise Exposure Checks",
     "",
     ...buildExposureLines(analysis),
     "",
@@ -550,6 +570,9 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
   const disclosure = getDisclosurePosture(analysis);
   const authSurface = getAuthSurfaceSummary(analysis.htmlSecurity);
   const dataCollection = getDataCollectionSummary(analysis.htmlSecurity);
+  const weakestAreas = getWeakestAreas(analysis);
+  const strongestAreas = getStrongestAreas(analysis);
+  const severityTone = buildSeverityTone(analysis);
   const issueItems = analysis.issues.length
     ? analysis.issues
         .map(
@@ -594,6 +617,17 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
     .join("");
   const owaspThemeItems = buildThemeHtmlItems(taxonomy.owasp);
   const mitreThemeItems = buildThemeHtmlItems(taxonomy.mitre);
+  const changeHeadline = getChangeHeadline(diff);
+  const topFindings = getTopFindings(analysis);
+  const topFindingItems = topFindings.length
+    ? topFindings.map((issue) => `<li><strong>[${escapeHtml(issue.severity)}] ${escapeHtml(issue.title)}</strong><br>${escapeHtml(issue.detail)}</li>`).join("")
+    : "<li>No core findings were recorded.</li>";
+  const weakestAreaText = weakestAreas.length
+    ? weakestAreas.map((area) => `${area.label} (${area.score}/100)`).join(", ")
+    : "No obvious weak cluster recorded.";
+  const strongestAreaText = strongestAreas.length
+    ? strongestAreas.map((area) => `${area.label} (${area.score}/100)`).join(", ")
+    : "No clearly compensating strengths recorded.";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -602,198 +636,266 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Security Report - ${escapeHtml(analysis.host)}</title>
     <style>
-      body { font-family: ui-sans-serif, system-ui, sans-serif; margin: 40px; color: #0f172a; }
-      h1, h2 { margin-bottom: 8px; }
-      h3 { margin: 16px 0 6px; }
-      .meta, .card { margin-bottom: 24px; }
-      .card { border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; background: #f8fafc; }
-      .insight { background: #eef6ff; border-color: #bfdbfe; }
-      .action { border-top: 1px solid #e2e8f0; padding-top: 12px; margin-top: 12px; }
-      .action:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
-      .muted { color: #475569; }
-      ul { line-height: 1.6; }
+      :root { color-scheme: dark; --bg:#09111f; --bg-soft:#111c2d; --panel:#172335; --panel-2:#1d2b40; --line:rgba(148, 163, 184, 0.18); --text:#e8edf7; --muted:#9aa8bf; --accent:#cf7a36; --accent-soft:rgba(207, 122, 54, 0.12); --good:#c6d4e6; --watch:#d0a56e; --limited:#d5b786; }
+      * { box-sizing: border-box; }
+      body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; margin: 0; background: linear-gradient(180deg, #07111d 0%, #0f1624 100%); color: var(--text); }
+      .page { max-width: 1240px; margin: 0 auto; padding: 40px 28px 64px; }
+      h1, h2, h3 { margin: 0; }
+      p { margin: 0; line-height: 1.65; }
+      ul { margin: 0; padding-left: 18px; line-height: 1.65; }
+      .hero { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(340px, .95fr); gap: 22px; margin-bottom: 24px; align-items: start; }
+      .panel { background: linear-gradient(180deg, rgba(17,28,45,.96), rgba(11,20,34,.96)); border: 1px solid var(--line); border-radius: 28px; padding: 28px; box-shadow: 0 14px 36px rgba(3, 8, 20, 0.34); }
+      .hero-panel { position: relative; overflow: hidden; }
+      .hero-panel::after { content:""; position:absolute; inset:auto -60px -100px auto; width:220px; height:220px; background: radial-gradient(circle, rgba(207,122,54,0.28), transparent 70%); pointer-events:none; }
+      .eyebrow { font-size: 12px; letter-spacing: .28em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+      .hero-title { font-size: 15px; color: var(--muted); margin-bottom: 10px; }
+      .hero-host { font-size: clamp(34px, 5vw, 42px); line-height: 1.08; font-weight: 800; margin-bottom: 10px; word-break: break-word; }
+      .hero-url { color: var(--muted); font-size: 18px; margin-bottom: 22px; word-break: break-word; }
+      .hero-risk { max-width: 58ch; color: #f3f6fb; font-size: 21px; line-height: 1.45; }
+      .grade-chip { display:inline-flex; align-items:center; gap: 12px; padding: 10px 14px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255,255,255,.03); margin-bottom: 22px; }
+      .grade-chip strong { font-size: 28px; line-height: 1; }
+      .grade-chip span { color: var(--muted); font-size: 13px; letter-spacing: .18em; text-transform: uppercase; }
+      .tone-strong strong { color: #dbe7f5; }
+      .tone-watch strong { color: var(--watch); }
+      .tone-weak strong, .tone-limited strong { color: var(--accent); }
+      .hero-facts { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 26px; }
+      .fact { padding: 16px 18px; border-radius: 20px; background: rgba(255,255,255,.03); border: 1px solid var(--line); min-height: 98px; }
+      .fact-label { display:block; font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+      .fact strong { display:block; font-size: 30px; line-height: 1.1; margin-bottom: 4px; }
+      .fact span { color: var(--muted); }
+      .sidebar-stack { display:grid; gap: 18px; }
+      .summary-band { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+      .summary-card { padding: 18px 20px; border-radius: 20px; border: 1px solid var(--line); background: rgba(255,255,255,.03); }
+      .summary-card strong { display:block; margin-bottom: 8px; font-size: 14px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+      .summary-card p { font-size: 16px; }
+      .content-grid { display:grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .95fr); gap: 22px; margin-bottom: 22px; align-items: start; }
+      .stack { display:grid; gap: 18px; }
+      .section-title { font-size: 22px; margin-bottom: 14px; }
+      .callout-list li + li, .compact-list li + li { margin-top: 8px; }
+      .action-card { padding: 16px 18px; border-radius: 18px; background: rgba(255,255,255,.03); border: 1px solid var(--line); }
+      .action-card + .action-card { margin-top: 12px; }
+      .action-card h3 { font-size: 17px; margin-bottom: 8px; }
+      .action-card p + p { margin-top: 8px; }
+      .muted { color: var(--muted); }
+      .bar-list { display:grid; gap: 12px; }
+      .bar-row { display:grid; grid-template-columns: 1.2fr 1.8fr 54px; gap: 12px; align-items:center; }
+      .bar-copy { display:grid; gap: 2px; }
+      .bar-copy span { color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: .18em; }
+      .bar-track { height: 10px; background: rgba(255,255,255,.08); border-radius: 999px; overflow:hidden; }
+      .bar-track span { display:block; height:100%; border-radius:999px; background: linear-gradient(90deg, #a55e2b, #d48a48); }
+      .bar-score { text-align:right; font-weight: 700; color: #f1d0ae; }
+      .appendix { display:grid; gap: 18px; }
+      .appendix-grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+      .kpi-grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .kpi { padding: 16px 18px; border-radius: 18px; background: rgba(255,255,255,.03); border: 1px solid var(--line); }
+      .kpi strong { display:block; font-size: 26px; margin-bottom: 4px; }
+      .kpi span { color: var(--muted); }
+      @media (max-width: 1120px) {
+        .hero, .content-grid { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 780px) {
+        .page { padding: 20px 16px 40px; }
+        .panel { padding: 22px; border-radius: 24px; }
+        .hero-risk { font-size: 19px; }
+        .summary-band, .appendix-grid { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 640px) {
+        .hero-facts, .kpi-grid { grid-template-columns: 1fr; }
+        .grade-chip { margin-bottom: 18px; }
+        .bar-row { grid-template-columns: 1fr; gap: 8px; }
+        .bar-score { text-align: left; }
+      }
+      @media print { body { background: #fff; color: #0f172a; } .page { max-width: none; padding: 18px; } .panel, .fact, .summary-card, .action-card, .kpi { background: #f8fafc; color: #0f172a; box-shadow: none; } .muted, .eyebrow, .summary-card strong, .fact span, .fact-label, .bar-copy span, .kpi span { color: #475569; } .bar-track { background: #e2e8f0; } }
     </style>
   </head>
   <body>
-    <h1>Security Report: ${escapeHtml(analysis.host)}</h1>
-    <div class="meta">
-      <p>Final URL: ${escapeHtml(analysis.finalUrl)}</p>
-      <p>Scanned: ${escapeHtml(new Date(analysis.scannedAt).toLocaleString())}</p>
-      <p>Grade: ${escapeHtml(analysis.grade)}</p>
-      <p>Score: ${analysis.score}/100</p>
-      <p>Status: ${analysis.statusCode}</p>
-      ${buildExportHeadlineHtml(diff)}
-    </div>
-    <div class="card">
-      <h2>Executive Readout</h2>
-      <p>${escapeHtml(analysis.executiveSummary.overview)}</p>
-      <p><strong>Main risk:</strong> ${escapeHtml(analysis.executiveSummary.mainRisk)}</p>
-      <ul>${analysis.executiveSummary.takeaways.map((takeaway) => `<li>${escapeHtml(takeaway)}</li>`).join("")}</ul>
-    </div>
-    ${buildNarrativeHtml(analysis, diff, priorityActions)}
-    <div class="card">
-      <h2>Summary</h2>
-      <p>Critical findings: ${summary.critical}</p>
-      <p>Priority warning findings: ${summary.priorityWarnings}</p>
-      <p>Supporting watch items: ${summary.supportingWatchItems}</p>
-      <p>Observed signals: ${summary.observedSignals}</p>
-    </div>
-    <div class="card">
-      <h2>Risk Themes</h2>
-      <p>${escapeHtml(taxonomy.summary)}</p>
-      <p><strong>OWASP themes</strong></p>
-      <ul>${owaspThemeItems}</ul>
-      <p><strong>MITRE relevance</strong></p>
-      <ul>${mitreThemeItems}</ul>
-    </div>
-    <div class="card">
-      <h2>Category Scores</h2>
-      <p>These category scores are directional breakdowns by posture area. They explain where risk is concentrated, but they are not intended to exactly match the single overall score.</p>
-      <ul>${areaItems}</ul>
-    </div>
-    <div class="card">
-      <h2>Key Findings</h2>
-      <ul>${issueItems}</ul>
-    </div>
-    <div class="card">
-      <h2>Priority Actions</h2>
-      <ul>${priorityItems}</ul>
-    </div>
-    <div class="card">
-      <h2>Changes Since Last Scan</h2>
-      ${diff
-        ? `
-      <p>Score delta: ${diff.scoreDelta !== null && diff.scoreDelta > 0 ? "+" : ""}${diff.scoreDelta ?? 0}</p>
-      <p>New issues: ${diff.newIssues.length}</p>
-      <p>Resolved issues: ${diff.resolvedIssues.length}</p>
-      <p>Header changes: ${diff.headerChanges.length}</p>
-      <p>New third parties: ${diff.newThirdPartyProviders.length}</p>
-      <p>New AI vendors: ${diff.newAiVendors.length}</p>
-      <p>New WAF signals: ${diff.wafProviderChanges.newProviders.length}</p>
-      <ul>${diff.summary.length ? diff.summary.map((item) => `<li>${escapeHtml(item)}</li>`).join("") : "<li>No material posture changes summarized.</li>"}</ul>
-      `
-        : "<p>No previous local snapshot available for comparison.</p>"}
-    </div>
-    <div class="card">
-      <h2>Domain &amp; Email Security</h2>
-      <p>SPF: ${escapeHtml(analysis.domainSecurity.spf ?? "Not found")}</p>
-      <p>DMARC: ${escapeHtml(analysis.domainSecurity.dmarc ?? "Not found")}</p>
-      <p>DNSSEC: ${escapeHtml(analysis.domainSecurity.dnssec.status)}</p>
-      <p>MX count: ${analysis.domainSecurity.mxRecords.length}</p>
-      <p>CAA count: ${analysis.domainSecurity.caaRecords.length}</p>
-    </div>
-    <div class="card">
-      <h2>Identity Provider &amp; OAuth Surface</h2>
-      <p>Detected: ${analysis.identityProvider.detected ? "Yes" : "No"}</p>
-      <p>Provider: ${escapeHtml(analysis.identityProvider.provider ?? "Not identified")}</p>
-      <p>Protocol: ${escapeHtml(analysis.identityProvider.protocol ?? "Not inferred")}</p>
-      <p>OIDC config: ${escapeHtml(analysis.identityProvider.openIdConfigurationUrl ?? "Not observed")}</p>
-      <p>Redirect origins: ${escapeHtml(analysis.identityProvider.redirectOrigins.length ? analysis.identityProvider.redirectOrigins.join(", ") : "None recorded")}</p>
-      <p>Auth-like hosts: ${escapeHtml(analysis.identityProvider.authHostCandidates.length ? analysis.identityProvider.authHostCandidates.join(", ") : "None recorded")}</p>
-      <p>Login paths: ${escapeHtml(analysis.identityProvider.loginPaths.length ? analysis.identityProvider.loginPaths.join(", ") : "None recorded")}</p>
-      <p>Tenant clues: ${escapeHtml(analysis.identityProvider.tenantSignals.length ? analysis.identityProvider.tenantSignals.join(", ") : "None recorded")}</p>
-      <ul>${analysis.identityProvider.redirectUriSignals.length
-        ? analysis.identityProvider.redirectUriSignals.map((signal) => `<li>Review redirect URI signal: ${escapeHtml(signal)}</li>`).join("")
-        : "<li>No public redirect_uri-style parameters were recorded.</li>"}</ul>
-    </div>
-    <div class="card">
-      <h2>Certificate Transparency</h2>
-      <p>Queried domain: ${escapeHtml(analysis.ctDiscovery.queriedDomain)}</p>
-      <p>${escapeHtml(analysis.ctDiscovery.coverageSummary)}</p>
-      <p>Subdomains discovered: ${analysis.ctDiscovery.subdomains.length}</p>
-      <p>Wildcard entries: ${analysis.ctDiscovery.wildcardEntries.length}</p>
-      <ul>${ctItems}</ul>
-      <ul>${buildCtSampleLines(analysis).map((line) => `<li>${escapeHtml(line.slice(2))}</li>`).join("")}</ul>
-      <ul>${analysis.ctDiscovery.sampledHosts.some((host) => host.suspectedTakeover)
-        ? analysis.ctDiscovery.sampledHosts
-            .filter((host) => host.suspectedTakeover)
-            .map((host) => `<li>Possible takeover: ${escapeHtml(host.host)} via ${escapeHtml(host.suspectedTakeover?.provider)} (${escapeHtml(host.suspectedTakeover?.confidence)} confidence)</li>`)
-            .join("")
-        : "<li>No takeover-style signatures were observed in the sampled CT hosts.</li>"}</ul>
-    </div>
-    <div class="card">
-      <h2>WAF &amp; Edge Fingerprint</h2>
-      <p>${escapeHtml(analysis.wafFingerprint.summary)}</p>
-      <ul>${buildWafLines(analysis).map((line) => `<li>${escapeHtml(line.slice(2))}</li>`).join("")}</ul>
-      <ul>${analysis.wafFingerprint.edgeSignals.length
-        ? analysis.wafFingerprint.edgeSignals.map((signal) => `<li>${escapeHtml(signal)}</li>`).join("")
-        : "<li>No extra edge evidence recorded.</li>"}</ul>
-    </div>
-    <div class="card">
-      <h2>Public Trust Signals</h2>
-      <p>HSTS preload status: ${escapeHtml(analysis.publicSignals.hstsPreload.status)}</p>
-      <p>${escapeHtml(analysis.publicSignals.hstsPreload.summary)}</p>
-    </div>
-    <div class="card">
-      <h2>Disclosure & Trust</h2>
-      <p>${escapeHtml(disclosure.summary)}</p>
-      <ul>
-        ${disclosure.discoveredPages.length ? disclosure.discoveredPages.map((item) => `<li>Discovered page: ${escapeHtml(item)}</li>`).join("") : "<li>No obvious trust or policy pages discovered.</li>"}
-        ${disclosure.strengths.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
-        ${disclosure.issues.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
-      </ul>
-    </div>
-    <div class="card">
-      <h2>Passive Discovery</h2>
-      <p>Page title: ${escapeHtml(analysis.htmlSecurity.pageTitle ?? "Unavailable")}</p>
-      <p>Discovery sources: ${escapeHtml(analysis.crawl.discoverySources.length ? analysis.crawl.discoverySources.join(", ") : "None recorded")}</p>
-      <p>Same-origin paths discovered: ${analysis.htmlSecurity.firstPartyPaths.length}</p>
-      <ul>${discoveryItems}</ul>
-      <p>Same-site hosts referenced: ${analysis.htmlSecurity.sameSiteHosts.length}</p>
-      <ul>${sameSiteHostItems}</ul>
-      <p>Passive leak and fingerprinting signals:</p>
-      <ul>${passiveLeakItems}</ul>
-      <p>Library version risk:</p>
-      <ul>${libraryRiskItems}</ul>
-    </div>
-    <div class="card">
-      <h2>Auth Surface</h2>
-      <p>${escapeHtml(authSurface.summary)}</p>
-      <p>Auth paths: ${authSurface.authPaths.length}</p>
-      <p>Password forms: ${authSurface.passwordFormCount}</p>
-      <p>External password targets: ${authSurface.externalPasswordForms.length}</p>
-      <ul>${authSurface.authPaths.length
-        ? authSurface.authPaths.map((item) => `<li>${escapeHtml(item.path)} (${escapeHtml(item.category)})</li>`).join("")
-        : "<li>No auth-adjacent paths discovered passively.</li>"}</ul>
-    </div>
-    <div class="card">
-      <h2>Data Collection Surface</h2>
-      <p>${escapeHtml(dataCollection.summary)}</p>
-      <p>Public forms: ${dataCollection.totalForms}</p>
-      <p>POST forms: ${dataCollection.postForms}</p>
-      <p>External form targets: ${dataCollection.externalForms.length}</p>
-      <p>Insecure form submits: ${dataCollection.insecureForms}</p>
-      <ul>${buildFormLines(analysis).map((line) => `<li>${escapeHtml(line.slice(2))}</li>`).join("")}</ul>
-      <ul>${dataCollection.externalForms.length
-        ? dataCollection.externalForms.map((target) => `<li>${escapeHtml(target)}</li>`).join("")
-        : "<li>No external form targets were detected.</li>"}</ul>
-    </div>
-    <div class="card">
-      <h2>Detected Stack</h2>
-      <ul>${technologyItems}</ul>
-    </div>
-    <div class="card">
-      <h2>Third-Party Trust</h2>
-      <p>${escapeHtml(analysis.thirdPartyTrust.summary)}</p>
-      <p>Providers detected: ${analysis.thirdPartyTrust.totalProviders}</p>
-      <p>Higher-risk providers: ${analysis.thirdPartyTrust.highRiskProviders}</p>
-      <ul>${analysis.thirdPartyTrust.providers.length
-        ? analysis.thirdPartyTrust.providers.map((provider) => `<li><strong>${escapeHtml(provider.name)}</strong> [${escapeHtml(provider.category)} | ${escapeHtml(provider.risk)} risk] ${escapeHtml(provider.domain)}<br>${escapeHtml(provider.evidence)}</li>`).join("")
-        : "<li>No third-party providers recorded.</li>"}</ul>
-    </div>
-    <div class="card">
-      <h2>AI Surface</h2>
-      <p>Classification: ${escapeHtml(aiSummary)}</p>
-      <p>AI detected: ${analysis.aiSurface.detected ? "Yes" : "No"}</p>
-      <p>Assistant visible: ${analysis.aiSurface.assistantVisible ? "Yes" : "No"}</p>
-      <p>Vendors: ${escapeHtml(analysis.aiSurface.vendors.length ? analysis.aiSurface.vendors.map((vendor) => vendor.name).join(", ") : "None detected")}</p>
-      <p>AI paths: ${escapeHtml(analysis.aiSurface.discoveredPaths.length ? analysis.aiSurface.discoveredPaths.join(", ") : "None detected")}</p>
-      <p>AI privacy signals: ${escapeHtml(analysis.aiSurface.privacySignals.length ? analysis.aiSurface.privacySignals.join(" ") : "None detected")}</p>
-      <p>AI governance signals: ${escapeHtml(analysis.aiSurface.governanceSignals.length ? analysis.aiSurface.governanceSignals.join(" ") : "None detected")}</p>
-    </div>
-    <div class="card">
-      <h2>Low-Noise Exposure Checks</h2>
-      <ul>${exposureItems}</ul>
+    <div class="page">
+      <section class="hero">
+        <div class="panel hero-panel">
+          <div class="eyebrow">SecURL external posture report</div>
+          <div class="grade-chip tone-${severityTone}">
+            <strong>${escapeHtml(analysis.grade)}</strong>
+            <span>${analysis.score}/100 posture score</span>
+          </div>
+          <div class="hero-title">Target</div>
+          <h1 class="hero-host">${escapeHtml(analysis.host)}</h1>
+          <p class="hero-url">${escapeHtml(analysis.finalUrl)}</p>
+          <p class="hero-risk">${escapeHtml(analysis.executiveSummary.mainRisk)}</p>
+          <div class="hero-facts">
+            <div class="fact"><span class="fact-label">Status</span><strong>${analysis.statusCode}</strong><span>${escapeHtml(analysis.executiveSummary.overview)}</span></div>
+            <div class="fact"><span class="fact-label">Scanned</span><strong>${escapeHtml(new Date(analysis.scannedAt).toLocaleDateString())}</strong><span>${escapeHtml(new Date(analysis.scannedAt).toLocaleTimeString())}</span></div>
+            <div class="fact"><span class="fact-label">Findings</span><strong>${summary.critical + summary.priorityWarnings}</strong><span>${summary.critical} critical / ${summary.priorityWarnings} priority warning</span></div>
+            <div class="fact"><span class="fact-label">Change</span><strong>${diff ? `${diff.scoreDelta !== null && diff.scoreDelta > 0 ? "+" : ""}${diff.scoreDelta ?? 0}` : "—"}</strong><span>${escapeHtml(changeHeadline)}</span></div>
+          </div>
+        </div>
+        <div class="sidebar-stack">
+          <div class="panel">
+            <div class="eyebrow">Decision view</div>
+            <h2 class="section-title">What to do next</h2>
+            ${priorityActions.length
+              ? priorityActions
+                  .map(
+                    (action, index) => `
+              <div class="action-card">
+                <h3>${index + 1}. ${escapeHtml(action.title)}</h3>
+                <p>${escapeHtml(action.detail)}</p>
+                <p class="muted">Evidence: ${escapeHtml(buildEvidenceForAction(analysis, action.title))}</p>
+                ${action.priorityReason ? `<p class="muted">${escapeHtml(action.priorityReason)}</p>` : ""}
+              </div>`,
+                  )
+                  .join("")
+              : "<p>No high-priority remediation actions were generated from this scan.</p>"}
+          </div>
+          <div class="summary-band">
+            <div class="summary-card"><strong>Weakest areas</strong><p>${escapeHtml(weakestAreaText)}</p></div>
+            <div class="summary-card"><strong>Strongest areas</strong><p>${escapeHtml(strongestAreaText)}</p></div>
+            <div class="summary-card"><strong>Change headline</strong><p>${escapeHtml(changeHeadline)}</p></div>
+            <div class="summary-card"><strong>Assessment mode</strong><p>${escapeHtml(analysis.assessmentLimitation.limited ? analysis.assessmentLimitation.title ?? "Limited read" : "Full public read")}</p></div>
+          </div>
+        </div>
+      </section>
+      <section class="content-grid">
+        <div class="stack">
+          <div class="panel">
+            <div class="eyebrow">Analyst read</div>
+            <h2 class="section-title">Why this matters</h2>
+            ${buildPostureNarrative(analysis, diff).map((line) => `<p>${escapeHtml(line)}</p>`).join("<div style=\"height:10px\"></div>")}
+          </div>
+          <div class="panel">
+            <div class="eyebrow">Top findings</div>
+            <h2 class="section-title">Most important observed findings</h2>
+            <ul class="callout-list">${topFindingItems}</ul>
+          </div>
+          <div class="panel">
+            <div class="eyebrow">Risk themes</div>
+            <h2 class="section-title">Concentrated posture themes</h2>
+            <p class="muted" style="margin-bottom:14px;">${escapeHtml(taxonomy.summary)}</p>
+            <div class="appendix-grid">
+              <div>
+                <h3 style="margin-bottom:10px;">OWASP alignment</h3>
+                <ul>${owaspThemeItems}</ul>
+              </div>
+              <div>
+                <h3 style="margin-bottom:10px;">MITRE relevance</h3>
+                <ul>${mitreThemeItems}</ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="panel">
+            <div class="eyebrow">Category posture</div>
+            <h2 class="section-title">Where the score is moving</h2>
+            <div class="bar-list">
+              ${buildCategoryBarsHtml(areas)}
+            </div>
+          </div>
+          <div class="panel">
+            <div class="eyebrow">Questions to resolve</div>
+            <h2 class="section-title">Stakeholder prompts</h2>
+            ${buildCompactListHtml(buildStakeholderQuestions(analysis))}
+          </div>
+          <div class="panel">
+            <div class="eyebrow">Assessment limits</div>
+            <h2 class="section-title">Boundaries of this read</h2>
+            ${buildCompactListHtml(buildAssessmentLimits(analysis))}
+          </div>
+          <div class="panel">
+            <div class="eyebrow">Change since last scan</div>
+            <h2 class="section-title">Drift snapshot</h2>
+            <div class="kpi-grid">
+              <div class="kpi"><strong>${diff ? `${diff.scoreDelta !== null && diff.scoreDelta > 0 ? "+" : ""}${diff.scoreDelta ?? 0}` : "—"}</strong><span>Score delta</span></div>
+              <div class="kpi"><strong>${diff ? diff.newIssues.length : 0}</strong><span>New issues</span></div>
+              <div class="kpi"><strong>${diff ? diff.resolvedIssues.length : 0}</strong><span>Resolved issues</span></div>
+              <div class="kpi"><strong>${diff ? diff.headerChanges.length : 0}</strong><span>Header changes</span></div>
+            </div>
+            ${diff ? buildCompactListHtml(diff.summary.length ? diff.summary : ["No material posture changes summarized."]) : "<p class=\"muted\" style=\"margin-top:14px;\">No previous local snapshot available for comparison.</p>"}
+          </div>
+        </div>
+      </section>
+      <section class="appendix">
+        <div class="panel">
+          <div class="eyebrow">Evidence appendix</div>
+          <h2 class="section-title">Detailed findings and evidence</h2>
+          <ul>${issueItems}</ul>
+        </div>
+        <div class="appendix-grid">
+          <div class="panel">
+            <h2 class="section-title">Domain &amp; Email Security</h2>
+            <p>SPF: ${escapeHtml(analysis.domainSecurity.spf ?? "Not found")}</p>
+            <p>DMARC: ${escapeHtml(analysis.domainSecurity.dmarc ?? "Not found")}</p>
+            <p>DNSSEC: ${escapeHtml(analysis.domainSecurity.dnssec.status)}</p>
+            <p>MX count: ${analysis.domainSecurity.mxRecords.length}</p>
+            <p>CAA count: ${analysis.domainSecurity.caaRecords.length}</p>
+          </div>
+          <div class="panel">
+            <h2 class="section-title">Disclosure &amp; Public Trust</h2>
+            <p>${escapeHtml(disclosure.summary)}</p>
+            <ul>
+              ${disclosure.discoveredPages.length ? disclosure.discoveredPages.map((item) => `<li>Discovered page: ${escapeHtml(item)}</li>`).join("") : "<li>No obvious trust or policy pages discovered.</li>"}
+              ${disclosure.strengths.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+              ${disclosure.issues.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+            </ul>
+          </div>
+          <div class="panel">
+            <h2 class="section-title">Identity Provider &amp; OAuth Surface</h2>
+            <p>Detected: ${analysis.identityProvider.detected ? "Yes" : "No"}</p>
+            <p>Provider: ${escapeHtml(analysis.identityProvider.provider ?? "Not identified")}</p>
+            <p>Protocol: ${escapeHtml(analysis.identityProvider.protocol ?? "Not inferred")}</p>
+            <p>OIDC config: ${escapeHtml(analysis.identityProvider.openIdConfigurationUrl ?? "Not observed")}</p>
+            <ul>${analysis.identityProvider.redirectUriSignals.length
+              ? analysis.identityProvider.redirectUriSignals.map((signal) => `<li>Review redirect URI signal: ${escapeHtml(signal)}</li>`).join("")
+              : "<li>No public redirect_uri-style parameters were recorded.</li>"}</ul>
+          </div>
+          <div class="panel">
+            <h2 class="section-title">Passive Discovery</h2>
+            <p>Page title: ${escapeHtml(analysis.htmlSecurity.pageTitle ?? "Unavailable")}</p>
+            <p>Discovery sources: ${escapeHtml(analysis.crawl.discoverySources.length ? analysis.crawl.discoverySources.join(", ") : "None recorded")}</p>
+            <ul>${discoveryItems}</ul>
+            <ul>${sameSiteHostItems}</ul>
+            <ul>${passiveLeakItems}</ul>
+            <ul>${libraryRiskItems}</ul>
+          </div>
+          <div class="panel">
+            <h2 class="section-title">Auth &amp; Data Collection Surface</h2>
+            <p>${escapeHtml(authSurface.summary)}</p>
+            <p>${escapeHtml(dataCollection.summary)}</p>
+            <ul>${authSurface.authPaths.length
+              ? authSurface.authPaths.map((item) => `<li>${escapeHtml(item.path)} (${escapeHtml(item.category)})</li>`).join("")
+              : "<li>No auth-adjacent paths discovered passively.</li>"}</ul>
+            <ul>${buildFormLines(analysis).map((line) => `<li>${escapeHtml(line.slice(2))}</li>`).join("")}</ul>
+          </div>
+          <div class="panel">
+            <h2 class="section-title">Detected Stack &amp; Third Parties</h2>
+            <ul>${technologyItems}</ul>
+            <ul>${analysis.thirdPartyTrust.providers.length
+              ? analysis.thirdPartyTrust.providers.map((provider) => `<li><strong>${escapeHtml(provider.name)}</strong> [${escapeHtml(provider.category)} | ${escapeHtml(provider.risk)} risk] ${escapeHtml(provider.domain)}<br>${escapeHtml(provider.evidence)}</li>`).join("")
+              : "<li>No third-party providers recorded.</li>"}</ul>
+          </div>
+          <div class="panel">
+            <h2 class="section-title">Certificate Transparency &amp; Edge</h2>
+            <p>Queried domain: ${escapeHtml(analysis.ctDiscovery.queriedDomain)}</p>
+            <p>${escapeHtml(analysis.ctDiscovery.coverageSummary)}</p>
+            <ul>${ctItems}</ul>
+            <ul>${buildCtSampleLines(analysis).map((line) => `<li>${escapeHtml(line.slice(2))}</li>`).join("")}</ul>
+            <ul>${analysis.ctDiscovery.sampledHosts.some((host) => host.suspectedTakeover)
+              ? analysis.ctDiscovery.sampledHosts
+                  .filter((host) => host.suspectedTakeover)
+                  .map((host) => `<li>Possible takeover: ${escapeHtml(host.host)} via ${escapeHtml(host.suspectedTakeover?.provider)} (${escapeHtml(host.suspectedTakeover?.confidence)} confidence)</li>`)
+                  .join("")
+              : "<li>No takeover-style signatures were observed in the sampled CT hosts.</li>"}</ul>
+            <ul>${buildWafLines(analysis).map((line) => `<li>${escapeHtml(line.slice(2))}</li>`).join("")}</ul>
+          </div>
+          <div class="panel">
+            <h2 class="section-title">AI Surface &amp; Exposure Checks</h2>
+            <p>Classification: ${escapeHtml(aiSummary)}</p>
+            <p>Vendors: ${escapeHtml(analysis.aiSurface.vendors.length ? analysis.aiSurface.vendors.map((vendor) => vendor.name).join(", ") : "None detected")}</p>
+            <ul>${analysis.aiSurface.privacySignals.length ? analysis.aiSurface.privacySignals.map((signal) => `<li>${escapeHtml(signal)}</li>`).join("") : "<li>No explicit AI privacy guidance detected.</li>"}</ul>
+            <ul>${analysis.aiSurface.governanceSignals.length ? analysis.aiSurface.governanceSignals.map((signal) => `<li>${escapeHtml(signal)}</li>`).join("") : "<li>No explicit AI governance language detected.</li>"}</ul>
+            <ul>${exposureItems}</ul>
+          </div>
+        </div>
+      </section>
     </div>
   </body>
 </html>`;
