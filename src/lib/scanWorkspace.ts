@@ -4,6 +4,7 @@ import type { AnalysisResult, HistoryDiff, HistorySnapshot } from "@/types/analy
 export const RECENT_SCANS_KEY = "secure-header-insight:recent-scans";
 export const HISTORY_KEY = "secure-header-insight:history";
 export const MONITORED_TARGETS_KEY = "secure-header-insight:monitored-targets";
+export const SCAN_OWNER_KEY = "secure-header-insight:scan-owner";
 export const STORAGE_SCHEMA_VERSION = 1;
 export const MONITORED_TARGET_LIMIT = 12;
 

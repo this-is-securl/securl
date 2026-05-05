@@ -40,6 +40,7 @@ const rateLimitBackend = configuredRateLimitBackend || (deploymentMode === "mult
 const configuredScanRepositoryBackend = (process.env.SCAN_REPOSITORY_BACKEND || "").trim().toLowerCase();
 const scanRepositoryBackend = configuredScanRepositoryBackend || "memory";
 const databaseUrl = (process.env.DATABASE_URL || "").trim();
+const SCAN_OWNER_HEADER = "x-scan-owner";
 const RATE_LIMIT_WINDOW_MS = (() => {
   const raw = Number(process.env.RATE_LIMIT_WINDOW_MS || DEFAULT_RATE_LIMIT_WINDOW_MS);
   if (!Number.isFinite(raw) || raw < 1000) {
@@ -86,6 +87,8 @@ const upstashRestUrl = (process.env.UPSTASH_REDIS_REST_URL || "").trim();
 const upstashRestToken = (process.env.UPSTASH_REDIS_REST_TOKEN || "").trim();
 const abuseSignalBuckets = new Map();
 const exposeDetailedHealth = !isProduction;
+const exposeTelemetry = process.env.EXPOSE_TELEMETRY === "true" || !isProduction;
+const allowLegacyAnalyze = process.env.ALLOW_LEGACY_ANALYZE === "true" || !isProduction;
 const telemetry = createTelemetryTracker();
 let scanRepository;
 
@@ -155,6 +158,7 @@ const { assertPublicHttpUrl, checkTargetQuota, authorizeAnalysisRequest } = crea
   trustProxy,
   apiKey,
   apiKeyFingerprintSalt: process.env.API_KEY_FINGERPRINT_SALT || "epi-api-key-fingerprint-v1",
+  scanOwnerHeader: SCAN_OWNER_HEADER,
   isLocalHostname,
   isPrivateAddress,
   telemetry,
@@ -210,11 +214,18 @@ const server = http.createServer(async (request, response) => {
   }
 
   if (requestUrl.pathname === "/api/telemetry") {
+    if (!exposeTelemetry) {
+      sendJson(response, 404, {
+        error: "Telemetry is not available.",
+      });
+      return;
+    }
+
     sendJson(response, 200, telemetry.snapshot());
     return;
   }
 
-  if (requestUrl.pathname === "/api/scans" && request.method === "GET") {
+  if (requestUrl.pathname === "/api/scans") {
     await handleScanCollectionRequest({
       request,
       response,
@@ -233,29 +244,7 @@ const server = http.createServer(async (request, response) => {
       runScanAnalysis,
       formatErrorMessage,
       log,
-    });
-    return;
-  }
-
-  if (requestUrl.pathname === "/api/scans" && request.method === "POST") {
-    await handleScanCollectionRequest({
-      request,
-      response,
-      requestUrl,
-      scanRepository,
-      authorizeAnalysisRequest,
-      readJsonBody,
-      getRequestedScanMode,
-      checkTargetQuota,
-      assertPublicHttpUrl,
-      sendJson,
-      sendRepositoryUnavailable,
-      telemetry,
-      classifyScanFailure,
-      normalizeScanErrorMessage,
-      runScanAnalysis,
-      formatErrorMessage,
-      log,
+      requireScanOwner: true,
     });
     return;
   }
@@ -266,17 +255,26 @@ const server = http.createServer(async (request, response) => {
       response,
       requestUrl,
       scanRepository,
+      authorizeAnalysisRequest,
       buildScanSummaryPayload,
       buildScanFindingsPayload,
       buildScanEvidencePayload,
       sendJson,
       sendMethodNotAllowed,
       sendRepositoryUnavailable,
+      requireScanOwner: true,
     });
     return;
   }
 
   if (requestUrl.pathname === "/api/analyze") {
+    if (!allowLegacyAnalyze) {
+      sendJson(response, 410, {
+        error: "Legacy GET analysis is disabled. Create scans with POST /api/scans.",
+      });
+      return;
+    }
+
     await handleAnalyzeRequest({
       request,
       response,

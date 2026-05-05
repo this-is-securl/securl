@@ -100,11 +100,24 @@ export async function handleScanCollectionRequest({
   runScanAnalysis,
   formatErrorMessage,
   log,
+  requireScanOwner = false,
 }) {
   if (request.method === "GET") {
+    const authState = await authorizeAnalysisRequest({
+      request,
+      response,
+      requestPath: requestUrl.pathname,
+      enforceRateLimit: false,
+      requireScanOwner,
+    });
+    if (!authState) {
+      return true;
+    }
+
     try {
       const scans = await scanRepository.listScans({
         limit: Number(requestUrl.searchParams.get("limit") || 20),
+        ownerId: authState.ownerId,
       });
       sendJson(response, 200, { scans });
     } catch (error) {
@@ -121,6 +134,7 @@ export async function handleScanCollectionRequest({
     request,
     response,
     requestPath: requestUrl.pathname,
+    requireScanOwner,
   });
   if (!authState) {
     return true;
@@ -149,11 +163,12 @@ export async function handleScanCollectionRequest({
         url: validatedTarget.toString(),
         mode,
         requesterScope: authState.requesterScope,
+        ownerId: authState.ownerId,
         clientIp: authState.clientIp,
       });
 
       sendJson(response, 202, {
-        scan: (await scanRepository.getScan(scan.id)).summary,
+        scan: (await scanRepository.getScan(scan.id, { ownerId: authState.ownerId })).summary,
       });
     } catch (error) {
       sendRepositoryUnavailable(response, error, "create_scan");
@@ -190,12 +205,14 @@ export async function handleScanResourceRequest({
   response,
   requestUrl,
   scanRepository,
+  authorizeAnalysisRequest,
   buildScanSummaryPayload,
   buildScanFindingsPayload,
   buildScanEvidencePayload,
   sendJson,
   sendMethodNotAllowed,
   sendRepositoryUnavailable,
+  requireScanOwner = false,
 }) {
   if (request.method !== "GET") {
     sendMethodNotAllowed(response, ["GET"]);
@@ -212,7 +229,20 @@ export async function handleScanResourceRequest({
 
   try {
     const { scanId, resource } = parsed;
-    const scan = await scanRepository.getScan(scanId);
+    const authState = await authorizeAnalysisRequest({
+      request,
+      response,
+      requestPath: requestUrl.pathname,
+      enforceRateLimit: false,
+      requireScanOwner,
+    });
+    if (!authState) {
+      return true;
+    }
+
+    const scan = await scanRepository.getScan(scanId, {
+      ownerId: authState.ownerId,
+    });
     if (!scan) {
       sendJson(response, 404, {
         error: "Scan not found.",

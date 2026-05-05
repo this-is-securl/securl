@@ -77,6 +77,19 @@ function hydrateScanFromRow(row) {
   });
 }
 
+function matchesScope(scan, { requesterScope = null, ownerId = null } = {}) {
+  if (!scan) {
+    return false;
+  }
+  if (ownerId && scan.ownerId !== ownerId) {
+    return false;
+  }
+  if (requesterScope && scan.requesterScope !== requesterScope) {
+    return false;
+  }
+  return true;
+}
+
 export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
   const scans = new Map();
   const order = [];
@@ -154,17 +167,30 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       touchOrder(id);
       return enrichScan(scan);
     },
-    async getScan(id) {
-      return enrichScan(scans.get(id));
+    async getScan(id, scope = {}) {
+      const scan = scans.get(id);
+      return matchesScope(scan, scope) ? enrichScan(scan) : null;
     },
-    async listScans({ limit = 20 } = {}) {
-      return order
+    async listScans({ limit = 20, requesterScope = null, ownerId = null } = {}) {
+      const scopedOrder = ownerId
+        ? order.filter((id) => scans.get(id)?.ownerId === ownerId)
+        : requesterScope
+          ? order.filter((id) => scans.get(id)?.requesterScope === requesterScope)
+          : order;
+
+      return scopedOrder
         .slice(0, Math.max(1, limit))
         .map((id) => enrichScan(scans.get(id))?.summary)
         .filter(Boolean);
     },
-    async listPersistedRecords({ limit = 20 } = {}) {
-      return order
+    async listPersistedRecords({ limit = 20, requesterScope = null, ownerId = null } = {}) {
+      const scopedOrder = ownerId
+        ? order.filter((id) => scans.get(id)?.ownerId === ownerId)
+        : requesterScope
+          ? order.filter((id) => scans.get(id)?.requesterScope === requesterScope)
+          : order;
+
+      return scopedOrder
         .slice(0, Math.max(1, limit))
         .map((id) => scans.get(id))
         .filter(Boolean)
@@ -292,21 +318,52 @@ export function createPostgresScanRepository({
       );
       return hydrateScanFromRow(rows[0]);
     },
-    async getScan(id) {
-      const { rows } = await pool.query(`select * from ${table} where id = $1`, [id]);
+    async getScan(id, { requesterScope = null, ownerId = null } = {}) {
+      const filters = ["id = $1"];
+      const params = [id];
+      if (ownerId) {
+        params.push(ownerId);
+        filters.push(`owner_id = $${params.length}`);
+      } else if (requesterScope) {
+        params.push(requesterScope);
+        filters.push(`requester_scope = $${params.length}`);
+      }
+      const { rows } = await pool.query(`select * from ${table} where ${filters.join(" and ")} limit 1`, params);
       return hydrateScanFromRow(rows[0]);
     },
-    async listScans({ limit = 20 } = {}) {
+    async listScans({ limit = 20, requesterScope = null, ownerId = null } = {}) {
+      const filters = [];
+      const params = [];
+      if (ownerId) {
+        params.push(ownerId);
+        filters.push(`owner_id = $${params.length}`);
+      } else if (requesterScope) {
+        params.push(requesterScope);
+        filters.push(`requester_scope = $${params.length}`);
+      }
+      params.push(Math.max(1, limit));
+      const where = filters.length ? `where ${filters.join(" and ")}` : "";
       const { rows } = await pool.query(
-        `select * from ${table} order by requested_at desc limit $1`,
-        [Math.max(1, limit)],
+        `select * from ${table} ${where} order by requested_at desc limit $${params.length}`,
+        params,
       );
       return rows.map((row) => hydrateScanFromRow(row)?.summary).filter(Boolean);
     },
-    async listPersistedRecords({ limit = 20 } = {}) {
+    async listPersistedRecords({ limit = 20, requesterScope = null, ownerId = null } = {}) {
+      const filters = [];
+      const params = [];
+      if (ownerId) {
+        params.push(ownerId);
+        filters.push(`owner_id = $${params.length}`);
+      } else if (requesterScope) {
+        params.push(requesterScope);
+        filters.push(`requester_scope = $${params.length}`);
+      }
+      params.push(Math.max(1, limit));
+      const where = filters.length ? `where ${filters.join(" and ")}` : "";
       const { rows } = await pool.query(
-        `select * from ${table} order by requested_at desc limit $1`,
-        [Math.max(1, limit)],
+        `select * from ${table} ${where} order by requested_at desc limit $${params.length}`,
+        params,
       );
       return rows.map((row) => buildPersistedScanRecord(hydrateScanFromRow(row)));
     },

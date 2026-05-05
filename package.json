@@ -20,7 +20,7 @@
     "pack:core": "npm pack --dry-run ./packages/core",
     "release:core:check": "npm run build:core && npm run typecheck:core:strict && npm run test:core && npm run lint && npm run pack:core",
     "test:core": "npm run build:core && node --test packages/core/test/*.test.mjs",
-    "test:server": "npm run build:core && node --test server/test/*.test.mjs",
+    "test:server": "npm run build && node --test server/test/*.test.mjs",
     "test:app:unit": "vitest run src/lib/*.test.ts",
     "preview": "vite preview",
     "start": "node server/index.mjs"

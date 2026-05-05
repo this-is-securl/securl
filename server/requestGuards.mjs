@@ -45,6 +45,14 @@ function getPresentedApiKey(request) {
   return typeof candidate === "string" ? candidate : "";
 }
 
+function getPresentedScanOwner(request, scanOwnerHeader) {
+  const candidate = request.headers[scanOwnerHeader];
+  if (Array.isArray(candidate)) {
+    return candidate[0] || "";
+  }
+  return typeof candidate === "string" ? candidate : "";
+}
+
 function tokenFingerprint(token, apiKeyFingerprintSalt) {
   return crypto.pbkdf2Sync(token, apiKeyFingerprintSalt, 120000, 12, "sha256").toString("hex");
 }
@@ -54,6 +62,25 @@ function getRequesterScope({ clientIp, presentedApiKey, apiKey, apiKeyFingerprin
     return `api-key:${tokenFingerprint(presentedApiKey, apiKeyFingerprintSalt)}`;
   }
   return `ip:${clientIp || "unknown"}`;
+}
+
+function getScanOwnerId({
+  presentedApiKey,
+  requesterScope,
+  presentedScanOwner,
+  apiKey,
+  apiKeyFingerprintSalt,
+}) {
+  if (apiKey && presentedApiKey) {
+    return requesterScope;
+  }
+
+  const ownerToken = presentedScanOwner.trim();
+  if (!ownerToken || ownerToken.length < 16 || ownerToken.length > 256) {
+    return null;
+  }
+
+  return `scan-owner:${tokenFingerprint(ownerToken, apiKeyFingerprintSalt)}`;
 }
 
 function parseTargetHostForQuota(rawTarget) {
@@ -140,6 +167,7 @@ export function createRequestGuards({
   trustProxy,
   apiKey,
   apiKeyFingerprintSalt,
+  scanOwnerHeader,
   isLocalHostname,
   isPrivateAddress,
   telemetry,
@@ -221,9 +249,16 @@ export function createRequestGuards({
     return { ok: false };
   }
 
-  async function authorizeAnalysisRequest({ request, response, requestPath }) {
+  async function authorizeAnalysisRequest({
+    request,
+    response,
+    requestPath,
+    enforceRateLimit = true,
+    requireScanOwner = false,
+  }) {
     const clientIp = getClientIp(request, { trustProxy, isLocalHostname, isPrivateAddress }) || "unknown";
     const presentedApiKey = getPresentedApiKey(request);
+    const presentedScanOwner = getPresentedScanOwner(request, scanOwnerHeader);
     const requesterScope = getRequesterScope({
       clientIp,
       presentedApiKey,
@@ -249,6 +284,37 @@ export function createRequestGuards({
       return null;
     }
 
+    const ownerId = getScanOwnerId({
+      presentedApiKey,
+      requesterScope,
+      presentedScanOwner,
+      apiKey,
+      apiKeyFingerprintSalt,
+    });
+
+    if (requireScanOwner && !ownerId) {
+      telemetry.recordAuthRejected();
+      telemetry.recordFailure("auth_rejected");
+      recordAbuseSignal("scan_owner_missing", {
+        clientIp,
+        requesterScope,
+        path: requestPath,
+      }, {
+        abuseSignalBuckets,
+        abuseAlertWindowMs,
+        abuseAlertThreshold,
+        log,
+      });
+      sendJson(response, 401, {
+        error: "A scan owner token is required to access scan resources from this deployment.",
+      });
+      return null;
+    }
+
+    if (!enforceRateLimit) {
+      return { clientIp, requesterScope, ownerId };
+    }
+
     const rateLimitState = await rateLimiter.check(requesterScope);
     if (rateLimitState.limited) {
       telemetry.recordRequesterRateLimited();
@@ -267,7 +333,7 @@ export function createRequestGuards({
       return null;
     }
 
-    return { clientIp, requesterScope };
+    return { clientIp, requesterScope, ownerId };
   }
 
   return {

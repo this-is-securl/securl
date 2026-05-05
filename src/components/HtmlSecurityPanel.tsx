@@ -92,8 +92,12 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
           }
         />
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-8">
-          <StatBox label="Page title" value={<p className="line-clamp-2 text-sm font-semibold">{htmlSecurity.pageTitle || "Unavailable"}</p>} />
+        <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(9.75rem,1fr))]">
+          <StatBox
+            label="Page title"
+            className="sm:col-span-2"
+            value={<p className="line-clamp-2 text-base font-semibold leading-7">{htmlSecurity.pageTitle || "Unavailable"}</p>}
+          />
           <StatBox label="Forms" value={<p className="text-2xl font-semibold">{htmlSecurity.forms.length}</p>} />
           <StatBox label="External script domains" value={<p className="text-2xl font-semibold">{htmlSecurity.externalScriptDomains.length}</p>} />
           <StatBox label="Same-site hosts" value={<p className="text-2xl font-semibold">{htmlSecurity.sameSiteHosts.length}</p>} />

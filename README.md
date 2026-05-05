@@ -158,12 +158,16 @@ TRUST_PROXY=true
 Notes:
 
 - `ALLOW_UNAUTHENTICATED=true` is required if you want the browser app to call the scanner API directly without a private server-side API key.
+- Unauthenticated browser scans use a local random `X-Scan-Owner` token so scan records are not shared by client IP alone.
+- `EXPOSE_TELEMETRY=true` is required to expose `/api/telemetry` in production.
+- `ALLOW_LEGACY_ANALYZE=true` is required to keep the legacy GET `/api/analyze` endpoint enabled in production.
 - If you later scale beyond one instance, switch to `DEPLOYMENT_MODE=multi-instance` and configure Upstash-backed rate limiting.
 - Run `npm run -s check:deploy` before promoting a public deployment.
 
 ## Public deployment guardrails
 
 - In production, startup is blocked unless either `API_KEY` is set or `ALLOW_UNAUTHENTICATED=true` is explicitly set.
+- In production, telemetry and legacy GET analysis are disabled unless explicitly enabled with `EXPOSE_TELEMETRY=true` or `ALLOW_LEGACY_ANALYZE=true`.
 - `TRUST_PROXY=true` only applies forwarded-IP attribution when the direct peer is private/local.
 - `DEPLOYMENT_MODE=multi-instance` requires a distributed limiter (`RATE_LIMIT_BACKEND=upstash` with Upstash REST credentials).
 - Run `npm run -s check:deploy` before promoting a deployment.

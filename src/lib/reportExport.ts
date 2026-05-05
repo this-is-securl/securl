@@ -109,6 +109,214 @@ const buildThemeHtmlItems = (
         .join("")
     : "<li>No taxonomy themes recorded.</li>";
 
+const severityRank = {
+  critical: 0,
+  warning: 1,
+  info: 2,
+} as const;
+
+const sentenceJoin = (items: string[]) => {
+  if (items.length <= 1) return items[0] ?? "";
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`;
+};
+
+const getWeakestAreas = (analysis: AnalysisResult, limit = 3) =>
+  [...getAreaScores(analysis)]
+    .sort((left, right) => left.score - right.score)
+    .slice(0, limit);
+
+const getStrongestAreas = (analysis: AnalysisResult, limit = 2) =>
+  [...getAreaScores(analysis)]
+    .filter((area) => area.score >= 85)
+    .sort((left, right) => right.score - left.score)
+    .slice(0, limit);
+
+const getTopFindings = (analysis: AnalysisResult, limit = 5) =>
+  [...analysis.issues]
+    .sort((left, right) => {
+      const severityDelta = severityRank[left.severity] - severityRank[right.severity];
+      if (severityDelta !== 0) return severityDelta;
+      return left.title.localeCompare(right.title);
+    })
+    .slice(0, limit);
+
+const buildPostureNarrative = (analysis: AnalysisResult, diff: HistoryDiff | null) => {
+  const weakestAreas = getWeakestAreas(analysis);
+  const strongestAreas = getStrongestAreas(analysis);
+  const warningCount = analysis.issues.filter((issue) => issue.severity === "warning").length;
+  const criticalCount = analysis.issues.filter((issue) => issue.severity === "critical").length;
+  const weakAreaText = weakestAreas.length
+    ? sentenceJoin(weakestAreas.map((area) => `${area.label} (${area.score}/100)`))
+    : "no obviously weak category";
+  const strongAreaText = strongestAreas.length
+    ? sentenceJoin(strongestAreas.map((area) => `${area.label} (${area.score}/100)`))
+    : "no category that is clearly strong enough to treat as a durable compensating strength";
+  const changeText = diff
+    ? `Compared with the previous local snapshot, the score moved ${diff.scoreDelta !== null && diff.scoreDelta > 0 ? "+" : ""}${diff.scoreDelta ?? 0}; ${diff.newIssues.length} issue${diff.newIssues.length === 1 ? "" : "s"} appeared and ${diff.resolvedIssues.length} resolved.`
+    : "No previous local snapshot was available, so this report should be treated as a baseline rather than a trend statement.";
+
+  return [
+    `This scan grades ${analysis.host} as ${analysis.grade} (${analysis.score}/100). The main concentration of risk is ${weakAreaText}.`,
+    `The finding mix is ${criticalCount} critical, ${warningCount} warning, and ${analysis.issues.length - criticalCount - warningCount} informational item${analysis.issues.length - criticalCount - warningCount === 1 ? "" : "s"}. ${analysis.executiveSummary.mainRisk}`,
+    `The strongest visible posture area is ${strongAreaText}. ${changeText}`,
+  ];
+};
+
+const buildStakeholderQuestions = (analysis: AnalysisResult) => {
+  const questions = [
+    "Are the missing or weak browser protections intentionally omitted, or should they be enforced at the edge/framework layer?",
+  ];
+
+  if (analysis.thirdPartyTrust.totalProviders > 0) {
+    questions.push("Are the observed third-party providers covered by vendor review, privacy notice, and change-control expectations?");
+  }
+
+  if (analysis.htmlSecurity.forms.length > 0) {
+    questions.push("Do the observed forms collect personal, credential, or regulated data, and are their submission paths documented?");
+  }
+
+  if (analysis.domainSecurity.issues.length > 0 || analysis.securityTxt.status !== "present") {
+    questions.push("Does domain ownership include mail/disclosure controls, or is this target purely web-facing?");
+  }
+
+  if (analysis.assessmentLimitation.limited) {
+    questions.push("What controls blocked or limited the read, and should the assessment be repeated from an approved user-agent or network?");
+  }
+
+  return questions.slice(0, 4);
+};
+
+const buildEvidenceForAction = (analysis: AnalysisResult, actionTitle: string) => {
+  const normalized = actionTitle.toLowerCase();
+  if (normalized.includes("https") || normalized.includes("hsts")) {
+    const hsts = analysis.headers.find((header) => header.key === "strict-transport-security");
+    return hsts?.value ? `Observed HSTS value: ${hsts.value}` : "Strict-Transport-Security was not present on the scanned response.";
+  }
+  if (normalized.includes("content security") || normalized.includes("csp")) {
+    const csp = analysis.headers.find((header) => header.key === "content-security-policy");
+    return csp?.value ? `Observed CSP value: ${csp.value}` : "Content-Security-Policy was not present on the scanned response.";
+  }
+  if (normalized.includes("third-party")) {
+    return `${analysis.thirdPartyTrust.totalProviders} provider${analysis.thirdPartyTrust.totalProviders === 1 ? "" : "s"} detected; ${analysis.thirdPartyTrust.highRiskProviders} marked higher risk.`;
+  }
+  if (normalized.includes("security.txt")) {
+    return `security.txt status: ${analysis.securityTxt.status}.`;
+  }
+  if (normalized.includes("email") || normalized.includes("dmarc")) {
+    return `SPF: ${analysis.domainSecurity.spf ?? "not found"}; DMARC: ${analysis.domainSecurity.dmarc ?? "not found"}.`;
+  }
+  if (normalized.includes("api")) {
+    return `${analysis.apiSurface.probes.filter((probe) => probe.classification !== "absent").length} API-style probe${analysis.apiSurface.probes.length === 1 ? "" : "s"} returned a non-absent classification.`;
+  }
+  if (normalized.includes("leak")) {
+    return `${analysis.htmlSecurity.passiveLeakSignals.length} passive leak signal${analysis.htmlSecurity.passiveLeakSignals.length === 1 ? "" : "s"} observed.`;
+  }
+  return `Related area evidence is included in the detailed sections below.`;
+};
+
+const buildAssessmentLimits = (analysis: AnalysisResult) => {
+  const limits = [
+    "This is an external, unauthenticated, passive-first read. It does not prove exploitability or replace authenticated application testing.",
+  ];
+
+  if (analysis.assessmentLimitation.limited) {
+    limits.push(`${analysis.assessmentLimitation.title ?? "The assessment was limited"}: ${analysis.assessmentLimitation.detail ?? "some target responses could not be read cleanly."}`);
+  }
+
+  if (!analysis.htmlSecurity.fetched) {
+    limits.push("The fetched page body was not available, so client-side and form observations are incomplete.");
+  }
+
+  if (!analysis.ctDiscovery.subdomains.length && analysis.ctDiscovery.issues.length > 0) {
+    limits.push("Certificate Transparency coverage was incomplete or timed out, so subdomain observations may be understated.");
+  }
+
+  return limits;
+};
+
+const buildFormLines = (analysis: AnalysisResult) =>
+  analysis.htmlSecurity.forms.length
+    ? analysis.htmlSecurity.forms.map((form, index) => {
+        const target = form.action || "current page / unspecified action";
+        const riskSignals = [
+          form.hasPasswordField ? "password field" : null,
+          form.insecureSubmission ? "insecure submission" : null,
+          /^https?:\/\//i.test(target) && !target.startsWith(new URL(analysis.finalUrl).origin) ? "external target" : null,
+        ].filter(Boolean);
+        return `- Form ${index + 1}: ${form.method.toUpperCase()} to ${target}${riskSignals.length ? ` (${riskSignals.join(", ")})` : ""}`;
+      })
+    : ["- No forms were observed on the fetched page."];
+
+const buildNarrativeMarkdown = (analysis: AnalysisResult, diff: HistoryDiff | null, priorityActions: ReturnType<typeof getPriorityActions>) => [
+  "## What This Means",
+  "",
+  ...buildPostureNarrative(analysis, diff).map((line) => `- ${line}`),
+  "",
+  "## Most Important Observed Findings",
+  "",
+  ...(getTopFindings(analysis).length
+    ? getTopFindings(analysis).map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.detail}`)
+    : ["- No core findings were recorded."]),
+  "",
+  "## Decision View",
+  "",
+  ...(priorityActions.length
+    ? priorityActions.flatMap((action, index) => [
+        `### ${index + 1}. ${action.title}`,
+        "",
+        `- Why it matters: ${action.detail}`,
+        `- Evidence: ${buildEvidenceForAction(analysis, action.title)}`,
+        ...(action.priorityReason ? [`- Priority rationale: ${action.priorityReason}`] : []),
+        "",
+      ])
+    : ["- No high-priority remediation actions were generated from this scan.", ""]),
+  "## Questions To Resolve",
+  "",
+  ...buildStakeholderQuestions(analysis).map((question) => `- ${question}`),
+  "",
+  "## Assessment Boundaries",
+  "",
+  ...buildAssessmentLimits(analysis).map((limit) => `- ${limit}`),
+  "",
+];
+
+const buildNarrativeHtml = (analysis: AnalysisResult, diff: HistoryDiff | null, priorityActions: ReturnType<typeof getPriorityActions>) => `
+    <div class="card insight">
+      <h2>What This Means</h2>
+      ${buildPostureNarrative(analysis, diff).map((line) => `<p>${escapeHtml(line)}</p>`).join("")}
+    </div>
+    <div class="card">
+      <h2>Most Important Observed Findings</h2>
+      <ul>${getTopFindings(analysis).length
+        ? getTopFindings(analysis).map((issue) => `<li><strong>[${escapeHtml(issue.severity)}] ${escapeHtml(issue.title)}</strong><br>${escapeHtml(issue.detail)}</li>`).join("")
+        : "<li>No core findings were recorded.</li>"}</ul>
+    </div>
+    <div class="card">
+      <h2>Decision View</h2>
+      ${priorityActions.length
+        ? priorityActions
+            .map(
+              (action, index) => `
+      <div class="action">
+        <h3>${index + 1}. ${escapeHtml(action.title)}</h3>
+        <p><strong>Why it matters:</strong> ${escapeHtml(action.detail)}</p>
+        <p><strong>Evidence:</strong> ${escapeHtml(buildEvidenceForAction(analysis, action.title))}</p>
+        ${action.priorityReason ? `<p class="muted">${escapeHtml(action.priorityReason)}</p>` : ""}
+      </div>`,
+            )
+            .join("")
+        : "<p>No high-priority remediation actions were generated from this scan.</p>"}
+    </div>
+    <div class="card">
+      <h2>Questions To Resolve</h2>
+      <ul>${buildStakeholderQuestions(analysis).map((question) => `<li>${escapeHtml(question)}</li>`).join("")}</ul>
+    </div>
+    <div class="card">
+      <h2>Assessment Boundaries</h2>
+      <ul>${buildAssessmentLimits(analysis).map((limit) => `<li>${escapeHtml(limit)}</li>`).join("")}</ul>
+    </div>`;
+
 const buildExportHeadlineMarkdown = (diff: HistoryDiff | null) =>
   diff
     ? [
@@ -151,6 +359,7 @@ export const buildMarkdownReport = (analysis: AnalysisResult, diff: HistoryDiff 
     `- Main risk: ${analysis.executiveSummary.mainRisk}`,
     ...analysis.executiveSummary.takeaways.map((takeaway) => `- ${takeaway}`),
     "",
+    ...buildNarrativeMarkdown(analysis, diff, priorityActions),
     "## Summary",
     "",
     `- Critical findings: ${summary.critical}`,
@@ -295,6 +504,7 @@ export const buildMarkdownReport = (analysis: AnalysisResult, diff: HistoryDiff 
     `- POST forms: ${dataCollection.postForms}`,
     `- External form targets: ${dataCollection.externalForms.length}`,
     `- Insecure form submits: ${dataCollection.insecureForms}`,
+    ...buildFormLines(analysis),
     ...(dataCollection.externalForms.length
       ? dataCollection.externalForms.map((target) => `- External target: ${target}`)
       : ["- No external form targets were detected."]),
@@ -394,8 +604,13 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
     <style>
       body { font-family: ui-sans-serif, system-ui, sans-serif; margin: 40px; color: #0f172a; }
       h1, h2 { margin-bottom: 8px; }
+      h3 { margin: 16px 0 6px; }
       .meta, .card { margin-bottom: 24px; }
       .card { border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; background: #f8fafc; }
+      .insight { background: #eef6ff; border-color: #bfdbfe; }
+      .action { border-top: 1px solid #e2e8f0; padding-top: 12px; margin-top: 12px; }
+      .action:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+      .muted { color: #475569; }
       ul { line-height: 1.6; }
     </style>
   </head>
@@ -415,6 +630,7 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
       <p><strong>Main risk:</strong> ${escapeHtml(analysis.executiveSummary.mainRisk)}</p>
       <ul>${analysis.executiveSummary.takeaways.map((takeaway) => `<li>${escapeHtml(takeaway)}</li>`).join("")}</ul>
     </div>
+    ${buildNarrativeHtml(analysis, diff, priorityActions)}
     <div class="card">
       <h2>Summary</h2>
       <p>Critical findings: ${summary.critical}</p>
@@ -547,6 +763,7 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
       <p>POST forms: ${dataCollection.postForms}</p>
       <p>External form targets: ${dataCollection.externalForms.length}</p>
       <p>Insecure form submits: ${dataCollection.insecureForms}</p>
+      <ul>${buildFormLines(analysis).map((line) => `<li>${escapeHtml(line.slice(2))}</li>`).join("")}</ul>
       <ul>${dataCollection.externalForms.length
         ? dataCollection.externalForms.map((target) => `<li>${escapeHtml(target)}</li>`).join("")
         : "<li>No external form targets were detected.</li>"}</ul>
