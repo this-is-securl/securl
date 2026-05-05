@@ -1,6 +1,32 @@
 import crypto from "node:crypto";
 import { Pool } from "pg";
 
+export function buildScanRepositorySchemaStatements(schema = "public") {
+  const qualifiedTable = `${schema}.scans`;
+  return [
+    `create schema if not exists ${schema}`,
+    `create table if not exists ${qualifiedTable} (
+      id uuid primary key,
+      owner_id text null,
+      status text not null,
+      url text not null,
+      mode text not null,
+      requested_at timestamptz not null,
+      started_at timestamptz null,
+      completed_at timestamptz null,
+      requester_scope text not null,
+      client_ip text not null,
+      failure_class text null,
+      error text null,
+      summary jsonb not null,
+      result jsonb null
+    )`,
+    `create index if not exists scans_requested_at_idx on ${qualifiedTable} (requested_at desc)`,
+    `create index if not exists scans_owner_requested_at_idx on ${qualifiedTable} (owner_id, requested_at desc)`,
+    `create index if not exists scans_requester_requested_at_idx on ${qualifiedTable} (requester_scope, requested_at desc)`,
+  ];
+}
+
 export function buildScanSummary(scan) {
   const result = scan.result;
   const limitation = result?.assessmentLimitation;
@@ -111,6 +137,9 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
 
   return {
     kind: "memory",
+    async initialize() {
+      return true;
+    },
     async ping() {
       return true;
     },
@@ -215,9 +244,21 @@ export function createPostgresScanRepository({
   });
 
   const table = `${schema}.scans`;
+  const schemaStatements = buildScanRepositorySchemaStatements(schema);
 
   const repository = {
     kind: "postgres",
+    async initialize() {
+      for (const statement of schemaStatements) {
+        await pool.query(statement);
+      }
+      log("info", "scan_repository_initialized", {
+        backend: "postgres",
+        schema,
+        table: "scans",
+      });
+      return true;
+    },
     async ping() {
       await pool.query("SELECT 1");
       await pool.query(`select 1 from ${table} limit 1`);
