@@ -92,6 +92,7 @@ const createPostureAnalysis = (overrides = {}) => ({
   domainSecurity: { issues: [] },
   securityTxt: { issues: [] },
   publicSignals: { issues: [] },
+  infrastructure: { providers: [] },
   exposure: { issues: [], probes: [] },
   apiSurface: { issues: [], probes: [] },
   thirdPartyTrust: { totalProviders: 0, highRiskProviders: 0, issues: [] },
@@ -134,6 +135,45 @@ test("scorePostureAnalysis grades the wider passive posture, not just core heade
   assert.equal(posture.score < oldBaseline.score, true);
   assert.equal(posture.score < 90, true);
   assert.equal(posture.grade, "C");
+});
+
+test("scorePostureAnalysis softens domain-trust penalties for known hosted app subdomains", () => {
+  const ownedDomain = scorePostureAnalysis(
+    createPostureAnalysis({
+      finalUrl: "https://example.com/",
+      domainSecurity: {
+        issues: [
+          "No MX records found.",
+          "No SPF record detected at the zone apex.",
+          "No DMARC record detected.",
+          "No CAA records found.",
+          "No DNSSEC DS records detected at the domain apex.",
+          "No MTA-STS DNS policy record detected.",
+        ],
+      },
+    }),
+  );
+
+  const hostedPlatform = scorePostureAnalysis(
+    createPostureAnalysis({
+      finalUrl: "https://demo.up.railway.app/",
+      domainSecurity: {
+        issues: [
+          "No MX records found.",
+          "No SPF record detected at the zone apex.",
+          "No DMARC record detected.",
+          "No CAA records found.",
+          "No DNSSEC DS records detected at the domain apex.",
+          "No MTA-STS DNS policy record detected.",
+        ],
+      },
+      infrastructure: {
+        providers: [{ provider: "Railway", category: "paas" }],
+      },
+    }),
+  );
+
+  assert.equal(hostedPlatform.score > ownedDomain.score, true);
 });
 
 test("scorePostureAnalysis caps unavailable targets below a C grade", () => {
