@@ -13,6 +13,7 @@ export async function initializeScanRepository({
   });
 
   try {
+    await scanRepository.initialize?.();
     await scanRepository.ping();
   } catch (error) {
     log("error", "server_start_blocked", {
