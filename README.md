@@ -36,7 +36,7 @@ epi scan example.com
 
 ## Release status
 
-- Latest published core package: `@ktbatterham/external-posture-core@0.8.0`
+- Latest published core package: `@ktbatterham/external-posture-core@0.8.1`
 - Latest npm tag: `latest`
 - Clean-install smoke test completed from a fresh npm project
 
