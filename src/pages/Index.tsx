@@ -181,8 +181,8 @@ const Index = () => {
               <Layers3 className="h-4 w-4" />
               Report workspace
             </div>
-            <div className="grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)] xl:grid-cols-[19.5rem_minmax(0,1fr)]">
-              <aside className="lg:sticky lg:top-6 lg:self-start">
+            <div className="grid gap-4 xl:grid-cols-[18rem_minmax(0,1fr)] 2xl:grid-cols-[19.5rem_minmax(0,1fr)]">
+              <aside className="xl:sticky xl:top-6 xl:self-start">
                 <div className="overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/15 ring-1 ring-white/[0.03] backdrop-blur">
                   <div className="border-b border-white/10 px-5 py-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#d89a63]/80">Sections</p>
@@ -222,7 +222,7 @@ const Index = () => {
               </aside>
 
               {activeSection ? (
-                <div className="overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/15 ring-1 ring-white/[0.03] backdrop-blur">
+                <div className="min-w-0 overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/15 ring-1 ring-white/[0.03] backdrop-blur">
                   <div className="border-b border-white/10 px-5 py-5 sm:px-6">
                     <h2 className="text-2xl font-semibold tracking-[-0.035em] text-white">
                       {activeSection.title}
