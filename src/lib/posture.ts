@@ -9,6 +9,7 @@ export interface AreaScore {
 }
 
 const clamp = (value: number) => Math.max(0, Math.min(100, value));
+const AI_NEUTRAL_NO_SURFACE_PENALTY = 12;
 
 const severeAssessmentCaps: Record<
   NonNullable<AnalysisResult["assessmentLimitation"]["kind"]>,
@@ -113,6 +114,7 @@ export const getAreaScores = (analysis: AnalysisResult): AreaScore[] => {
     analysis.thirdPartyTrust.issues.length * 6;
 
   const aiPenalty =
+    (!analysis.aiSurface.detected ? AI_NEUTRAL_NO_SURFACE_PENALTY : 0) +
     analysis.aiSurface.issues.length * 12 +
     (analysis.aiSurface.detected && !analysis.aiSurface.disclosures.length ? 8 : 0);
 
@@ -198,7 +200,9 @@ export const getAreaScores = (analysis: AnalysisResult): AreaScore[] => {
       score: aiScore,
       status: statusForScore(aiScore),
       notes: [
-        analysis.aiSurface.detected ? "AI or automation signals detected" : "No visible AI surface detected",
+        analysis.aiSurface.detected
+          ? "AI or automation signals detected"
+          : "No visible AI surface detected; scored as low exposure rather than perfect assurance",
         `${analysis.aiSurface.issues.length} AI posture findings`,
         ...(analysis.assessmentLimitation?.limited ? ["AI surface visibility may be incomplete"] : []),
       ],

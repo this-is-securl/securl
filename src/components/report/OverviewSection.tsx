@@ -53,6 +53,9 @@ const healthcheckStatusForGrade = (grade: string): keyof typeof healthcheckStyle
   return "weak";
 };
 
+const DONUT_RADIUS = 52;
+const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_RADIUS;
+
 interface OverviewSectionProps {
   analysisData: AnalysisResult;
   historyDiff: HistoryDiff | null;
@@ -101,6 +104,8 @@ export const OverviewSection = ({
     analysisData.executiveSummary.takeaways.some((takeaway) =>
       takeaway.toLowerCase().includes("lab or training surface"),
     );
+  const overallPercent = Math.max(0, Math.min(100, analysisData.score));
+  const donutOffset = DONUT_CIRCUMFERENCE - (overallPercent / 100) * DONUT_CIRCUMFERENCE;
 
   return (
     <div id="overview" className="space-y-6">
@@ -167,11 +172,54 @@ export const OverviewSection = ({
                   <p className="text-sm font-semibold text-white">Healthcheck</p>
                   <span className={`inline-flex h-3 w-3 rounded-full ${healthcheckStyle.dot}`} aria-hidden="true" />
                 </div>
-                <div className="mt-4 flex items-baseline gap-3">
-                  <span className={`text-4xl font-semibold leading-none ${healthcheckStyle.grade}`}>{analysisData.grade}</span>
-                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    {isLimitedAssessment ? "Read status" : "Overall grade"}
-                  </span>
+                <div className="mt-5 flex items-center gap-4">
+                  <div className="relative h-32 w-32 shrink-0">
+                    <svg viewBox="0 0 140 140" className="h-32 w-32 -rotate-90">
+                      <circle
+                        cx="70"
+                        cy="70"
+                        r={DONUT_RADIUS}
+                        fill="none"
+                        stroke="rgba(255,255,255,0.08)"
+                        strokeWidth="12"
+                      />
+                      <circle
+                        cx="70"
+                        cy="70"
+                        r={DONUT_RADIUS}
+                        fill="none"
+                        stroke="url(#healthcheck-gradient)"
+                        strokeWidth="12"
+                        strokeLinecap="round"
+                        strokeDasharray={DONUT_CIRCUMFERENCE}
+                        strokeDashoffset={donutOffset}
+                      />
+                      <defs>
+                        <linearGradient id="healthcheck-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stopColor={healthcheckStyle.dot.includes("b56a2c") ? "#8e5c3b" : "#cbd5e1"} />
+                          <stop offset="55%" stopColor={healthcheckStyle.dot.includes("b56a2c") ? "#b56a2c" : "#dbe4f0"} />
+                          <stop offset="100%" stopColor={healthcheckStyle.dot.includes("8e5c3b") ? "#d08a4b" : "#f8fafc"} />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                      <span className={`text-4xl font-semibold leading-none ${healthcheckStyle.grade}`}>{analysisData.grade}</span>
+                      <span className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{overallPercent}%</span>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      {isLimitedAssessment ? "Read status" : "Overall posture"}
+                    </p>
+                    <p className={`text-2xl font-semibold leading-tight ${healthcheckStyle.grade}`}>
+                      {isLimitedAssessment ? limitedReadLabel : `${analysisData.grade} / ${overallPercent}%`}
+                    </p>
+                    <p className="text-sm leading-6 text-slate-400">
+                      {isLimitedAssessment
+                        ? "Directional public read only. The target surface constrained a full assessment, so the donut reflects what could be observed rather than a complete verdict."
+                        : "Normalized posture score across the major passive-read areas, with category bars showing where risk is concentrated."}
+                    </p>
+                  </div>
                 </div>
                 <p className="mt-4 text-sm leading-6 text-slate-400">
                   {isLimitedAssessment

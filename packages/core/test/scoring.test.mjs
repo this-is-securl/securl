@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildExecutiveSummary } from "../dist/htmlInsights.js";
-import { scoreAnalysis, scorePostureAnalysis } from "../dist/scoring.js";
+import { getPostureAreaScores, scoreAnalysis, scorePostureAnalysis } from "../dist/scoring.js";
 
 test("scoreAnalysis heavily penalizes plain HTTP and invalid transport posture", () => {
   const result = scoreAnalysis({
@@ -174,6 +174,22 @@ test("scorePostureAnalysis softens domain-trust penalties for known hosted app s
   );
 
   assert.equal(hostedPlatform.score > ownedDomain.score, true);
+});
+
+test("getPostureAreaScores treats absent AI surface as strong-neutral rather than perfect", () => {
+  const areas = getPostureAreaScores(
+    createPostureAnalysis({
+      aiSurface: {
+        detected: false,
+        issues: [],
+        disclosures: [],
+      },
+    }),
+  );
+
+  const ai = areas.find((area) => area.key === "ai");
+  assert.equal(ai?.score, 88);
+  assert.equal(ai?.status, "strong");
 });
 
 test("scorePostureAnalysis caps unavailable targets below a C grade", () => {
