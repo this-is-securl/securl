@@ -6,6 +6,15 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-05-07
+
+### Changed
+- Refined posture scoring so hosted-platform app URLs take a softer domain-trust penalty when the target is clearly a demo or PaaS-hosted surface rather than an owned apex domain.
+- Recalibrated `AI & Automation` posture scoring so absent visible AI surface is treated as low exposure rather than perfect assurance.
+- Improved surface-enrichment handling for SPA frontend fallbacks so successful responses on paths like `/.git/HEAD` or `/.env` are no longer misreported as exposed sensitive files when they clearly return the standard app shell.
+- Simplified and modularized the core scan pipeline internals so scoring, enrichment, and summary assembly are easier to evolve without changing the public API.
+- Expanded deterministic coverage for scoring calibration and frontend-fallback exposure detection.
+
 ## [0.8.0] - 2026-04-29
 
 ### Added
