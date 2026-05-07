@@ -204,7 +204,6 @@ export const OverviewSection = ({
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                       <span className={`text-4xl font-semibold leading-none ${healthcheckStyle.grade}`}>{analysisData.grade}</span>
-                      <span className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{overallPercent}%</span>
                     </div>
                   </div>
                   <div className="space-y-3">
@@ -212,7 +211,7 @@ export const OverviewSection = ({
                       {isLimitedAssessment ? "Read status" : "Overall posture"}
                     </p>
                     <p className={`text-2xl font-semibold leading-tight ${healthcheckStyle.grade}`}>
-                      {isLimitedAssessment ? limitedReadLabel : `${analysisData.grade} / ${overallPercent}%`}
+                      {isLimitedAssessment ? limitedReadLabel : `${overallPercent}%`}
                     </p>
                     <p className="text-sm leading-6 text-slate-400">
                       {isLimitedAssessment
