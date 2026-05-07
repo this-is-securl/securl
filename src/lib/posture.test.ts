@@ -104,6 +104,14 @@ describe("getAreaScores", () => {
     expect(watch?.status).toBe("watch");
     expect(weak?.status).toBe("weak");
   });
+
+  it("treats no visible AI surface as strong-neutral rather than perfect", () => {
+    const ai = getAreaScores(createAnalysis()).find((area) => area.key === "ai");
+
+    expect(ai?.score).toBe(88);
+    expect(ai?.status).toBe("strong");
+    expect(ai?.notes[0]).toMatch(/low exposure rather than perfect assurance/i);
+  });
 });
 
 describe("getUnifiedIssueSummary", () => {

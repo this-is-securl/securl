@@ -33,6 +33,7 @@ const POSTURE_WEIGHTS: Record<PostureAreaKey, number> = {
   trust: 0.05,
   ai: 0.05,
 };
+const AI_NEUTRAL_NO_SURFACE_PENALTY = 12;
 
 const HOSTED_PLATFORM_SUFFIXES = [
   ".up.railway.app",
@@ -271,6 +272,7 @@ export function getPostureAreaScores(analysis: PostureScoringInput): PostureArea
     analysis.thirdPartyTrust.issues.length * 6;
 
   const aiPenalty =
+    (!analysis.aiSurface.detected ? AI_NEUTRAL_NO_SURFACE_PENALTY : 0) +
     analysis.aiSurface.issues.length * 12 +
     (analysis.aiSurface.detected && !analysis.aiSurface.disclosures.length ? 8 : 0);
 
