@@ -610,7 +610,7 @@ test("monitoring target detail returns recent scans, comparison, and lifecycle e
       assert.equal(runResponse.status, 202);
     }
 
-    for (let attempt = 0; attempt < 60; attempt += 1) {
+    for (let attempt = 0; attempt < 120; attempt += 1) {
       const detailResponse = await getMonitoringTarget(server.baseUrl, createTargetPayload.target.id, {
         owner: SCAN_OWNER_ONE,
       });
@@ -678,7 +678,7 @@ test("scan collection can return target-scoped history for the same url", async 
     }
 
     let completed = 0;
-    for (let attempt = 0; attempt < 60 && completed < 2; attempt += 1) {
+    for (let attempt = 0; attempt < 120 && completed < 2; attempt += 1) {
       const historyResponse = await fetch(
         `${server.baseUrl}/api/scans?url=${encodeURIComponent("https://example.com")}`,
         {

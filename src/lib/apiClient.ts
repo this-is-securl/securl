@@ -59,13 +59,31 @@ const sleep = (delayMs: number) =>
     window.setTimeout(resolve, delayMs);
   });
 
+const buildSecureFallbackToken = () => {
+  const cryptoApi = globalThis.crypto;
+  if (!cryptoApi?.getRandomValues) {
+    throw new ApiClientError("Secure browser crypto is not available.", 500, null);
+  }
+
+  const bytes = new Uint8Array(16);
+  cryptoApi.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+};
+
+const isAnalysisResult = (value: unknown): value is AnalysisResult =>
+  typeof value === "object"
+  && value !== null
+  && typeof (value as AnalysisResult).host === "string"
+  && typeof (value as AnalysisResult).grade === "string"
+  && typeof (value as AnalysisResult).finalUrl === "string";
+
 export const getScanOwnerToken = async () => {
   const existing = await readBrowserStorage<string | null>(SCAN_OWNER_KEY, null, STORAGE_SCHEMA_VERSION);
   if (existing) {
     return existing;
   }
 
-  const generated = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const generated = globalThis.crypto?.randomUUID?.() ?? buildSecureFallbackToken();
   await writeBrowserStorage(SCAN_OWNER_KEY, generated, STORAGE_SCHEMA_VERSION);
   return generated;
 };
@@ -133,6 +151,9 @@ export const analyzeTarget = async (url: string, setMode: "standard" | "quiet" =
   const completedScan = await waitForScanCompletion(scan.id, scanOwnerToken);
   if (!completedScan.result) {
     throw new ApiClientError("Completed scan did not include a result payload.", 500, completedScan);
+  }
+  if (!isAnalysisResult(completedScan.result)) {
+    throw new ApiClientError("Unexpected scan result shape received from server.", 500, completedScan);
   }
   return completedScan.result;
 };

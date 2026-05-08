@@ -9,6 +9,17 @@ export function parseScanResourcePath(requestPath) {
   };
 }
 
+function clampLimit(value, fallback = 20, max = 100) {
+  if (value === null || value === undefined || value === "") {
+    return fallback;
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.min(max, Math.max(1, Math.floor(parsed)));
+}
+
 export async function runQueuedScan({
   scan,
   validatedTarget,
@@ -132,7 +143,7 @@ export async function handleScanCollectionRequest({
         }
 
         const scans = await scanRepository.listPersistedRecords({
-          limit: Number(requestUrl.searchParams.get("limit") || 20),
+          limit: clampLimit(requestUrl.searchParams.get("limit")),
           ownerId: authState.ownerId,
           url: validatedTarget.toString(),
         });
@@ -141,7 +152,7 @@ export async function handleScanCollectionRequest({
       }
 
       const scans = await scanRepository.listScans({
-        limit: Number(requestUrl.searchParams.get("limit") || 20),
+        limit: clampLimit(requestUrl.searchParams.get("limit")),
         ownerId: authState.ownerId,
       });
       sendJson(response, 200, { scans });

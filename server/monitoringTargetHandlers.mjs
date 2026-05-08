@@ -1,3 +1,37 @@
+function clampLimit(value, fallback = 50, max = 100) {
+  if (value === null || value === undefined || value === "") {
+    return fallback;
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.min(max, Math.max(1, Math.floor(parsed)));
+}
+
+function recordMatchesMonitoringTarget(record, target) {
+  if (!record || !target) {
+    return false;
+  }
+
+  return (
+    record.url === target.url
+    || record.result?.finalUrl === target.url
+    || record.result?.normalizedUrl === target.url
+  );
+}
+
+async function listMonitoringTargetRecords(scanRepository, ownerId, target, limit) {
+  const records = await scanRepository.listPersistedRecords({
+    ownerId,
+    limit: Math.max(limit * 4, 20),
+  });
+
+  return records
+    .filter((record) => recordMatchesMonitoringTarget(record, target))
+    .slice(0, limit);
+}
+
 export async function handleMonitoringTargetCollectionRequest({
   request,
   response,
@@ -30,16 +64,12 @@ export async function handleMonitoringTargetCollectionRequest({
     try {
       const targets = await scanRepository.listMonitoringTargets({
         ownerId: authState.ownerId,
-        limit: Number(requestUrl.searchParams.get("limit") || 50),
+        limit: clampLimit(requestUrl.searchParams.get("limit")),
       });
 
       const enriched = await Promise.all(
         targets.map(async (target) => {
-          const records = await scanRepository.listPersistedRecords({
-            ownerId: authState.ownerId,
-            url: target.url,
-            limit: 5,
-          });
+          const records = await listMonitoringTargetRecords(scanRepository, authState.ownerId, target, 5);
           return buildMonitoringTargetView(target, records);
         }),
       );
@@ -158,11 +188,12 @@ export async function handleMonitoringTargetItemRequest({
     action = requestedAction;
 
     if (!action && request.method === "GET") {
-      const records = await scanRepository.listPersistedRecords({
-        ownerId: authState.ownerId,
-        url: target.url,
-        limit: Number(requestUrl.searchParams.get("limit") || 10),
-      });
+      const records = await listMonitoringTargetRecords(
+        scanRepository,
+        authState.ownerId,
+        target,
+        clampLimit(requestUrl.searchParams.get("limit"), 10),
+      );
 
       const events = [];
       const eventLimit = Number(requestUrl.searchParams.get("eventLimit") || 20);
