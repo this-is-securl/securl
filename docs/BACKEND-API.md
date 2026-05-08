@@ -13,6 +13,23 @@ This project now treats the backend as a real scan service boundary rather than 
 - `GET /api/scans/:id/evidence`
 - `GET /api/scans/:id/history`
 
+## Current monitoring resources
+
+- `POST /api/monitoring-targets`
+- `GET /api/monitoring-targets`
+- `DELETE /api/monitoring-targets/:id`
+
+Monitoring targets are currently scoped by the same client-owned `X-Scan-Owner` token as scan resources.
+
+The collection payload includes:
+
+- target metadata
+- cadence
+- due/next-due state
+- latest completed scan summary when available
+- previous completed scan summary when available
+- simple score delta when available
+
 ## Scan-owner model
 
 Unauthenticated browser-style clients currently authenticate scan resources with a client-owned token sent in:

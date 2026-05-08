@@ -6,12 +6,18 @@ import { createRateLimiter } from "./rateLimiter.mjs";
 import { sendJson, sendMethodNotAllowed, sendRateLimited } from "./httpResponses.mjs";
 import { createRequestGuards, getRequestedScanMode, normalizeScanErrorMessage, readJsonBody } from "./requestGuards.mjs";
 import {
+  buildMonitoringTargetView,
+  buildMonitoringTargetsPayload,
   buildScanEvidencePayload,
   buildScanFindingsPayload,
   buildScanHistoryPayload,
   buildScanSummaryPayload,
   buildTargetHistoryPayload,
 } from "./scanDtos.mjs";
+import {
+  handleMonitoringTargetCollectionRequest,
+  handleMonitoringTargetItemRequest,
+} from "./monitoringTargetHandlers.mjs";
 import { handleScanCollectionRequest, handleScanResourceRequest } from "./scanResourceHandlers.mjs";
 import { createStaticHandler } from "./staticServer.mjs";
 import { enforceStartupConfiguration, initializeScanRepository } from "./startupValidation.mjs";
@@ -292,6 +298,49 @@ const server = http.createServer(async (request, response) => {
       formatErrorMessage,
       log,
       requireScanOwner: true,
+    });
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/monitoring-targets") {
+    await handleMonitoringTargetCollectionRequest({
+      request,
+      response,
+      requestUrl,
+      scanRepository,
+      authorizeAnalysisRequest: (options) => authorizeAnalysisRequest({
+        ...options,
+        sendJsonResponse: sendApiJson,
+        sendRateLimitedResponse: sendApiRateLimited,
+      }),
+      readJsonBody,
+      assertPublicHttpUrl,
+      buildMonitoringTargetView,
+      buildMonitoringTargetsPayload,
+      sendJson: sendApiJson,
+      sendMethodNotAllowed: sendApiMethodNotAllowed,
+      sendRepositoryUnavailable: sendApiRepositoryUnavailable,
+      classifyScanFailure,
+      normalizeScanErrorMessage,
+      telemetry,
+    });
+    return;
+  }
+
+  if (requestUrl.pathname.startsWith("/api/monitoring-targets/")) {
+    await handleMonitoringTargetItemRequest({
+      request,
+      response,
+      requestUrl,
+      scanRepository,
+      authorizeAnalysisRequest: (options) => authorizeAnalysisRequest({
+        ...options,
+        sendJsonResponse: sendApiJson,
+        sendRateLimitedResponse: sendApiRateLimited,
+      }),
+      sendJson: sendApiJson,
+      sendMethodNotAllowed: sendApiMethodNotAllowed,
+      sendRepositoryUnavailable: sendApiRepositoryUnavailable,
     });
     return;
   }

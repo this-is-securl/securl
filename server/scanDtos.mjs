@@ -21,6 +21,31 @@ function buildStoredTargetDiff(records) {
   };
 }
 
+function cadenceWindowMs(cadence) {
+  return cadence === "weekly" ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+}
+
+export function buildMonitoringTargetView(target, records = []) {
+  const baseTime = target.lastScannedAt ? new Date(target.lastScannedAt).getTime() : new Date(target.addedAt).getTime();
+  const nextDueAt = new Date(baseTime + cadenceWindowMs(target.cadence)).toISOString();
+  const scans = normalizeArray(records).map((record) => record.summary).filter(Boolean);
+  const completedScans = scans.filter((scan) => scan.status === "completed");
+  const latestScan = completedScans[0] ?? null;
+  const previousScan = completedScans[1] ?? null;
+
+  return {
+    ...target,
+    nextDueAt,
+    due: Date.now() >= new Date(nextDueAt).getTime(),
+    latestScan,
+    previousScan,
+    scoreDelta:
+      latestScan && previousScan && typeof latestScan.score === "number" && typeof previousScan.score === "number"
+        ? latestScan.score - previousScan.score
+        : null,
+  };
+}
+
 export function buildScanSummaryPayload(scan) {
   return {
     summary: scan.summary,
@@ -98,5 +123,11 @@ export function buildTargetHistoryPayload(url, records) {
     },
     scans: normalizeArray(records).map((record) => record.summary).filter(Boolean),
     comparison: buildStoredTargetDiff(records),
+  };
+}
+
+export function buildMonitoringTargetsPayload(targets) {
+  return {
+    targets: normalizeArray(targets),
   };
 }

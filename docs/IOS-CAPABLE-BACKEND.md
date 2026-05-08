@@ -33,6 +33,9 @@ As of the first `0.8.3` backend step, the server now has:
 - `GET /api/scans/:id/findings`
 - `GET /api/scans/:id/evidence`
 - `GET /api/scans/:id/history`
+- `POST /api/monitoring-targets`
+- `GET /api/monitoring-targets`
+- `DELETE /api/monitoring-targets/:id`
 
 These scan resources still default to **in-memory** storage for local development, but the same API shape can now be backed by Postgres for durable deployments.
 
@@ -67,7 +70,8 @@ Phase 3:
 
 - `POST /api/monitoring-targets`
 - `GET /api/monitoring-targets`
-- `GET /api/monitoring-targets/:id`
+- `DELETE /api/monitoring-targets/:id`
+- optional later: `POST /api/monitoring-targets/:id/run`
 
 ## Resource Shape
 
@@ -182,6 +186,9 @@ Current repository responsibilities:
 - `getScan`
 - `listScans`
 - `listScanEvents`
+- `upsertMonitoringTarget`
+- `listMonitoringTargets`
+- `deleteMonitoringTarget`
 
 Current persisted-record shape:
 
