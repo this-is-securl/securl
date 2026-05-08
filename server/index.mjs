@@ -6,6 +6,7 @@ import { createRateLimiter } from "./rateLimiter.mjs";
 import { sendJson, sendMethodNotAllowed, sendRateLimited } from "./httpResponses.mjs";
 import { createRequestGuards, getRequestedScanMode, normalizeScanErrorMessage, readJsonBody } from "./requestGuards.mjs";
 import {
+  buildMonitoringTargetDetailPayload,
   buildMonitoringTargetView,
   buildMonitoringTargetsPayload,
   buildScanEvidencePayload,
@@ -346,6 +347,7 @@ const server = http.createServer(async (request, response) => {
       }),
       runScanAnalysis,
       runQueuedScan,
+      buildMonitoringTargetDetailPayload,
       telemetry,
       classifyScanFailure,
       normalizeScanErrorMessage,

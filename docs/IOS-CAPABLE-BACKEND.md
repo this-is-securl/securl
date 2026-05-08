@@ -70,8 +70,9 @@ Phase 3:
 
 - `POST /api/monitoring-targets`
 - `GET /api/monitoring-targets`
+- `GET /api/monitoring-targets/:id`
 - `DELETE /api/monitoring-targets/:id`
-- optional later: `POST /api/monitoring-targets/:id/run`
+- `POST /api/monitoring-targets/:id/run`
 
 ## Resource Shape
 

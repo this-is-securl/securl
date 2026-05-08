@@ -17,6 +17,8 @@ This project now treats the backend as a real scan service boundary rather than 
 
 - `POST /api/monitoring-targets`
 - `GET /api/monitoring-targets`
+- `GET /api/monitoring-targets/:id`
+- `POST /api/monitoring-targets/:id/run`
 - `DELETE /api/monitoring-targets/:id`
 
 Monitoring targets are currently scoped by the same client-owned `X-Scan-Owner` token as scan resources.
@@ -29,6 +31,13 @@ The collection payload includes:
 - latest completed scan summary when available
 - previous completed scan summary when available
 - simple score delta when available
+
+The detail payload includes:
+
+- target metadata and due state
+- recent scan summaries for that target
+- latest-vs-previous comparison when two completed scans exist
+- recent lifecycle events aggregated from recent scans
 
 ## Scan-owner model
 

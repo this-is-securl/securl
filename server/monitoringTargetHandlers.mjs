@@ -113,6 +113,7 @@ export async function handleMonitoringTargetItemRequest({
   checkTargetQuota,
   runScanAnalysis,
   runQueuedScan,
+  buildMonitoringTargetDetailPayload,
   telemetry,
   classifyScanFailure,
   normalizeScanErrorMessage,
@@ -130,16 +131,19 @@ export async function handleMonitoringTargetItemRequest({
     return true;
   }
 
+  const requestedAction = match[2] || null;
   const authState = await authorizeAnalysisRequest({
     request,
     response,
     requestPath: requestUrl.pathname,
+    enforceRateLimit: request.method === "GET" && !requestedAction ? false : undefined,
     requireScanOwner: true,
   });
   if (!authState) {
     return true;
   }
 
+  let action = null;
   try {
     const target = await scanRepository.getMonitoringTarget(match[1], {
       ownerId: authState.ownerId,
@@ -151,7 +155,28 @@ export async function handleMonitoringTargetItemRequest({
       return true;
     }
 
-    const action = match[2] || null;
+    action = requestedAction;
+
+    if (!action && request.method === "GET") {
+      const records = await scanRepository.listPersistedRecords({
+        ownerId: authState.ownerId,
+        url: target.url,
+        limit: Number(requestUrl.searchParams.get("limit") || 10),
+      });
+
+      const events = [];
+      const eventLimit = Number(requestUrl.searchParams.get("eventLimit") || 20);
+      for (const record of records.slice(0, 5)) {
+        const scanEvents = await scanRepository.listScanEvents(record.id, {
+          ownerId: authState.ownerId,
+        });
+        events.push(...scanEvents);
+      }
+      events.sort((left, right) => new Date(right.occurredAt).getTime() - new Date(left.occurredAt).getTime());
+
+      sendJson(response, 200, buildMonitoringTargetDetailPayload(target, records, events.slice(0, eventLimit)));
+      return true;
+    }
 
     if (action === "run") {
       if (request.method !== "POST") {
@@ -221,7 +246,7 @@ export async function handleMonitoringTargetItemRequest({
     }
 
     if (request.method !== "DELETE") {
-      sendMethodNotAllowed(response, ["DELETE"]);
+      sendMethodNotAllowed(response, ["GET", "DELETE"]);
       return true;
     }
 
@@ -239,7 +264,7 @@ export async function handleMonitoringTargetItemRequest({
       ok: true,
     });
   } catch (error) {
-    sendRepositoryUnavailable(response, error, "delete_monitoring_target");
+    sendRepositoryUnavailable(response, error, action === "run" ? "run_monitoring_target" : "access_monitoring_target");
   }
 
   return true;

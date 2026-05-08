@@ -131,3 +131,14 @@ export function buildMonitoringTargetsPayload(targets) {
     targets: normalizeArray(targets),
   };
 }
+
+export function buildMonitoringTargetDetailPayload(target, records = [], events = []) {
+  const view = buildMonitoringTargetView(target, records);
+
+  return {
+    target: view,
+    scans: normalizeArray(records).map((record) => record.summary).filter(Boolean),
+    comparison: buildStoredTargetDiff(records),
+    events: normalizeArray(events),
+  };
+}
