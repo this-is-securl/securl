@@ -36,6 +36,23 @@ Examples:
 - local integrated mode: leave unset and the app will call relative `/api/...` routes
 - split frontend/backend mode: `VITE_API_BASE_URL=https://api.securl.online`
 
+## Cross-origin frontend support
+
+When the frontend is hosted separately from the Node backend, the API now supports browser CORS for approved origins.
+
+Set:
+
+- `ALLOWED_ORIGINS=https://app.securl.online`
+
+You can provide multiple origins as a comma-separated list if needed.
+
+Example split deployment:
+
+- Hostinger frontend: `https://app.securl.online`
+- Railway backend: `https://securl-app-production.up.railway.app`
+- frontend build env: `VITE_API_BASE_URL=https://securl-app-production.up.railway.app`
+- backend runtime env: `ALLOWED_ORIGINS=https://app.securl.online`
+
 ## Why this matters
 
 This is the first real separation step for future native clients:

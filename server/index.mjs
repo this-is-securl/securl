@@ -1,6 +1,7 @@
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath, URL } from "node:url";
+import { createCorsPolicy, resolveAllowedOrigins } from "./cors.mjs";
 import { createRateLimiter } from "./rateLimiter.mjs";
 import { sendJson, sendMethodNotAllowed, sendRateLimited } from "./httpResponses.mjs";
 import { createRequestGuards, getRequestedScanMode, normalizeScanErrorMessage, readJsonBody } from "./requestGuards.mjs";
@@ -45,6 +46,7 @@ const rateLimitBackend = configuredRateLimitBackend || (deploymentMode === "mult
 const configuredScanRepositoryBackend = (process.env.SCAN_REPOSITORY_BACKEND || "").trim().toLowerCase();
 const scanRepositoryBackend = configuredScanRepositoryBackend || "memory";
 const databaseUrl = (process.env.DATABASE_URL || "").trim();
+const allowedOrigins = resolveAllowedOrigins(process.env.ALLOWED_ORIGINS, isProduction);
 const SCAN_OWNER_HEADER = "x-scan-owner";
 const RATE_LIMIT_WINDOW_MS = (() => {
   const raw = Number(process.env.RATE_LIMIT_WINDOW_MS || DEFAULT_RATE_LIMIT_WINDOW_MS);
@@ -112,17 +114,6 @@ const log = (level, event, details = {}) => {
   console.log(line);
 };
 
-function sendRepositoryUnavailable(response, error, context) {
-  log("error", "scan_repository_unavailable", {
-    context,
-    message: formatErrorMessage(error),
-    backend: scanRepository?.kind || scanRepositoryBackend,
-  });
-  sendJson(response, 503, {
-    error: "Scan storage is temporarily unavailable. Please try again shortly.",
-  });
-}
-
 async function runScanAnalysis({ validatedTarget, mode, clientIp, requesterScope }) {
   telemetry.recordScanRequested({ mode });
   log("info", "analysis_requested", {
@@ -182,10 +173,53 @@ const serveStatic = createStaticHandler({
   isProduction,
   telemetry,
 });
+const corsPolicy = createCorsPolicy({
+  allowedOrigins,
+});
 
 const server = http.createServer(async (request, response) => {
   const rawRequestPath = (request.url || "/").split("?")[0] || "/";
   const requestUrl = new URL(request.url || "/", `http://${request.headers.host}`);
+  const apiCorsHeaders = corsPolicy.getOriginHeaders(request);
+  const sendApiJson = (targetResponse, statusCode, payload) =>
+    sendJson(targetResponse, statusCode, payload, apiCorsHeaders || {});
+  const sendApiMethodNotAllowed = (targetResponse, allowedMethods) =>
+    sendMethodNotAllowed(targetResponse, allowedMethods, apiCorsHeaders || {});
+  const sendApiRateLimited = (targetResponse, retryAfterSeconds, message) =>
+    sendRateLimited(targetResponse, retryAfterSeconds, message, apiCorsHeaders || {});
+  const sendApiRepositoryUnavailable = (targetResponse, error, context) => {
+    log("error", "scan_repository_unavailable", {
+      context,
+      message: formatErrorMessage(error),
+      backend: scanRepository?.kind || scanRepositoryBackend,
+    });
+    sendApiJson(targetResponse, 503, {
+      error: "Scan storage is temporarily unavailable. Please try again shortly.",
+    });
+  };
+
+  if (requestUrl.pathname.startsWith("/api/") && request.headers.origin && apiCorsHeaders === null) {
+    sendJson(response, 403, {
+      error: "Origin is not allowed to access this API.",
+    });
+    return;
+  }
+
+  if (requestUrl.pathname.startsWith("/api/") && request.method === "OPTIONS") {
+    if (apiCorsHeaders === null) {
+      sendJson(response, 403, {
+        error: "Origin is not allowed to access this API.",
+      });
+      return;
+    }
+
+    response.writeHead(204, {
+      ...(apiCorsHeaders || {}),
+      "Cache-Control": "no-store",
+    });
+    response.end();
+    return;
+  }
 
   if (requestUrl.pathname === "/api/health") {
     const payload = {
@@ -213,19 +247,19 @@ const server = http.createServer(async (request, response) => {
       };
     }
 
-    sendJson(response, 200, payload);
+    sendApiJson(response, 200, payload);
     return;
   }
 
   if (requestUrl.pathname === "/api/telemetry") {
     if (!exposeTelemetry) {
-      sendJson(response, 404, {
+      sendApiJson(response, 404, {
         error: "Telemetry is not available.",
       });
       return;
     }
 
-    sendJson(response, 200, telemetry.snapshot());
+    sendApiJson(response, 200, telemetry.snapshot());
     return;
   }
 
@@ -235,15 +269,22 @@ const server = http.createServer(async (request, response) => {
       response,
       requestUrl,
       scanRepository,
-      authorizeAnalysisRequest,
+      authorizeAnalysisRequest: (options) => authorizeAnalysisRequest({
+        ...options,
+        sendJsonResponse: sendApiJson,
+        sendRateLimitedResponse: sendApiRateLimited,
+      }),
       readJsonBody,
       getRequestedScanMode,
-      checkTargetQuota,
+      checkTargetQuota: (options) => checkTargetQuota({
+        ...options,
+        sendRateLimitedResponse: sendApiRateLimited,
+      }),
       assertPublicHttpUrl,
       buildTargetHistoryPayload,
-      sendJson,
-      sendMethodNotAllowed,
-      sendRepositoryUnavailable,
+      sendJson: sendApiJson,
+      sendMethodNotAllowed: sendApiMethodNotAllowed,
+      sendRepositoryUnavailable: sendApiRepositoryUnavailable,
       telemetry,
       classifyScanFailure,
       normalizeScanErrorMessage,
@@ -261,14 +302,18 @@ const server = http.createServer(async (request, response) => {
       response,
       requestUrl,
       scanRepository,
-      authorizeAnalysisRequest,
+      authorizeAnalysisRequest: (options) => authorizeAnalysisRequest({
+        ...options,
+        sendJsonResponse: sendApiJson,
+        sendRateLimitedResponse: sendApiRateLimited,
+      }),
       buildScanSummaryPayload,
       buildScanFindingsPayload,
       buildScanEvidencePayload,
       buildScanHistoryPayload,
-      sendJson,
-      sendMethodNotAllowed,
-      sendRepositoryUnavailable,
+      sendJson: sendApiJson,
+      sendMethodNotAllowed: sendApiMethodNotAllowed,
+      sendRepositoryUnavailable: sendApiRepositoryUnavailable,
       requireScanOwner: true,
     });
     return;

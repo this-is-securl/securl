@@ -352,6 +352,66 @@ test("telemetry endpoint is hidden by default in production", async () => {
   }
 });
 
+test("api preflight allows the Hostinger frontend origin", async () => {
+  const server = await startServer();
+
+  try {
+    const response = await fetch(`${server.baseUrl}/api/scans`, {
+      method: "OPTIONS",
+      headers: {
+        Origin: "https://app.securl.online",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "content-type,x-scan-owner",
+      },
+    });
+
+    assert.equal(response.status, 204);
+    assert.equal(response.headers.get("access-control-allow-origin"), "https://app.securl.online");
+    assert.match(response.headers.get("access-control-allow-methods") || "", /POST/);
+    assert.match(response.headers.get("access-control-allow-headers") || "", /X-Scan-Owner/i);
+  } finally {
+    await server.stop();
+  }
+});
+
+test("api responses include cors headers for the Hostinger frontend origin", async () => {
+  const server = await startServer();
+
+  try {
+    const response = await fetch(`${server.baseUrl}/api/scans`, {
+      headers: {
+        Origin: "https://app.securl.online",
+      },
+    });
+    const payload = await response.json();
+
+    assert.equal(response.status, 401);
+    assert.equal(response.headers.get("access-control-allow-origin"), "https://app.securl.online");
+    assert.match(payload.error, /owner token/i);
+  } finally {
+    await server.stop();
+  }
+});
+
+test("api rejects unexpected origins", async () => {
+  const server = await startServer();
+
+  try {
+    const response = await fetch(`${server.baseUrl}/api/scans`, {
+      headers: {
+        Origin: "https://evil.example",
+      },
+    });
+    const payload = await response.json();
+
+    assert.equal(response.status, 403);
+    assert.equal(response.headers.get("access-control-allow-origin"), null);
+    assert.match(payload.error, /Origin is not allowed/i);
+  } finally {
+    await server.stop();
+  }
+});
+
 test("scan resources start empty and return 404 for unknown ids", async () => {
   const server = await startServer();
 
