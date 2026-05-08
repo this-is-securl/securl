@@ -1,10 +1,11 @@
-import { Download } from "lucide-react";
+import { ArrowRight, Download, ShieldAlert, Sparkles, TrendingUp } from "lucide-react";
 import { MonitoringPanel } from "@/components/MonitoringPanel";
 import { PostureSummaryPanel } from "@/components/PostureSummaryPanel";
 import { PriorityActionsPanel } from "@/components/PriorityActionsPanel";
 import { Button } from "@/components/ui/button";
 import { AnalysisResult, HistoryDiff, HistorySnapshot } from "@/types/analysis";
 import { getHttpStatusDetails } from "@/lib/httpStatus";
+import { getPriorityActions } from "@/lib/priorities";
 import { sectionTitleClass } from "./ReportSectionHeader";
 
 const trafficLightStyles = {
@@ -106,6 +107,15 @@ export const OverviewSection = ({
     );
   const overallPercent = Math.max(0, Math.min(100, analysisData.score));
   const donutOffset = DONUT_CIRCUMFERENCE - (overallPercent / 100) * DONUT_CIRCUMFERENCE;
+  const priorityActions = getPriorityActions(analysisData).slice(0, 3);
+  const strongestArea = [...areaScores].sort((left, right) => right.score - left.score)[0] ?? null;
+  const weakestArea = sortedAreaScores[0] ?? null;
+  const scanOutcomeLabel = isLimitedAssessment
+    ? limitedReadLabel
+    : `${analysisData.grade} / ${overallPercent}%`;
+  const scanOutcomeDetail = isLimitedAssessment
+    ? "Directional read only"
+    : "Executive posture verdict";
 
   return (
     <div id="overview" className="space-y-6">
@@ -122,22 +132,84 @@ export const OverviewSection = ({
 
       <div className="space-y-4">
         <div className="rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,rgba(11,18,32,0.95),rgba(16,24,39,0.92))] px-6 py-6 shadow-[0_30px_80px_-48px_rgba(0,0,0,0.8)] ring-1 ring-white/[0.04]">
-          <div className="grid gap-4 xl:grid-cols-[1.15fr_0.95fr] xl:items-start">
-            <div>
-              <p className={sectionTitleClass}>Target</p>
-              <p className="mt-3 text-3xl font-semibold tracking-tight text-white">{analysisData.host}</p>
-              <p className="mt-2 break-all text-sm text-slate-400">{analysisData.finalUrl}</p>
-            </div>
-            <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Analyst read</p>
-              {hasTrainingSurfaceNarrative ? (
-                <div className="mt-3 inline-flex items-center rounded-full border border-[#b56a2c]/35 bg-[#b56a2c]/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f0d5bc]">
-                  Training surface detected
+          <div className="grid gap-4 xl:grid-cols-[1.18fr_0.82fr] xl:items-start">
+            <div className="space-y-5">
+              <div>
+                <p className={sectionTitleClass}>Target</p>
+                <p className="mt-3 text-3xl font-semibold tracking-tight text-white">{analysisData.host}</p>
+                <p className="mt-2 break-all text-sm text-slate-400">{analysisData.finalUrl}</p>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-[0.92fr_1.08fr]">
+                <div className={`rounded-[1.5rem] border px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)] ${healthcheckStyle.tile}`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{scanOutcomeDetail}</p>
+                      <p className={`mt-3 text-4xl font-semibold tracking-[-0.04em] ${healthcheckStyle.grade}`}>
+                        {scanOutcomeLabel}
+                      </p>
+                    </div>
+                    <span className={`inline-flex h-3 w-3 rounded-full ${healthcheckStyle.dot}`} aria-hidden="true" />
+                  </div>
+                  <p className="mt-4 text-sm leading-6 text-slate-300">
+                    {analysisData.executiveSummary.mainRisk}
+                  </p>
                 </div>
-              ) : null}
-              <p className={`mt-3 text-base text-slate-300 ${compact ? "leading-7" : "leading-8"}`}>
-                {analysisData.executiveSummary.overview}
-              </p>
+
+                <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    <Sparkles className="h-4 w-4 text-[#d89a63]" />
+                    Analyst read
+                  </div>
+                  {hasTrainingSurfaceNarrative ? (
+                    <div className="mt-3 inline-flex items-center rounded-full border border-[#b56a2c]/35 bg-[#b56a2c]/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f0d5bc]">
+                      Training surface detected
+                    </div>
+                  ) : null}
+                  <p className={`mt-3 text-base text-slate-300 ${compact ? "leading-7" : "leading-8"}`}>
+                    {analysisData.executiveSummary.overview}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-[1.65rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.03))] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">What to do next</p>
+                  <p className="mt-2 text-lg font-semibold text-white">Priority actions for this target</p>
+                </div>
+                <ShieldAlert className="h-5 w-5 text-[#d89a63]" />
+              </div>
+              {priorityActions.length ? (
+                <div className="mt-4 space-y-3">
+                  {priorityActions.map((action, index) => (
+                    <div key={`${action.area}-${action.title}`} className="rounded-[1.2rem] border border-white/10 bg-slate-950/45 px-4 py-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#b56a2c]/16 px-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f0d5bc]">
+                              {index + 1}
+                            </span>
+                            <p className="text-sm font-semibold text-white">{action.title}</p>
+                          </div>
+                          <p className="mt-2 text-sm leading-6 text-slate-300">{action.detail}</p>
+                        </div>
+                        <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300">
+                          {action.severity}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                        <ArrowRight className="h-3.5 w-3.5" />
+                        {action.area}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-4 rounded-[1.2rem] border border-white/10 bg-slate-950/45 px-4 py-4 text-sm leading-6 text-slate-300">
+                  No immediate remediation is being prioritized from the current public evidence.
+                </div>
+              )}
             </div>
           </div>
 
@@ -162,6 +234,69 @@ export const OverviewSection = ({
               <p className="mt-3 text-base font-semibold leading-7 text-white">
                 {analysisData.executiveSummary.mainRisk}
               </p>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 xl:grid-cols-[1.05fr_0.95fr]">
+            <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Executive summary</p>
+                  <p className="mt-2 text-lg font-semibold text-white">Why this landed here</p>
+                </div>
+                <TrendingUp className="h-5 w-5 text-[#d89a63]" />
+              </div>
+              <div className="mt-4 grid gap-3 md:grid-cols-3">
+                <div className="rounded-[1.2rem] border border-white/10 bg-slate-950/45 px-4 py-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Weakest area</p>
+                  <p className="mt-2 text-base font-semibold text-white">{weakestArea?.label ?? "Unavailable"}</p>
+                  <p className="mt-1 text-sm text-slate-400">{weakestArea ? `${weakestArea.score}% posture score` : "No area score available"}</p>
+                </div>
+                <div className="rounded-[1.2rem] border border-white/10 bg-slate-950/45 px-4 py-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Strongest area</p>
+                  <p className="mt-2 text-base font-semibold text-white">{strongestArea?.label ?? "Unavailable"}</p>
+                  <p className="mt-1 text-sm text-slate-400">{strongestArea ? `${strongestArea.score}% posture score` : "No area score available"}</p>
+                </div>
+                <div className="rounded-[1.2rem] border border-white/10 bg-slate-950/45 px-4 py-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Finding mix</p>
+                  <p className="mt-2 text-base font-semibold text-white">{analysisData.issues.length} visible finding{analysisData.issues.length === 1 ? "" : "s"}</p>
+                  <p className="mt-1 text-sm text-slate-400">{analysisData.strengths.length} visible strength{analysisData.strengths.length === 1 ? "" : "s"}</p>
+                </div>
+              </div>
+              <div className="mt-4 grid gap-3 md:grid-cols-3">
+                {analysisData.executiveSummary.takeaways.slice(0, 3).map((takeaway) => (
+                  <div key={takeaway} className="rounded-[1.2rem] border border-white/10 bg-slate-950/45 px-4 py-4 text-sm leading-6 text-slate-300">
+                    {takeaway}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Delivery</p>
+                  <p className="mt-2 text-lg font-semibold text-white">Report outputs</p>
+                </div>
+                <Download className="h-5 w-5 text-[#d89a63]" />
+              </div>
+              <p className="mt-3 text-sm leading-6 text-slate-400">
+                Export the same posture read as a premium report, a markdown briefing, or raw machine-readable JSON.
+              </p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <Button variant="outline" className="h-11 w-full justify-center rounded-2xl border-white/10 bg-white/[0.04] font-medium text-slate-100 hover:bg-white/[0.08]" onClick={exportPdf}>
+                  Export PDF
+                </Button>
+                <Button variant="outline" className="h-11 w-full justify-center rounded-2xl border-white/10 bg-white/[0.04] font-medium text-slate-100 hover:bg-white/[0.08]" onClick={exportMarkdown}>
+                  Export Markdown
+                </Button>
+                <Button variant="outline" className="h-11 w-full justify-center rounded-2xl border-white/10 bg-white/[0.04] font-medium text-slate-100 hover:bg-white/[0.08]" onClick={exportHtml}>
+                  Export HTML
+                </Button>
+                <Button variant="outline" className="h-11 w-full justify-center rounded-2xl border-white/10 bg-white/[0.04] font-medium text-slate-100 hover:bg-white/[0.08]" onClick={exportReport}>
+                  Export JSON
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -288,23 +423,6 @@ export const OverviewSection = ({
             </div>
           </div>
 
-          <div className="mt-5 border-t border-white/10 pt-5">
-            <div className="mx-auto grid max-w-4xl gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <Button variant="outline" className="h-11 w-full justify-center rounded-2xl border-white/10 bg-white/[0.04] font-medium text-slate-100 hover:bg-white/[0.08]" onClick={exportPdf}>
-                Export PDF
-              </Button>
-              <Button variant="outline" className="h-11 w-full justify-center rounded-2xl border-white/10 bg-white/[0.04] font-medium text-slate-100 hover:bg-white/[0.08]" onClick={exportMarkdown}>
-                Export Markdown
-              </Button>
-              <Button variant="outline" className="h-11 w-full justify-center rounded-2xl border-white/10 bg-white/[0.04] font-medium text-slate-100 hover:bg-white/[0.08]" onClick={exportHtml}>
-                Export HTML
-              </Button>
-              <Button variant="outline" className="h-11 w-full justify-center rounded-2xl border-white/10 bg-white/[0.04] font-medium text-slate-100 hover:bg-white/[0.08]" onClick={exportReport}>
-                <Download className="mr-2 h-4 w-4" />
-                Export JSON
-              </Button>
-            </div>
-          </div>
         </div>
       </div>
 
