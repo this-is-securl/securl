@@ -216,7 +216,14 @@ export function createRequestGuards({
     return targetUrl;
   }
 
-  async function checkTargetQuota({ requesterScope, target, clientIp, requestPath, response }) {
+  async function checkTargetQuota({
+    requesterScope,
+    target,
+    clientIp,
+    requestPath,
+    response,
+    sendRateLimitedResponse = sendRateLimited,
+  }) {
     const targetHost = parseTargetHostForQuota(target);
     if (!targetHost) {
       return { ok: true };
@@ -241,7 +248,7 @@ export function createRequestGuards({
       abuseAlertThreshold,
       log,
     });
-    sendRateLimited(
+    sendRateLimitedResponse(
       response,
       targetRateLimitState.retryAfterSeconds,
       "Too many analysis requests for this target from this client. Please try again later.",
@@ -255,6 +262,8 @@ export function createRequestGuards({
     requestPath,
     enforceRateLimit = true,
     requireScanOwner = false,
+    sendJsonResponse = sendJson,
+    sendRateLimitedResponse = sendRateLimited,
   }) {
     const clientIp = getClientIp(request, { trustProxy, isLocalHostname, isPrivateAddress }) || "unknown";
     const presentedApiKey = getPresentedApiKey(request);
@@ -278,7 +287,7 @@ export function createRequestGuards({
         abuseAlertThreshold,
         log,
       });
-      sendJson(response, 401, {
+      sendJsonResponse(response, 401, {
         error: "A valid API key is required to analyze targets from this deployment.",
       });
       return null;
@@ -305,7 +314,7 @@ export function createRequestGuards({
         abuseAlertThreshold,
         log,
       });
-      sendJson(response, 401, {
+      sendJsonResponse(response, 401, {
         error: "A scan owner token is required to access scan resources from this deployment.",
       });
       return null;
@@ -329,7 +338,7 @@ export function createRequestGuards({
         abuseAlertThreshold,
         log,
       });
-      sendRateLimited(response, rateLimitState.retryAfterSeconds);
+      sendRateLimitedResponse(response, rateLimitState.retryAfterSeconds);
       return null;
     }
 
