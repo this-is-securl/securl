@@ -211,6 +211,12 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
         : "No side-by-side comparison yet",
     },
   ];
+  const timelineBadges = trendPoints.map((snapshot, index) => ({
+    id: `${snapshot.scannedAt}-${snapshot.score}`,
+    label: index === trendPoints.length - 1 ? "Latest" : index === 0 ? "Start" : `${index + 1}`,
+    score: snapshot.score,
+    grade: snapshot.grade,
+  }));
 
   return (
     <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
@@ -221,7 +227,7 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
+        <div className="rounded-[1.35rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(15,23,42,0.35))] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="max-w-2xl">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#d89a63]">{lead.eyebrow}</p>
@@ -258,7 +264,7 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
           </div>
         </div>
 
-        <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
+        <div className="rounded-[1.35rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(15,23,42,0.35))] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Trend window</p>
@@ -293,6 +299,15 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
                     .join(" ")}
                 />
               </svg>
+              <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-8">
+                {timelineBadges.map((point) => (
+                  <div key={point.id} className="rounded-xl border border-white/10 bg-white/[0.03] px-2 py-2 text-center">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">{point.label}</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-100">{point.score}</p>
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-[#d89a63]">{point.grade}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : null}
         </div>
@@ -332,6 +347,14 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
                     {snapshot.grade}
                   </Badge>
                   <span className="text-sm font-semibold text-slate-200">{snapshot.score}/100</span>
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-[#8e5c3b] via-[#b56a2c] to-[#d89a63] transition-all duration-700"
+                    style={{ width: `${Math.max(6, Math.min(snapshot.score, 100))}%` }}
+                  />
                 </div>
               </div>
             </div>

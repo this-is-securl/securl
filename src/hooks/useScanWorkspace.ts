@@ -10,12 +10,39 @@ import { useMonitoredTargets } from "./useMonitoredTargets";
 import { useScanHistory } from "./useScanHistory";
 import { exportReportJson, exportReportMarkdown, exportReportHtml, exportReportPdf } from "@/lib/exportUtils";
 
+const scanLifecycleStages = [
+  {
+    key: "queueing",
+    label: "Queueing scan",
+    detail: "Opening a fresh scan resource and locking the browser-owned access token.",
+  },
+  {
+    key: "reading",
+    label: "Reading target",
+    detail: "Checking transport, headers, visible page signals, and passive trust evidence.",
+  },
+  {
+    key: "synthesizing",
+    label: "Scoring posture",
+    detail: "Normalizing findings into category scores, priorities, and confidence-labelled risks.",
+  },
+  {
+    key: "finalizing",
+    label: "Finalizing report",
+    detail: "Preparing the workspace, recent history, and monitoring summaries.",
+  },
+] as const;
+
+export type ScanLifecycleStage = (typeof scanLifecycleStages)[number];
+
 export const useScanWorkspace = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null);
   const [activeReportSection, setActiveReportSection] = useState<ReportWorkspaceSectionKey>("overview");
+  const [scanStage, setScanStage] = useState<ScanLifecycleStage | null>(null);
   const autoScanRanRef = useRef(false);
   const analyzeUrlRef = useRef<(url: string, setAsCurrent?: boolean) => Promise<AnalysisResult>>();
+  const stageTimeoutsRef = useRef<number[]>([]);
   const areaScores = analysisData ? getAreaScores(analysisData) : [];
 
   const {
@@ -68,6 +95,29 @@ export const useScanWorkspace = () => {
       cancelled = true;
     };
   }, [loadRecentScans, loadMonitoredTargets, loadHistory, setRecentScans, setMonitoredTargets]);
+
+  useEffect(() => {
+    stageTimeoutsRef.current.forEach((timeout) => window.clearTimeout(timeout));
+    stageTimeoutsRef.current = [];
+
+    if (!isLoading) {
+      setScanStage(null);
+      return;
+    }
+
+    setScanStage(scanLifecycleStages[0]);
+    scanLifecycleStages.slice(1).forEach((stage, index) => {
+      const timeout = window.setTimeout(() => {
+        setScanStage(stage);
+      }, (index + 1) * 900);
+      stageTimeoutsRef.current.push(timeout);
+    });
+
+    return () => {
+      stageTimeoutsRef.current.forEach((timeout) => window.clearTimeout(timeout));
+      stageTimeoutsRef.current = [];
+    };
+  }, [isLoading]);
 
   const persistAnalysis = (payload: AnalysisResult, setAsCurrent = true) => {
     startTransition(() => {
@@ -176,6 +226,7 @@ export const useScanWorkspace = () => {
 
   return {
     isLoading,
+    scanStage,
     analysisData,
     recentScans,
     history,
