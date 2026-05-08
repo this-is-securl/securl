@@ -126,8 +126,8 @@ export const useScanWorkspace = () => {
       }
       addRecentScan(payload);
       addHistorySnapshot(payload, setAsCurrent);
-      syncMonitoredTarget(payload);
     });
+    void syncMonitoredTarget();
   };
 
   const analyzeUrl = async (url: string, setAsCurrent = true) => {
@@ -238,7 +238,9 @@ export const useScanWorkspace = () => {
     monitoredViews,
     setActiveReportSection,
     handleAnalyze,
-    saveCurrentAsMonitored: (cadence: "daily" | "weekly") => saveCurrentAsMonitored(cadence, analysisData),
+    saveCurrentAsMonitored: async (cadence: "daily" | "weekly") => {
+      await saveCurrentAsMonitored(cadence, analysisData);
+    },
     removeMonitoredTarget,
     runTargetScan,
     runDueScans,

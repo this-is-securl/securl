@@ -116,3 +116,27 @@ export interface TargetHistoryResponse {
   scans: ApiScanSummary[];
   comparison: TargetHistoryComparison | null;
 }
+
+export interface ApiMonitoringTarget {
+  id: string;
+  ownerId: string | null;
+  requesterScope: string;
+  url: string;
+  label: string;
+  cadence: "daily" | "weekly";
+  addedAt: string;
+  lastScannedAt: string | null;
+  nextDueAt: string;
+  due: boolean;
+  latestScan: ApiScanSummary | null;
+  previousScan: ApiScanSummary | null;
+  scoreDelta: number | null;
+}
+
+export interface MonitoringTargetsResponse {
+  targets: ApiMonitoringTarget[];
+}
+
+export interface MonitoringTargetResponse {
+  target: ApiMonitoringTarget;
+}

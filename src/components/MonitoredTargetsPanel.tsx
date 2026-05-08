@@ -4,12 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export interface MonitoredTargetView {
+  id: string;
   url: string;
   label: string;
   cadence: "daily" | "weekly";
+  addedAt: string;
   lastScannedAt: string | null;
   nextDueAt: string;
   due: boolean;
+  latestScan: {
+    score: number | null;
+    grade: string | null;
+  } | null;
+  previousScan: {
+    score: number | null;
+    grade: string | null;
+  } | null;
+  scoreDelta: number | null;
 }
 
 interface MonitoredTargetsPanelProps {
@@ -22,7 +33,7 @@ interface MonitoredTargetsPanelProps {
   onAddWeekly: () => void;
   onRunDue: () => void;
   onRunTarget: (url: string) => void;
-  onRemove: (url: string) => void;
+  onRemove: (targetId: string) => void;
   busy: boolean;
 }
 
@@ -61,7 +72,7 @@ export const MonitoredTargetsPanel = ({
               Monitoring
             </div>
             <p className="max-w-xl text-sm leading-5 text-slate-400">
-              Browser-local watchlist with compact drift tracking.
+              Server-backed watchlist with compact drift tracking.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 lg:justify-end">
@@ -112,7 +123,7 @@ export const MonitoredTargetsPanel = ({
             <p className="text-sm font-medium text-slate-400">Current site</p>
             <p className="mt-2 text-sm font-semibold text-slate-100">{currentUrl ? "Ready to add" : "No active site"}</p>
             <p className="mt-1 text-xs text-slate-500">
-              {currentUrl ? "Save it to the watchlist using the controls above." : "Run or reopen a scan first."}
+              {currentUrl ? "Save it to the shared monitoring list using the controls above." : "Run or reopen a scan first."}
             </p>
           </div>
         </div>
@@ -120,7 +131,7 @@ export const MonitoredTargetsPanel = ({
         {targets.length ? (
           <div className="grid gap-3 xl:grid-cols-2">
             {targets.map((target) => (
-              <div key={target.url} className="rounded-[1rem] border border-white/10 bg-slate-950/45 p-3.5 shadow-sm">
+              <div key={target.id} className="rounded-[1rem] border border-white/10 bg-slate-950/45 p-3.5 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -138,7 +149,17 @@ export const MonitoredTargetsPanel = ({
                         {target.cadence}
                       </Badge>
                       <span>Next: {new Date(target.nextDueAt).toLocaleDateString()}</span>
+                      {target.latestScan?.score !== null ? (
+                        <span>
+                          Latest: {target.latestScan?.score}%{target.latestScan?.grade ? ` (${target.latestScan.grade})` : ""}
+                        </span>
+                      ) : null}
                     </div>
+                    {target.scoreDelta !== null ? (
+                      <p className="mt-2 text-xs text-slate-400">
+                        Score delta: {target.scoreDelta > 0 ? "+" : ""}{target.scoreDelta}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="flex gap-2">
                     <Button
@@ -154,7 +175,7 @@ export const MonitoredTargetsPanel = ({
                       variant="outline"
                       className={`h-8 px-3 text-xs ${buttonClass}`}
                       disabled={busy}
-                      onClick={() => onRemove(target.url)}
+                      onClick={() => onRemove(target.id)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -165,7 +186,7 @@ export const MonitoredTargetsPanel = ({
           </div>
         ) : (
           <div className="rounded-[1rem] border border-dashed border-white/10 bg-slate-950/35 px-4 py-5 text-sm text-slate-400">
-            No monitored targets yet. Save the current site as a daily or weekly watch target to start drift tracking here.
+            No monitored targets yet. Save the current site as a daily or weekly watch target to start server-backed drift tracking here.
           </div>
         )}
       </div>
@@ -181,7 +202,7 @@ export const MonitoredTargetsPanel = ({
             Monitoring Targets
           </CardTitle>
           <p className={`max-w-2xl text-sm ${mutedTextClass}`}>
-            Monitoring runs in this browser only. Saved targets and history persist locally, but due scans do not run in the background after you close the tab.
+            Server-backed monitoring targets now persist across clients. Scheduled scans still only run when you trigger them from the app.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -245,7 +266,7 @@ export const MonitoredTargetsPanel = ({
         {targets.length ? (
           <div className={`grid gap-3 ${embedded ? "md:grid-cols-3" : ""}`}>
             {targets.map((target) => (
-              <div key={target.url} className={embedded ? "rounded-2xl border border-white/10 bg-slate-950/45 p-4 shadow-sm" : "rounded-2xl border border-white/10 bg-white/[0.04] p-4 shadow-sm"}>
+              <div key={target.id} className={embedded ? "rounded-2xl border border-white/10 bg-slate-950/45 p-4 shadow-sm" : "rounded-2xl border border-white/10 bg-white/[0.04] p-4 shadow-sm"}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -263,6 +284,11 @@ export const MonitoredTargetsPanel = ({
                         {target.cadence}
                       </Badge>
                       <span>Next: {new Date(target.nextDueAt).toLocaleDateString()}</span>
+                      {target.latestScan?.score !== null ? (
+                        <span>
+                          Latest: {target.latestScan.score}%{target.latestScan.grade ? ` (${target.latestScan.grade})` : ""}
+                        </span>
+                      ) : null}
                     </div>
                     {!embedded ? (
                       <div className={`mt-3 flex flex-wrap gap-4 text-xs ${mutedTextClass}`}>
@@ -270,6 +296,9 @@ export const MonitoredTargetsPanel = ({
                           <Clock3 className="h-3.5 w-3.5" />
                           Last: {target.lastScannedAt ? new Date(target.lastScannedAt).toLocaleString() : "Not yet run"}
                         </span>
+                        {target.scoreDelta !== null ? (
+                          <span>Score delta: {target.scoreDelta > 0 ? "+" : ""}{target.scoreDelta}</span>
+                        ) : null}
                       </div>
                     ) : null}
                   </div>
@@ -288,7 +317,7 @@ export const MonitoredTargetsPanel = ({
                     variant="outline"
                     className={`h-9 px-3 text-xs ${buttonClass}`}
                     disabled={busy}
-                    onClick={() => onRemove(target.url)}
+                    onClick={() => onRemove(target.id)}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
