@@ -108,20 +108,25 @@ export async function handleMonitoringTargetItemRequest({
   requestUrl,
   scanRepository,
   authorizeAnalysisRequest,
+  readJsonBody,
+  getRequestedScanMode,
+  checkTargetQuota,
+  runScanAnalysis,
+  runQueuedScan,
+  telemetry,
+  classifyScanFailure,
+  normalizeScanErrorMessage,
+  formatErrorMessage,
+  log,
   sendJson,
   sendMethodNotAllowed,
   sendRepositoryUnavailable,
 }) {
-  const match = requestUrl.pathname.match(/^\/api\/monitoring-targets\/([^/]+)$/);
+  const match = requestUrl.pathname.match(/^\/api\/monitoring-targets\/([^/]+)(?:\/([^/]+))?$/);
   if (!match) {
     sendJson(response, 404, {
       error: "Monitoring target not found.",
     });
-    return true;
-  }
-
-  if (request.method !== "DELETE") {
-    sendMethodNotAllowed(response, ["DELETE"]);
     return true;
   }
 
@@ -136,6 +141,90 @@ export async function handleMonitoringTargetItemRequest({
   }
 
   try {
+    const target = await scanRepository.getMonitoringTarget(match[1], {
+      ownerId: authState.ownerId,
+    });
+    if (!target) {
+      sendJson(response, 404, {
+        error: "Monitoring target not found.",
+      });
+      return true;
+    }
+
+    const action = match[2] || null;
+
+    if (action === "run") {
+      if (request.method !== "POST") {
+        sendMethodNotAllowed(response, ["POST"]);
+        return true;
+      }
+
+      const body = await readJsonBody(request);
+      const mode = getRequestedScanMode(body?.mode);
+      const targetQuota = await checkTargetQuota({
+        requesterScope: authState.requesterScope,
+        target: target.url,
+        clientIp: authState.clientIp,
+        requestPath: requestUrl.pathname,
+        response,
+      });
+      if (!targetQuota.ok) {
+        return true;
+      }
+
+      let scan;
+      try {
+        scan = await scanRepository.createScan({
+          url: target.url,
+          mode,
+          requesterScope: authState.requesterScope,
+          ownerId: authState.ownerId,
+          clientIp: authState.clientIp,
+        });
+
+        sendJson(response, 202, {
+          scan: (await scanRepository.getScan(scan.id, { ownerId: authState.ownerId })).summary,
+          target: {
+            id: target.id,
+            url: target.url,
+            cadence: target.cadence,
+          },
+        });
+      } catch (error) {
+        sendRepositoryUnavailable(response, error, "run_monitoring_target");
+        return true;
+      }
+
+      queueMicrotask(() => {
+        void runQueuedScan({
+          scan,
+          validatedTarget: new URL(target.url),
+          mode,
+          authState,
+          scanRepository,
+          runScanAnalysis,
+          telemetry,
+          classifyScanFailure,
+          normalizeScanErrorMessage,
+          formatErrorMessage,
+          log,
+        });
+      });
+      return true;
+    }
+
+    if (action) {
+      sendJson(response, 404, {
+        error: "Monitoring target action not found.",
+      });
+      return true;
+    }
+
+    if (request.method !== "DELETE") {
+      sendMethodNotAllowed(response, ["DELETE"]);
+      return true;
+    }
+
     const deleted = await scanRepository.deleteMonitoringTarget(match[1], {
       ownerId: authState.ownerId,
     });

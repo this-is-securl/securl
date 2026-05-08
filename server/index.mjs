@@ -18,7 +18,7 @@ import {
   handleMonitoringTargetCollectionRequest,
   handleMonitoringTargetItemRequest,
 } from "./monitoringTargetHandlers.mjs";
-import { handleScanCollectionRequest, handleScanResourceRequest } from "./scanResourceHandlers.mjs";
+import { handleScanCollectionRequest, handleScanResourceRequest, runQueuedScan } from "./scanResourceHandlers.mjs";
 import { createStaticHandler } from "./staticServer.mjs";
 import { enforceStartupConfiguration, initializeScanRepository } from "./startupValidation.mjs";
 import { classifyScanFailure, createTelemetryTracker } from "./telemetry.mjs";
@@ -338,6 +338,19 @@ const server = http.createServer(async (request, response) => {
         sendJsonResponse: sendApiJson,
         sendRateLimitedResponse: sendApiRateLimited,
       }),
+      readJsonBody,
+      getRequestedScanMode,
+      checkTargetQuota: (options) => checkTargetQuota({
+        ...options,
+        sendRateLimitedResponse: sendApiRateLimited,
+      }),
+      runScanAnalysis,
+      runQueuedScan,
+      telemetry,
+      classifyScanFailure,
+      normalizeScanErrorMessage,
+      formatErrorMessage,
+      log,
       sendJson: sendApiJson,
       sendMethodNotAllowed: sendApiMethodNotAllowed,
       sendRepositoryUnavailable: sendApiRepositoryUnavailable,
