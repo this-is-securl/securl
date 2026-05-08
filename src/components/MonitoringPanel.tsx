@@ -31,6 +31,13 @@ const formatSignedDelta = (value: number | null) => {
   return `${value > 0 ? "+" : ""}${value}`;
 };
 
+const formatSparklineAxis = (scoreSeries: number[]) =>
+  scoreSeries.map((score, index) => ({
+    id: `${index}-${score}`,
+    score,
+    label: index === scoreSeries.length - 1 ? "Now" : `${index + 1}`,
+  }));
+
 const getChangeLead = (diff: HistoryDiff | null) => {
   if (!diff) {
     return {
@@ -140,6 +147,7 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
       })
       .join(" ");
   })();
+  const sparklineAxis = formatSparklineAxis(scoreSeries);
 
   if (!alerts.length && scoreSeries.length === 0) {
     return (
@@ -168,7 +176,7 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
+        <div className="rounded-[1.35rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(15,23,42,0.35))] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="max-w-2xl">
               <p
@@ -240,7 +248,7 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
           ) : null}
         </div>
 
-        <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
+        <div className="rounded-[1.35rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(15,23,42,0.35))] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Score trend</p>
@@ -265,26 +273,38 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
           </div>
 
           {scoreSeries.length >= 2 ? (
-            <div className="mt-4 flex items-center justify-between gap-4">
-              <svg
-                viewBox="0 0 180 44"
-                className="h-11 w-full max-w-[220px]"
-                role="img"
-                aria-label="Security score trend sparkline"
-              >
-                <polyline
-                  fill="none"
-                  stroke={trendDirection === "down" ? "#c78455" : trendDirection === "up" ? "#d89a63" : "#64748b"}
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  points={sparklinePoints}
-                />
-              </svg>
-              <p className="text-sm font-semibold text-slate-200">
-                {trendDelta > 0 ? "+" : ""}
-                {trendDelta} over window
-              </p>
+            <div className="mt-4 rounded-[1.15rem] border border-white/10 bg-slate-950/35 px-4 py-4">
+              <div className="flex items-center justify-between gap-4">
+                <svg
+                  viewBox="0 0 180 44"
+                  className="h-11 w-full max-w-[220px]"
+                  role="img"
+                  aria-label="Security score trend sparkline"
+                >
+                  <polyline
+                    fill="none"
+                    stroke={trendDirection === "down" ? "#c78455" : trendDirection === "up" ? "#d89a63" : "#64748b"}
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    points={sparklinePoints}
+                  />
+                </svg>
+                <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-slate-200">
+                  {trendDelta > 0 ? "+" : ""}
+                  {trendDelta} over window
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-7">
+                {sparklineAxis.map((point, index) => (
+                  <div key={point.id} className="rounded-xl border border-white/10 bg-white/[0.03] px-2 py-2 text-center">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                      {index === 0 ? "Start" : point.label}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-100">{point.score}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : null}
         </div>

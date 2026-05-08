@@ -22,6 +22,7 @@ const Index = () => {
   const coreLabel = `core ${__CORE_VERSION__}`;
   const {
     isLoading,
+    scanStage,
     analysisData,
     recentScans,
     history,
@@ -96,7 +97,12 @@ const Index = () => {
                   </p>
                 </div>
               </div>
-              <UrlForm onSubmit={handleAnalyze} isLoading={isLoading} initialValue="example.com" />
+              <UrlForm
+                onSubmit={handleAnalyze}
+                isLoading={isLoading}
+                initialValue="example.com"
+                scanStage={scanStage}
+              />
             </div>
 
             <div className="h-full rounded-[1.8rem] border border-white/10 bg-slate-950/35 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
@@ -137,18 +143,23 @@ const Index = () => {
                       type="button"
                       onClick={() => void handleAnalyze(scan.url, "recent")}
                       disabled={isLoading}
-                      className={`rounded-[1.2rem] border px-4 py-3 text-left shadow-sm transition ${
+                      className={`rounded-[1.2rem] border px-4 py-3 text-left shadow-sm transition duration-300 ${
                         activeRecentScanUrl === scan.url
-                          ? "border-[#b56a2c]/45 bg-[#b56a2c]/12"
+                          ? "border-[#b56a2c]/45 bg-[#b56a2c]/12 shadow-[0_18px_36px_-28px_rgba(181,106,44,0.6)]"
                           : "border-white/10 bg-slate-950/45 hover:-translate-y-0.5 hover:border-[#b56a2c]/25 hover:bg-white/[0.08]"
                       } ${isLoading ? "cursor-wait" : ""}`}
                       aria-busy={activeRecentScanUrl === scan.url}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <span className="truncate text-sm font-medium text-slate-100">{scan.url}</span>
-                        <span className="text-sm font-semibold uppercase tracking-[0.14em] text-[#f0d5bc]">
-                          {activeRecentScanUrl === scan.url ? "Scanning" : scan.grade}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {activeRecentScanUrl === scan.url ? (
+                            <span className="inline-flex h-2 w-2 rounded-full bg-[#d89a63] shadow-[0_0_0_4px_rgba(181,106,44,0.16)]" />
+                          ) : null}
+                          <span className="text-sm font-semibold uppercase tracking-[0.14em] text-[#f0d5bc]">
+                            {activeRecentScanUrl === scan.url ? scanStage?.label ?? "Scanning" : scan.grade}
+                          </span>
+                        </div>
                       </div>
                       <p className="mt-2 text-xs text-slate-500">{new Date(scan.scannedAt).toLocaleString()}</p>
                     </button>
@@ -199,10 +210,10 @@ const Index = () => {
                             key={section.key}
                             type="button"
                             onClick={() => setActiveReportSection(section.key)}
-                            className={`w-full rounded-[1.1rem] border px-4 py-4 text-left transition ${
+                            className={`w-full rounded-[1.1rem] border px-4 py-4 text-left transition duration-300 ${
                               active
                                 ? "border-[#b56a2c]/35 bg-[#b56a2c]/12 shadow-[0_12px_28px_-22px_rgba(181,106,44,0.45)]"
-                                : "border-transparent bg-transparent hover:border-white/10 hover:bg-white/[0.04]"
+                                : "border-transparent bg-transparent hover:border-white/10 hover:bg-white/[0.04] hover:translate-x-1"
                             }`}
                           >
                             <p className={`text-base font-semibold ${active ? "text-white" : "text-slate-200"}`}>
@@ -222,7 +233,10 @@ const Index = () => {
               </aside>
 
               {activeSection ? (
-                <div className="min-w-0 overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/15 ring-1 ring-white/[0.03] backdrop-blur">
+                <div
+                  key={activeSection.key}
+                  className="min-w-0 overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/15 ring-1 ring-white/[0.03] backdrop-blur animate-in fade-in-50 slide-in-from-bottom-2 duration-500"
+                >
                   <div className="border-b border-white/10 px-5 py-5 sm:px-6">
                     <h2 className="text-2xl font-semibold tracking-[-0.035em] text-white">
                       {activeSection.title}
