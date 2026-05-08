@@ -35,6 +35,7 @@ const resolveBuildSha = () => {
 
 const buildSha = resolveBuildSha();
 const buildDate = new Date().toISOString();
+const apiBaseUrl = (process.env.VITE_API_BASE_URL || "").trim();
 
 // https://vitejs.dev/config/
 export default defineConfig(() => ({
@@ -61,5 +62,6 @@ export default defineConfig(() => ({
     __CORE_VERSION__: JSON.stringify(corePackageVersion),
     __BUILD_SHA__: JSON.stringify(buildSha),
     __BUILD_DATE__: JSON.stringify(buildDate),
+    __API_BASE_URL__: JSON.stringify(apiBaseUrl),
   },
 }));

@@ -2,9 +2,8 @@ import { startTransition, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { AnalysisResult } from "@/types/analysis";
 import { getAreaScores } from "@/lib/posture";
-import { readBrowserStorage, writeBrowserStorage } from "@/lib/browserStorage";
-import { SCAN_OWNER_KEY, STORAGE_SCHEMA_VERSION } from "@/lib/scanWorkspace";
 import type { ReportWorkspaceSectionKey } from "@/lib/reportWorkspace";
+import { analyzeTarget } from "@/lib/apiClient";
 
 import { useRecentScans } from "./useRecentScans";
 import { useMonitoredTargets } from "./useMonitoredTargets";
@@ -81,66 +80,10 @@ export const useScanWorkspace = () => {
     });
   };
 
-  const readJsonResponse = async (response: Response) => {
-    const payload = await response.json();
-    if (!response.ok) {
-      throw new Error(payload.error || "Scan failed.");
-    }
-    return payload;
-  };
-
-  const getScanOwnerToken = async () => {
-    const existing = await readBrowserStorage<string | null>(SCAN_OWNER_KEY, null, STORAGE_SCHEMA_VERSION);
-    if (existing) {
-      return existing;
-    }
-
-    const generated = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    await writeBrowserStorage(SCAN_OWNER_KEY, generated, STORAGE_SCHEMA_VERSION);
-    return generated;
-  };
-
   const analyzeUrl = async (url: string, setAsCurrent = true) => {
-    const scanOwnerToken = await getScanOwnerToken();
-    const scanHeaders = {
-      "Content-Type": "application/json",
-      "X-Scan-Owner": scanOwnerToken,
-    };
-    const createResponse = await fetch("/api/scans", {
-      method: "POST",
-      headers: scanHeaders,
-      body: JSON.stringify({ url }),
-    });
-    const createdPayload = await readJsonResponse(createResponse);
-    const scanId = createdPayload.scan?.id;
-
-    if (!scanId) {
-      throw new Error("Scan did not return a tracking id.");
-    }
-
-    for (let attempt = 0; attempt < 120; attempt += 1) {
-      const scanResponse = await fetch(`/api/scans/${encodeURIComponent(scanId)}`, {
-        headers: {
-          "X-Scan-Owner": scanOwnerToken,
-        },
-      });
-      const scanPayload = await readJsonResponse(scanResponse);
-      const scan = scanPayload.scan;
-
-      if (scan?.status === "completed" && scan.result) {
-        const payload = scan.result as AnalysisResult;
-        persistAnalysis(payload, setAsCurrent);
-        return payload;
-      }
-
-      if (scan?.status === "failed") {
-        throw new Error(scan.error || "Scan failed.");
-      }
-
-      await new Promise((resolve) => window.setTimeout(resolve, 1000));
-    }
-
-    throw new Error("Scan is still running. Please try again shortly.");
+    const payload = await analyzeTarget(url);
+    persistAnalysis(payload, setAsCurrent);
+    return payload;
   };
 
   analyzeUrlRef.current = analyzeUrl;
