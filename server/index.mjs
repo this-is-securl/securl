@@ -414,6 +414,19 @@ scanRepository = await initializeScanRepository({
   formatErrorMessage,
 });
 
+process.on("unhandledRejection", (reason) => {
+  log("error", "unhandled_rejection", {
+    message: reason instanceof Error ? reason.message : String(reason),
+  });
+});
+
+process.on("uncaughtException", (error) => {
+  log("error", "uncaught_exception", {
+    message: error instanceof Error ? error.message : String(error),
+  });
+  process.exit(1);
+});
+
 server.listen(port, () => {
   log("info", "server_started", {
     port,

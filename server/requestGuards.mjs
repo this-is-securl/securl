@@ -54,7 +54,8 @@ function getPresentedScanOwner(request, scanOwnerHeader) {
 }
 
 function tokenFingerprint(token, apiKeyFingerprintSalt) {
-  return crypto.pbkdf2Sync(token, apiKeyFingerprintSalt, 120000, 12, "sha256").toString("hex");
+  const digest = crypto.createHash("sha256").update(token).digest("hex");
+  return `${apiKeyFingerprintSalt}:${digest}`;
 }
 
 function getRequesterScope({ clientIp, presentedApiKey, apiKey, apiKeyFingerprintSalt }) {

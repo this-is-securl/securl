@@ -27,7 +27,11 @@ export function isPrivateIpv6(value: string): boolean {
     normalized.startsWith("fc") ||
     normalized.startsWith("fd") ||
     normalized.startsWith("fe80:") ||
-    normalized.startsWith("fec0:")
+    normalized.startsWith("fec0:") ||
+    normalized.startsWith("::ffff:") ||
+    normalized.startsWith("2002:7f") ||
+    normalized.startsWith("2002:0a") ||
+    normalized.startsWith("2002:c0a8")
   );
 }
 
@@ -81,5 +85,6 @@ export async function assertPublicRedirectTarget(targetUrl: URL): Promise<void> 
     if (error instanceof Error && error.message.includes("was blocked")) {
       throw error;
     }
+    throw error;
   }
 }
