@@ -9,7 +9,7 @@ export function parseScanResourcePath(requestPath) {
   };
 }
 
-async function runQueuedScan({
+export async function runQueuedScan({
   scan,
   validatedTarget,
   mode,

@@ -55,6 +55,18 @@ const postMonitoringTarget = (baseUrl, url, options = {}) =>
       : {}),
   });
 
+const runMonitoringTarget = (baseUrl, targetId, options = {}) =>
+  fetch(`${baseUrl}/api/monitoring-targets/${targetId}/run`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...scanOwnerHeaders(options.owner),
+    },
+    body: JSON.stringify({
+      ...(options.mode ? { mode: options.mode } : {}),
+    }),
+  });
+
 const getFreePort = () =>
   new Promise((resolve, reject) => {
     const server = net.createServer();
@@ -521,6 +533,54 @@ test("monitoring targets can be created, listed, and deleted", async () => {
     });
     const emptyListPayload = await emptyListResponse.json();
     assert.equal(emptyListPayload.targets.length, 0);
+  } finally {
+    await server.stop();
+  }
+});
+
+test("monitoring target run action queues a new scan for the saved target", async () => {
+  const server = await startServer();
+
+  try {
+    const createTargetResponse = await postMonitoringTarget(server.baseUrl, "https://example.com", {
+      owner: SCAN_OWNER_ONE,
+      cadence: "daily",
+      label: "Example target",
+    });
+    const createTargetPayload = await createTargetResponse.json();
+    assert.equal(createTargetResponse.status, 201);
+
+    const runResponse = await runMonitoringTarget(server.baseUrl, createTargetPayload.target.id, {
+      owner: SCAN_OWNER_ONE,
+      mode: "quiet",
+    });
+    const runPayload = await runResponse.json();
+    assert.equal(runResponse.status, 202);
+    assert.equal(runPayload.target.id, createTargetPayload.target.id);
+    assert.equal(runPayload.scan.url, "https://example.com/");
+    assert.equal(runPayload.scan.mode, "quiet");
+    assert.equal(runPayload.scan.status, "queued");
+  } finally {
+    await server.stop();
+  }
+});
+
+test("monitoring target run action is scoped to the same browser owner token", async () => {
+  const server = await startServer();
+
+  try {
+    const createTargetResponse = await postMonitoringTarget(server.baseUrl, "https://example.com", {
+      owner: SCAN_OWNER_ONE,
+      cadence: "daily",
+    });
+    const createTargetPayload = await createTargetResponse.json();
+
+    const wrongOwnerResponse = await runMonitoringTarget(server.baseUrl, createTargetPayload.target.id, {
+      owner: SCAN_OWNER_TWO,
+    });
+    const wrongOwnerPayload = await wrongOwnerResponse.json();
+    assert.equal(wrongOwnerResponse.status, 404);
+    assert.match(wrongOwnerPayload.error, /monitoring target not found/i);
   } finally {
     await server.stop();
   }

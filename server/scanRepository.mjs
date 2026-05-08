@@ -448,6 +448,19 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
         .filter(Boolean)
         .map((target) => ({ ...target }));
     },
+    async getMonitoringTarget(id, { requesterScope = null, ownerId = null } = {}) {
+      const target = monitoringTargets.get(id);
+      if (!target) {
+        return null;
+      }
+      if (ownerId && target.ownerId !== ownerId) {
+        return null;
+      }
+      if (!ownerId && requesterScope && target.requesterScope !== requesterScope) {
+        return null;
+      }
+      return { ...target };
+    },
     async deleteMonitoringTarget(id, { requesterScope = null, ownerId = null } = {}) {
       const target = monitoringTargets.get(id);
       if (!target) {
@@ -858,6 +871,22 @@ export function createPostgresScanRepository({
         params,
       );
       return rows.map(hydrateMonitoringTargetFromRow).filter(Boolean);
+    },
+    async getMonitoringTarget(id, { requesterScope = null, ownerId = null } = {}) {
+      const filters = ["id = $1"];
+      const params = [id];
+      if (ownerId) {
+        params.push(ownerId);
+        filters.push(`owner_id = $${params.length}`);
+      } else if (requesterScope) {
+        params.push(requesterScope);
+        filters.push(`requester_scope = $${params.length}`);
+      }
+      const { rows } = await pool.query(
+        `select * from ${targetsTable} where ${filters.join(" and ")} limit 1`,
+        params,
+      );
+      return hydrateMonitoringTargetFromRow(rows[0]);
     },
     async deleteMonitoringTarget(id, { requesterScope = null, ownerId = null } = {}) {
       const filters = ["id = $1"];
