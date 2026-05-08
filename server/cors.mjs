@@ -20,7 +20,11 @@ const DEFAULT_ALLOWED_METHODS = [
 ];
 
 function normalizeOrigin(origin) {
-  return origin.trim().replace(/\/+$/, "");
+  let normalized = origin.trim();
+  while (normalized.endsWith("/")) {
+    normalized = normalized.slice(0, -1);
+  }
+  return normalized;
 }
 
 export function resolveAllowedOrigins(rawOrigins, isProduction) {
