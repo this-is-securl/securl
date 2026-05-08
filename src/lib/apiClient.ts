@@ -1,8 +1,11 @@
 import type { AnalysisResult } from "@/types/analysis";
 import type {
+  ApiMonitoringTarget,
   ApiScanRecord,
   CreateScanResponse,
   GetScanResponse,
+  MonitoringTargetResponse,
+  MonitoringTargetsResponse,
   ScanEvidenceResponse,
   ScanFindingsResponse,
   ScanHistoryResponse,
@@ -168,4 +171,43 @@ export const getScanHistory = async (scanId: string, scanOwnerToken: string) => 
     headers: buildScanOwnerHeaders(scanOwnerToken),
   });
   return readJsonResponse<ScanHistoryResponse>(response);
+};
+
+export const getMonitoringTargets = async () => {
+  const scanOwnerToken = await getScanOwnerToken();
+  const response = await fetch(buildApiUrl("/api/monitoring-targets"), {
+    headers: buildScanOwnerHeaders(scanOwnerToken),
+  });
+  return readJsonResponse<MonitoringTargetsResponse>(response);
+};
+
+export const saveMonitoringTarget = async (
+  url: string,
+  cadence: "daily" | "weekly",
+  label?: string,
+): Promise<ApiMonitoringTarget> => {
+  const scanOwnerToken = await getScanOwnerToken();
+  const response = await fetch(buildApiUrl("/api/monitoring-targets"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...buildScanOwnerHeaders(scanOwnerToken),
+    },
+    body: JSON.stringify({
+      url,
+      cadence,
+      ...(label ? { label } : {}),
+    }),
+  });
+  const payload = await readJsonResponse<MonitoringTargetResponse>(response);
+  return payload.target;
+};
+
+export const deleteMonitoringTarget = async (targetId: string) => {
+  const scanOwnerToken = await getScanOwnerToken();
+  const response = await fetch(buildApiUrl(`/api/monitoring-targets/${encodeURIComponent(targetId)}`), {
+    method: "DELETE",
+    headers: buildScanOwnerHeaders(scanOwnerToken),
+  });
+  return readJsonResponse<{ ok: boolean }>(response);
 };
