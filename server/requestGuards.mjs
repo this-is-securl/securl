@@ -1,6 +1,9 @@
 import crypto from "node:crypto";
 import dns from "node:dns/promises";
 import net from "node:net";
+import { promisify } from "node:util";
+
+const scryptAsync = promisify(crypto.scrypt);
 
 function isPublicIp(ip, { isPrivateAddress }) {
   return net.isIP(ip) !== 0 && !isPrivateAddress(ip);
@@ -53,19 +56,19 @@ function getPresentedScanOwner(request, scanOwnerHeader) {
   return typeof candidate === "string" ? candidate : "";
 }
 
-function tokenFingerprint(token, apiKeyFingerprintSalt) {
-  const digest = crypto.createHash("sha256").update(token).digest("hex");
-  return `${apiKeyFingerprintSalt}:${digest}`;
+async function tokenFingerprint(token, apiKeyFingerprintSalt) {
+  const digest = await scryptAsync(token, apiKeyFingerprintSalt, 32);
+  return `${apiKeyFingerprintSalt}:${digest.toString("hex")}`;
 }
 
-function getRequesterScope({ clientIp, presentedApiKey, apiKey, apiKeyFingerprintSalt }) {
+async function getRequesterScope({ clientIp, presentedApiKey, apiKey, apiKeyFingerprintSalt }) {
   if (apiKey && presentedApiKey) {
-    return `api-key:${tokenFingerprint(presentedApiKey, apiKeyFingerprintSalt)}`;
+    return `api-key:${await tokenFingerprint(presentedApiKey, apiKeyFingerprintSalt)}`;
   }
   return `ip:${clientIp || "unknown"}`;
 }
 
-function getScanOwnerId({
+async function getScanOwnerId({
   presentedApiKey,
   requesterScope,
   presentedScanOwner,
@@ -81,7 +84,7 @@ function getScanOwnerId({
     return null;
   }
 
-  return `scan-owner:${tokenFingerprint(ownerToken, apiKeyFingerprintSalt)}`;
+  return `scan-owner:${await tokenFingerprint(ownerToken, apiKeyFingerprintSalt)}`;
 }
 
 function parseTargetHostForQuota(rawTarget) {
@@ -269,7 +272,7 @@ export function createRequestGuards({
     const clientIp = getClientIp(request, { trustProxy, isLocalHostname, isPrivateAddress }) || "unknown";
     const presentedApiKey = getPresentedApiKey(request);
     const presentedScanOwner = getPresentedScanOwner(request, scanOwnerHeader);
-    const requesterScope = getRequesterScope({
+    const requesterScope = await getRequesterScope({
       clientIp,
       presentedApiKey,
       apiKey,
@@ -294,7 +297,7 @@ export function createRequestGuards({
       return null;
     }
 
-    const ownerId = getScanOwnerId({
+    const ownerId = await getScanOwnerId({
       presentedApiKey,
       requesterScope,
       presentedScanOwner,
