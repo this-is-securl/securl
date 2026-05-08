@@ -140,3 +140,10 @@ export interface MonitoringTargetsResponse {
 export interface MonitoringTargetResponse {
   target: ApiMonitoringTarget;
 }
+
+export interface MonitoringTargetDetailResponse {
+  target: ApiMonitoringTarget;
+  scans: ApiScanSummary[];
+  comparison: TargetHistoryComparison | null;
+  events: ApiScanEvent[];
+}

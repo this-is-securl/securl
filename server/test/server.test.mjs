@@ -67,6 +67,11 @@ const runMonitoringTarget = (baseUrl, targetId, options = {}) =>
     }),
   });
 
+const getMonitoringTarget = (baseUrl, targetId, options = {}) =>
+  fetch(`${baseUrl}/api/monitoring-targets/${targetId}`, {
+    headers: scanOwnerHeaders(options.owner),
+  });
+
 const getFreePort = () =>
   new Promise((resolve, reject) => {
     const server = net.createServer();
@@ -576,6 +581,77 @@ test("monitoring target run action is scoped to the same browser owner token", a
     const createTargetPayload = await createTargetResponse.json();
 
     const wrongOwnerResponse = await runMonitoringTarget(server.baseUrl, createTargetPayload.target.id, {
+      owner: SCAN_OWNER_TWO,
+    });
+    const wrongOwnerPayload = await wrongOwnerResponse.json();
+    assert.equal(wrongOwnerResponse.status, 404);
+    assert.match(wrongOwnerPayload.error, /monitoring target not found/i);
+  } finally {
+    await server.stop();
+  }
+});
+
+test("monitoring target detail returns recent scans, comparison, and lifecycle events", async () => {
+  const server = await startServer();
+
+  try {
+    const createTargetResponse = await postMonitoringTarget(server.baseUrl, "https://example.com", {
+      owner: SCAN_OWNER_ONE,
+      cadence: "daily",
+      label: "Example target",
+    });
+    const createTargetPayload = await createTargetResponse.json();
+    assert.equal(createTargetResponse.status, 201);
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const runResponse = await runMonitoringTarget(server.baseUrl, createTargetPayload.target.id, {
+        owner: SCAN_OWNER_ONE,
+      });
+      assert.equal(runResponse.status, 202);
+    }
+
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      const detailResponse = await getMonitoringTarget(server.baseUrl, createTargetPayload.target.id, {
+        owner: SCAN_OWNER_ONE,
+      });
+      const detailPayload = await detailResponse.json();
+      const completedScans = detailPayload.scans.filter((scan) => scan.status === "completed" || scan.status === "failed");
+
+      if (completedScans.length >= 2) {
+        assert.equal(detailResponse.status, 200);
+        assert.equal(detailPayload.target.id, createTargetPayload.target.id);
+        assert.equal(detailPayload.target.url, "https://example.com/");
+        assert.ok(Array.isArray(detailPayload.scans));
+        assert.ok(detailPayload.scans.length >= 2);
+        assert.ok(detailPayload.comparison);
+        assert.equal(detailPayload.comparison.currentScanId, detailPayload.scans[0].id);
+        assert.equal(detailPayload.comparison.previousScanId, detailPayload.scans[1].id);
+        assert.ok(Array.isArray(detailPayload.events));
+        assert.ok(detailPayload.events.some((event) => event.eventType === "queued"));
+        assert.ok(detailPayload.events.some((event) => event.eventType === "completed"));
+        return;
+      }
+
+      await wait(100);
+    }
+
+    assert.fail("Timed out waiting for monitoring target detail.");
+  } finally {
+    await server.stop();
+  }
+});
+
+test("monitoring target detail is scoped to the same browser owner token", async () => {
+  const server = await startServer();
+
+  try {
+    const createTargetResponse = await postMonitoringTarget(server.baseUrl, "https://example.com", {
+      owner: SCAN_OWNER_ONE,
+      cadence: "daily",
+    });
+    const createTargetPayload = await createTargetResponse.json();
+
+    const wrongOwnerResponse = await getMonitoringTarget(server.baseUrl, createTargetPayload.target.id, {
       owner: SCAN_OWNER_TWO,
     });
     const wrongOwnerPayload = await wrongOwnerResponse.json();
