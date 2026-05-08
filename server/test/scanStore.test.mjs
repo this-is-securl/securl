@@ -116,6 +116,81 @@ test("scan repository can expose a persisted record shape", async () => {
   assert.equal(persisted.result.grade, "B");
 });
 
+test("scan repository can upsert and delete monitoring targets", async () => {
+  const repository = createInMemoryScanRepository();
+  const first = await repository.upsertMonitoringTarget({
+    url: "https://example.com/",
+    label: "example.com",
+    cadence: "daily",
+    requesterScope: "ip:test",
+    ownerId: "scan-owner:test",
+  });
+
+  assert.equal(first.cadence, "daily");
+
+  const updated = await repository.upsertMonitoringTarget({
+    url: "https://example.com/",
+    label: "example.com",
+    cadence: "weekly",
+    requesterScope: "ip:test",
+    ownerId: "scan-owner:test",
+  });
+
+  assert.equal(updated.id, first.id);
+  assert.equal(updated.cadence, "weekly");
+
+  const list = await repository.listMonitoringTargets({
+    ownerId: "scan-owner:test",
+  });
+  assert.equal(list.length, 1);
+  assert.equal(list[0].id, first.id);
+
+  const deleted = await repository.deleteMonitoringTarget(first.id, {
+    ownerId: "scan-owner:test",
+  });
+  assert.equal(deleted, true);
+  assert.equal((await repository.listMonitoringTargets({ ownerId: "scan-owner:test" })).length, 0);
+});
+
+test("completed scans sync matching monitoring targets", async () => {
+  const repository = createInMemoryScanRepository();
+  await repository.upsertMonitoringTarget({
+    url: "https://example.com/",
+    label: "example.com",
+    cadence: "daily",
+    requesterScope: "ip:test",
+    ownerId: "scan-owner:test",
+  });
+
+  const scan = await repository.createScan({
+    url: "https://example.com/",
+    mode: "standard",
+    requesterScope: "ip:test",
+    ownerId: "scan-owner:test",
+    clientIp: "127.0.0.1",
+  });
+
+  await repository.markCompleted(scan.id, {
+    host: "www.example.com",
+    finalUrl: "https://www.example.com/",
+    normalizedUrl: "https://example.com/",
+    scannedAt: "2026-05-08T10:00:00.000Z",
+    score: 81,
+    grade: "B",
+    title: "Example title",
+    assessmentLimitation: { limited: false },
+    executiveSummary: { mainRisk: "Transport posture is mostly sound." },
+    issues: [],
+  });
+
+  const [target] = await repository.listMonitoringTargets({
+    ownerId: "scan-owner:test",
+  });
+  assert.equal(target.url, "https://www.example.com/");
+  assert.equal(target.label, "www.example.com");
+  assert.equal(target.lastScannedAt, "2026-05-08T10:00:00.000Z");
+});
+
 test("scan repository schema statements create the scans table and scoped indexes", () => {
   const statements = buildScanRepositorySchemaStatements("public");
 
@@ -123,8 +198,12 @@ test("scan repository schema statements create the scans table and scoped indexe
   assert.match(statements[1], /create table if not exists public\.scans/i);
   assert.match(statements[1], /owner_id text null/i);
   assert.match(statements[2], /create table if not exists public\.scan_events/i);
-  assert.match(statements[3], /scans_requested_at_idx/i);
-  assert.match(statements[4], /scans_owner_requested_at_idx/i);
-  assert.match(statements[5], /scans_requester_requested_at_idx/i);
-  assert.match(statements[6], /scan_events_scan_occurred_idx/i);
+  assert.match(statements[3], /create table if not exists public\.monitoring_targets/i);
+  assert.match(statements[4], /scans_requested_at_idx/i);
+  assert.match(statements[5], /scans_owner_requested_at_idx/i);
+  assert.match(statements[6], /scans_requester_requested_at_idx/i);
+  assert.match(statements[7], /scan_events_scan_occurred_idx/i);
+  assert.match(statements[8], /monitoring_targets_owner_added_idx/i);
+  assert.match(statements[9], /monitoring_targets_requester_added_idx/i);
+  assert.match(statements[10], /monitoring_targets_owner_url_uidx/i);
 });

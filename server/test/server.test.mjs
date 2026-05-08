@@ -36,6 +36,25 @@ const postScan = (baseUrl, url, options = {}) =>
       : {}),
   });
 
+const postMonitoringTarget = (baseUrl, url, options = {}) =>
+  fetch(`${baseUrl}/api/monitoring-targets`, {
+    method: "POST",
+    headers: scanOwnerJsonHeaders(options.owner),
+    body: JSON.stringify({
+      url,
+      ...(options.cadence ? { cadence: options.cadence } : {}),
+      ...(options.label ? { label: options.label } : {}),
+    }),
+    ...("headers" in options
+      ? {
+          headers: {
+            ...scanOwnerJsonHeaders(options.owner),
+            ...options.headers,
+          },
+        }
+      : {}),
+  });
+
 const getFreePort = () =>
   new Promise((resolve, reject) => {
     const server = net.createServer();
@@ -431,6 +450,77 @@ test("scan resources start empty and return 404 for unknown ids", async () => {
 
     assert.equal(missingResponse.status, 404);
     assert.match(missingPayload.error, /Scan not found/i);
+  } finally {
+    await server.stop();
+  }
+});
+
+test("monitoring targets require the same browser owner token as scan resources", async () => {
+  const server = await startServer();
+
+  try {
+    const missingOwnerResponse = await fetch(`${server.baseUrl}/api/monitoring-targets`);
+    const missingOwnerPayload = await missingOwnerResponse.json();
+    assert.equal(missingOwnerResponse.status, 401);
+    assert.match(missingOwnerPayload.error, /scan owner token/i);
+
+    const createResponse = await postMonitoringTarget(server.baseUrl, "https://example.com", {
+      owner: SCAN_OWNER_ONE,
+      cadence: "weekly",
+    });
+    assert.equal(createResponse.status, 201);
+    const created = await createResponse.json();
+    assert.equal(created.target.cadence, "weekly");
+
+    const wrongOwnerListResponse = await fetch(`${server.baseUrl}/api/monitoring-targets`, {
+      headers: scanOwnerHeaders(SCAN_OWNER_TWO),
+    });
+    const wrongOwnerListPayload = await wrongOwnerListResponse.json();
+    assert.equal(wrongOwnerListResponse.status, 200);
+    assert.equal(wrongOwnerListPayload.targets.length, 0);
+  } finally {
+    await server.stop();
+  }
+});
+
+test("monitoring targets can be created, listed, and deleted", async () => {
+  const server = await startServer();
+
+  try {
+    const createResponse = await postMonitoringTarget(server.baseUrl, "https://example.com", {
+      owner: SCAN_OWNER_ONE,
+      cadence: "daily",
+      label: "Example target",
+    });
+    const createPayload = await createResponse.json();
+    assert.equal(createResponse.status, 201);
+    assert.equal(createPayload.target.url, "https://example.com/");
+    assert.equal(createPayload.target.label, "Example target");
+    assert.equal(createPayload.target.due, false);
+    assert.equal(createPayload.target.latestScan, null);
+
+    const targetId = createPayload.target.id;
+    const listResponse = await fetch(`${server.baseUrl}/api/monitoring-targets`, {
+      headers: scanOwnerHeaders(SCAN_OWNER_ONE),
+    });
+    const listPayload = await listResponse.json();
+    assert.equal(listResponse.status, 200);
+    assert.equal(listPayload.targets.length, 1);
+    assert.equal(listPayload.targets[0].id, targetId);
+
+    const deleteResponse = await fetch(`${server.baseUrl}/api/monitoring-targets/${targetId}`, {
+      method: "DELETE",
+      headers: scanOwnerHeaders(SCAN_OWNER_ONE),
+    });
+    const deletePayload = await deleteResponse.json();
+    assert.equal(deleteResponse.status, 200);
+    assert.equal(deletePayload.ok, true);
+
+    const emptyListResponse = await fetch(`${server.baseUrl}/api/monitoring-targets`, {
+      headers: scanOwnerHeaders(SCAN_OWNER_ONE),
+    });
+    const emptyListPayload = await emptyListResponse.json();
+    assert.equal(emptyListPayload.targets.length, 0);
   } finally {
     await server.stop();
   }

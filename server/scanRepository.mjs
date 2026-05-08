@@ -4,6 +4,7 @@ import { Pool } from "pg";
 export function buildScanRepositorySchemaStatements(schema = "public") {
   const qualifiedTable = `${schema}.scans`;
   const qualifiedEventsTable = `${schema}.scan_events`;
+  const qualifiedTargetsTable = `${schema}.monitoring_targets`;
   return [
     `create schema if not exists ${schema}`,
     `create table if not exists ${qualifiedTable} (
@@ -32,10 +33,23 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
       message text null,
       metadata jsonb not null default '{}'::jsonb
     )`,
+    `create table if not exists ${qualifiedTargetsTable} (
+      id uuid primary key,
+      owner_id text null,
+      requester_scope text not null,
+      url text not null,
+      label text not null,
+      cadence text not null,
+      added_at timestamptz not null,
+      last_scanned_at timestamptz null
+    )`,
     `create index if not exists scans_requested_at_idx on ${qualifiedTable} (requested_at desc)`,
     `create index if not exists scans_owner_requested_at_idx on ${qualifiedTable} (owner_id, requested_at desc)`,
     `create index if not exists scans_requester_requested_at_idx on ${qualifiedTable} (requester_scope, requested_at desc)`,
     `create index if not exists scan_events_scan_occurred_idx on ${qualifiedEventsTable} (scan_id, occurred_at desc)`,
+    `create index if not exists monitoring_targets_owner_added_idx on ${qualifiedTargetsTable} (owner_id, added_at desc)`,
+    `create index if not exists monitoring_targets_requester_added_idx on ${qualifiedTargetsTable} (requester_scope, added_at desc)`,
+    `create unique index if not exists monitoring_targets_owner_url_uidx on ${qualifiedTargetsTable} (owner_id, url)`,
   ];
 }
 
@@ -104,6 +118,28 @@ export function buildScanEvent({
   };
 }
 
+export function buildMonitoringTargetRecord({
+  id = crypto.randomUUID(),
+  ownerId = null,
+  requesterScope,
+  url,
+  label,
+  cadence,
+  addedAt = new Date().toISOString(),
+  lastScannedAt = null,
+}) {
+  return {
+    id,
+    ownerId,
+    requesterScope,
+    url,
+    label,
+    cadence,
+    addedAt,
+    lastScannedAt,
+  };
+}
+
 function enrichScan(scan) {
   if (!scan) {
     return null;
@@ -153,6 +189,23 @@ function hydrateScanEventFromRow(row) {
   };
 }
 
+function hydrateMonitoringTargetFromRow(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    ownerId: row.owner_id,
+    requesterScope: row.requester_scope,
+    url: row.url,
+    label: row.label,
+    cadence: row.cadence,
+    addedAt: row.added_at?.toISOString?.() ?? row.added_at,
+    lastScannedAt: row.last_scanned_at?.toISOString?.() ?? row.last_scanned_at,
+  };
+}
+
 function matchesScope(scan, { requesterScope = null, ownerId = null } = {}) {
   if (!scan) {
     return false;
@@ -170,6 +223,8 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
   const scans = new Map();
   const order = [];
   const events = new Map();
+  const monitoringTargets = new Map();
+  const monitoringOrder = [];
 
   const touchOrder = (id) => {
     const index = order.indexOf(id);
@@ -184,6 +239,14 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
         scans.delete(staleId);
       }
     }
+  };
+
+  const touchMonitoringOrder = (id) => {
+    const index = monitoringOrder.indexOf(id);
+    if (index >= 0) {
+      monitoringOrder.splice(index, 1);
+    }
+    monitoringOrder.unshift(id);
   };
 
   return {
@@ -271,6 +334,18 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       );
       events.set(id, scanEvents);
       touchOrder(id);
+      for (const target of monitoringTargets.values()) {
+        if (target.ownerId !== scan.ownerId) {
+          continue;
+        }
+        if (target.url !== scan.url) {
+          continue;
+        }
+        target.url = result?.finalUrl || scan.url;
+        target.label = result?.host || target.label;
+        target.lastScannedAt = result?.scannedAt || scan.completedAt;
+        touchMonitoringOrder(target.id);
+      }
       return enrichScan(scan);
     },
     async markFailed(id, failureClass, message) {
@@ -335,6 +410,62 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       }
       return [...(events.get(id) ?? [])];
     },
+    async upsertMonitoringTarget({ url, label, cadence, requesterScope, ownerId = null, lastScannedAt = null }) {
+      const existing = [...monitoringTargets.values()].find((target) =>
+        target.url === url && target.ownerId === ownerId && target.requesterScope === requesterScope,
+      );
+
+      if (existing) {
+        existing.label = label;
+        existing.cadence = cadence;
+        existing.lastScannedAt = lastScannedAt ?? existing.lastScannedAt;
+        touchMonitoringOrder(existing.id);
+        return { ...existing };
+      }
+
+      const target = buildMonitoringTargetRecord({
+        ownerId,
+        requesterScope,
+        url,
+        label,
+        cadence,
+        lastScannedAt,
+      });
+      monitoringTargets.set(target.id, target);
+      touchMonitoringOrder(target.id);
+      return { ...target };
+    },
+    async listMonitoringTargets({ requesterScope = null, ownerId = null, limit = 50 } = {}) {
+      const scopedOrder = ownerId
+        ? monitoringOrder.filter((id) => monitoringTargets.get(id)?.ownerId === ownerId)
+        : requesterScope
+          ? monitoringOrder.filter((id) => monitoringTargets.get(id)?.requesterScope === requesterScope)
+          : monitoringOrder;
+
+      return scopedOrder
+        .slice(0, Math.max(1, limit))
+        .map((id) => monitoringTargets.get(id))
+        .filter(Boolean)
+        .map((target) => ({ ...target }));
+    },
+    async deleteMonitoringTarget(id, { requesterScope = null, ownerId = null } = {}) {
+      const target = monitoringTargets.get(id);
+      if (!target) {
+        return false;
+      }
+      if (ownerId && target.ownerId !== ownerId) {
+        return false;
+      }
+      if (!ownerId && requesterScope && target.requesterScope !== requesterScope) {
+        return false;
+      }
+      monitoringTargets.delete(id);
+      const index = monitoringOrder.indexOf(id);
+      if (index >= 0) {
+        monitoringOrder.splice(index, 1);
+      }
+      return true;
+    },
     async close() {
       return undefined;
     },
@@ -355,6 +486,7 @@ export function createPostgresScanRepository({
 
   const table = `${schema}.scans`;
   const eventsTable = `${schema}.scan_events`;
+  const targetsTable = `${schema}.monitoring_targets`;
   const schemaStatements = buildScanRepositorySchemaStatements(schema);
 
   const repository = {
@@ -511,6 +643,38 @@ export function createPostgresScanRepository({
           ($1, $2, $3, $4::timestamptz, $5, $6, $7, $8::jsonb)`,
         [event.id, event.scanId, event.eventType, event.occurredAt, event.status, null, null, JSON.stringify(event.metadata)],
       );
+      const finalUrl = result?.finalUrl || null;
+      const finalHost = result?.host || null;
+      const scannedAt = result?.scannedAt || completedAt;
+      if (finalUrl || finalHost) {
+        const matchUrls = [...new Set([rows[0]?.url, result?.normalizedUrl, finalUrl].filter(Boolean))];
+        const filters = [];
+        const params = [finalUrl || rows[0]?.url, finalHost, scannedAt];
+        if (rows[0]?.owner_id) {
+          params.push(rows[0].owner_id);
+          filters.push(`owner_id = $${params.length}`);
+        } else {
+          params.push(rows[0]?.requester_scope);
+          filters.push(`requester_scope = $${params.length}`);
+        }
+        if (matchUrls.length) {
+          const placeholders = matchUrls.map((url) => {
+            params.push(url);
+            return `$${params.length}`;
+          });
+          filters.push(`url in (${placeholders.join(", ")})`);
+        }
+        if (filters.length >= 2) {
+          await pool.query(
+            `update ${targetsTable}
+             set url = $1,
+                 label = coalesce($2, label),
+                 last_scanned_at = $3::timestamptz
+             where ${filters.join(" and ")}`,
+            params,
+          );
+        }
+      }
       return hydrateScanFromRow(rows[0]);
     },
     async markFailed(id, failureClass, message) {
@@ -619,6 +783,97 @@ export function createPostgresScanRepository({
         params,
       );
       return rows.map(hydrateScanEventFromRow).filter(Boolean);
+    },
+    async upsertMonitoringTarget({ url, label, cadence, requesterScope, ownerId = null, lastScannedAt = null }) {
+      const existingFilters = [];
+      const existingParams = [];
+      if (ownerId) {
+        existingParams.push(ownerId);
+        existingFilters.push(`owner_id = $${existingParams.length}`);
+      } else {
+        existingParams.push(requesterScope);
+        existingFilters.push(`requester_scope = $${existingParams.length}`);
+      }
+      existingParams.push(url);
+      existingFilters.push(`url = $${existingParams.length}`);
+      const existing = await pool.query(
+        `select * from ${targetsTable} where ${existingFilters.join(" and ")} limit 1`,
+        existingParams,
+      );
+
+      if (existing.rows[0]) {
+        const { rows } = await pool.query(
+          `update ${targetsTable}
+           set label = $2,
+               cadence = $3,
+               last_scanned_at = coalesce($4::timestamptz, last_scanned_at)
+           where id = $1
+           returning *`,
+          [existing.rows[0].id, label, cadence, lastScannedAt],
+        );
+        return hydrateMonitoringTargetFromRow(rows[0]);
+      }
+
+      const target = buildMonitoringTargetRecord({
+        ownerId,
+        requesterScope,
+        url,
+        label,
+        cadence,
+        lastScannedAt,
+      });
+      const { rows } = await pool.query(
+        `insert into ${targetsTable}
+          (id, owner_id, requester_scope, url, label, cadence, added_at, last_scanned_at)
+         values
+          ($1, $2, $3, $4, $5, $6, $7::timestamptz, $8::timestamptz)
+         returning *`,
+        [
+          target.id,
+          target.ownerId,
+          target.requesterScope,
+          target.url,
+          target.label,
+          target.cadence,
+          target.addedAt,
+          target.lastScannedAt,
+        ],
+      );
+      return hydrateMonitoringTargetFromRow(rows[0]);
+    },
+    async listMonitoringTargets({ requesterScope = null, ownerId = null, limit = 50 } = {}) {
+      const filters = [];
+      const params = [];
+      if (ownerId) {
+        params.push(ownerId);
+        filters.push(`owner_id = $${params.length}`);
+      } else if (requesterScope) {
+        params.push(requesterScope);
+        filters.push(`requester_scope = $${params.length}`);
+      }
+      params.push(Math.max(1, limit));
+      const where = filters.length ? `where ${filters.join(" and ")}` : "";
+      const { rows } = await pool.query(
+        `select * from ${targetsTable} ${where} order by added_at desc limit $${params.length}`,
+        params,
+      );
+      return rows.map(hydrateMonitoringTargetFromRow).filter(Boolean);
+    },
+    async deleteMonitoringTarget(id, { requesterScope = null, ownerId = null } = {}) {
+      const filters = ["id = $1"];
+      const params = [id];
+      if (ownerId) {
+        params.push(ownerId);
+        filters.push(`owner_id = $${params.length}`);
+      } else if (requesterScope) {
+        params.push(requesterScope);
+        filters.push(`requester_scope = $${params.length}`);
+      }
+      const result = await pool.query(
+        `delete from ${targetsTable} where ${filters.join(" and ")}`,
+        params,
+      );
+      return result.rowCount > 0;
     },
     async close() {
       await pool.end();
