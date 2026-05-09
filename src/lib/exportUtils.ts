@@ -27,6 +27,7 @@ export const exportReportMarkdown = (analysisData: AnalysisResult | null, histor
 export const exportReportPdf = (analysisData: AnalysisResult | null, historyDiff: HistoryDiff | null) => {
   if (!analysisData) return;
   const iframe = document.createElement("iframe");
+  let printStarted = false;
   iframe.style.position = "fixed";
   iframe.style.right = "0";
   iframe.style.bottom = "0";
@@ -42,6 +43,10 @@ export const exportReportPdf = (analysisData: AnalysisResult | null, historyDiff
   };
 
   iframe.onload = () => {
+    if (printStarted) {
+      return;
+    }
+
     const frameWindow = iframe.contentWindow;
     if (!frameWindow) {
       toast.error("Could not prepare the PDF export.");
@@ -49,6 +54,7 @@ export const exportReportPdf = (analysisData: AnalysisResult | null, historyDiff
       return;
     }
 
+    printStarted = true;
     frameWindow.focus();
     window.setTimeout(() => {
       frameWindow.print();

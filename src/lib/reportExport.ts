@@ -769,22 +769,33 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
     }
     .cover-body {
       flex: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) 240px;
+      align-items: center;
+      gap: 36px;
+      padding: 56px 52px 44px;
+    }
+    .cover-copy {
       display: flex;
       flex-direction: column;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
-      padding: 52px 52px 40px;
-      text-align: center;
-      gap: 26px;
+      gap: 18px;
+      min-width: 0;
     }
     .cover-url {
-      font-size: 36px;
+      font-size: 52px;
       font-weight: 800;
-      letter-spacing: -0.04em;
+      letter-spacing: -0.06em;
       color: var(--text);
-      word-break: break-all;
-      max-width: 620px;
-      line-height: 1.1;
+      word-break: break-word;
+      line-height: 0.96;
+      max-width: 100%;
+    }
+    .cover-ring-side {
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .cover-ring-wrap { position: relative; width: 220px; height: 220px; }
     .cover-ring-svg  { width: 220px; height: 220px; }
@@ -812,7 +823,7 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
       text-transform: uppercase;
       color: var(--grade);
     }
-    .cover-verdict { font-size: 16px; line-height: 1.6; color: var(--text-2); max-width: 480px; }
+    .cover-verdict { font-size: 22px; line-height: 1.45; color: var(--text-2); max-width: 28ch; }
     .cover-foot {
       padding: 20px 52px;
       border-top: 1px solid var(--border);
@@ -938,6 +949,8 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
     @media screen and (max-width: 680px) {
       .priority-grid, .findings-grid, .two-col { grid-template-columns: 1fr; }
       .cover-url { font-size: 26px; }
+      .cover-body { grid-template-columns: 1fr; gap: 24px; }
+      .cover-copy { align-items: center; text-align: center; }
       .cover-body, .cover-head, .cover-foot, .rpage { padding-left: 24px; padding-right: 24px; }
     }
 
@@ -953,6 +966,15 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
 
       /* Ensure cover fills exactly one page */
       .cover { min-height: 100vh; page-break-after: always; break-after: page; }
+
+      .cover-body {
+        grid-template-columns: minmax(0, 1.08fr) 240px !important;
+        align-items: center;
+      }
+      .cover-copy {
+        align-items: flex-start !important;
+        text-align: left !important;
+      }
 
       /* Lock all multi-column layouts — never collapse regardless of viewport */
       .priority-grid { grid-template-columns: repeat(3, 1fr) !important; }
@@ -971,25 +993,28 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
   </header>
 
   <main class="cover-body">
-    <div class="cover-url">${escapeHtml(analysis.finalUrl)}</div>
-
-    <div class="cover-ring-wrap">
-      <svg class="cover-ring-svg" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="110" cy="110" r="90" fill="none" stroke="#e2e8f0" stroke-width="14"/>
-        <circle cx="110" cy="110" r="90" fill="none" stroke="${gradeColor}" stroke-width="14"
-                stroke-linecap="round"
-                stroke-dasharray="${ringCirc}"
-                stroke-dashoffset="${ringOffset}"
-                transform="rotate(-90 110 110)"/>
-      </svg>
-      <div class="cover-ring-inner">
-        <div class="cover-grade">${escapeHtml(analysis.grade)}</div>
-        <div class="cover-score-label">${analysis.score}/100</div>
-      </div>
+    <div class="cover-copy">
+      <div class="cover-url">${escapeHtml(analysis.finalUrl)}</div>
+      <div class="cover-posture">${escapeHtml(overallPostureLabel)}</div>
+      <p class="cover-verdict">${escapeHtml(analysis.executiveSummary.mainRisk)}</p>
     </div>
 
-    <div class="cover-posture">${escapeHtml(overallPostureLabel)}</div>
-    <p class="cover-verdict">${escapeHtml(analysis.executiveSummary.mainRisk)}</p>
+    <div class="cover-ring-side">
+      <div class="cover-ring-wrap">
+        <svg class="cover-ring-svg" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="110" cy="110" r="90" fill="none" stroke="#e2e8f0" stroke-width="14"/>
+          <circle cx="110" cy="110" r="90" fill="none" stroke="${gradeColor}" stroke-width="14"
+                  stroke-linecap="round"
+                  stroke-dasharray="${ringCirc}"
+                  stroke-dashoffset="${ringOffset}"
+                  transform="rotate(-90 110 110)"/>
+        </svg>
+        <div class="cover-ring-inner">
+          <div class="cover-grade">${escapeHtml(analysis.grade)}</div>
+          <div class="cover-score-label">${analysis.score}/100</div>
+        </div>
+      </div>
+    </div>
   </main>
 
   <footer class="cover-foot">
