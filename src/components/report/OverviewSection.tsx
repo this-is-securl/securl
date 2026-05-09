@@ -1,8 +1,18 @@
-import { ArrowRight, BellRing, Download, ShieldAlert, Sparkles } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  BellRing,
+  Download,
+  ShieldAlert,
+  ShieldCheck,
+  Sparkles,
+  TrendingUp,
+} from "lucide-react";
 import { MonitoringPanel } from "@/components/MonitoringPanel";
 import { PostureSummaryPanel } from "@/components/PostureSummaryPanel";
 import { PriorityActionsPanel } from "@/components/PriorityActionsPanel";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { AnalysisResult, HistoryDiff, HistorySnapshot } from "@/types/analysis";
 import { getHttpStatusDetails } from "@/lib/httpStatus";
 import { getMonitoringAlerts, getPriorityActions } from "@/lib/priorities";
@@ -54,7 +64,7 @@ const healthcheckStatusForGrade = (grade: string): keyof typeof healthcheckStyle
   return "weak";
 };
 
-const DONUT_RADIUS = 52;
+const DONUT_RADIUS = 78;
 const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_RADIUS;
 
 interface OverviewSectionProps {
@@ -107,10 +117,18 @@ export const OverviewSection = ({
   const donutOffset = DONUT_CIRCUMFERENCE - (overallPercent / 100) * DONUT_CIRCUMFERENCE;
   const priorityActions = getPriorityActions(analysisData).slice(0, 3);
   const monitoringAlerts = getMonitoringAlerts(analysisData, historyDiff);
+  const topTakeaways = analysisData.executiveSummary.takeaways.slice(0, 3);
   const strongestArea = [...areaScores].sort((left, right) => right.score - left.score)[0] ?? null;
   const weakestArea = sortedAreaScores[0] ?? null;
   const criticalCount = analysisData.issues.filter((issue) => issue.severity === "critical").length;
   const warningCount = analysisData.issues.filter((issue) => issue.severity === "warning").length;
+  const overallPostureLabel = isLimitedAssessment
+    ? "Limited external read"
+    : analysisData.grade === "A" || analysisData.grade === "B"
+      ? "Strong"
+      : analysisData.grade === "C"
+        ? "Mixed"
+        : "Needs attention";
   const scanOutcomeLabel = isLimitedAssessment
     ? limitedReadLabel
     : `${analysisData.grade} / ${overallPercent}%`;
@@ -146,69 +164,82 @@ export const OverviewSection = ({
       ) : null}
 
       <div className="space-y-4">
-        <div className="rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,rgba(11,18,32,0.95),rgba(16,24,39,0.92))] px-6 py-6 shadow-[0_30px_80px_-48px_rgba(0,0,0,0.8)] ring-1 ring-white/[0.04]">
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_320px] xl:items-start">
-            <div className="space-y-4">
-              <div>
+        <div className="rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,rgba(11,18,32,0.96),rgba(16,24,39,0.92))] px-6 py-6 shadow-[0_30px_80px_-48px_rgba(0,0,0,0.8)] ring-1 ring-white/[0.04]">
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.12fr)_320px]">
+            <div className="space-y-5">
+              <div className="space-y-3">
                 <p className={sectionTitleClass}>Target</p>
-                <p className="mt-3 text-3xl font-semibold tracking-tight text-white">{analysisData.host}</p>
-                <p className="mt-2 break-all text-sm text-slate-400">{analysisData.finalUrl}</p>
+                <p className="text-3xl font-semibold tracking-[-0.05em] text-white sm:text-4xl">{analysisData.host}</p>
+                <p className="break-all text-sm text-slate-400">{analysisData.finalUrl}</p>
               </div>
 
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
-                <div className="flex items-center justify-between gap-3">
+              <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className="border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-slate-300">
+                    Overall posture: {overallPostureLabel}
+                  </Badge>
+                  {hasTrainingSurfaceNarrative ? (
+                    <Badge variant="outline" className="border-[#b56a2c]/30 bg-[#b56a2c]/12 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[#f0d5bc]">
+                      Training surface
+                    </Badge>
+                  ) : null}
+                </div>
+
+                <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{scanOutcomeDetail}</p>
-                    <p className={`mt-2 text-3xl font-semibold tracking-[-0.04em] ${healthcheckStyle.grade}`}>
-                      {scanOutcomeLabel}
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      <Sparkles className="h-4 w-4 text-[#d89a63]" />
+                      Executive posture verdict
+                    </div>
+                    <p className={`mt-3 text-xl font-semibold leading-8 text-white sm:text-2xl ${compact ? "" : "max-w-2xl"}`}>
+                      {analysisData.executiveSummary.mainRisk}
+                    </p>
+                    <p className={`mt-4 text-sm text-slate-300 ${compact ? "leading-7" : "leading-8"}`}>
+                      {analysisData.executiveSummary.overview}
                     </p>
                   </div>
-                  <span className={`inline-flex h-3 w-3 rounded-full ${healthcheckStyle.dot}`} aria-hidden="true" />
-                </div>
-                <div className="mt-4 rounded-[1.2rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Main visible risk</p>
-                  <p className="mt-2 text-base font-semibold leading-7 text-white">
-                    {analysisData.executiveSummary.mainRisk}
-                  </p>
-                </div>
-                <div className="mt-4 flex items-start gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-[#d89a63]" />
-                  <span>Executive posture verdict</span>
-                </div>
-                {hasTrainingSurfaceNarrative ? (
-                  <div className="mt-3 inline-flex items-center rounded-full border border-[#b56a2c]/35 bg-[#b56a2c]/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f0d5bc]">
-                    Training surface detected
+
+                  <div className="rounded-[1.35rem] border border-white/10 bg-slate-950/45 p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">What stands out</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {topTakeaways.map((takeaway) => (
+                        <Badge
+                          key={takeaway}
+                          variant="outline"
+                          className="rounded-full border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] leading-5 text-slate-200"
+                        >
+                          {takeaway}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
-                ) : null}
-                <p className={`mt-3 text-base text-slate-300 ${compact ? "leading-7" : "leading-8"}`}>
-                  {analysisData.executiveSummary.overview}
-                </p>
+                </div>
               </div>
             </div>
 
             <div className="space-y-4">
-              <div className={`rounded-[1.65rem] border px-6 py-6 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)] ${healthcheckStyle.tile}`}>
-                <div className="flex h-full flex-col items-center justify-center text-center">
+              <div className={`rounded-[1.7rem] border px-6 py-6 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)] ${healthcheckStyle.tile}`}>
+                <div className="flex flex-col items-center text-center">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                    {isLimitedAssessment ? "Directional read" : "Overall posture"}
+                    {isLimitedAssessment ? "Directional read" : "Overall score"}
                   </p>
-                  <div className="relative mt-5 h-44 w-44">
-                    <svg viewBox="0 0 140 140" className="h-44 w-44 -rotate-90">
+                  <div className="relative mt-5 h-52 w-52">
+                    <svg viewBox="0 0 180 180" className="h-52 w-52 -rotate-90 drop-shadow-[0_18px_38px_rgba(0,0,0,0.35)]">
                       <circle
-                        cx="70"
-                        cy="70"
+                        cx="90"
+                        cy="90"
                         r={DONUT_RADIUS}
                         fill="none"
                         stroke="rgba(255,255,255,0.08)"
-                        strokeWidth="12"
+                        strokeWidth="14"
                       />
                       <circle
-                        cx="70"
-                        cy="70"
+                        cx="90"
+                        cy="90"
                         r={DONUT_RADIUS}
                         fill="none"
                         stroke="url(#healthcheck-gradient)"
-                        strokeWidth="12"
+                        strokeWidth="14"
                         strokeLinecap="round"
                         strokeDasharray={DONUT_CIRCUMFERENCE}
                         strokeDashoffset={donutOffset}
@@ -222,19 +253,24 @@ export const OverviewSection = ({
                       </defs>
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                      <span className={`text-5xl font-semibold leading-none ${healthcheckStyle.grade}`}>{analysisData.grade}</span>
-                      <span className="mt-2 text-lg font-semibold text-slate-200">{overallPercent}%</span>
+                      <span className={`text-7xl font-semibold tracking-[-0.06em] leading-none ${healthcheckStyle.grade}`}>
+                        {analysisData.grade}
+                      </span>
+                      <span className="mt-2 text-2xl font-semibold text-slate-100">{overallPercent}%</span>
+                      <span className="mt-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                        {overallPostureLabel}
+                      </span>
                     </div>
                   </div>
-                  <p className="mt-5 text-sm leading-6 text-slate-300">
+                  <p className="mt-4 text-sm leading-6 text-slate-300">
                     {isLimitedAssessment
-                      ? "This read is directional only because the public surface limited a full assessment."
-                      : "A normalized posture score across the major passive-read areas, tuned for a fast executive read."}
+                      ? "Use this as a directional transport and exposure signal rather than a full category-by-category verdict."
+                      : "A normalized score for a fast executive read across browser, trust, and exposure controls."}
                   </p>
                 </div>
               </div>
 
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
+              <div className="rounded-[1.4rem] border border-white/10 bg-white/[0.04] p-4 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Monitoring status</p>
@@ -244,39 +280,49 @@ export const OverviewSection = ({
                   </div>
                   <BellRing className="h-5 w-5 text-[#d89a63]" />
                 </div>
-                <p className={`mt-3 text-sm leading-6 ${monitoringTone}`}>
-                  {monitoringStatus}
-                </p>
+                <p className={`mt-3 text-sm leading-6 ${monitoringTone}`}>{monitoringStatus}</p>
               </div>
             </div>
           </div>
 
           <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Critical issues</p>
+            <div className="rounded-[1.35rem] border border-[#8e5c3b]/28 bg-[#8e5c3b]/10 px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f0d5bc]">
+                <AlertTriangle className="h-4 w-4" />
+                Critical issues
+              </div>
               <p className="mt-3 text-3xl font-semibold text-[#f0d5bc]">{criticalCount}</p>
-              <p className="mt-2 text-sm text-slate-400">Highest-priority items for immediate attention.</p>
+              <p className="mt-2 text-sm leading-6 text-[#f0d5bc]/80">Highest-priority items for immediate attention.</p>
             </div>
-            <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Warning issues</p>
+            <div className="rounded-[1.35rem] border border-[#b56a2c]/28 bg-[#b56a2c]/10 px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f0d5bc]">
+                <ShieldAlert className="h-4 w-4" />
+                Warning issues
+              </div>
               <p className="mt-3 text-3xl font-semibold text-[#e2c0a2]">{warningCount}</p>
-              <p className="mt-2 text-sm text-slate-400">Important weaknesses that shape the posture score.</p>
+              <p className="mt-2 text-sm leading-6 text-[#e2c0a2]/85">Important weaknesses shaping the posture score.</p>
             </div>
             <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Observed strengths</p>
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                <ShieldCheck className="h-4 w-4 text-slate-300" />
+                Observed strengths
+              </div>
               <p className="mt-3 text-3xl font-semibold text-slate-100">{analysisData.strengths.length}</p>
-              <p className="mt-2 text-sm text-slate-400">Signals that reduce concern or reinforce baseline confidence.</p>
+              <p className="mt-2 text-sm leading-6 text-slate-400">Signals that reduce concern or reinforce baseline confidence.</p>
             </div>
             <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Monitoring alerts</p>
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                <TrendingUp className="h-4 w-4 text-[#d89a63]" />
+                Monitoring alerts
+              </div>
               <p className="mt-3 text-3xl font-semibold text-slate-100">{monitoringAlerts.length}</p>
-              <p className="mt-2 text-sm text-slate-400">
+              <p className="mt-2 text-sm leading-6 text-slate-400">
                 {monitoringAlerts.length ? monitoringAlerts[0]?.title : "No alerting changes surfaced from saved history."}
               </p>
             </div>
           </div>
 
-          <div className="mt-5 grid gap-4 xl:grid-cols-[1.02fr_0.98fr]">
+          <div className="mt-5 grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
             {isLimitedAssessment ? (
               <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
                 <div className="flex items-center justify-between gap-3">
