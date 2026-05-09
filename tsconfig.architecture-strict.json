@@ -9,7 +9,9 @@
     "noUncheckedIndexedAccess": true
   },
   "include": [
+    "src/vite-env.d.ts",
     "src/hooks/useScanWorkspace.ts",
-    "src/lib/scanWorkspace.ts"
+    "src/lib/scanWorkspace.ts",
+    "src/lib/reportExport.ts"
   ]
 }

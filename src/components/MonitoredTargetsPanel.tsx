@@ -284,7 +284,7 @@ export const MonitoredTargetsPanel = ({
                         {target.cadence}
                       </Badge>
                       <span>Next: {new Date(target.nextDueAt).toLocaleDateString()}</span>
-                      {target.latestScan?.score !== null ? (
+                      {target.latestScan != null ? (
                         <span>
                           Latest: {target.latestScan.score}%{target.latestScan.grade ? ` (${target.latestScan.grade})` : ""}
                         </span>
