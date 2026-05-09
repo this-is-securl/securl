@@ -12,6 +12,7 @@ import {
   buildReportWorkspaceSections,
   type ReportWorkspaceSectionKey,
 } from "@/lib/reportWorkspace";
+import { cn } from "@/lib/utils";
 import { useScanWorkspace } from "@/hooks/useScanWorkspace";
 
 const Index = () => {
@@ -202,20 +203,29 @@ const Index = () => {
             </div>
             <div className="space-y-4">
               <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-4 py-4 shadow-2xl shadow-black/15 ring-1 ring-white/[0.03] backdrop-blur sm:px-5">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-col gap-4">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#d89a63]/80">Sections</p>
                     <p className="mt-2 text-sm leading-6 text-slate-400">
-                      Choose a report area to open it in the main workspace.
+                      Move through the report without losing the main storyline. The selected section stays centered in the workspace.
                     </p>
                   </div>
-                  <div className="w-full max-w-xl">
+                  <div className="lg:hidden">
                     <Select
                       value={activeSection?.key}
                       onValueChange={(value) => setActiveReportSection(value as ReportWorkspaceSectionKey)}
                     >
-                      <SelectTrigger className="h-12 rounded-2xl border-white/10 bg-slate-950/45 px-4 text-left text-sm font-medium text-slate-100 ring-offset-0 focus:ring-1 focus:ring-[#b56a2c]/40 focus:ring-offset-0">
-                        <SelectValue placeholder="Choose a report section" />
+                      <SelectTrigger className="h-auto min-h-14 rounded-2xl border-white/10 bg-slate-950/45 px-4 py-3 text-left text-sm font-medium text-slate-100 ring-offset-0 focus:ring-1 focus:ring-[#b56a2c]/40 focus:ring-offset-0">
+                        {activeSection ? (
+                          <div className="flex min-w-0 flex-col items-start text-left">
+                            <span className="text-sm font-semibold text-white">{activeSection.title}</span>
+                            <span className="mt-1 truncate text-xs tracking-[0.12em] text-slate-400 uppercase">
+                              {activeSection.context ?? activeSection.summary}
+                            </span>
+                          </div>
+                        ) : (
+                          <SelectValue placeholder="Choose a report section" />
+                        )}
                       </SelectTrigger>
                       <SelectContent className="rounded-2xl border-white/10 bg-[#0f172a] text-slate-100 shadow-2xl">
                         {reportSections.map((section) => (
@@ -224,11 +234,50 @@ const Index = () => {
                             value={section.key}
                             className="rounded-xl py-3 pl-8 pr-3 text-sm text-slate-100 focus:bg-white/[0.08] focus:text-white"
                           >
-                            {section.title}
+                            <div className="flex flex-col items-start">
+                              <span className="font-medium text-white">{section.title}</span>
+                              <span className="mt-1 text-[11px] uppercase tracking-[0.14em] text-slate-400">
+                                {section.context ?? section.summary}
+                              </span>
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div className="hidden lg:block">
+                    <div className="overflow-x-auto pb-1">
+                      <div className="inline-flex min-w-full gap-2">
+                        {reportSections.map((section) => {
+                          const active = section.key === activeSection?.key;
+                          return (
+                            <button
+                              key={section.key}
+                              type="button"
+                              onClick={() => setActiveReportSection(section.key)}
+                              className={cn(
+                                "min-w-[12rem] flex-1 rounded-[1.15rem] border px-4 py-3 text-left transition duration-200",
+                                active
+                                  ? "border-[#b56a2c]/45 bg-[#b56a2c]/14 shadow-[0_18px_36px_-28px_rgba(181,106,44,0.55)]"
+                                  : "border-white/10 bg-slate-950/35 hover:border-white/15 hover:bg-white/[0.06]",
+                              )}
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <span className={cn("text-sm font-semibold", active ? "text-white" : "text-slate-200")}>
+                                  {section.title}
+                                </span>
+                                {active ? (
+                                  <span className="inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-[#d89a63] shadow-[0_0_0_5px_rgba(181,106,44,0.16)]" />
+                                ) : null}
+                              </div>
+                              <p className="mt-2 text-[11px] uppercase tracking-[0.14em] text-slate-400">
+                                {section.context ?? section.summary}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
