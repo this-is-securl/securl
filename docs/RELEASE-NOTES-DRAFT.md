@@ -42,7 +42,7 @@
 
 ### Export behavior
 
-- Added an explicit export headline change summary for Markdown/HTML exports.
+- Added an explicit export headline change summary for Markdown/PDF exports.
 - Documented decision: per-category deltas are intentionally not included in the export headline because per-category historical baselines are not embedded in exports.
 
 ## Validation

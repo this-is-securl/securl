@@ -40,7 +40,6 @@ const Index = () => {
     runDueScans,
     exportReport,
     exportMarkdown,
-    exportHtml,
     exportPdf,
   } = useScanWorkspace();
 
@@ -52,7 +51,6 @@ const Index = () => {
         areaScores,
         exportPdf,
         exportMarkdown,
-        exportHtml,
         exportReport,
       })
     : [];

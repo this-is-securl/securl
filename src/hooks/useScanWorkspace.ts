@@ -8,7 +8,7 @@ import { analyzeTarget } from "@/lib/apiClient";
 import { useRecentScans } from "./useRecentScans";
 import { useMonitoredTargets } from "./useMonitoredTargets";
 import { useScanHistory } from "./useScanHistory";
-import { exportReportJson, exportReportMarkdown, exportReportHtml, exportReportPdf } from "@/lib/exportUtils";
+import { exportReportJson, exportReportMarkdown, exportReportPdf } from "@/lib/exportUtils";
 
 const scanLifecycleStages = [
   {
@@ -246,7 +246,6 @@ export const useScanWorkspace = () => {
     runDueScans,
     exportReport: () => exportReportJson(analysisData),
     exportMarkdown: () => exportReportMarkdown(analysisData, historyDiff),
-    exportHtml: () => exportReportHtml(analysisData, historyDiff),
     exportPdf: () => exportReportPdf(analysisData, historyDiff),
   };
 };

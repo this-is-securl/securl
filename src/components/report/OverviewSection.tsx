@@ -76,7 +76,6 @@ interface OverviewSectionProps {
   }>;
   exportPdf: () => void;
   exportMarkdown: () => void;
-  exportHtml: () => void;
   exportReport: () => void;
   compact?: boolean;
 }
@@ -88,7 +87,6 @@ export const OverviewSection = ({
   areaScores,
   exportPdf,
   exportMarkdown,
-  exportHtml,
   exportReport,
   compact = false,
 }: OverviewSectionProps) => {
@@ -281,17 +279,14 @@ export const OverviewSection = ({
                 <Download className="h-5 w-5 text-[#d89a63]" />
               </div>
               <p className="mt-3 text-sm leading-6 text-slate-400">
-                Export the same posture read as a premium report, a markdown briefing, or raw machine-readable JSON.
+                Export the same posture read as a premium PDF, a markdown briefing, or raw machine-readable JSON.
               </p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 <Button variant="outline" className="h-11 w-full justify-center rounded-2xl border-white/10 bg-white/[0.04] font-medium text-slate-100 hover:bg-white/[0.08]" onClick={exportPdf}>
                   Export PDF
                 </Button>
                 <Button variant="outline" className="h-11 w-full justify-center rounded-2xl border-white/10 bg-white/[0.04] font-medium text-slate-100 hover:bg-white/[0.08]" onClick={exportMarkdown}>
                   Export Markdown
-                </Button>
-                <Button variant="outline" className="h-11 w-full justify-center rounded-2xl border-white/10 bg-white/[0.04] font-medium text-slate-100 hover:bg-white/[0.08]" onClick={exportHtml}>
-                  Export HTML
                 </Button>
                 <Button variant="outline" className="h-11 w-full justify-center rounded-2xl border-white/10 bg-white/[0.04] font-medium text-slate-100 hover:bg-white/[0.08]" onClick={exportReport}>
                   Export JSON

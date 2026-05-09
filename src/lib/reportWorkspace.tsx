@@ -55,7 +55,6 @@ interface BuildReportWorkspaceSectionsOptions {
   areaScores: AreaScore[];
   exportPdf: () => void;
   exportMarkdown: () => void;
-  exportHtml: () => void;
   exportReport: () => void;
 }
 
@@ -66,7 +65,6 @@ export const buildReportWorkspaceSections = ({
   areaScores,
   exportPdf,
   exportMarkdown,
-  exportHtml,
   exportReport,
 }: BuildReportWorkspaceSectionsOptions): ReportWorkspaceSection[] => [
   {
@@ -81,7 +79,6 @@ export const buildReportWorkspaceSections = ({
         areaScores={areaScores}
         exportPdf={exportPdf}
         exportMarkdown={exportMarkdown}
-        exportHtml={exportHtml}
         exportReport={exportReport}
         compact
       />
