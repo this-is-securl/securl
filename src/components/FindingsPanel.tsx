@@ -111,7 +111,7 @@ export const FindingsPanel = ({ issues, strengths }: FindingsPanelProps) => {
 
         {topIssues.length ? (
           <div className="overflow-hidden rounded-[1.35rem] border border-white/10 bg-white/[0.03] shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
-            <Accordion type="single" collapsible defaultValue={topIssues[0] ? `finding-${topIssues[0].title}` : undefined}>
+            <Accordion type="single" collapsible {...(topIssues[0] ? { defaultValue: `finding-${topIssues[0].title}` } : {})}>
               {topIssues.map((issue, index) => {
                 const accent = issueAccent[issue.severity];
                 return (

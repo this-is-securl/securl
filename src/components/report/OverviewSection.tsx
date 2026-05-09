@@ -103,11 +103,6 @@ export const OverviewSection = ({
   const isLimitedAssessment = analysisData.assessmentLimitation.limited;
   const healthcheckStyle = healthcheckStyles[healthcheckStatusForGrade(analysisData.grade)];
   const sortedAreaScores = [...areaScores].sort((left, right) => left.score - right.score);
-  const limitedReadLabel =
-    analysisData.assessmentLimitation.kind === "blocked_edge_response" ||
-    analysisData.assessmentLimitation.kind === "auth_required"
-      ? "Blocked read"
-      : "Limited read";
   const hasTrainingSurfaceNarrative =
     analysisData.executiveSummary.overview.toLowerCase().includes("lab or training surface") ||
     analysisData.executiveSummary.takeaways.some((takeaway) =>
@@ -118,8 +113,6 @@ export const OverviewSection = ({
   const priorityActions = getPriorityActions(analysisData).slice(0, 3);
   const monitoringAlerts = getMonitoringAlerts(analysisData, historyDiff);
   const topTakeaways = analysisData.executiveSummary.takeaways.slice(0, 3);
-  const strongestArea = [...areaScores].sort((left, right) => right.score - left.score)[0] ?? null;
-  const weakestArea = sortedAreaScores[0] ?? null;
   const criticalCount = analysisData.issues.filter((issue) => issue.severity === "critical").length;
   const warningCount = analysisData.issues.filter((issue) => issue.severity === "warning").length;
   const overallPostureLabel = isLimitedAssessment
@@ -129,12 +122,6 @@ export const OverviewSection = ({
       : analysisData.grade === "C"
         ? "Mixed"
         : "Needs attention";
-  const scanOutcomeLabel = isLimitedAssessment
-    ? limitedReadLabel
-    : `${analysisData.grade} / ${overallPercent}%`;
-  const scanOutcomeDetail = isLimitedAssessment
-    ? "Directional read only"
-    : "Executive posture verdict";
   const monitoringStatus = historyDiff
     ? historyDiff.scoreDelta === null || historyDiff.scoreDelta === 0
       ? "Stable since the previous saved scan"
