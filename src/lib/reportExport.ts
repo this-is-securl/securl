@@ -160,9 +160,9 @@ const buildPostureNarrative = (analysis: AnalysisResult, diff: HistoryDiff | nul
     : "No previous local snapshot was available, so this report should be treated as a baseline rather than a trend statement.";
 
   return [
-    `This scan grades ${analysis.host} as ${analysis.grade} (${analysis.score}/100). The main concentration of risk is ${weakAreaText}.`,
-    `The finding mix is ${criticalCount} critical, ${warningCount} warning, and ${analysis.issues.length - criticalCount - warningCount} informational item${analysis.issues.length - criticalCount - warningCount === 1 ? "" : "s"}. ${analysis.executiveSummary.mainRisk}`,
-    `The strongest visible posture area is ${strongAreaText}. ${changeText}`,
+    `${analysis.host} currently scores ${analysis.grade} (${analysis.score}/100). The clearest visible weakness sits in ${weakAreaText}.`,
+    `In practical terms, the current posture suggests ${analysis.executiveSummary.mainRisk.charAt(0).toLowerCase()}${analysis.executiveSummary.mainRisk.slice(1)}`,
+    `The stronger areas are ${strongAreaText}. ${changeText}`,
   ];
 };
 
@@ -223,7 +223,7 @@ const buildEvidenceForAction = (analysis: AnalysisResult, actionTitle: string) =
 
 const buildAssessmentLimits = (analysis: AnalysisResult) => {
   const limits = [
-    "This is an external, unauthenticated, passive-first read. It does not prove exploitability or replace authenticated application testing.",
+    "This report is based on an external, unauthenticated, passive-first read. It is useful for posture and governance, but it does not replace authenticated testing or exploitation work.",
   ];
 
   if (analysis.assessmentLimitation.limited) {
@@ -635,6 +635,62 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
     ? analysis.strengths.slice(0, 4).map((item) => `<li>${escapeHtml(item)}</li>`).join("")
     : "<li>No explicit strengths were recorded.</li>";
   const generatedAt = new Date().toLocaleString();
+  const donutDegrees = Math.round((analysis.score / 100) * 360);
+  const urgentActionCount = Math.min(priorityActions.length, 2);
+  const nextActionCount = Math.max(Math.min(priorityActions.length - urgentActionCount, 2), 0);
+  const followUpCount = buildAssessmentLimits(analysis).length;
+  const triageCards = [
+    {
+      label: "Fix now",
+      count: urgentActionCount,
+      detail: priorityActions.length
+        ? priorityActions
+            .slice(0, 2)
+            .map((action) => action.title)
+            .join(" • ")
+        : "No urgent remediation items were generated from this scan.",
+    },
+    {
+      label: "Fix next",
+      count: nextActionCount,
+      detail:
+        priorityActions.length > 2
+          ? priorityActions
+              .slice(2, 4)
+              .map((action) => action.title)
+              .join(" • ")
+          : "After the first fixes land, review the remaining hardening and trust gaps.",
+    },
+    {
+      label: "Keep watching",
+      count: followUpCount,
+      detail: analysis.assessmentLimitation.limited
+        ? "Some parts of the target could not be read cleanly, so a follow-up assessment is still worth scheduling."
+        : `Monitor ${weakestAreaText} over time to check whether posture is improving or drifting.`,
+    },
+  ];
+  const triageItems = triageCards
+    .map(
+      (item) => `
+        <div class="triage-card">
+          <span class="triage-label">${escapeHtml(item.label)}</span>
+          <strong>${item.count}</strong>
+          <p>${escapeHtml(item.detail)}</p>
+        </div>`,
+    )
+    .join("");
+  const priorityBriefItems = priorityActions.length
+    ? priorityActions
+        .slice(0, 3)
+        .map(
+          (action) => `
+            <li>
+              <strong>${escapeHtml(action.title)}</strong><br>
+              ${escapeHtml(action.detail)}
+            </li>`,
+        )
+        .join("")
+    : "<li>No urgent remediation items were generated from this scan.</li>";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -651,21 +707,15 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
       p { margin: 0; line-height: 1.65; }
       ul { margin: 0; padding-left: 18px; line-height: 1.65; }
       li + li { margin-top: 8px; }
-      .cover { margin-bottom: 24px; }
-      .cover-card { position: relative; overflow: hidden; padding: 30px; border-radius: 32px; border: 1px solid var(--line); background: radial-gradient(circle at top right, rgba(207,122,54,0.16), transparent 26%), linear-gradient(180deg, rgba(17,28,45,.98), rgba(11,20,34,.98)); box-shadow: 0 18px 52px rgba(3, 8, 20, 0.38); }
-      .cover-grid { display:grid; grid-template-columns: minmax(0,1.18fr) minmax(280px,.82fr); gap:24px; align-items:start; }
-      .brand { display:inline-flex; align-items:center; gap:10px; padding:10px 14px; border-radius:999px; border:1px solid rgba(207,122,54,.22); background:rgba(207,122,54,.08); color:#f0d5bc; font-size:12px; font-weight:700; letter-spacing:.24em; text-transform:uppercase; margin-bottom:20px; }
-      .cover-title { max-width: 9ch; font-size: clamp(40px, 8vw, 72px); line-height: .96; letter-spacing: -.06em; font-weight: 800; margin-bottom: 18px; }
-      .cover-subtitle { max-width: 38ch; color: var(--muted); font-size: 21px; line-height: 1.55; }
-      .cover-sidebar { display:grid; gap:16px; }
-      .meta-card { padding:18px 20px; border-radius:22px; border:1px solid var(--line); background: rgba(255,255,255,.03); }
-      .meta-card strong { display:block; margin-bottom:8px; font-size:12px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); }
-      .meta-card p { font-size:15px; }
-      .executive-strip { display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap:14px; margin-top: 24px; }
-      .executive-stat { padding:16px 18px; border-radius:20px; background: rgba(255,255,255,.03); border:1px solid var(--line); min-height:110px; }
-      .executive-stat span { display:block; font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
-      .executive-stat strong { display:block; font-size:30px; line-height:1.05; margin-bottom:6px; }
-      .executive-stat p { color: var(--muted); font-size:14px; }
+      .cover-sheet { min-height: calc(100vh - 104px); display:grid; align-items:center; margin-bottom: 24px; }
+      .cover-frame { display:grid; grid-template-columns: minmax(0, 1.4fr) 280px; gap: 24px; align-items:start; padding: 30px 0; }
+      .cover-kicker { font-size: 12px; letter-spacing: .28em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+      .cover-target { font-size: clamp(42px, 7vw, 76px); line-height: .95; letter-spacing: -.06em; font-weight: 800; margin-bottom: 14px; word-break: break-word; }
+      .cover-url { color: var(--muted); font-size: 24px; line-height: 1.45; word-break: break-word; max-width: 28ch; }
+      .cover-score { align-self:start; padding: 28px 24px; border-radius: 28px; background: linear-gradient(180deg, rgba(207,122,54,.92), rgba(166,94,43,.96)); color: #fff8f0; box-shadow: 0 18px 44px rgba(89, 44, 16, 0.32); }
+      .cover-score span { display:block; font-size: 11px; letter-spacing: .24em; text-transform: uppercase; opacity: .86; margin-bottom: 14px; }
+      .cover-score strong { display:block; font-size: 76px; line-height: .9; letter-spacing: -.05em; margin-bottom: 8px; }
+      .cover-score p { font-size: 20px; line-height: 1.3; }
       .hero { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(340px, .95fr); gap: 22px; margin-bottom: 24px; align-items: start; }
       .panel { background: linear-gradient(180deg, rgba(17,28,45,.96), rgba(11,20,34,.96)); border: 1px solid var(--line); border-radius: 28px; padding: 28px; box-shadow: 0 14px 36px rgba(3, 8, 20, 0.34); }
       .hero-panel { position: relative; overflow: hidden; }
@@ -691,6 +741,23 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
       .summary-card { padding: 18px 20px; border-radius: 20px; border: 1px solid var(--line); background: rgba(255,255,255,.03); }
       .summary-card strong { display:block; margin-bottom: 8px; font-size: 14px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
       .summary-card p { font-size: 16px; }
+      .brief-list { margin: 0; padding-left: 18px; }
+      .brief-list li { color: var(--text); line-height: 1.55; }
+      .triage-grid { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:14px; margin-top: 14px; }
+      .triage-card { padding: 18px 20px; border-radius: 20px; border: 1px solid var(--line); background: rgba(255,255,255,.03); min-height: 150px; }
+      .triage-label { display:block; margin-bottom: 10px; font-size: 12px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); }
+      .triage-card strong { display:block; font-size: 34px; line-height: 1; margin-bottom: 10px; color: #f0d5bc; }
+      .triage-card p { color: var(--muted); font-size: 15px; line-height: 1.55; }
+      .page-break { margin: 0 0 18px; }
+      .summary-page { display:grid; gap: 22px; }
+      .visual-grid { display:grid; grid-template-columns: minmax(280px, .78fr) minmax(0, 1.22fr); gap: 18px; }
+      .donut-panel { display:grid; grid-template-columns: 168px minmax(0, 1fr); gap: 18px; align-items:center; }
+      .donut-ring { width: 168px; height: 168px; border-radius: 999px; background: conic-gradient(#cf7a36 0deg ${donutDegrees}deg, rgba(207,122,54,.18) ${donutDegrees}deg 360deg); display:grid; place-items:center; }
+      .donut-inner { width: 120px; height: 120px; border-radius: 999px; background: #0f1624; display:grid; place-items:center; text-align:center; }
+      .donut-inner strong { display:block; font-size: 54px; line-height: .9; color: #f0d5bc; }
+      .donut-inner span { display:block; font-size: 13px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+      .visual-copy h3 { font-size: 22px; margin-bottom: 10px; }
+      .visual-copy p { color: var(--muted); }
       .content-grid { display:grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .95fr); gap: 22px; margin-bottom: 22px; align-items: start; }
       .stack { display:grid; gap: 18px; }
       .section-title { font-size: 22px; margin-bottom: 14px; }
@@ -719,170 +786,123 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
       .chapter-header p { max-width: 60ch; color: var(--muted); }
       .chapter-kicker { font-size: 12px; letter-spacing: .28em; text-transform: uppercase; color: var(--muted); }
       @media (max-width: 1120px) {
-        .cover-grid, .hero, .content-grid { grid-template-columns: 1fr; }
-        .cover-title { max-width: none; }
-        .executive-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .cover-frame,
+        .hero, .content-grid, .visual-grid, .donut-panel { grid-template-columns: 1fr; }
       }
       @media (max-width: 780px) {
         .page { padding: 20px 16px 40px; }
-        .panel, .cover-card { padding: 22px; border-radius: 24px; }
+        .panel { padding: 22px; border-radius: 24px; }
         .hero-risk { font-size: 19px; }
-        .summary-band, .appendix-grid { grid-template-columns: 1fr; }
+        .summary-band, .appendix-grid, .triage-grid { grid-template-columns: 1fr; }
       }
       @media (max-width: 640px) {
-        .hero-facts, .kpi-grid, .executive-strip { grid-template-columns: 1fr; }
+        .hero-facts, .kpi-grid { grid-template-columns: 1fr; }
         .grade-chip { margin-bottom: 18px; }
         .bar-row { grid-template-columns: 1fr; gap: 8px; }
         .bar-score { text-align: left; }
       }
-      @page { margin: 14mm; }
-      @media print { body { background: #fff; color: #0f172a; } .page { max-width: none; padding: 0; } .panel, .cover-card, .fact, .summary-card, .action-card, .kpi, .meta-card, .executive-stat { background: #f8fafc; color: #0f172a; box-shadow: none; } .muted, .eyebrow, .summary-card strong, .fact span, .fact-label, .bar-copy span, .kpi span, .meta-card strong, .executive-stat span, .chapter-kicker { color: #475569; } .bar-track { background: #e2e8f0; } .cover-card { page-break-after: always; } .chapter { page-break-before: always; } }
+      @page { margin: 12mm; }
+      @media print { body { background: #fff; color: #0f172a; } .page { max-width: none; padding: 0; } .panel, .fact, .summary-card, .action-card, .kpi, .triage-card { background: #f8fafc; color: #0f172a; box-shadow: none; } .cover-score { box-shadow: none; } .donut-inner { background: #fff; } .muted, .eyebrow, .summary-card strong, .fact span, .fact-label, .bar-copy span, .kpi span, .triage-label, .chapter-kicker, .cover-kicker, .cover-url, .visual-copy p, .donut-inner span { color: #475569; } .bar-track { background: #e2e8f0; } .summary-band, .triage-grid, .visual-grid { break-inside: avoid; page-break-inside: avoid; } .page-break { page-break-before: always; break-before: page; } }
     </style>
   </head>
   <body>
     <div class="page">
-      <section class="cover">
-        <div class="cover-card">
-          <div class="cover-grid">
-            <div>
-              <div class="brand">SecURL · External posture report</div>
-              <h1 class="cover-title">Public posture, quietly interpreted.</h1>
-              <p class="cover-subtitle">
-                A low-noise executive read of browser hardening, trust signals,
-                exposure controls, and visible client surface for
-                ${escapeHtml(analysis.host)}.
-              </p>
-            </div>
-            <div class="cover-sidebar">
-              <div class="meta-card">
-                <strong>Target</strong>
-                <p>${escapeHtml(analysis.host)}</p>
-                <p class="muted">${escapeHtml(analysis.finalUrl)}</p>
-              </div>
-              <div class="meta-card">
-                <strong>Generated</strong>
-                <p>${escapeHtml(generatedAt)}</p>
-                <p class="muted">
-                  Scan captured
-                  ${escapeHtml(new Date(analysis.scannedAt).toLocaleString())}
-                </p>
-              </div>
-              <div class="meta-card">
-                <strong>Main visible risk</strong>
-                <p>${escapeHtml(analysis.executiveSummary.mainRisk)}</p>
-              </div>
-            </div>
+      <section class="cover-sheet">
+        <div class="cover-frame">
+          <div>
+            <div class="cover-kicker">External security posture report</div>
+            <h1 class="cover-target">${escapeHtml(analysis.finalUrl)}</h1>
           </div>
-          <div class="executive-strip">
-            <div class="executive-stat">
-              <span>Verdict</span>
-              <strong>${escapeHtml(analysis.grade)}</strong>
-              <p>${analysis.score}/100 posture score</p>
-            </div>
-            <div class="executive-stat">
-              <span>Status</span>
-              <strong>${analysis.statusCode}</strong>
-              <p>${escapeHtml(analysis.executiveSummary.overview)}</p>
-            </div>
-            <div class="executive-stat">
-              <span>Weakest areas</span>
-              <strong>${weakestAreas.length ? weakestAreas[0].score : "—"}</strong>
-              <p>${escapeHtml(weakestAreaText)}</p>
-            </div>
-            <div class="executive-stat">
-              <span>Change</span>
-              <strong>${diff ? `${diff.scoreDelta !== null && diff.scoreDelta > 0 ? "+" : ""}${diff.scoreDelta ?? 0}` : "—"}</strong>
-              <p>${escapeHtml(changeHeadline)}</p>
-            </div>
+          <div class="cover-score">
+            <span>Overall score</span>
+            <strong>${analysis.score}</strong>
+            <p>${escapeHtml(analysis.grade)} posture grade</p>
           </div>
         </div>
       </section>
-      <section class="hero">
-        <div class="panel hero-panel">
-          <div class="eyebrow">SecURL external posture report</div>
-          <div class="grade-chip tone-${severityTone}">
-            <strong>${escapeHtml(analysis.grade)}</strong>
-            <span>${analysis.score}/100 posture score</span>
-          </div>
-          <div class="hero-title">Target</div>
-          <h1 class="hero-host">${escapeHtml(analysis.host)}</h1>
-          <p class="hero-url">${escapeHtml(analysis.finalUrl)}</p>
-          <p class="hero-risk">${escapeHtml(analysis.executiveSummary.mainRisk)}</p>
-          <div class="hero-facts">
-            <div class="fact"><span class="fact-label">Status</span><strong>${analysis.statusCode}</strong><span>${escapeHtml(analysis.executiveSummary.overview)}</span></div>
-            <div class="fact"><span class="fact-label">Scanned</span><strong>${escapeHtml(new Date(analysis.scannedAt).toLocaleDateString())}</strong><span>${escapeHtml(new Date(analysis.scannedAt).toLocaleTimeString())}</span></div>
-            <div class="fact"><span class="fact-label">Findings</span><strong>${summary.critical + summary.priorityWarnings}</strong><span>${summary.critical} critical / ${summary.priorityWarnings} priority warning</span></div>
-            <div class="fact"><span class="fact-label">Change</span><strong>${diff ? `${diff.scoreDelta !== null && diff.scoreDelta > 0 ? "+" : ""}${diff.scoreDelta ?? 0}` : "—"}</strong><span>${escapeHtml(changeHeadline)}</span></div>
-          </div>
+      <section class="page-break summary-page">
+        <div class="summary-band">
+          <div class="summary-card"><strong>Generated</strong><p>${escapeHtml(generatedAt)}<br><span class="muted">Scan captured ${escapeHtml(new Date(analysis.scannedAt).toLocaleString())}</span></p></div>
+          <div class="summary-card"><strong>Overall finding</strong><p>${escapeHtml(analysis.executiveSummary.overview)}</p></div>
+          <div class="summary-card"><strong>Most exposed areas</strong><p>${escapeHtml(weakestAreaText)}</p></div>
+          <div class="summary-card"><strong>Most reassuring areas</strong><p>${escapeHtml(strongestAreaText)}</p></div>
         </div>
-        <div class="sidebar-stack">
+        <div class="visual-grid">
+          <div class="panel donut-panel">
+            <div class="donut-ring">
+              <div class="donut-inner">
+                <div>
+                  <strong>${escapeHtml(analysis.grade)}</strong>
+                  <span>${analysis.score}/100</span>
+                </div>
+              </div>
+            </div>
+            <div class="visual-copy">
+              <div class="eyebrow">Overall posture</div>
+              <h3>${analysis.score}/100</h3>
+              <p>${escapeHtml(analysis.executiveSummary.mainRisk)}</p>
+            </div>
+          </div>
           <div class="panel">
-            <div class="eyebrow">Decision view</div>
-            <h2 class="section-title">What to do next</h2>
-            ${priorityActions.length
-              ? priorityActions
-                  .map(
-                    (action, index) => `
-              <div class="action-card">
-                <h3>${index + 1}. ${escapeHtml(action.title)}</h3>
-                <p>${escapeHtml(action.detail)}</p>
-                <p class="muted">Evidence: ${escapeHtml(buildEvidenceForAction(analysis, action.title))}</p>
-                ${action.priorityReason ? `<p class="muted">${escapeHtml(action.priorityReason)}</p>` : ""}
-              </div>`,
-                  )
-                  .join("")
-              : "<p>No high-priority remediation actions were generated from this scan.</p>"}
-          </div>
-          <div class="summary-band">
-            <div class="summary-card"><strong>Weakest areas</strong><p>${escapeHtml(weakestAreaText)}</p></div>
-            <div class="summary-card"><strong>Strongest areas</strong><p>${escapeHtml(strongestAreaText)}</p></div>
-            <div class="summary-card"><strong>Change headline</strong><p>${escapeHtml(changeHeadline)}</p></div>
-            <div class="summary-card"><strong>Assessment mode</strong><p>${escapeHtml(analysis.assessmentLimitation.limited ? analysis.assessmentLimitation.title ?? "Limited read" : "Full public read")}</p></div>
+            <div class="eyebrow">Category scores</div>
+            <h2 class="section-title">Where the score is being shaped</h2>
+            <div class="bar-list">
+              ${buildCategoryBarsHtml(areas)}
+            </div>
           </div>
         </div>
       </section>
-      <section class="chapter">
+      <section class="panel page-break" style="margin-bottom:22px;">
+        <div class="eyebrow">Action map</div>
+        <h2 class="section-title">Where attention should go first</h2>
+        <div class="triage-grid">${triageItems}</div>
+        <div class="panel" style="margin-top:18px; padding:22px;">
+          <div class="eyebrow">Immediate action</div>
+          <h2 class="section-title">What to do next</h2>
+          <ul class="brief-list">${priorityBriefItems}</ul>
+        </div>
+      </section>
+      <section class="chapter page-break">
         <div class="chapter-header">
           <div>
-            <div class="chapter-kicker">Executive summary</div>
-            <h2>Decision-ready readout</h2>
+            <div class="chapter-kicker">Detailed review</div>
+            <h2>Why this matters and what supports it</h2>
           </div>
           <p>
-            The first page should give a stakeholder enough context to decide
-            whether this target is broadly acceptable, needs action, or needs
-            deeper review.
+            The rest of this report explains why the score landed where it did
+            and shows the evidence behind the recommended actions.
           </p>
         </div>
       </section>
       <section class="content-grid">
         <div class="stack">
           <div class="panel">
-            <div class="eyebrow">Analyst read</div>
+            <div class="eyebrow">Plain-language summary</div>
             <h2 class="section-title">Why this matters</h2>
             ${buildPostureNarrative(analysis, diff).map((line) => `<p>${escapeHtml(line)}</p>`).join("<div style=\"height:10px\"></div>")}
           </div>
           <div class="panel">
-            <div class="eyebrow">Takeaways</div>
+            <div class="eyebrow">Key messages</div>
             <h2 class="section-title">What stands out</h2>
             <div class="appendix-grid">
               <div>
-                <h3 style="margin-bottom:10px;">Executive takeaways</h3>
+                <h3 style="margin-bottom:10px;">What stands out</h3>
                 <ul>${executiveTakeawayItems}</ul>
               </div>
               <div>
-                <h3 style="margin-bottom:10px;">Observed strengths</h3>
+                <h3 style="margin-bottom:10px;">What is already working well</h3>
                 <ul>${strengthItems}</ul>
               </div>
             </div>
           </div>
           <div class="panel">
-            <div class="eyebrow">Top findings</div>
-            <h2 class="section-title">Most important observed findings</h2>
+            <div class="eyebrow">Key findings</div>
+            <h2 class="section-title">Most important issues seen from the outside</h2>
             <ul class="callout-list">${topFindingItems}</ul>
           </div>
           <div class="panel">
-            <div class="eyebrow">Risk themes</div>
-            <h2 class="section-title">Concentrated posture themes</h2>
+            <div class="eyebrow">Pattern of risk</div>
+            <h2 class="section-title">Where the issues cluster</h2>
             <p class="muted" style="margin-bottom:14px;">${escapeHtml(taxonomy.summary)}</p>
             <div class="appendix-grid">
               <div>
@@ -898,25 +918,25 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
         </div>
         <div class="stack">
           <div class="panel">
-            <div class="eyebrow">Category posture</div>
-            <h2 class="section-title">Where the score is moving</h2>
+            <div class="eyebrow">Score breakdown</div>
+            <h2 class="section-title">How the score is being shaped</h2>
             <div class="bar-list">
               ${buildCategoryBarsHtml(areas)}
             </div>
           </div>
           <div class="panel">
-            <div class="eyebrow">Questions to resolve</div>
-            <h2 class="section-title">Stakeholder prompts</h2>
+            <div class="eyebrow">Follow-up questions</div>
+            <h2 class="section-title">What still needs confirming</h2>
             ${buildCompactListHtml(buildStakeholderQuestions(analysis))}
           </div>
           <div class="panel">
-            <div class="eyebrow">Assessment limits</div>
-            <h2 class="section-title">Boundaries of this read</h2>
+            <div class="eyebrow">Report limits</div>
+            <h2 class="section-title">How to read this report</h2>
             ${buildCompactListHtml(buildAssessmentLimits(analysis))}
           </div>
           <div class="panel">
-            <div class="eyebrow">Change since last scan</div>
-            <h2 class="section-title">Drift snapshot</h2>
+            <div class="eyebrow">Change over time</div>
+            <h2 class="section-title">What changed</h2>
             <div class="kpi-grid">
               <div class="kpi"><strong>${diff ? `${diff.scoreDelta !== null && diff.scoreDelta > 0 ? "+" : ""}${diff.scoreDelta ?? 0}` : "—"}</strong><span>Score delta</span></div>
               <div class="kpi"><strong>${diff ? diff.newIssues.length : 0}</strong><span>New issues</span></div>
@@ -930,20 +950,20 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
       <section class="chapter">
         <div class="chapter-header">
           <div>
-            <div class="chapter-kicker">Evidence appendix</div>
-            <h2>Detailed analyst workbook</h2>
+            <div class="chapter-kicker">Detailed evidence</div>
+            <h2>Technical detail and supporting evidence</h2>
           </div>
           <p>
             This section keeps the raw posture detail, mapped themes, and
-            observed evidence in a form that can be reviewed, handed over, or
-            acted on later.
+            supporting evidence for technical review, remediation planning, or
+            later audit follow-up.
           </p>
         </div>
       </section>
       <section class="appendix">
         <div class="panel">
-          <div class="eyebrow">Evidence appendix</div>
-          <h2 class="section-title">Detailed findings and evidence</h2>
+          <div class="eyebrow">Detailed evidence</div>
+          <h2 class="section-title">Full findings and evidence</h2>
           <ul>${issueItems}</ul>
         </div>
         <div class="appendix-grid">
