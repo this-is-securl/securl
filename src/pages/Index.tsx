@@ -1,7 +1,17 @@
 import { Clock3, Layers3, ShieldCheck, Sparkles } from "lucide-react";
 import { MonitoredTargetsPanel } from "@/components/MonitoredTargetsPanel";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { UrlForm } from "@/components/UrlForm";
-import { buildReportWorkspaceSections } from "@/lib/reportWorkspace";
+import {
+  buildReportWorkspaceSections,
+  type ReportWorkspaceSectionKey,
+} from "@/lib/reportWorkspace";
 import { useScanWorkspace } from "@/hooks/useScanWorkspace";
 
 const Index = () => {
@@ -190,45 +200,38 @@ const Index = () => {
               <Layers3 className="h-4 w-4" />
               Report workspace
             </div>
-            <div className="grid gap-4 xl:grid-cols-[18rem_minmax(0,1fr)] 2xl:grid-cols-[19.5rem_minmax(0,1fr)]">
-              <aside className="xl:sticky xl:top-6 xl:self-start">
-                <div className="overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/15 ring-1 ring-white/[0.03] backdrop-blur">
-                  <div className="border-b border-white/10 px-5 py-4">
+            <div className="space-y-4">
+              <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-4 py-4 shadow-2xl shadow-black/15 ring-1 ring-white/[0.03] backdrop-blur sm:px-5">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#d89a63]/80">Sections</p>
                     <p className="mt-2 text-sm leading-6 text-slate-400">
                       Choose a report area to open it in the main workspace.
                     </p>
                   </div>
-                  <div className="p-3">
-                    <div className="space-y-2">
-                      {reportSections.map((section) => {
-                        const active = section.key === activeSection?.key;
-                        return (
-                          <button
+                  <div className="w-full max-w-xl">
+                    <Select
+                      value={activeSection?.key}
+                      onValueChange={(value) => setActiveReportSection(value as ReportWorkspaceSectionKey)}
+                    >
+                      <SelectTrigger className="h-12 rounded-2xl border-white/10 bg-slate-950/45 px-4 text-left text-sm font-medium text-slate-100 ring-offset-0 focus:ring-1 focus:ring-[#b56a2c]/40 focus:ring-offset-0">
+                        <SelectValue placeholder="Choose a report section" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl border-white/10 bg-[#0f172a] text-slate-100 shadow-2xl">
+                        {reportSections.map((section) => (
+                          <SelectItem
                             key={section.key}
-                            type="button"
-                            onClick={() => setActiveReportSection(section.key)}
-                            className={`w-full rounded-[1.1rem] border px-4 py-4 text-left transition duration-300 ${
-                              active
-                                ? "border-[#b56a2c]/35 bg-[#b56a2c]/12 shadow-[0_12px_28px_-22px_rgba(181,106,44,0.45)]"
-                                : "border-transparent bg-transparent hover:border-white/10 hover:bg-white/[0.04] hover:translate-x-1"
-                            }`}
+                            value={section.key}
+                            className="rounded-xl py-3 pl-8 pr-3 text-sm text-slate-100 focus:bg-white/[0.08] focus:text-white"
                           >
-                            <p className={`text-base font-semibold ${active ? "text-white" : "text-slate-200"}`}>
-                              {section.title}
-                            </p>
-                            {active ? (
-                              <p className="mt-2 text-sm leading-6 text-slate-400">
-                                {section.summary}
-                              </p>
-                            ) : null}
-                          </button>
-                        );
-                      })}
-                    </div>
+                            {section.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-              </aside>
+              </div>
 
               {activeSection ? (
                 <div
@@ -239,6 +242,9 @@ const Index = () => {
                     <h2 className="text-2xl font-semibold tracking-[-0.035em] text-white">
                       {activeSection.title}
                     </h2>
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+                      {activeSection.summary}
+                    </p>
                   </div>
                   <div className="bg-white/[0.02] px-4 py-6 text-slate-100 sm:px-6 lg:px-8">
                     {activeSection.content}

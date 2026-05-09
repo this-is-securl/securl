@@ -130,84 +130,43 @@ export const OverviewSection = ({
 
       <div className="space-y-4">
         <div className="rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,rgba(11,18,32,0.95),rgba(16,24,39,0.92))] px-6 py-6 shadow-[0_30px_80px_-48px_rgba(0,0,0,0.8)] ring-1 ring-white/[0.04]">
-          <div className="grid gap-4 xl:grid-cols-[1.18fr_0.82fr] xl:items-start">
-            <div className="space-y-5">
-              <div>
-                <p className={sectionTitleClass}>Target</p>
-                <p className="mt-3 text-3xl font-semibold tracking-tight text-white">{analysisData.host}</p>
-                <p className="mt-2 break-all text-sm text-slate-400">{analysisData.finalUrl}</p>
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-[0.92fr_1.08fr]">
-                <div className={`rounded-[1.5rem] border px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)] ${healthcheckStyle.tile}`}>
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{scanOutcomeDetail}</p>
-                      <p className={`mt-3 text-4xl font-semibold tracking-[-0.04em] ${healthcheckStyle.grade}`}>
-                        {scanOutcomeLabel}
-                      </p>
-                    </div>
-                    <span className={`inline-flex h-3 w-3 rounded-full ${healthcheckStyle.dot}`} aria-hidden="true" />
-                  </div>
-                  <p className="mt-4 text-sm leading-6 text-slate-300">
-                    {analysisData.executiveSummary.mainRisk}
-                  </p>
-                </div>
-
-                <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
-                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    <Sparkles className="h-4 w-4 text-[#d89a63]" />
-                    Analyst read
-                  </div>
-                  {hasTrainingSurfaceNarrative ? (
-                    <div className="mt-3 inline-flex items-center rounded-full border border-[#b56a2c]/35 bg-[#b56a2c]/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f0d5bc]">
-                      Training surface detected
-                    </div>
-                  ) : null}
-                  <p className={`mt-3 text-base text-slate-300 ${compact ? "leading-7" : "leading-8"}`}>
-                    {analysisData.executiveSummary.overview}
-                  </p>
-                </div>
-              </div>
+          <div className="space-y-5">
+            <div>
+              <p className={sectionTitleClass}>Target</p>
+              <p className="mt-3 text-3xl font-semibold tracking-tight text-white">{analysisData.host}</p>
+              <p className="mt-2 break-all text-sm text-slate-400">{analysisData.finalUrl}</p>
             </div>
-            <div className="rounded-[1.65rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.03))] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">What to do next</p>
-                  <p className="mt-2 text-lg font-semibold text-white">Priority actions for this target</p>
+
+            <div className="grid gap-3 xl:grid-cols-[0.92fr_1.08fr]">
+              <div className={`rounded-[1.5rem] border px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)] ${healthcheckStyle.tile}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{scanOutcomeDetail}</p>
+                    <p className={`mt-3 text-4xl font-semibold tracking-[-0.04em] ${healthcheckStyle.grade}`}>
+                      {scanOutcomeLabel}
+                    </p>
+                  </div>
+                  <span className={`inline-flex h-3 w-3 rounded-full ${healthcheckStyle.dot}`} aria-hidden="true" />
                 </div>
-                <ShieldAlert className="h-5 w-5 text-[#d89a63]" />
+                <p className="mt-4 text-sm leading-6 text-slate-300">
+                  {analysisData.executiveSummary.mainRisk}
+                </p>
               </div>
-              {priorityActions.length ? (
-                <div className="mt-4 space-y-3">
-                  {priorityActions.map((action, index) => (
-                    <div key={`${action.area}-${action.title}`} className="rounded-[1.2rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#b56a2c]/16 px-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f0d5bc]">
-                              {index + 1}
-                            </span>
-                            <p className="text-sm font-semibold text-white">{action.title}</p>
-                          </div>
-                          <p className="mt-2 text-sm leading-6 text-slate-300">{action.detail}</p>
-                        </div>
-                        <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300">
-                          {action.severity}
-                        </span>
-                      </div>
-                      <div className="mt-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                        <ArrowRight className="h-3.5 w-3.5" />
-                        {action.area}
-                      </div>
-                    </div>
-                  ))}
+
+              <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  <Sparkles className="h-4 w-4 text-[#d89a63]" />
+                  Analyst read
                 </div>
-              ) : (
-                <div className="mt-4 rounded-[1.2rem] border border-white/10 bg-slate-950/45 px-4 py-4 text-sm leading-6 text-slate-300">
-                  No immediate remediation is being prioritized from the current public evidence.
-                </div>
-              )}
+                {hasTrainingSurfaceNarrative ? (
+                  <div className="mt-3 inline-flex items-center rounded-full border border-[#b56a2c]/35 bg-[#b56a2c]/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f0d5bc]">
+                    Training surface detected
+                  </div>
+                ) : null}
+                <p className={`mt-3 text-base text-slate-300 ${compact ? "leading-7" : "leading-8"}`}>
+                  {analysisData.executiveSummary.overview}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -416,6 +375,46 @@ export const OverviewSection = ({
                 </div>
               )}
             </div>
+          </div>
+
+          <div className="mt-5 rounded-[1.65rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.03))] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">What to do next</p>
+                <p className="mt-2 text-lg font-semibold text-white">Priority actions for this target</p>
+              </div>
+              <ShieldAlert className="h-5 w-5 text-[#d89a63]" />
+            </div>
+            {priorityActions.length ? (
+              <div className="mt-4 grid gap-3 xl:grid-cols-3">
+                {priorityActions.map((action, index) => (
+                  <div key={`${action.area}-${action.title}`} className="rounded-[1.2rem] border border-white/10 bg-slate-950/45 px-4 py-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#b56a2c]/16 px-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f0d5bc]">
+                            {index + 1}
+                          </span>
+                          <p className="text-sm font-semibold text-white">{action.title}</p>
+                        </div>
+                        <p className="mt-2 text-sm leading-6 text-slate-300">{action.detail}</p>
+                      </div>
+                      <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300">
+                        {action.severity}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                      <ArrowRight className="h-3.5 w-3.5" />
+                      {action.area}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-4 rounded-[1.2rem] border border-white/10 bg-slate-950/45 px-4 py-4 text-sm leading-6 text-slate-300">
+                No immediate remediation is being prioritized from the current public evidence.
+              </div>
+            )}
           </div>
 
         </div>
