@@ -95,6 +95,26 @@ That makes it much easier to:
 - evolve toward Android and iOS companion apps
 - keep the scanner logic reusable in CLI and service contexts
 
+## Roadmap
+
+### Near term
+
+- Tighten the premium PDF export into a cleaner executive deliverable
+- Deepen monitoring detail and history views on top of the new backend resources
+- Continue improving report clarity, remediation language, and visual maturity
+
+### Product direction
+
+- Keep the live scan and technical outputs strong and easy to try
+- Define clearer boundaries between free workflow value and premium workflow value
+- Treat premium reporting, recurring monitoring, and richer history as the most likely commercial foundations
+- Explore shared/team views, API access, and mobile companion access after the service model is stable
+
+### Not yet
+
+- No public pricing or paywall yet
+- No commitment to a final commercial package until the premium experience is clearly strong enough to justify it
+
 ## Package status
 
 - Latest published core package: `@ktbatterham/external-posture-core@0.8.1`
