@@ -17,7 +17,7 @@ Core package: [`@ktbatterham/external-posture-core`](https://www.npmjs.com/packa
 - Clear analyst summaries and priority actions
 - Browser-facing hardening checks across headers, redirects, TLS, cookies, and trust signals
 - Quiet comparison over time with drift and history views
-- HTML, Markdown, and JSON outputs for stakeholder-friendly reporting
+- Premium PDF, Markdown, and JSON outputs for stakeholder-friendly reporting
 
 The short version:
 

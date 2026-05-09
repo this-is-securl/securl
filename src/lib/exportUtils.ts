@@ -24,15 +24,6 @@ export const exportReportMarkdown = (analysisData: AnalysisResult | null, histor
   );
 };
 
-export const exportReportHtml = (analysisData: AnalysisResult | null, historyDiff: HistoryDiff | null) => {
-  if (!analysisData) return;
-  downloadFile(
-    `security-report-${analysisData.host}.html`,
-    buildHtmlReport(analysisData, historyDiff),
-    "text/html;charset=utf-8",
-  );
-};
-
 export const exportReportPdf = (analysisData: AnalysisResult | null, historyDiff: HistoryDiff | null) => {
   if (!analysisData) return;
   const iframe = document.createElement("iframe");

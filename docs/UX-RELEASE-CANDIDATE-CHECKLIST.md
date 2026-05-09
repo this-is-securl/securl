@@ -46,13 +46,13 @@ Use this checklist to sign off the current UI before cutting the next version.
 - [ ] Category bars and labels have consistent spacing and no overlap at common breakpoints.
 - [ ] "Weakest area in this scan" marker appears only on the lowest score tile.
 
-## 6) Export Consistency (Markdown + HTML + PDF spot check)
+## 6) Export Consistency (Markdown + PDF spot check)
 
 - [ ] Export headline includes score/new/resolved change summary.
 - [ ] Export headline explicitly states category deltas are omitted (by design).
 - [ ] Executive summary wording matches app wording.
 - [ ] Priority Actions order in export matches in-app order.
-- [ ] No malformed list formatting or missing sections in Markdown/HTML export.
+- [ ] No malformed list formatting or missing sections in Markdown/PDF export.
 
 ## 7) Assessment Limitation Behavior
 

@@ -707,8 +707,8 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
       p { margin: 0; line-height: 1.65; }
       ul { margin: 0; padding-left: 18px; line-height: 1.65; }
       li + li { margin-top: 8px; }
-      .cover-sheet { min-height: calc(100vh - 104px); display:grid; align-items:center; margin-bottom: 24px; }
-      .cover-frame { display:grid; grid-template-columns: minmax(0, 1.4fr) 280px; gap: 24px; align-items:start; padding: 30px 0; }
+      .cover-sheet { display:grid; gap: 22px; margin-bottom: 24px; }
+      .cover-frame { display:grid; grid-template-columns: minmax(0, 1.4fr) 280px; gap: 24px; align-items:start; padding: 12px 0 0; }
       .cover-kicker { font-size: 12px; letter-spacing: .28em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
       .cover-target { font-size: clamp(42px, 7vw, 76px); line-height: .95; letter-spacing: -.06em; font-weight: 800; margin-bottom: 14px; word-break: break-word; }
       .cover-url { color: var(--muted); font-size: 24px; line-height: 1.45; word-break: break-word; max-width: 28ch; }
@@ -819,8 +819,6 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
             <p>${escapeHtml(analysis.grade)} posture grade</p>
           </div>
         </div>
-      </section>
-      <section class="page-break summary-page">
         <div class="summary-band">
           <div class="summary-card"><strong>Generated</strong><p>${escapeHtml(generatedAt)}<br><span class="muted">Scan captured ${escapeHtml(new Date(analysis.scannedAt).toLocaleString())}</span></p></div>
           <div class="summary-card"><strong>Overall finding</strong><p>${escapeHtml(analysis.executiveSummary.overview)}</p></div>
