@@ -628,6 +628,13 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
   const strongestAreaText = strongestAreas.length
     ? strongestAreas.map((area) => `${area.label} (${area.score}/100)`).join(", ")
     : "No clearly compensating strengths recorded.";
+  const executiveTakeawayItems = analysis.executiveSummary.takeaways.length
+    ? analysis.executiveSummary.takeaways.slice(0, 3).map((item) => `<li>${escapeHtml(item)}</li>`).join("")
+    : "<li>No extra executive takeaways were generated from this scan.</li>";
+  const strengthItems = analysis.strengths.length
+    ? analysis.strengths.slice(0, 4).map((item) => `<li>${escapeHtml(item)}</li>`).join("")
+    : "<li>No explicit strengths were recorded.</li>";
+  const generatedAt = new Date().toLocaleString();
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -636,13 +643,29 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Security Report - ${escapeHtml(analysis.host)}</title>
     <style>
-      :root { color-scheme: dark; --bg:#09111f; --bg-soft:#111c2d; --panel:#172335; --panel-2:#1d2b40; --line:rgba(148, 163, 184, 0.18); --text:#e8edf7; --muted:#9aa8bf; --accent:#cf7a36; --accent-soft:rgba(207, 122, 54, 0.12); --good:#c6d4e6; --watch:#d0a56e; --limited:#d5b786; }
+      :root { color-scheme: dark; --bg:#09111f; --bg-soft:#111c2d; --panel:#172335; --panel-2:#1d2b40; --line:rgba(148, 163, 184, 0.18); --text:#e8edf7; --muted:#9aa8bf; --accent:#cf7a36; --good:#c6d4e6; --watch:#d0a56e; --limited:#d5b786; }
       * { box-sizing: border-box; }
       body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; margin: 0; background: linear-gradient(180deg, #07111d 0%, #0f1624 100%); color: var(--text); }
       .page { max-width: 1240px; margin: 0 auto; padding: 40px 28px 64px; }
       h1, h2, h3 { margin: 0; }
       p { margin: 0; line-height: 1.65; }
       ul { margin: 0; padding-left: 18px; line-height: 1.65; }
+      li + li { margin-top: 8px; }
+      .cover { margin-bottom: 24px; }
+      .cover-card { position: relative; overflow: hidden; padding: 30px; border-radius: 32px; border: 1px solid var(--line); background: radial-gradient(circle at top right, rgba(207,122,54,0.16), transparent 26%), linear-gradient(180deg, rgba(17,28,45,.98), rgba(11,20,34,.98)); box-shadow: 0 18px 52px rgba(3, 8, 20, 0.38); }
+      .cover-grid { display:grid; grid-template-columns: minmax(0,1.18fr) minmax(280px,.82fr); gap:24px; align-items:start; }
+      .brand { display:inline-flex; align-items:center; gap:10px; padding:10px 14px; border-radius:999px; border:1px solid rgba(207,122,54,.22); background:rgba(207,122,54,.08); color:#f0d5bc; font-size:12px; font-weight:700; letter-spacing:.24em; text-transform:uppercase; margin-bottom:20px; }
+      .cover-title { max-width: 9ch; font-size: clamp(40px, 8vw, 72px); line-height: .96; letter-spacing: -.06em; font-weight: 800; margin-bottom: 18px; }
+      .cover-subtitle { max-width: 38ch; color: var(--muted); font-size: 21px; line-height: 1.55; }
+      .cover-sidebar { display:grid; gap:16px; }
+      .meta-card { padding:18px 20px; border-radius:22px; border:1px solid var(--line); background: rgba(255,255,255,.03); }
+      .meta-card strong { display:block; margin-bottom:8px; font-size:12px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); }
+      .meta-card p { font-size:15px; }
+      .executive-strip { display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap:14px; margin-top: 24px; }
+      .executive-stat { padding:16px 18px; border-radius:20px; background: rgba(255,255,255,.03); border:1px solid var(--line); min-height:110px; }
+      .executive-stat span { display:block; font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+      .executive-stat strong { display:block; font-size:30px; line-height:1.05; margin-bottom:6px; }
+      .executive-stat p { color: var(--muted); font-size:14px; }
       .hero { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(340px, .95fr); gap: 22px; margin-bottom: 24px; align-items: start; }
       .panel { background: linear-gradient(180deg, rgba(17,28,45,.96), rgba(11,20,34,.96)); border: 1px solid var(--line); border-radius: 28px; padding: 28px; box-shadow: 0 14px 36px rgba(3, 8, 20, 0.34); }
       .hero-panel { position: relative; overflow: hidden; }
@@ -690,26 +713,90 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
       .kpi { padding: 16px 18px; border-radius: 18px; background: rgba(255,255,255,.03); border: 1px solid var(--line); }
       .kpi strong { display:block; font-size: 26px; margin-bottom: 4px; }
       .kpi span { color: var(--muted); }
+      .chapter { display:grid; gap: 18px; margin: 24px 0 18px; }
+      .chapter-header { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; padding:0 4px; }
+      .chapter-header h2 { font-size: 28px; letter-spacing: -.04em; }
+      .chapter-header p { max-width: 60ch; color: var(--muted); }
+      .chapter-kicker { font-size: 12px; letter-spacing: .28em; text-transform: uppercase; color: var(--muted); }
       @media (max-width: 1120px) {
-        .hero, .content-grid { grid-template-columns: 1fr; }
+        .cover-grid, .hero, .content-grid { grid-template-columns: 1fr; }
+        .cover-title { max-width: none; }
+        .executive-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       }
       @media (max-width: 780px) {
         .page { padding: 20px 16px 40px; }
-        .panel { padding: 22px; border-radius: 24px; }
+        .panel, .cover-card { padding: 22px; border-radius: 24px; }
         .hero-risk { font-size: 19px; }
         .summary-band, .appendix-grid { grid-template-columns: 1fr; }
       }
       @media (max-width: 640px) {
-        .hero-facts, .kpi-grid { grid-template-columns: 1fr; }
+        .hero-facts, .kpi-grid, .executive-strip { grid-template-columns: 1fr; }
         .grade-chip { margin-bottom: 18px; }
         .bar-row { grid-template-columns: 1fr; gap: 8px; }
         .bar-score { text-align: left; }
       }
-      @media print { body { background: #fff; color: #0f172a; } .page { max-width: none; padding: 18px; } .panel, .fact, .summary-card, .action-card, .kpi { background: #f8fafc; color: #0f172a; box-shadow: none; } .muted, .eyebrow, .summary-card strong, .fact span, .fact-label, .bar-copy span, .kpi span { color: #475569; } .bar-track { background: #e2e8f0; } }
+      @page { margin: 14mm; }
+      @media print { body { background: #fff; color: #0f172a; } .page { max-width: none; padding: 0; } .panel, .cover-card, .fact, .summary-card, .action-card, .kpi, .meta-card, .executive-stat { background: #f8fafc; color: #0f172a; box-shadow: none; } .muted, .eyebrow, .summary-card strong, .fact span, .fact-label, .bar-copy span, .kpi span, .meta-card strong, .executive-stat span, .chapter-kicker { color: #475569; } .bar-track { background: #e2e8f0; } .cover-card { page-break-after: always; } .chapter { page-break-before: always; } }
     </style>
   </head>
   <body>
     <div class="page">
+      <section class="cover">
+        <div class="cover-card">
+          <div class="cover-grid">
+            <div>
+              <div class="brand">SecURL · External posture report</div>
+              <h1 class="cover-title">Public posture, quietly interpreted.</h1>
+              <p class="cover-subtitle">
+                A low-noise executive read of browser hardening, trust signals,
+                exposure controls, and visible client surface for
+                ${escapeHtml(analysis.host)}.
+              </p>
+            </div>
+            <div class="cover-sidebar">
+              <div class="meta-card">
+                <strong>Target</strong>
+                <p>${escapeHtml(analysis.host)}</p>
+                <p class="muted">${escapeHtml(analysis.finalUrl)}</p>
+              </div>
+              <div class="meta-card">
+                <strong>Generated</strong>
+                <p>${escapeHtml(generatedAt)}</p>
+                <p class="muted">
+                  Scan captured
+                  ${escapeHtml(new Date(analysis.scannedAt).toLocaleString())}
+                </p>
+              </div>
+              <div class="meta-card">
+                <strong>Main visible risk</strong>
+                <p>${escapeHtml(analysis.executiveSummary.mainRisk)}</p>
+              </div>
+            </div>
+          </div>
+          <div class="executive-strip">
+            <div class="executive-stat">
+              <span>Verdict</span>
+              <strong>${escapeHtml(analysis.grade)}</strong>
+              <p>${analysis.score}/100 posture score</p>
+            </div>
+            <div class="executive-stat">
+              <span>Status</span>
+              <strong>${analysis.statusCode}</strong>
+              <p>${escapeHtml(analysis.executiveSummary.overview)}</p>
+            </div>
+            <div class="executive-stat">
+              <span>Weakest areas</span>
+              <strong>${weakestAreas.length ? weakestAreas[0].score : "—"}</strong>
+              <p>${escapeHtml(weakestAreaText)}</p>
+            </div>
+            <div class="executive-stat">
+              <span>Change</span>
+              <strong>${diff ? `${diff.scoreDelta !== null && diff.scoreDelta > 0 ? "+" : ""}${diff.scoreDelta ?? 0}` : "—"}</strong>
+              <p>${escapeHtml(changeHeadline)}</p>
+            </div>
+          </div>
+        </div>
+      </section>
       <section class="hero">
         <div class="panel hero-panel">
           <div class="eyebrow">SecURL external posture report</div>
@@ -754,12 +841,39 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
           </div>
         </div>
       </section>
+      <section class="chapter">
+        <div class="chapter-header">
+          <div>
+            <div class="chapter-kicker">Executive summary</div>
+            <h2>Decision-ready readout</h2>
+          </div>
+          <p>
+            The first page should give a stakeholder enough context to decide
+            whether this target is broadly acceptable, needs action, or needs
+            deeper review.
+          </p>
+        </div>
+      </section>
       <section class="content-grid">
         <div class="stack">
           <div class="panel">
             <div class="eyebrow">Analyst read</div>
             <h2 class="section-title">Why this matters</h2>
             ${buildPostureNarrative(analysis, diff).map((line) => `<p>${escapeHtml(line)}</p>`).join("<div style=\"height:10px\"></div>")}
+          </div>
+          <div class="panel">
+            <div class="eyebrow">Takeaways</div>
+            <h2 class="section-title">What stands out</h2>
+            <div class="appendix-grid">
+              <div>
+                <h3 style="margin-bottom:10px;">Executive takeaways</h3>
+                <ul>${executiveTakeawayItems}</ul>
+              </div>
+              <div>
+                <h3 style="margin-bottom:10px;">Observed strengths</h3>
+                <ul>${strengthItems}</ul>
+              </div>
+            </div>
           </div>
           <div class="panel">
             <div class="eyebrow">Top findings</div>
@@ -811,6 +925,19 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
             </div>
             ${diff ? buildCompactListHtml(diff.summary.length ? diff.summary : ["No material posture changes summarized."]) : "<p class=\"muted\" style=\"margin-top:14px;\">No previous local snapshot available for comparison.</p>"}
           </div>
+        </div>
+      </section>
+      <section class="chapter">
+        <div class="chapter-header">
+          <div>
+            <div class="chapter-kicker">Evidence appendix</div>
+            <h2>Detailed analyst workbook</h2>
+          </div>
+          <p>
+            This section keeps the raw posture detail, mapped themes, and
+            observed evidence in a form that can be reviewed, handed over, or
+            acted on later.
+          </p>
         </div>
       </section>
       <section class="appendix">
