@@ -708,14 +708,15 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
       ul { margin: 0; padding-left: 18px; line-height: 1.65; }
       li + li { margin-top: 8px; }
       .cover-sheet { display:grid; gap: 22px; margin-bottom: 24px; }
-      .cover-frame { display:grid; grid-template-columns: minmax(0, 1.4fr) 280px; gap: 24px; align-items:start; padding: 12px 0 0; }
+      .cover-frame { display:grid; grid-template-columns: minmax(0, 1.35fr) 220px; gap: 24px; align-items:start; padding: 12px 0 0; }
       .cover-kicker { font-size: 12px; letter-spacing: .28em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
       .cover-target { font-size: clamp(42px, 7vw, 76px); line-height: .95; letter-spacing: -.06em; font-weight: 800; margin-bottom: 14px; word-break: break-word; }
       .cover-url { color: var(--muted); font-size: 24px; line-height: 1.45; word-break: break-word; max-width: 28ch; }
-      .cover-score { align-self:start; padding: 28px 24px; border-radius: 28px; background: linear-gradient(180deg, rgba(207,122,54,.92), rgba(166,94,43,.96)); color: #fff8f0; box-shadow: 0 18px 44px rgba(89, 44, 16, 0.32); }
-      .cover-score span { display:block; font-size: 11px; letter-spacing: .24em; text-transform: uppercase; opacity: .86; margin-bottom: 14px; }
-      .cover-score strong { display:block; font-size: 76px; line-height: .9; letter-spacing: -.05em; margin-bottom: 8px; }
-      .cover-score p { font-size: 20px; line-height: 1.3; }
+      .cover-score { align-self:start; min-height: 220px; display:grid; place-items:center; padding: 20px; border-radius: 28px; background: linear-gradient(180deg, rgba(207,122,54,.92), rgba(166,94,43,.96)); color: #fff8f0; box-shadow: 0 18px 44px rgba(89, 44, 16, 0.32); }
+      .cover-score .donut-ring { width: 160px; height: 160px; background: conic-gradient(#fbe3d1 0deg ${donutDegrees}deg, rgba(251,227,209,.22) ${donutDegrees}deg 360deg); }
+      .cover-score .donut-inner { width: 112px; height: 112px; background: #fff8f2; }
+      .cover-score .donut-inner strong { display:block; font-size: 58px; line-height: .9; letter-spacing: -.05em; color: #d08a4b; }
+      .cover-score .donut-inner span { display:block; font-size: 14px; letter-spacing: .12em; color: #7b5f4d; margin-top: 8px; }
       .hero { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(340px, .95fr); gap: 22px; margin-bottom: 24px; align-items: start; }
       .panel { background: linear-gradient(180deg, rgba(17,28,45,.96), rgba(11,20,34,.96)); border: 1px solid var(--line); border-radius: 28px; padding: 28px; box-shadow: 0 14px 36px rgba(3, 8, 20, 0.34); }
       .hero-panel { position: relative; overflow: hidden; }
@@ -814,9 +815,14 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
             <h1 class="cover-target">${escapeHtml(analysis.finalUrl)}</h1>
           </div>
           <div class="cover-score">
-            <span>Overall score</span>
-            <strong>${analysis.score}</strong>
-            <p>${escapeHtml(analysis.grade)} posture grade</p>
+            <div class="donut-ring">
+              <div class="donut-inner">
+                <div>
+                  <strong>${escapeHtml(analysis.grade)}</strong>
+                  <span>${analysis.score}/100</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="summary-band">
@@ -915,13 +921,6 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
           </div>
         </div>
         <div class="stack">
-          <div class="panel">
-            <div class="eyebrow">Score breakdown</div>
-            <h2 class="section-title">How the score is being shaped</h2>
-            <div class="bar-list">
-              ${buildCategoryBarsHtml(areas)}
-            </div>
-          </div>
           <div class="panel">
             <div class="eyebrow">Follow-up questions</div>
             <h2 class="section-title">What still needs confirming</h2>
