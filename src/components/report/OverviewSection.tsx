@@ -147,54 +147,7 @@ export const OverviewSection = ({
 
       <div className="space-y-4">
         <div className="rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,rgba(11,18,32,0.95),rgba(16,24,39,0.92))] px-6 py-6 shadow-[0_30px_80px_-48px_rgba(0,0,0,0.8)] ring-1 ring-white/[0.04]">
-          <div className="grid gap-5 xl:grid-cols-[0.78fr_1.22fr] xl:items-stretch">
-            <div className={`rounded-[1.65rem] border px-6 py-6 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)] ${healthcheckStyle.tile}`}>
-              <div className="flex h-full flex-col items-center justify-center text-center">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                  {isLimitedAssessment ? "Directional read" : "Overall posture"}
-                </p>
-                <div className="relative mt-5 h-44 w-44">
-                  <svg viewBox="0 0 140 140" className="h-44 w-44 -rotate-90">
-                    <circle
-                      cx="70"
-                      cy="70"
-                      r={DONUT_RADIUS}
-                      fill="none"
-                      stroke="rgba(255,255,255,0.08)"
-                      strokeWidth="12"
-                    />
-                    <circle
-                      cx="70"
-                      cy="70"
-                      r={DONUT_RADIUS}
-                      fill="none"
-                      stroke="url(#healthcheck-gradient)"
-                      strokeWidth="12"
-                      strokeLinecap="round"
-                      strokeDasharray={DONUT_CIRCUMFERENCE}
-                      strokeDashoffset={donutOffset}
-                    />
-                    <defs>
-                      <linearGradient id="healthcheck-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor={healthcheckStyle.dot.includes("b56a2c") ? "#8e5c3b" : "#cbd5e1"} />
-                        <stop offset="55%" stopColor={healthcheckStyle.dot.includes("b56a2c") ? "#b56a2c" : "#dbe4f0"} />
-                        <stop offset="100%" stopColor={healthcheckStyle.dot.includes("8e5c3b") ? "#d08a4b" : "#f8fafc"} />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                    <span className={`text-5xl font-semibold leading-none ${healthcheckStyle.grade}`}>{analysisData.grade}</span>
-                    <span className="mt-2 text-lg font-semibold text-slate-200">{overallPercent}%</span>
-                  </div>
-                </div>
-                <p className="mt-5 text-sm leading-6 text-slate-300">
-                  {isLimitedAssessment
-                    ? "This read is directional only because the public surface limited a full assessment."
-                    : "A normalized posture score across the major passive-read areas, tuned for a fast executive read."}
-                </p>
-              </div>
-            </div>
-
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_320px] xl:items-start">
             <div className="space-y-4">
               <div>
                 <p className={sectionTitleClass}>Target</p>
@@ -202,83 +155,98 @@ export const OverviewSection = ({
                 <p className="mt-2 break-all text-sm text-slate-400">{analysisData.finalUrl}</p>
               </div>
 
-              <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-                <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{scanOutcomeDetail}</p>
-                      <p className={`mt-2 text-3xl font-semibold tracking-[-0.04em] ${healthcheckStyle.grade}`}>
-                        {scanOutcomeLabel}
-                      </p>
-                    </div>
-                    <span className={`inline-flex h-3 w-3 rounded-full ${healthcheckStyle.dot}`} aria-hidden="true" />
-                  </div>
-                  <div className="mt-4 rounded-[1.2rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Main visible risk</p>
-                    <p className="mt-2 text-base font-semibold leading-7 text-white">
-                      {analysisData.executiveSummary.mainRisk}
+              <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{scanOutcomeDetail}</p>
+                    <p className={`mt-2 text-3xl font-semibold tracking-[-0.04em] ${healthcheckStyle.grade}`}>
+                      {scanOutcomeLabel}
                     </p>
                   </div>
-                  <div className="mt-4 flex items-start gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-[#d89a63]" />
-                    <span>Executive posture verdict</span>
-                  </div>
-                  {hasTrainingSurfaceNarrative ? (
-                    <div className="mt-3 inline-flex items-center rounded-full border border-[#b56a2c]/35 bg-[#b56a2c]/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f0d5bc]">
-                      Training surface detected
-                    </div>
-                  ) : null}
-                  <p className={`mt-3 text-base text-slate-300 ${compact ? "leading-7" : "leading-8"}`}>
-                    {analysisData.executiveSummary.overview}
+                  <span className={`inline-flex h-3 w-3 rounded-full ${healthcheckStyle.dot}`} aria-hidden="true" />
+                </div>
+                <div className="mt-4 rounded-[1.2rem] border border-white/10 bg-slate-950/45 px-4 py-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Main visible risk</p>
+                  <p className="mt-2 text-base font-semibold leading-7 text-white">
+                    {analysisData.executiveSummary.mainRisk}
                   </p>
                 </div>
+                <div className="mt-4 flex items-start gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-[#d89a63]" />
+                  <span>Executive posture verdict</span>
+                </div>
+                {hasTrainingSurfaceNarrative ? (
+                  <div className="mt-3 inline-flex items-center rounded-full border border-[#b56a2c]/35 bg-[#b56a2c]/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f0d5bc]">
+                    Training surface detected
+                  </div>
+                ) : null}
+                <p className={`mt-3 text-base text-slate-300 ${compact ? "leading-7" : "leading-8"}`}>
+                  {analysisData.executiveSummary.overview}
+                </p>
+              </div>
+            </div>
 
-                <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Monitoring status</p>
-                      <p className="mt-2 text-lg font-semibold text-white">
-                        {history.length ? `${history.length} saved snapshot${history.length === 1 ? "" : "s"}` : "Not yet started"}
-                      </p>
-                    </div>
-                    <BellRing className="h-5 w-5 text-[#d89a63]" />
-                  </div>
-                  <p className={`mt-3 text-sm leading-6 ${monitoringTone}`}>
-                    {monitoringStatus}
+            <div className="space-y-4">
+              <div className={`rounded-[1.65rem] border px-6 py-6 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)] ${healthcheckStyle.tile}`}>
+                <div className="flex h-full flex-col items-center justify-center text-center">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                    {isLimitedAssessment ? "Directional read" : "Overall posture"}
                   </p>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-[1.1rem] border border-white/10 bg-slate-950/45 px-3 py-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Scanned</p>
-                      <p className="mt-2 text-sm font-semibold text-white">{new Date(analysisData.scannedAt).toLocaleString()}</p>
-                    </div>
-                    <div className="rounded-[1.1rem] border border-white/10 bg-slate-950/45 px-3 py-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">HTTP</p>
-                      <p className="mt-2 text-2xl font-semibold text-white">{analysisData.statusCode}</p>
-                      <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-slate-500">{getHttpStatusDetails(analysisData.statusCode).label}</p>
-                    </div>
-                    <div className="rounded-[1.1rem] border border-white/10 bg-slate-950/45 px-3 py-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Latency</p>
-                      <p className="mt-2 text-2xl font-semibold text-white">{analysisData.responseTimeMs}ms</p>
+                  <div className="relative mt-5 h-44 w-44">
+                    <svg viewBox="0 0 140 140" className="h-44 w-44 -rotate-90">
+                      <circle
+                        cx="70"
+                        cy="70"
+                        r={DONUT_RADIUS}
+                        fill="none"
+                        stroke="rgba(255,255,255,0.08)"
+                        strokeWidth="12"
+                      />
+                      <circle
+                        cx="70"
+                        cy="70"
+                        r={DONUT_RADIUS}
+                        fill="none"
+                        stroke="url(#healthcheck-gradient)"
+                        strokeWidth="12"
+                        strokeLinecap="round"
+                        strokeDasharray={DONUT_CIRCUMFERENCE}
+                        strokeDashoffset={donutOffset}
+                      />
+                      <defs>
+                        <linearGradient id="healthcheck-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stopColor={healthcheckStyle.dot.includes("b56a2c") ? "#8e5c3b" : "#cbd5e1"} />
+                          <stop offset="55%" stopColor={healthcheckStyle.dot.includes("b56a2c") ? "#b56a2c" : "#dbe4f0"} />
+                          <stop offset="100%" stopColor={healthcheckStyle.dot.includes("8e5c3b") ? "#d08a4b" : "#f8fafc"} />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                      <span className={`text-5xl font-semibold leading-none ${healthcheckStyle.grade}`}>{analysisData.grade}</span>
+                      <span className="mt-2 text-lg font-semibold text-slate-200">{overallPercent}%</span>
                     </div>
                   </div>
-                  <div className="mt-4 border-t border-white/10 pt-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Exports</p>
-                      <Download className="h-4 w-4 text-[#d89a63]" />
-                    </div>
-                    <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                      <Button variant="outline" className="h-11 w-full justify-center rounded-2xl border-white/10 bg-white/[0.04] font-medium text-slate-100 hover:bg-white/[0.08]" onClick={exportPdf}>
-                        Export PDF
-                      </Button>
-                      <Button variant="outline" className="h-11 w-full justify-center rounded-2xl border-white/10 bg-white/[0.04] font-medium text-slate-100 hover:bg-white/[0.08]" onClick={exportMarkdown}>
-                        Export Markdown
-                      </Button>
-                      <Button variant="outline" className="h-11 w-full justify-center rounded-2xl border-white/10 bg-white/[0.04] font-medium text-slate-100 hover:bg-white/[0.08]" onClick={exportReport}>
-                        Export JSON
-                      </Button>
-                    </div>
-                  </div>
+                  <p className="mt-5 text-sm leading-6 text-slate-300">
+                    {isLimitedAssessment
+                      ? "This read is directional only because the public surface limited a full assessment."
+                      : "A normalized posture score across the major passive-read areas, tuned for a fast executive read."}
+                  </p>
                 </div>
+              </div>
+
+              <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Monitoring status</p>
+                    <p className="mt-2 text-lg font-semibold text-white">
+                      {history.length ? `${history.length} saved snapshot${history.length === 1 ? "" : "s"}` : "Not yet started"}
+                    </p>
+                  </div>
+                  <BellRing className="h-5 w-5 text-[#d89a63]" />
+                </div>
+                <p className={`mt-3 text-sm leading-6 ${monitoringTone}`}>
+                  {monitoringStatus}
+                </p>
               </div>
             </div>
           </div>
@@ -400,6 +368,56 @@ export const OverviewSection = ({
                   No immediate remediation is being prioritized from the current public evidence.
                 </div>
               )}
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
+            <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Scan facts</p>
+                  <p className="mt-2 text-lg font-semibold text-white">Capture details</p>
+                </div>
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-[1.1rem] border border-white/10 bg-slate-950/45 px-3 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Scanned</p>
+                  <p className="mt-2 text-sm font-semibold text-white">{new Date(analysisData.scannedAt).toLocaleString()}</p>
+                </div>
+                <div className="rounded-[1.1rem] border border-white/10 bg-slate-950/45 px-3 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">HTTP</p>
+                  <p className="mt-2 text-2xl font-semibold text-white">{analysisData.statusCode}</p>
+                  <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-slate-500">{getHttpStatusDetails(analysisData.statusCode).label}</p>
+                </div>
+                <div className="rounded-[1.1rem] border border-white/10 bg-slate-950/45 px-3 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Latency</p>
+                  <p className="mt-2 text-2xl font-semibold text-white">{analysisData.responseTimeMs}ms</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Report outputs</p>
+                  <p className="mt-2 text-lg font-semibold text-white">Share or hand off this scan</p>
+                </div>
+                <Download className="h-4 w-4 text-[#d89a63]" />
+              </div>
+              <p className="mt-3 text-sm leading-6 text-slate-400">
+                Export the executive read as a PDF, keep the technical version in Markdown, or pass the raw result onward as JSON.
+              </p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <Button variant="outline" className="h-11 w-full justify-center rounded-2xl border-white/10 bg-white/[0.04] font-medium text-slate-100 hover:bg-white/[0.08]" onClick={exportPdf}>
+                  Export PDF
+                </Button>
+                <Button variant="outline" className="h-11 w-full justify-center rounded-2xl border-white/10 bg-white/[0.04] font-medium text-slate-100 hover:bg-white/[0.08]" onClick={exportMarkdown}>
+                  Export Markdown
+                </Button>
+                <Button variant="outline" className="h-11 w-full justify-center rounded-2xl border-white/10 bg-white/[0.04] font-medium text-slate-100 hover:bg-white/[0.08]" onClick={exportReport}>
+                  Export JSON
+                </Button>
+              </div>
             </div>
           </div>
         </div>

@@ -634,8 +634,23 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
   const strengthItems = analysis.strengths.length
     ? analysis.strengths.slice(0, 4).map((item) => `<li>${escapeHtml(item)}</li>`).join("")
     : "<li>No explicit strengths were recorded.</li>";
-  const generatedAt = new Date().toLocaleString();
+  const generatedAt = new Date().toLocaleDateString(undefined, {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+  const scanDate = new Date(analysis.scannedAt).toLocaleDateString(undefined, {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
   const donutDegrees = Math.round((analysis.score / 100) * 360);
+  const overallPostureLabel =
+    analysis.grade === "A" || analysis.grade === "B"
+      ? "Good"
+      : analysis.grade === "C"
+        ? "Mixed"
+        : "Needs attention";
   const urgentActionCount = Math.min(priorityActions.length, 2);
   const nextActionCount = Math.max(Math.min(priorityActions.length - urgentActionCount, 2), 0);
   const followUpCount = buildAssessmentLimits(analysis).length;
@@ -691,6 +706,51 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
         )
         .join("")
     : "<li>No urgent remediation items were generated from this scan.</li>";
+  const actionBuckets = {
+    fixNow: priorityActions.slice(0, 2),
+    fixNext: priorityActions.slice(2, 4),
+    keepWatching: weakestAreas.slice(0, 2),
+  };
+  const postureBreakdownItems = areas
+    .map((area) => {
+      const explanation =
+        area.label === "Edge Security"
+          ? "Missing or weak browser protections still shape the external read."
+          : area.label === "Domain & Trust"
+            ? "Email and ownership signals still have room to improve."
+            : area.label === "Content Security"
+              ? "The content policy baseline is useful, but browser hardening is incomplete."
+              : area.label === "Exposure Control"
+                ? "Low-noise probes found relatively little unexpected public exposure."
+                : area.label === "API Surface"
+                  ? "No obvious API posture concerns were surfaced from the passive checks."
+                  : area.label === "Third-Party Trust"
+                    ? "Provider exposure looked comparatively controlled on this scan."
+                    : area.label === "AI & Automation"
+                      ? "No significant AI-surface concern dominated this assessment."
+                      : `${area.label} was scored as ${area.status}.`;
+      const toneClass =
+        area.status === "strong" ? "tone-strong" : area.status === "watch" ? "tone-watch" : "tone-weak";
+      return `
+        <div class="overview-row">
+          <div>
+            <p class="overview-area">${escapeHtml(area.label)}</p>
+            <p class="overview-explainer">${escapeHtml(explanation)}</p>
+          </div>
+          <div class="overview-bar-wrap">
+            <div class="overview-bar"><span class="${toneClass}" style="width:${Math.max(8, area.score)}%"></span></div>
+          </div>
+          <div class="overview-score">${area.score}/100</div>
+        </div>`;
+    })
+    .join("");
+  const topStrengths = analysis.strengths.slice(0, 5);
+  const strengthsHtml = topStrengths.length
+    ? topStrengths.map((item) => `<li>${escapeHtml(item)}</li>`).join("")
+    : "<li>No explicit strengths were recorded from this scan.</li>";
+  const reportLimitItems = buildAssessmentLimits(analysis)
+    .map((item) => `<li>${escapeHtml(item)}</li>`)
+    .join("");
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -699,344 +759,243 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Security Report - ${escapeHtml(analysis.host)}</title>
     <style>
-      :root { color-scheme: dark; --bg:#09111f; --bg-soft:#111c2d; --panel:#172335; --panel-2:#1d2b40; --line:rgba(148, 163, 184, 0.18); --text:#e8edf7; --muted:#9aa8bf; --accent:#cf7a36; --good:#c6d4e6; --watch:#d0a56e; --limited:#d5b786; }
+      :root { color-scheme: light; --text:#0f172a; --muted:#475569; --line:#dbe3ef; --panel:#ffffff; --panel-soft:#f8fafc; --accent:#cf7a36; --accent-soft:#f3d7bd; --danger:#8e5c3b; --ok:#dbe7f5; --watch:#d0a56e; }
       * { box-sizing: border-box; }
-      body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; margin: 0; background: linear-gradient(180deg, #07111d 0%, #0f1624 100%); color: var(--text); }
-      .page { max-width: 1240px; margin: 0 auto; padding: 40px 28px 64px; }
-      h1, h2, h3 { margin: 0; }
-      p { margin: 0; line-height: 1.65; }
-      ul { margin: 0; padding-left: 18px; line-height: 1.65; }
-      li + li { margin-top: 8px; }
-      .cover-sheet { display:grid; gap: 22px; margin-bottom: 24px; }
-      .cover-frame { display:grid; grid-template-columns: minmax(0, 1.35fr) 220px; gap: 24px; align-items:start; padding: 12px 0 0; }
-      .cover-kicker { font-size: 12px; letter-spacing: .28em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
-      .cover-target { font-size: clamp(42px, 7vw, 76px); line-height: .95; letter-spacing: -.06em; font-weight: 800; margin-bottom: 14px; word-break: break-word; }
-      .cover-url { color: var(--muted); font-size: 24px; line-height: 1.45; word-break: break-word; max-width: 28ch; }
-      .cover-score { align-self:start; min-height: 220px; display:grid; place-items:center; padding: 20px; border-radius: 28px; background: linear-gradient(180deg, rgba(207,122,54,.92), rgba(166,94,43,.96)); color: #fff8f0; box-shadow: 0 18px 44px rgba(89, 44, 16, 0.32); }
-      .cover-score .donut-ring { width: 160px; height: 160px; background: conic-gradient(#fbe3d1 0deg ${donutDegrees}deg, rgba(251,227,209,.22) ${donutDegrees}deg 360deg); }
-      .cover-score .donut-inner { width: 112px; height: 112px; background: #fff8f2; }
-      .cover-score .donut-inner strong { display:block; font-size: 58px; line-height: .9; letter-spacing: -.05em; color: #d08a4b; }
-      .cover-score .donut-inner span { display:block; font-size: 14px; letter-spacing: .12em; color: #7b5f4d; margin-top: 8px; }
-      .hero { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(340px, .95fr); gap: 22px; margin-bottom: 24px; align-items: start; }
-      .panel { background: linear-gradient(180deg, rgba(17,28,45,.96), rgba(11,20,34,.96)); border: 1px solid var(--line); border-radius: 28px; padding: 28px; box-shadow: 0 14px 36px rgba(3, 8, 20, 0.34); }
-      .hero-panel { position: relative; overflow: hidden; }
-      .hero-panel::after { content:""; position:absolute; inset:auto -60px -100px auto; width:220px; height:220px; background: radial-gradient(circle, rgba(207,122,54,0.28), transparent 70%); pointer-events:none; }
-      .eyebrow { font-size: 12px; letter-spacing: .28em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
-      .hero-title { font-size: 15px; color: var(--muted); margin-bottom: 10px; }
-      .hero-host { font-size: clamp(34px, 5vw, 42px); line-height: 1.08; font-weight: 800; margin-bottom: 10px; word-break: break-word; }
-      .hero-url { color: var(--muted); font-size: 18px; margin-bottom: 22px; word-break: break-word; }
-      .hero-risk { max-width: 58ch; color: #f3f6fb; font-size: 21px; line-height: 1.45; }
-      .grade-chip { display:inline-flex; align-items:center; gap: 12px; padding: 10px 14px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255,255,255,.03); margin-bottom: 22px; }
-      .grade-chip strong { font-size: 28px; line-height: 1; }
-      .grade-chip span { color: var(--muted); font-size: 13px; letter-spacing: .18em; text-transform: uppercase; }
-      .tone-strong strong { color: #dbe7f5; }
-      .tone-watch strong { color: var(--watch); }
-      .tone-weak strong, .tone-limited strong { color: var(--accent); }
-      .hero-facts { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 26px; }
-      .fact { padding: 16px 18px; border-radius: 20px; background: rgba(255,255,255,.03); border: 1px solid var(--line); min-height: 98px; }
-      .fact-label { display:block; font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
-      .fact strong { display:block; font-size: 30px; line-height: 1.1; margin-bottom: 4px; }
-      .fact span { color: var(--muted); }
-      .sidebar-stack { display:grid; gap: 18px; }
-      .summary-band { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-      .summary-card { padding: 18px 20px; border-radius: 20px; border: 1px solid var(--line); background: rgba(255,255,255,.03); }
-      .summary-card strong { display:block; margin-bottom: 8px; font-size: 14px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
-      .summary-card p { font-size: 16px; }
-      .brief-list { margin: 0; padding-left: 18px; }
-      .brief-list li { color: var(--text); line-height: 1.55; }
-      .triage-grid { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:14px; margin-top: 14px; }
-      .triage-card { padding: 18px 20px; border-radius: 20px; border: 1px solid var(--line); background: rgba(255,255,255,.03); min-height: 150px; }
-      .triage-label { display:block; margin-bottom: 10px; font-size: 12px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); }
-      .triage-card strong { display:block; font-size: 34px; line-height: 1; margin-bottom: 10px; color: #f0d5bc; }
-      .triage-card p { color: var(--muted); font-size: 15px; line-height: 1.55; }
-      .page-break { margin: 0 0 18px; }
-      .summary-page { display:grid; gap: 22px; }
-      .visual-grid { display:grid; grid-template-columns: minmax(280px, .78fr) minmax(0, 1.22fr); gap: 18px; }
-      .donut-panel { display:grid; grid-template-columns: 168px minmax(0, 1fr); gap: 18px; align-items:center; }
-      .donut-ring { width: 168px; height: 168px; border-radius: 999px; background: conic-gradient(#cf7a36 0deg ${donutDegrees}deg, rgba(207,122,54,.18) ${donutDegrees}deg 360deg); display:grid; place-items:center; }
-      .donut-inner { width: 120px; height: 120px; border-radius: 999px; background: #0f1624; display:grid; place-items:center; text-align:center; }
-      .donut-inner strong { display:block; font-size: 54px; line-height: .9; color: #f0d5bc; }
-      .donut-inner span { display:block; font-size: 13px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
-      .visual-copy h3 { font-size: 22px; margin-bottom: 10px; }
-      .visual-copy p { color: var(--muted); }
-      .content-grid { display:grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .95fr); gap: 22px; margin-bottom: 22px; align-items: start; }
-      .stack { display:grid; gap: 18px; }
-      .section-title { font-size: 22px; margin-bottom: 14px; }
-      .callout-list li + li, .compact-list li + li { margin-top: 8px; }
-      .action-card { padding: 16px 18px; border-radius: 18px; background: rgba(255,255,255,.03); border: 1px solid var(--line); }
-      .action-card + .action-card { margin-top: 12px; }
-      .action-card h3 { font-size: 17px; margin-bottom: 8px; }
-      .action-card p + p { margin-top: 8px; }
-      .muted { color: var(--muted); }
-      .bar-list { display:grid; gap: 12px; }
-      .bar-row { display:grid; grid-template-columns: 1.2fr 1.8fr 54px; gap: 12px; align-items:center; }
-      .bar-copy { display:grid; gap: 2px; }
-      .bar-copy span { color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: .18em; }
-      .bar-track { height: 10px; background: rgba(255,255,255,.08); border-radius: 999px; overflow:hidden; }
-      .bar-track span { display:block; height:100%; border-radius:999px; background: linear-gradient(90deg, #a55e2b, #d48a48); }
-      .bar-score { text-align:right; font-weight: 700; color: #f1d0ae; }
-      .appendix { display:grid; gap: 18px; }
-      .appendix-grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-      .kpi-grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-      .kpi { padding: 16px 18px; border-radius: 18px; background: rgba(255,255,255,.03); border: 1px solid var(--line); }
-      .kpi strong { display:block; font-size: 26px; margin-bottom: 4px; }
-      .kpi span { color: var(--muted); }
-      .chapter { display:grid; gap: 18px; margin: 24px 0 18px; }
-      .chapter-header { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; padding:0 4px; }
-      .chapter-header h2 { font-size: 28px; letter-spacing: -.04em; }
-      .chapter-header p { max-width: 60ch; color: var(--muted); }
-      .chapter-kicker { font-size: 12px; letter-spacing: .28em; text-transform: uppercase; color: var(--muted); }
-      @media (max-width: 1120px) {
-        .cover-frame,
-        .hero, .content-grid, .visual-grid, .donut-panel { grid-template-columns: 1fr; }
-      }
-      @media (max-width: 780px) {
-        .page { padding: 20px 16px 40px; }
-        .panel { padding: 22px; border-radius: 24px; }
-        .hero-risk { font-size: 19px; }
-        .summary-band, .appendix-grid, .triage-grid { grid-template-columns: 1fr; }
-      }
-      @media (max-width: 640px) {
-        .hero-facts, .kpi-grid { grid-template-columns: 1fr; }
-        .grade-chip { margin-bottom: 18px; }
-        .bar-row { grid-template-columns: 1fr; gap: 8px; }
-        .bar-score { text-align: left; }
+      body { margin:0; font-family: Inter, ui-sans-serif, system-ui, sans-serif; color:var(--text); background:#fff; }
+      h1,h2,h3,p,ul { margin:0; }
+      ul { padding-left:18px; line-height:1.6; }
+      li + li { margin-top:8px; }
+      .page { width:100%; max-width:1040px; margin:0 auto; padding:34px 28px 40px; }
+      .page-break { break-before: page; page-break-before: always; }
+      .section { margin-top: 24px; }
+      .eyebrow { font-size:12px; letter-spacing:.24em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+      .panel { background:var(--panel); border:1px solid var(--line); border-radius:28px; padding:24px; }
+      .cover { display:grid; grid-template-columns:minmax(0,1fr) 220px; gap:28px; align-items:start; min-height:220px; }
+      .cover-title { font-size:18px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#334155; }
+      .cover-target { margin-top:26px; font-size:64px; line-height:.94; letter-spacing:-.06em; font-weight:800; word-break:break-word; }
+      .cover-meta { margin-top:26px; display:grid; gap:6px; color:var(--muted); font-size:15px; }
+      .cover-score { display:grid; place-items:center; border-radius:28px; background:linear-gradient(180deg,#f3d7bd,#f7e6d5); padding:18px; }
+      .cover-donut { width:160px; height:160px; border-radius:999px; display:grid; place-items:center; background:conic-gradient(var(--accent) 0deg ${donutDegrees}deg, rgba(207,122,54,.15) ${donutDegrees}deg 360deg); }
+      .cover-donut-inner { width:114px; height:114px; border-radius:999px; background:#fff; display:grid; place-items:center; text-align:center; }
+      .cover-donut-inner strong { display:block; font-size:54px; line-height:.9; color:var(--accent); }
+      .cover-donut-inner span { display:block; margin-top:8px; font-size:20px; font-weight:700; color:#334155; }
+      .cover-verdict { margin-top:22px; font-size:20px; font-weight:700; color:#111827; }
+      .cover-risk { margin-top:8px; font-size:20px; line-height:1.45; color:#1f2937; max-width:38ch; }
+      .action-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+      .action-card { border:1px solid var(--line); border-radius:24px; padding:22px; background:var(--panel-soft); min-height:220px; }
+      .action-card strong { display:block; font-size:18px; margin-bottom:14px; }
+      .action-card ul { padding-left:18px; }
+      .action-card.fix-now { border-color:#e5c8ab; background:#fff7ef; }
+      .action-card.fix-next { border-color:#e6ddce; background:#fcfaf7; }
+      .action-card.keep-watching { border-color:#d9e0ea; background:#f8fafc; }
+      .overview-block { display:grid; gap:18px; }
+      .overview-row { display:grid; grid-template-columns:minmax(0,1.2fr) 1fr 80px; gap:16px; align-items:center; }
+      .overview-area { font-size:17px; font-weight:700; }
+      .overview-explainer { margin-top:6px; color:var(--muted); font-size:14px; line-height:1.55; }
+      .overview-bar { height:12px; background:#e9eef5; border-radius:999px; overflow:hidden; }
+      .overview-bar span { display:block; height:100%; border-radius:999px; background:linear-gradient(90deg,#9d5a28,#d08a4b); }
+      .overview-bar span.tone-strong { background:linear-gradient(90deg,#c6d4e6,#e2e8f0); }
+      .overview-bar span.tone-watch { background:linear-gradient(90deg,#b56a2c,#d89a63); }
+      .overview-bar span.tone-weak { background:linear-gradient(90deg,#8e5c3b,#b56a2c); }
+      .overview-score { text-align:right; font-size:16px; font-weight:800; color:#1f2937; }
+      .cards-2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+      .cards-3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+      .finding-card, .info-card { border:1px solid var(--line); border-radius:24px; padding:22px; background:var(--panel); }
+      .finding-head { display:flex; justify-content:space-between; gap:12px; align-items:start; }
+      .finding-pill { display:inline-flex; align-items:center; border-radius:999px; padding:6px 10px; font-size:11px; font-weight:800; letter-spacing:.16em; text-transform:uppercase; }
+      .finding-pill.critical { background:#fff1e8; color:#8e5c3b; border:1px solid #f0cfb3; }
+      .finding-pill.warning { background:#fff7ef; color:#b56a2c; border:1px solid #ebd1b5; }
+      .finding-pill.info { background:#f8fafc; color:#475569; border:1px solid #dce4ef; }
+      .finding-card h3 { font-size:20px; line-height:1.3; margin-bottom:10px; }
+      .finding-card p { color:var(--muted); line-height:1.65; }
+      .plain-list li { margin-top:10px; }
+      .small-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+      .note-box { border:1px solid var(--line); border-radius:20px; padding:18px; background:var(--panel-soft); }
+      .note-box p { color:var(--muted); line-height:1.6; }
+      .footer-cta { border-top:1px solid var(--line); margin-top:20px; padding-top:16px; font-size:14px; color:var(--muted); }
+      .muted { color:var(--muted); }
+      @media (max-width: 920px) {
+        .cover, .action-grid, .cards-2, .cards-3, .small-grid, .overview-row { grid-template-columns:1fr; }
+        .cover-target { font-size:46px; }
+        .overview-score { text-align:left; }
       }
       @page { margin: 12mm; }
-      @media print { body { background: #fff; color: #0f172a; } .page { max-width: none; padding: 0; } .panel, .fact, .summary-card, .action-card, .kpi, .triage-card { background: #f8fafc; color: #0f172a; box-shadow: none; } .cover-score { box-shadow: none; } .donut-inner { background: #fff; } .muted, .eyebrow, .summary-card strong, .fact span, .fact-label, .bar-copy span, .kpi span, .triage-label, .chapter-kicker, .cover-kicker, .cover-url, .visual-copy p, .donut-inner span { color: #475569; } .bar-track { background: #e2e8f0; } .summary-band, .triage-grid, .visual-grid { break-inside: avoid; page-break-inside: avoid; } .page-break { page-break-before: always; break-before: page; } }
     </style>
   </head>
   <body>
     <div class="page">
-      <section class="cover-sheet">
-        <div class="cover-frame">
-          <div>
-            <div class="cover-kicker">External security posture report</div>
-            <h1 class="cover-target">${escapeHtml(analysis.finalUrl)}</h1>
+      <section class="cover">
+        <div>
+          <div class="cover-title">External Security Posture Report</div>
+          <h1 class="cover-target">${escapeHtml(analysis.finalUrl)}</h1>
+          <div class="cover-meta">
+            <div>Generated: ${escapeHtml(generatedAt)}</div>
+            <div>Scan Date: ${escapeHtml(scanDate)}</div>
+            <div>Prepared by SecURL</div>
           </div>
-          <div class="cover-score">
-            <div class="donut-ring">
-              <div class="donut-inner">
-                <div>
-                  <strong>${escapeHtml(analysis.grade)}</strong>
-                  <span>${analysis.score}/100</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <p class="cover-verdict">Overall Posture: ${escapeHtml(overallPostureLabel)}</p>
+          <p class="cover-risk">${escapeHtml(analysis.executiveSummary.mainRisk)}</p>
         </div>
-        <div class="summary-band">
-          <div class="summary-card"><strong>Generated</strong><p>${escapeHtml(generatedAt)}<br><span class="muted">Scan captured ${escapeHtml(new Date(analysis.scannedAt).toLocaleString())}</span></p></div>
-          <div class="summary-card"><strong>Overall finding</strong><p>${escapeHtml(analysis.executiveSummary.overview)}</p></div>
-          <div class="summary-card"><strong>Most exposed areas</strong><p>${escapeHtml(weakestAreaText)}</p></div>
-          <div class="summary-card"><strong>Most reassuring areas</strong><p>${escapeHtml(strongestAreaText)}</p></div>
-        </div>
-        <div class="visual-grid">
-          <div class="panel donut-panel">
-            <div class="donut-ring">
-              <div class="donut-inner">
-                <div>
-                  <strong>${escapeHtml(analysis.grade)}</strong>
-                  <span>${analysis.score}/100</span>
-                </div>
-              </div>
-            </div>
-            <div class="visual-copy">
-              <div class="eyebrow">Overall posture</div>
-              <h3>${analysis.score}/100</h3>
-              <p>${escapeHtml(analysis.executiveSummary.mainRisk)}</p>
-            </div>
-          </div>
-          <div class="panel">
-            <div class="eyebrow">Category scores</div>
-            <h2 class="section-title">Where the score is being shaped</h2>
-            <div class="bar-list">
-              ${buildCategoryBarsHtml(areas)}
-            </div>
-          </div>
-        </div>
-      </section>
-      <section class="panel page-break" style="margin-bottom:22px;">
-        <div class="eyebrow">Action map</div>
-        <h2 class="section-title">Where attention should go first</h2>
-        <div class="triage-grid">${triageItems}</div>
-        <div class="panel" style="margin-top:18px; padding:22px;">
-          <div class="eyebrow">Immediate action</div>
-          <h2 class="section-title">What to do next</h2>
-          <ul class="brief-list">${priorityBriefItems}</ul>
-        </div>
-      </section>
-      <section class="chapter page-break">
-        <div class="chapter-header">
-          <div>
-            <div class="chapter-kicker">Detailed review</div>
-            <h2>Why this matters and what supports it</h2>
-          </div>
-          <p>
-            The rest of this report explains why the score landed where it did
-            and shows the evidence behind the recommended actions.
-          </p>
-        </div>
-      </section>
-      <section class="content-grid">
-        <div class="stack">
-          <div class="panel">
-            <div class="eyebrow">Plain-language summary</div>
-            <h2 class="section-title">Why this matters</h2>
-            ${buildPostureNarrative(analysis, diff).map((line) => `<p>${escapeHtml(line)}</p>`).join("<div style=\"height:10px\"></div>")}
-          </div>
-          <div class="panel">
-            <div class="eyebrow">Key messages</div>
-            <h2 class="section-title">What stands out</h2>
-            <div class="appendix-grid">
+        <div class="cover-score">
+          <div class="cover-donut">
+            <div class="cover-donut-inner">
               <div>
-                <h3 style="margin-bottom:10px;">What stands out</h3>
-                <ul>${executiveTakeawayItems}</ul>
-              </div>
-              <div>
-                <h3 style="margin-bottom:10px;">What is already working well</h3>
-                <ul>${strengthItems}</ul>
+                <strong>${escapeHtml(analysis.grade)}</strong>
+                <span>${analysis.score}/100</span>
               </div>
             </div>
-          </div>
-          <div class="panel">
-            <div class="eyebrow">Key findings</div>
-            <h2 class="section-title">Most important issues seen from the outside</h2>
-            <ul class="callout-list">${topFindingItems}</ul>
-          </div>
-          <div class="panel">
-            <div class="eyebrow">Pattern of risk</div>
-            <h2 class="section-title">Where the issues cluster</h2>
-            <p class="muted" style="margin-bottom:14px;">${escapeHtml(taxonomy.summary)}</p>
-            <div class="appendix-grid">
-              <div>
-                <h3 style="margin-bottom:10px;">OWASP alignment</h3>
-                <ul>${owaspThemeItems}</ul>
-              </div>
-              <div>
-                <h3 style="margin-bottom:10px;">MITRE relevance</h3>
-                <ul>${mitreThemeItems}</ul>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="stack">
-          <div class="panel">
-            <div class="eyebrow">Follow-up questions</div>
-            <h2 class="section-title">What still needs confirming</h2>
-            ${buildCompactListHtml(buildStakeholderQuestions(analysis))}
-          </div>
-          <div class="panel">
-            <div class="eyebrow">Report limits</div>
-            <h2 class="section-title">How to read this report</h2>
-            ${buildCompactListHtml(buildAssessmentLimits(analysis))}
-          </div>
-          <div class="panel">
-            <div class="eyebrow">Change over time</div>
-            <h2 class="section-title">What changed</h2>
-            <div class="kpi-grid">
-              <div class="kpi"><strong>${diff ? `${diff.scoreDelta !== null && diff.scoreDelta > 0 ? "+" : ""}${diff.scoreDelta ?? 0}` : "—"}</strong><span>Score delta</span></div>
-              <div class="kpi"><strong>${diff ? diff.newIssues.length : 0}</strong><span>New issues</span></div>
-              <div class="kpi"><strong>${diff ? diff.resolvedIssues.length : 0}</strong><span>Resolved issues</span></div>
-              <div class="kpi"><strong>${diff ? diff.headerChanges.length : 0}</strong><span>Header changes</span></div>
-            </div>
-            ${diff ? buildCompactListHtml(diff.summary.length ? diff.summary : ["No material posture changes summarized."]) : "<p class=\"muted\" style=\"margin-top:14px;\">No previous local snapshot available for comparison.</p>"}
           </div>
         </div>
       </section>
-      <section class="chapter">
-        <div class="chapter-header">
-          <div>
-            <div class="chapter-kicker">Detailed evidence</div>
-            <h2>Technical detail and supporting evidence</h2>
+
+      <section class="section page-break">
+        <div class="eyebrow">Priority actions</div>
+        <h2>Where attention should go first</h2>
+        <div class="action-grid" style="margin-top:18px;">
+          <div class="action-card fix-now">
+            <strong>Fix Now</strong>
+            <ul class="plain-list">
+              ${(actionBuckets.fixNow.length
+                ? actionBuckets.fixNow.map((action) => `<li><strong>${escapeHtml(action.title)}</strong><br>${escapeHtml(action.detail)}</li>`).join("")
+                : "<li>No immediate high-impact action was generated from this scan.</li>")}
+            </ul>
           </div>
-          <p>
-            This section keeps the raw posture detail, mapped themes, and
-            supporting evidence for technical review, remediation planning, or
-            later audit follow-up.
-          </p>
+          <div class="action-card fix-next">
+            <strong>Fix Next</strong>
+            <ul class="plain-list">
+              ${(actionBuckets.fixNext.length
+                ? actionBuckets.fixNext.map((action) => `<li><strong>${escapeHtml(action.title)}</strong><br>${escapeHtml(action.detail)}</li>`).join("")
+                : "<li>After the immediate fixes land, address the remaining hardening and trust gaps.</li>")}
+            </ul>
+          </div>
+          <div class="action-card keep-watching">
+            <strong>Keep Watching</strong>
+            <ul class="plain-list">
+              ${(actionBuckets.keepWatching.length
+                ? actionBuckets.keepWatching.map((area) => `<li><strong>${escapeHtml(area.label)}</strong> (${area.score}/100)</li>`).join("")
+                : "<li>No weak posture areas dominated this scan.</li>")}
+              <li>${escapeHtml(changeHeadline)}</li>
+            </ul>
+          </div>
         </div>
       </section>
-      <section class="appendix">
-        <div class="panel">
-          <div class="eyebrow">Detailed evidence</div>
-          <h2 class="section-title">Full findings and evidence</h2>
-          <ul>${issueItems}</ul>
+
+      <section class="section page-break">
+        <div class="eyebrow">Posture overview</div>
+        <h2>Category scores</h2>
+        <div class="panel overview-block" style="margin-top:18px;">
+          ${postureBreakdownItems}
         </div>
-        <div class="appendix-grid">
-          <div class="panel">
-            <h2 class="section-title">Domain &amp; Email Security</h2>
+      </section>
+
+      <section class="section page-break">
+        <div class="eyebrow">Key findings</div>
+        <h2>Top risks explained plainly</h2>
+        <div class="cards-2" style="margin-top:18px;">
+          ${topFindings
+            .slice(0, 6)
+            .map(
+              (issue) => `
+                <div class="finding-card">
+                  <div class="finding-head">
+                    <h3>${escapeHtml(issue.title)}</h3>
+                    <span class="finding-pill ${escapeHtml(issue.severity)}">${escapeHtml(issue.severity)}</span>
+                  </div>
+                  <p>${escapeHtml(issue.detail)}</p>
+                </div>`,
+            )
+            .join("")}
+        </div>
+      </section>
+
+      <section class="section page-break">
+        <div class="eyebrow">Strengths &amp; positive signals</div>
+        <h2>What is already working well</h2>
+        <div class="cards-2" style="margin-top:18px;">
+          <div class="info-card">
+            <h3 style="margin-bottom:12px;">Positive signals</h3>
+            <ul class="plain-list">${strengthsHtml}</ul>
+          </div>
+          <div class="info-card">
+            <h3 style="margin-bottom:12px;">Most reassuring areas</h3>
+            <p class="muted">${escapeHtml(strongestAreaText)}</p>
+            <div class="note-box" style="margin-top:16px;">
+              <p>${escapeHtml(analysis.executiveSummary.overview)}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section page-break">
+        <div class="eyebrow">Technical details</div>
+        <h2>Evidence for the security team</h2>
+        <div class="cards-2" style="margin-top:18px;">
+          <div class="info-card">
+            <h3 style="margin-bottom:12px;">Full findings</h3>
+            <ul>${issueItems}</ul>
+          </div>
+          <div class="info-card">
+            <h3 style="margin-bottom:12px;">Domain &amp; email trust</h3>
             <p>SPF: ${escapeHtml(analysis.domainSecurity.spf ?? "Not found")}</p>
             <p>DMARC: ${escapeHtml(analysis.domainSecurity.dmarc ?? "Not found")}</p>
             <p>DNSSEC: ${escapeHtml(analysis.domainSecurity.dnssec.status)}</p>
             <p>MX count: ${analysis.domainSecurity.mxRecords.length}</p>
             <p>CAA count: ${analysis.domainSecurity.caaRecords.length}</p>
+            <div class="note-box" style="margin-top:16px;">
+              <p>${escapeHtml(disclosure.summary)}</p>
+            </div>
           </div>
-          <div class="panel">
-            <h2 class="section-title">Disclosure &amp; Public Trust</h2>
-            <p>${escapeHtml(disclosure.summary)}</p>
-            <ul>
-              ${disclosure.discoveredPages.length ? disclosure.discoveredPages.map((item) => `<li>Discovered page: ${escapeHtml(item)}</li>`).join("") : "<li>No obvious trust or policy pages discovered.</li>"}
-              ${disclosure.strengths.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
-              ${disclosure.issues.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
-            </ul>
+          <div class="info-card">
+            <h3 style="margin-bottom:12px;">Infrastructure &amp; edge</h3>
+            <p>Queried domain: ${escapeHtml(analysis.ctDiscovery.queriedDomain)}</p>
+            <p class="muted" style="margin-top:8px;">${escapeHtml(analysis.ctDiscovery.coverageSummary)}</p>
+            <ul style="margin-top:14px;">${ctItems}</ul>
           </div>
-          <div class="panel">
-            <h2 class="section-title">Identity Provider &amp; OAuth Surface</h2>
-            <p>Detected: ${analysis.identityProvider.detected ? "Yes" : "No"}</p>
-            <p>Provider: ${escapeHtml(analysis.identityProvider.provider ?? "Not identified")}</p>
-            <p>Protocol: ${escapeHtml(analysis.identityProvider.protocol ?? "Not inferred")}</p>
-            <p>OIDC config: ${escapeHtml(analysis.identityProvider.openIdConfigurationUrl ?? "Not observed")}</p>
-            <ul>${analysis.identityProvider.redirectUriSignals.length
-              ? analysis.identityProvider.redirectUriSignals.map((signal) => `<li>Review redirect URI signal: ${escapeHtml(signal)}</li>`).join("")
-              : "<li>No public redirect_uri-style parameters were recorded.</li>"}</ul>
-          </div>
-          <div class="panel">
-            <h2 class="section-title">Passive Discovery</h2>
-            <p>Page title: ${escapeHtml(analysis.htmlSecurity.pageTitle ?? "Unavailable")}</p>
-            <p>Discovery sources: ${escapeHtml(analysis.crawl.discoverySources.length ? analysis.crawl.discoverySources.join(", ") : "None recorded")}</p>
-            <ul>${discoveryItems}</ul>
-            <ul>${sameSiteHostItems}</ul>
-            <ul>${passiveLeakItems}</ul>
-            <ul>${libraryRiskItems}</ul>
-          </div>
-          <div class="panel">
-            <h2 class="section-title">Auth &amp; Data Collection Surface</h2>
-            <p>${escapeHtml(authSurface.summary)}</p>
-            <p>${escapeHtml(dataCollection.summary)}</p>
-            <ul>${authSurface.authPaths.length
-              ? authSurface.authPaths.map((item) => `<li>${escapeHtml(item.path)} (${escapeHtml(item.category)})</li>`).join("")
-              : "<li>No auth-adjacent paths discovered passively.</li>"}</ul>
-            <ul>${buildFormLines(analysis).map((line) => `<li>${escapeHtml(line.slice(2))}</li>`).join("")}</ul>
-          </div>
-          <div class="panel">
-            <h2 class="section-title">Detected Stack &amp; Third Parties</h2>
-            <ul>${technologyItems}</ul>
-            <ul>${analysis.thirdPartyTrust.providers.length
-              ? analysis.thirdPartyTrust.providers.map((provider) => `<li><strong>${escapeHtml(provider.name)}</strong> [${escapeHtml(provider.category)} | ${escapeHtml(provider.risk)} risk] ${escapeHtml(provider.domain)}<br>${escapeHtml(provider.evidence)}</li>`).join("")
+          <div class="info-card">
+            <h3 style="margin-bottom:12px;">Third-party &amp; AI surface</h3>
+            <p>Classification: ${escapeHtml(aiSummary)}</p>
+            <p class="muted" style="margin-top:8px;">Vendors: ${escapeHtml(analysis.aiSurface.vendors.length ? analysis.aiSurface.vendors.map((vendor) => vendor.name).join(", ") : "None detected")}</p>
+            <ul style="margin-top:14px;">${analysis.thirdPartyTrust.providers.length
+              ? analysis.thirdPartyTrust.providers.map((provider) => `<li><strong>${escapeHtml(provider.name)}</strong> [${escapeHtml(provider.category)} | ${escapeHtml(provider.risk)} risk] ${escapeHtml(provider.domain)}</li>`).join("")
               : "<li>No third-party providers recorded.</li>"}</ul>
           </div>
-          <div class="panel">
-            <h2 class="section-title">Certificate Transparency &amp; Edge</h2>
-            <p>Queried domain: ${escapeHtml(analysis.ctDiscovery.queriedDomain)}</p>
-            <p>${escapeHtml(analysis.ctDiscovery.coverageSummary)}</p>
-            <ul>${ctItems}</ul>
-            <ul>${buildCtSampleLines(analysis).map((line) => `<li>${escapeHtml(line.slice(2))}</li>`).join("")}</ul>
-            <ul>${analysis.ctDiscovery.sampledHosts.some((host) => host.suspectedTakeover)
-              ? analysis.ctDiscovery.sampledHosts
-                  .filter((host) => host.suspectedTakeover)
-                  .map((host) => `<li>Possible takeover: ${escapeHtml(host.host)} via ${escapeHtml(host.suspectedTakeover?.provider)} (${escapeHtml(host.suspectedTakeover?.confidence)} confidence)</li>`)
-                  .join("")
-              : "<li>No takeover-style signatures were observed in the sampled CT hosts.</li>"}</ul>
-            <ul>${buildWafLines(analysis).map((line) => `<li>${escapeHtml(line.slice(2))}</li>`).join("")}</ul>
+        </div>
+      </section>
+
+      <section class="section page-break">
+        <div class="eyebrow">Recommendations &amp; next steps</div>
+        <h2>What to do next</h2>
+        <div class="cards-2" style="margin-top:18px;">
+          <div class="info-card">
+            <h3 style="margin-bottom:12px;">Prioritised roadmap</h3>
+            <ul>${priorityItems}</ul>
           </div>
-          <div class="panel">
-            <h2 class="section-title">AI Surface &amp; Exposure Checks</h2>
-            <p>Classification: ${escapeHtml(aiSummary)}</p>
-            <p>Vendors: ${escapeHtml(analysis.aiSurface.vendors.length ? analysis.aiSurface.vendors.map((vendor) => vendor.name).join(", ") : "None detected")}</p>
-            <ul>${analysis.aiSurface.privacySignals.length ? analysis.aiSurface.privacySignals.map((signal) => `<li>${escapeHtml(signal)}</li>`).join("") : "<li>No explicit AI privacy guidance detected.</li>"}</ul>
-            <ul>${analysis.aiSurface.governanceSignals.length ? analysis.aiSurface.governanceSignals.map((signal) => `<li>${escapeHtml(signal)}</li>`).join("") : "<li>No explicit AI governance language detected.</li>"}</ul>
-            <ul>${exposureItems}</ul>
+          <div class="info-card">
+            <h3 style="margin-bottom:12px;">Monitoring suggestion</h3>
+            <p class="muted">Track ${escapeHtml(weakestAreaText)} over time and watch for movement in the findings count, header changes, and trust signals.</p>
+            <div class="note-box" style="margin-top:16px;">
+              <p>${diff ? escapeHtml(changeHeadline) : "This report is a baseline. The next saved scan will tell you whether the posture is improving, stable, or regressing."}</p>
+            </div>
+            <div class="footer-cta">SecURL monitoring helps turn one-time posture reads into a recurring external assurance view.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section page-break">
+        <div class="eyebrow">Appendix / limitations</div>
+        <h2>How to read this report</h2>
+        <div class="small-grid" style="margin-top:18px;">
+          <div class="info-card">
+            <h3 style="margin-bottom:12px;">Limits of this assessment</h3>
+            <ul>${reportLimitItems}</ul>
+          </div>
+          <div class="info-card">
+            <h3 style="margin-bottom:12px;">Method notes</h3>
+            <ul>
+              <li>This report is based on an external, unauthenticated, passive-first assessment.</li>
+              <li>It is intended to support posture review, triage, and follow-up planning.</li>
+              <li>It does not replace authenticated testing, configuration review, or exploitation work.</li>
+            </ul>
           </div>
         </div>
       </section>
