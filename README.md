@@ -124,6 +124,7 @@ That makes it much easier to:
 
 For the deeper operational and architecture material, go straight to:
 
+- [Architecture view (C4)](docs/ARCHITECTURE-C4.md)
 - [Backend API split-hosting notes](docs/BACKEND-API.md)
 - [Public deploy checklist](docs/PUBLIC-DEPLOY-CHECKLIST.md)
 - [iOS-capable backend notes](docs/IOS-CAPABLE-BACKEND.md)
