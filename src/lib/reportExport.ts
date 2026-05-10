@@ -543,9 +543,18 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
     : analysis.grade === "F" ? "#dc2626"
     : "#94a3b8";
 
-  const gradeFontSize = analysis.grade.length > 1 ? 50 : 66;
+  const hexToRgba = (hex: string, alpha: number) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  };
+  const gradeGlow = hexToRgba(gradeColor, 0.18);
 
-  const ringCirc = parseFloat((2 * Math.PI * 90).toFixed(2));
+  const gradeFontSize = analysis.grade.length > 1 ? 58 : 88;
+  const ringR      = 110;
+  const ringSize   = 260;
+  const ringCirc   = parseFloat((2 * Math.PI * ringR).toFixed(2));
   const ringOffset = parseFloat((ringCirc * (1 - analysis.score / 100)).toFixed(2));
 
   const overallPostureLabel =
@@ -618,22 +627,27 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
 
   const postureRows = areas.map((area) => `
     <div class="posture-row">
-      <div class="posture-row-top">
-        <div class="posture-label-wrap">
-          <span class="posture-label">${escapeHtml(area.label)}</span>
-          ${statusBadge(area.status)}
-        </div>
-        <span class="posture-score">${area.score}<span class="posture-score-denom">/100</span></span>
+      <div class="posture-name-col">
+        <span class="posture-label">${escapeHtml(area.label)}</span>
+        ${statusBadge(area.status)}
       </div>
-      <div class="bar-track"><div class="bar-fill" style="width:${Math.max(4, area.score)}%;background:${barFill(area.status)}"></div></div>
-      <p class="posture-explain">${escapeHtml(areaExplain(area.label))}</p>
+      <div class="posture-bar-col">
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.max(4, area.score)}%;background:${barFill(area.status)}"></div></div>
+        <p class="posture-explain">${escapeHtml(areaExplain(area.label))}</p>
+      </div>
+      <div class="posture-score-col">
+        <span class="posture-score">${area.score}</span><span class="posture-score-denom">/100</span>
+      </div>
     </div>`).join("");
+
+  const findingAccent = (sev: string) =>
+    sev === "critical" ? "#dc2626" : sev === "warning" ? "#d97706" : "#64748b";
 
   const findingCards = topFindings.slice(0, 6).map((issue) => {
     const tags = [...issue.owasp.slice(0, 2), ...issue.mitre.slice(0, 1)]
       .map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join("");
     return `
-      <div class="finding-card">
+      <div class="finding-card" style="border-left-color:${findingAccent(issue.severity)}">
         <div class="finding-top">
           <h3 class="finding-title">${escapeHtml(issue.title)}</h3>
           ${severityBadge(issue.severity)}
@@ -641,7 +655,7 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
         <p class="finding-body">${escapeHtml(issue.detail)}</p>
         ${tags ? `<div class="tag-row">${tags}</div>` : ""}
       </div>`;
-  }).join("") || `<div class="finding-card"><p class="p-muted">No findings recorded from this scan.</p></div>`;
+  }).join("") || `<div class="finding-card" style="border-left-color:#64748b"><p class="p-muted">No findings recorded from this scan.</p></div>`;
 
   const issueTableRows = analysis.issues.length
     ? analysis.issues.map((issue) => `
@@ -720,10 +734,14 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
       --muted:   #64748b;
       --subtle:  #94a3b8;
       --border:  #e2e8f0;
-      --surface: #f8fafc;
-      --sf2:     #f1f5f9;
-      --white:   #ffffff;
+      --page-bg: #f4f6f9;
+      --card-bg: #ffffff;
       --grade:   ${gradeColor};
+      /* Cover (dark) */
+      --cv-bg:     #0d1117;
+      --cv-text:   #f1f5f9;
+      --cv-muted:  #94a3b8;
+      --cv-border: rgba(255,255,255,0.08);
     }
 
     body {
@@ -731,7 +749,7 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
       font-size: 14px;
       line-height: 1.65;
       color: var(--text);
-      background: var(--white);
+      background: var(--page-bg);
     }
     h1, h2, h3 { line-height: 1.25; color: var(--text); font-weight: 700; }
     p { color: var(--text-2); }
@@ -743,104 +761,45 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      background: var(--cv-bg);
+      position: relative;
+      overflow: hidden;
       break-after: page;
       page-break-after: always;
     }
     .cover-head {
-      padding: 22px 52px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      position: relative; z-index: 2;
+      padding: 24px 52px;
+      border-bottom: 1px solid var(--cv-border);
+      display: flex; align-items: center; justify-content: space-between;
     }
-    .cover-wordmark {
-      font-size: 13px;
-      font-weight: 800;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--text);
-    }
-    .cover-type {
-      font-size: 11px;
-      font-weight: 500;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
+    .cover-wordmark { font-size: 13px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--cv-text); }
+    .cover-type     { font-size: 11px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--cv-muted); }
     .cover-body {
-      flex: 1;
-      display: grid;
-      grid-template-columns: minmax(0, 1.1fr) 240px;
-      align-items: center;
-      gap: 36px;
-      padding: 56px 52px 44px;
+      flex: 1; position: relative; z-index: 2;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 28px; padding: 52px 52px 36px; text-align: center;
     }
-    .cover-copy {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      justify-content: center;
-      gap: 18px;
-      min-width: 0;
-    }
-    .cover-url {
-      font-size: 52px;
-      font-weight: 800;
-      letter-spacing: -0.06em;
-      color: var(--text);
-      word-break: break-word;
-      line-height: 0.96;
-      max-width: 100%;
-    }
-    .cover-ring-side {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .cover-ring-wrap { position: relative; width: 220px; height: 220px; }
-    .cover-ring-svg  { width: 220px; height: 220px; }
+    .cover-glow { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+    .cover-ring-wrap { position: relative; width: ${ringSize}px; height: ${ringSize}px; flex-shrink: 0; }
     .cover-ring-inner {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 1px;
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
     }
-    .cover-grade {
-      font-size: ${gradeFontSize}px;
-      font-weight: 800;
-      line-height: 1;
-      color: var(--grade);
-      letter-spacing: -0.04em;
-    }
-    .cover-score-label { font-size: 14px; font-weight: 600; color: var(--muted); }
-    .cover-posture {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: var(--grade);
-    }
-    .cover-verdict { font-size: 22px; line-height: 1.45; color: var(--text-2); max-width: 28ch; }
+    .cover-grade         { font-weight: 800; line-height: 1; letter-spacing: -0.04em; color: ${gradeColor}; }
+    .cover-score-label   { font-size: 15px; font-weight: 600; color: var(--cv-muted); }
+    .cover-posture-label { font-size: 10px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: ${gradeColor}; margin-top: 3px; }
+    .cover-url    { font-size: 44px; font-weight: 800; letter-spacing: -0.05em; color: var(--cv-text); word-break: break-word; line-height: 0.96; max-width: 640px; }
+    .cover-verdict { font-size: 18px; line-height: 1.6; color: var(--cv-muted); max-width: 52ch; }
     .cover-foot {
-      padding: 20px 52px;
-      border-top: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 12px;
-      color: var(--muted);
+      position: relative; z-index: 2;
+      padding: 18px 52px;
+      border-top: 1px solid var(--cv-border);
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 12px; color: var(--cv-muted);
     }
-    .cover-foot-items { display: flex; gap: 28px; }
-    .cover-foot-brand {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--subtle);
-    }
+    .cover-foot-items { display: flex; gap: 24px; }
+    .cover-foot-brand { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.2); }
 
     /* ─ REPORT PAGES ─────────────────────────────────────────────────── */
     .rpage {
@@ -850,28 +809,29 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
       break-before: page;
       page-break-before: always;
     }
-    .section-head { margin-bottom: 26px; padding-bottom: 16px; border-bottom: 1.5px solid var(--border); }
-    .eyebrow {
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.24em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 7px;
-    }
-    .section-title { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; color: var(--text); }
+    .section-head  { margin-bottom: 28px; padding-bottom: 16px; border-bottom: 1.5px solid var(--border); }
+    .eyebrow       { font-size: 10px; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+    .section-title { font-size: 26px; font-weight: 800; letter-spacing: -0.025em; color: var(--text); }
 
     /* ─ PRIORITY CARDS ────────────────────────────────────────────────── */
-    .priority-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-    .pcard { border: 1px solid var(--border); border-left-width: 4px; border-radius: 10px; padding: 22px 20px; }
-    .pcard-now   { border-left-color: #dc2626; background: #fff5f5; }
-    .pcard-next  { border-left-color: #d97706; background: #fffcf0; }
-    .pcard-watch { border-left-color: #475569; background: var(--surface); }
-    .pcard-label { font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 5px; }
+    .priority-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .pcard {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .pcard-bar   { height: 4px; }
+    .pcard-inner { padding: 20px 20px 22px; }
+    .pcard-now   .pcard-bar { background: #dc2626; }
+    .pcard-next  .pcard-bar { background: #d97706; }
+    .pcard-watch .pcard-bar { background: #475569; }
+    .pcard-label { font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 6px; }
     .pcard-now   .pcard-label { color: #dc2626; }
     .pcard-next  .pcard-label { color: #d97706; }
     .pcard-watch .pcard-label { color: #475569; }
-    .pcard-count { font-size: 48px; font-weight: 800; line-height: 1; color: var(--text); margin-bottom: 14px; }
+    .pcard-count { font-size: 52px; font-weight: 800; line-height: 1; color: var(--text); margin-bottom: 16px; letter-spacing: -0.04em; }
     .plist { list-style: none; padding: 0; }
     .plist-item { padding: 10px 0; border-top: 1px solid var(--border); }
     .plist-item:first-child { border-top: none; padding-top: 0; }
@@ -881,21 +841,39 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
     .p-muted { font-size: 13px; color: var(--muted); }
 
     /* ─ POSTURE OVERVIEW ──────────────────────────────────────────────── */
-    .posture-row { padding: 16px 0; border-bottom: 1px solid var(--border); }
-    .posture-row:last-child { border-bottom: none; }
-    .posture-row-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .posture-label-wrap { display: flex; align-items: center; gap: 10px; }
-    .posture-label { font-size: 15px; font-weight: 700; color: var(--text); }
-    .status-pill { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
-    .posture-score { font-size: 22px; font-weight: 800; color: var(--text); }
-    .posture-score-denom { font-size: 13px; font-weight: 500; color: var(--muted); }
-    .bar-track { height: 6px; background: var(--sf2); border-radius: 999px; overflow: hidden; margin-bottom: 8px; }
+    .posture-rows { display: flex; flex-direction: column; gap: 8px; }
+    .posture-row {
+      display: grid;
+      grid-template-columns: 200px 1fr 72px;
+      gap: 20px;
+      align-items: center;
+      padding: 16px 18px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .posture-name-col { display: flex; flex-direction: column; gap: 6px; }
+    .posture-label    { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.3; }
+    .status-pill      { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; align-self: flex-start; }
+    .posture-bar-col  { display: flex; flex-direction: column; gap: 7px; }
+    .bar-track { height: 5px; background: #f1f5f9; border-radius: 999px; overflow: hidden; }
     .bar-fill  { height: 100%; border-radius: 999px; }
-    .posture-explain { font-size: 13px; color: var(--muted); line-height: 1.5; }
+    .posture-explain  { font-size: 12px; color: var(--muted); line-height: 1.55; }
+    .posture-score-col   { text-align: right; }
+    .posture-score       { font-size: 24px; font-weight: 800; color: var(--text); line-height: 1; }
+    .posture-score-denom { font-size: 12px; font-weight: 500; color: var(--muted); }
 
     /* ─ FINDING CARDS ─────────────────────────────────────────────────── */
-    .findings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-    .finding-card  { border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; background: var(--white); }
+    .findings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    .finding-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-left-width: 3px;
+      border-radius: 10px;
+      padding: 18px 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    }
     .finding-top   { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
     .finding-title { font-size: 14px; font-weight: 700; color: var(--text); flex: 1; line-height: 1.35; }
     .finding-body  { font-size: 13px; color: var(--muted); line-height: 1.55; }
@@ -905,7 +883,7 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
       font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
       border: 1px solid; white-space: nowrap; flex-shrink: 0;
     }
-    .tag { font-size: 10px; padding: 2px 6px; background: var(--sf2); color: var(--muted); border-radius: 4px; }
+    .tag { font-size: 10px; padding: 2px 6px; background: #f1f5f9; color: var(--muted); border-radius: 4px; }
 
     /* ─ STRENGTHS ─────────────────────────────────────────────────────── */
     .strength-row { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text-2); line-height: 1.5; }
@@ -914,14 +892,18 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
 
     /* ─ INFO CARDS ────────────────────────────────────────────────────── */
     .two-col { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-    .info-card { border: 1px solid var(--border); border-radius: 10px; padding: 20px; background: var(--white); }
+    .info-card {
+      border: 1px solid var(--border); border-radius: 12px; padding: 20px;
+      background: var(--card-bg);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
     .info-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
     .info-card p  { font-size: 13px; color: var(--muted); margin-top: 5px; }
     .info-card li { font-size: 13px; color: var(--muted); }
 
     /* ─ DATA TABLES ───────────────────────────────────────────────────── */
     .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    .data-table th { text-align: left; padding: 8px 10px; background: var(--surface); font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--border); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
+    .data-table th { text-align: left; padding: 8px 10px; background: #f8fafc; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--border); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
     .data-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); color: var(--text-2); vertical-align: top; }
     .data-table tr:last-child td { border-bottom: none; }
     .td-muted { color: var(--muted) !important; }
@@ -930,13 +912,13 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
     .roadmap-row { display: flex; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border); }
     .roadmap-row:last-child { border-bottom: none; }
     .roadmap-num { width: 28px; height: 28px; border-radius: 50%; background: var(--text); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; margin-top: 2px; }
-    .roadmap-content { flex: 1; }
+    .roadmap-content  { flex: 1; }
     .roadmap-title    { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
     .roadmap-detail   { font-size: 13px; color: var(--muted); margin-bottom: 4px; line-height: 1.5; }
     .roadmap-evidence { font-size: 12px; color: var(--subtle); font-style: italic; }
 
     /* ─ NOTE BOX ──────────────────────────────────────────────────────── */
-    .note-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; font-size: 13px; color: var(--muted); margin-top: 14px; line-height: 1.55; }
+    .note-box { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; font-size: 13px; color: var(--muted); margin-top: 14px; line-height: 1.55; }
 
     /* ─ APPENDIX ──────────────────────────────────────────────────────── */
     .limit-item { padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--muted); line-height: 1.55; }
@@ -945,41 +927,25 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
     /* ─ PAGE FOOTER ───────────────────────────────────────────────────── */
     .page-footer { margin-top: 36px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-size: 11px; color: var(--subtle); }
 
-    /* Responsive collapse is screen-only — never fires during print */
+    /* Responsive collapse — screen only, never fires during print */
     @media screen and (max-width: 680px) {
       .priority-grid, .findings-grid, .two-col { grid-template-columns: 1fr; }
+      .posture-row { grid-template-columns: 1fr; }
       .cover-url { font-size: 26px; }
-      .cover-body { grid-template-columns: 1fr; gap: 24px; }
-      .cover-copy { align-items: center; text-align: center; }
       .cover-body, .cover-head, .cover-foot, .rpage { padding-left: 24px; padding-right: 24px; }
     }
 
-    /* Print-specific: lock every multi-column grid and fix the cover page */
+    /* Print: zero @page margins, lock all grids */
     @media print {
-      /* Suppress browser-added URL / date header and footer lines */
       @page { margin: 0; size: A4; }
-
-      /* Compensate for zero @page margin with internal padding */
       .cover-head, .cover-foot { padding-left: 18mm; padding-right: 18mm; }
-      .cover-body { padding-left: 18mm; padding-right: 18mm; }
-      .rpage { padding-left: 18mm; padding-right: 18mm; }
-
-      /* Ensure cover fills exactly one page */
+      .cover-body               { padding-left: 18mm; padding-right: 18mm; }
+      .rpage                    { padding-left: 18mm; padding-right: 18mm; }
       .cover { min-height: 100vh; page-break-after: always; break-after: page; }
-
-      .cover-body {
-        grid-template-columns: minmax(0, 1.08fr) 240px !important;
-        align-items: center;
-      }
-      .cover-copy {
-        align-items: flex-start !important;
-        text-align: left !important;
-      }
-
-      /* Lock all multi-column layouts — never collapse regardless of viewport */
       .priority-grid { grid-template-columns: repeat(3, 1fr) !important; }
       .findings-grid { grid-template-columns: repeat(2, 1fr) !important; }
       .two-col       { grid-template-columns: repeat(2, 1fr) !important; }
+      .posture-row   { grid-template-columns: 200px 1fr 72px !important; }
     }
   </style>
 </head>
@@ -993,35 +959,31 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
   </header>
 
   <main class="cover-body">
-    <div class="cover-copy">
-      <div class="cover-url">${escapeHtml(analysis.finalUrl)}</div>
-      <div class="cover-posture">${escapeHtml(overallPostureLabel)}</div>
-      <p class="cover-verdict">${escapeHtml(analysis.executiveSummary.mainRisk)}</p>
-    </div>
-
-    <div class="cover-ring-side">
-      <div class="cover-ring-wrap">
-        <svg class="cover-ring-svg" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="110" cy="110" r="90" fill="none" stroke="#e2e8f0" stroke-width="14"/>
-          <circle cx="110" cy="110" r="90" fill="none" stroke="${gradeColor}" stroke-width="14"
-                  stroke-linecap="round"
-                  stroke-dasharray="${ringCirc}"
-                  stroke-dashoffset="${ringOffset}"
-                  transform="rotate(-90 110 110)"/>
-        </svg>
-        <div class="cover-ring-inner">
-          <div class="cover-grade">${escapeHtml(analysis.grade)}</div>
-          <div class="cover-score-label">${analysis.score}/100</div>
-        </div>
+    <div class="cover-glow" style="background:radial-gradient(ellipse 600px 480px at center,${gradeGlow} 0%,transparent 70%)"></div>
+    <div class="cover-ring-wrap">
+      <svg viewBox="0 0 ${ringSize} ${ringSize}" width="${ringSize}" height="${ringSize}" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="${ringSize / 2}" cy="${ringSize / 2}" r="${ringR}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="14"/>
+        <circle cx="${ringSize / 2}" cy="${ringSize / 2}" r="${ringR}" fill="none" stroke="${gradeColor}" stroke-width="14"
+                stroke-linecap="round"
+                stroke-dasharray="${ringCirc}"
+                stroke-dashoffset="${ringOffset}"
+                transform="rotate(-90 ${ringSize / 2} ${ringSize / 2})"/>
+      </svg>
+      <div class="cover-ring-inner">
+        <div class="cover-grade" style="font-size:${gradeFontSize}px">${escapeHtml(analysis.grade)}</div>
+        <div class="cover-score-label">${analysis.score}/100</div>
+        <div class="cover-posture-label">${escapeHtml(overallPostureLabel)}</div>
       </div>
     </div>
+    <div class="cover-url">${escapeHtml(analysis.finalUrl)}</div>
+    <p class="cover-verdict">${escapeHtml(analysis.executiveSummary.mainRisk)}</p>
   </main>
 
   <footer class="cover-foot">
     <div class="cover-foot-items">
-      <span>Generated: ${escapeHtml(generatedAt)}</span>
-      <span>Scan date: ${escapeHtml(scanDate)}</span>
-      <span>Status: ${escapeHtml(String(analysis.statusCode))}</span>
+      <span>Generated ${escapeHtml(generatedAt)}</span>
+      <span>Scanned ${escapeHtml(scanDate)}</span>
+      <span>HTTP ${escapeHtml(String(analysis.statusCode))}</span>
     </div>
     <div class="cover-foot-brand">Prepared by SecURL</div>
   </footer>
@@ -1036,28 +998,37 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
 
   <div class="priority-grid">
     <div class="pcard pcard-now">
-      <div class="pcard-label">Fix Now</div>
-      <div class="pcard-count">${fixNow.length}</div>
-      ${renderPriorityList(fixNow)}
+      <div class="pcard-bar"></div>
+      <div class="pcard-inner">
+        <div class="pcard-label">Fix Now</div>
+        <div class="pcard-count">${fixNow.length}</div>
+        ${renderPriorityList(fixNow)}
+      </div>
     </div>
     <div class="pcard pcard-next">
-      <div class="pcard-label">Fix Next</div>
-      <div class="pcard-count">${fixNext.length}</div>
-      ${renderPriorityList(fixNext)}
+      <div class="pcard-bar"></div>
+      <div class="pcard-inner">
+        <div class="pcard-label">Fix Next</div>
+        <div class="pcard-count">${fixNext.length}</div>
+        ${renderPriorityList(fixNext)}
+      </div>
     </div>
     <div class="pcard pcard-watch">
-      <div class="pcard-label">Keep Watching</div>
-      <div class="pcard-count">${keepWatching.length}</div>
-      <ul class="plist">
-        ${keepWatching.length
-          ? keepWatching.map((a) => `
-              <li class="plist-item">
-                <div class="plist-title">${escapeHtml(a.label)}</div>
-                <div class="plist-detail">${a.score}/100 — ${escapeHtml(a.status)}</div>
-              </li>`).join("")
-          : `<li class="plist-item"><div class="plist-detail">Monitor posture over time and revisit after addressing Fix Now items.</div></li>`}
-        <li class="plist-item"><div class="plist-detail">${escapeHtml(changeHeadline)}</div></li>
-      </ul>
+      <div class="pcard-bar"></div>
+      <div class="pcard-inner">
+        <div class="pcard-label">Keep Watching</div>
+        <div class="pcard-count">${keepWatching.length}</div>
+        <ul class="plist">
+          ${keepWatching.length
+            ? keepWatching.map((a) => `
+                <li class="plist-item">
+                  <div class="plist-title">${escapeHtml(a.label)}</div>
+                  <div class="plist-detail">${a.score}/100 — ${escapeHtml(a.status)}</div>
+                </li>`).join("")
+            : `<li class="plist-item"><div class="plist-detail">Monitor posture over time and revisit after addressing Fix Now items.</div></li>`}
+          <li class="plist-item"><div class="plist-detail">${escapeHtml(changeHeadline)}</div></li>
+        </ul>
+      </div>
     </div>
   </div>
   ${pageFooter}
@@ -1069,7 +1040,7 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
     <div class="eyebrow">03 — Posture Overview</div>
     <h2 class="section-title">Category scores at a glance</h2>
   </div>
-  <div>${postureRows}</div>
+  <div class="posture-rows">${postureRows}</div>
   ${pageFooter}
 </div>
 

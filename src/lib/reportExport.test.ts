@@ -253,16 +253,15 @@ describe("buildHtmlReport", () => {
   });
 
   it("SVG ring dashoffset equals circumference when score is 0", () => {
-    // circumference = 2π × 90 ≈ 565.49
+    // circumference = 2π × 110 ≈ 691.15
     const html = buildHtmlReport(makeAnalysis({ grade: "F", score: 0 }));
-    // dashoffset for score=0 should be the full circumference
-    const circumference = parseFloat((2 * Math.PI * 90).toFixed(2));
+    const circumference = parseFloat((2 * Math.PI * 110).toFixed(2));
     expect(html).toContain(`stroke-dashoffset="${circumference}"`);
   });
 
   it("SVG ring dashoffset is roughly half the circumference when score is 50", () => {
     const html = buildHtmlReport(makeAnalysis({ grade: "D", score: 50 }));
-    const circumference = parseFloat((2 * Math.PI * 90).toFixed(2));
+    const circumference = parseFloat((2 * Math.PI * 110).toFixed(2));
     const expected = parseFloat((circumference * 0.5).toFixed(2));
     expect(html).toContain(`stroke-dashoffset="${expected}"`);
   });
