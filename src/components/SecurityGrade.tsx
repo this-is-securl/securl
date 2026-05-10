@@ -20,37 +20,37 @@ export const GRADE_PALETTE: Record<string, { stroke: string; glow: string; textC
   U:    { stroke: "#94a3b8", glow: "rgba(148,163,184,0.14)",textColor: "#cbd5e1", borderColor: "rgba(148,163,184,0.18)"},
 };
 
-const RING_R    = 88;
-const RING_SIZE = 208;
+const RING_R    = 72;
+const RING_SIZE = 168;
 const RING_CIRC = parseFloat((2 * Math.PI * RING_R).toFixed(2));
 
 export const SecurityGrade = ({ grade, score, summary, context, actions, pulse }: SecurityGradeProps) => {
   const palette    = GRADE_PALETTE[grade] ?? GRADE_PALETTE.U;
   const clamped    = Math.max(0, Math.min(100, score));
   const ringOffset = parseFloat((RING_CIRC * (1 - clamped / 100)).toFixed(2));
-  const gradeSize  = grade.length > 1 ? "text-6xl" : "text-7xl";
+  const gradeSize  = grade.length > 1 ? "text-5xl" : "text-6xl";
 
   return (
     <div
-      className="w-full rounded-[2rem] bg-[linear-gradient(135deg,rgba(11,18,32,0.98),rgba(16,24,39,0.95))] px-6 py-6 shadow-[0_32px_80px_-40px_rgba(0,0,0,0.75)] backdrop-blur"
+      className="w-full rounded-[2rem] bg-[linear-gradient(135deg,rgba(11,18,32,0.98),rgba(16,24,39,0.95))] px-7 py-7 shadow-[0_24px_64px_-32px_rgba(0,0,0,0.7)] backdrop-blur"
       style={{ border: `1px solid ${palette.borderColor}` }}
     >
-      {context ? <div className="mb-5">{context}</div> : null}
+      {context ? <div className="mb-6">{context}</div> : null}
 
-      <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
+      <div className="flex flex-col items-center gap-7 sm:flex-row sm:items-center">
 
         {/* ── Ring gauge ── */}
         <div className="relative shrink-0" style={{ width: RING_SIZE, height: RING_SIZE }}>
-          {/* Radial glow */}
+          {/* Radial glow — subtle, not a spotlight */}
           <div
             className="absolute inset-0 rounded-full"
-            style={{ background: `radial-gradient(circle, ${palette.glow} 0%, transparent 68%)`, filter: "blur(18px)" }}
+            style={{ background: `radial-gradient(circle, ${palette.glow} 0%, transparent 70%)`, filter: "blur(16px)" }}
           />
           <svg
             viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
             width={RING_SIZE}
             height={RING_SIZE}
-            className="relative -rotate-90 drop-shadow-[0_12px_28px_rgba(0,0,0,0.4)]"
+            className="relative -rotate-90"
           >
             {/* Track */}
             <circle
@@ -59,7 +59,7 @@ export const SecurityGrade = ({ grade, score, summary, context, actions, pulse }
               r={RING_R}
               fill="none"
               stroke="rgba(255,255,255,0.07)"
-              strokeWidth="13"
+              strokeWidth="10"
             />
             {/* Progress */}
             <circle
@@ -68,27 +68,27 @@ export const SecurityGrade = ({ grade, score, summary, context, actions, pulse }
               r={RING_R}
               fill="none"
               stroke={palette.stroke}
-              strokeWidth="13"
+              strokeWidth="10"
               strokeLinecap="round"
               strokeDasharray={RING_CIRC}
               strokeDashoffset={ringOffset}
             />
           </svg>
           {/* Inner labels */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
             <span
-              className={`font-black leading-none tracking-[-0.04em] ${gradeSize}`}
+              className={`font-bold leading-none tracking-[-0.04em] ${gradeSize}`}
               style={{ color: palette.textColor }}
             >
               {grade}
             </span>
-            <span className="text-lg font-semibold text-slate-300">{clamped}/100</span>
+            <span className="text-sm font-medium text-slate-400">{clamped}/100</span>
           </div>
         </div>
 
         {/* ── Copy ── */}
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-slate-500">
+        <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
             Security posture
           </p>
           <p className="text-sm leading-7 text-slate-300">{summary}</p>
