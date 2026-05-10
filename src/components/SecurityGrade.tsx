@@ -1,5 +1,4 @@
-import { ReactNode } from "react";
-import { Shield, ShieldAlert, ShieldCheck } from "lucide-react";
+import type { ReactNode } from "react";
 
 interface SecurityGradeProps {
   grade: string;
@@ -10,56 +9,99 @@ interface SecurityGradeProps {
   pulse?: ReactNode;
 }
 
-const gradeStyles: Record<string, { text: string; ring: string; bg: string; iconShell: string }> = {
-  "A+": { text: "text-[#f0d5bc]", ring: "ring-[#b56a2c]/35", bg: "from-[#181b23] to-[#11151d]", iconShell: "bg-white/[0.06]" },
-  A: { text: "text-[#f0d5bc]", ring: "ring-[#b56a2c]/35", bg: "from-[#181b23] to-[#11151d]", iconShell: "bg-white/[0.06]" },
-  B: { text: "text-[#e0b286]", ring: "ring-[#9b774f]/35", bg: "from-[#181b23] to-[#11151d]", iconShell: "bg-white/[0.06]" },
-  C: { text: "text-[#d89a63]", ring: "ring-[#b56a2c]/35", bg: "from-[#181b23] to-[#11151d]", iconShell: "bg-white/[0.06]" },
-  D: { text: "text-[#c78455]", ring: "ring-[#b56a2c]/45", bg: "from-[#181b23] to-[#11151d]", iconShell: "bg-white/[0.06]" },
-  E: { text: "text-[#c78455]", ring: "ring-[#b56a2c]/45", bg: "from-[#181b23] to-[#11151d]", iconShell: "bg-white/[0.06]" },
-  F: { text: "text-[#c78455]", ring: "ring-[#b56a2c]/45", bg: "from-[#181b23] to-[#11151d]", iconShell: "bg-white/[0.06]" },
-  U: { text: "text-slate-200", ring: "ring-white/15", bg: "from-[#181b23] to-[#11151d]", iconShell: "bg-white/[0.06]" },
+// Per-grade colour tokens — matches the PDF report colour system
+export const GRADE_PALETTE: Record<string, { stroke: string; glow: string; textColor: string; borderColor: string }> = {
+  "A+": { stroke: "#22c55e", glow: "rgba(34,197,94,0.20)",  textColor: "#86efac", borderColor: "rgba(34,197,94,0.20)"  },
+  A:    { stroke: "#22c55e", glow: "rgba(34,197,94,0.20)",  textColor: "#86efac", borderColor: "rgba(34,197,94,0.20)"  },
+  B:    { stroke: "#3b82f6", glow: "rgba(59,130,246,0.22)", textColor: "#93c5fd", borderColor: "rgba(59,130,246,0.22)" },
+  C:    { stroke: "#f59e0b", glow: "rgba(245,158,11,0.22)", textColor: "#fcd34d", borderColor: "rgba(245,158,11,0.22)" },
+  D:    { stroke: "#f97316", glow: "rgba(249,115,22,0.22)", textColor: "#fdba74", borderColor: "rgba(249,115,22,0.22)" },
+  F:    { stroke: "#ef4444", glow: "rgba(239,68,68,0.22)",  textColor: "#fca5a5", borderColor: "rgba(239,68,68,0.22)"  },
+  U:    { stroke: "#94a3b8", glow: "rgba(148,163,184,0.14)",textColor: "#cbd5e1", borderColor: "rgba(148,163,184,0.18)"},
 };
 
+const RING_R    = 88;
+const RING_SIZE = 208;
+const RING_CIRC = parseFloat((2 * Math.PI * RING_R).toFixed(2));
+
 export const SecurityGrade = ({ grade, score, summary, context, actions, pulse }: SecurityGradeProps) => {
-  const style = gradeStyles[grade] ?? gradeStyles.U;
-  const icon =
-    grade === "A+" || grade === "A" ? (
-      <ShieldCheck className="h-12 w-12" />
-    ) : grade === "B" || grade === "C" ? (
-      <Shield className="h-12 w-12" />
-    ) : (
-      <ShieldAlert className="h-12 w-12" />
-    );
+  const palette    = GRADE_PALETTE[grade] ?? GRADE_PALETTE.U;
+  const clamped    = Math.max(0, Math.min(100, score));
+  const ringOffset = parseFloat((RING_CIRC * (1 - clamped / 100)).toFixed(2));
+  const gradeSize  = grade.length > 1 ? "text-6xl" : "text-7xl";
 
   return (
-    <div className={`w-full rounded-[2rem] border border-white/10 bg-gradient-to-br ${style.bg} px-6 py-6 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)] ring-1 ${style.ring}`}>
+    <div
+      className="w-full rounded-[2rem] bg-[linear-gradient(135deg,rgba(11,18,32,0.98),rgba(16,24,39,0.95))] px-6 py-6 shadow-[0_32px_80px_-40px_rgba(0,0,0,0.75)] backdrop-blur"
+      style={{ border: `1px solid ${palette.borderColor}` }}
+    >
       {context ? <div className="mb-5">{context}</div> : null}
 
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex min-w-0 items-center gap-4">
-          <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl ${style.iconShell} shadow-sm ${style.text}`}>
-            {icon}
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-              Healthcheck
-            </p>
-            <div className="mt-2 flex items-end gap-3">
-              <h2 className={`text-5xl font-black leading-none ${style.text}`}>{grade}</h2>
-              <p className="pb-1 text-xl font-semibold text-slate-300">{score}/100</p>
-            </div>
+      <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
+
+        {/* ── Ring gauge ── */}
+        <div className="relative shrink-0" style={{ width: RING_SIZE, height: RING_SIZE }}>
+          {/* Radial glow */}
+          <div
+            className="absolute inset-0 rounded-full"
+            style={{ background: `radial-gradient(circle, ${palette.glow} 0%, transparent 68%)`, filter: "blur(18px)" }}
+          />
+          <svg
+            viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
+            width={RING_SIZE}
+            height={RING_SIZE}
+            className="relative -rotate-90 drop-shadow-[0_12px_28px_rgba(0,0,0,0.4)]"
+          >
+            {/* Track */}
+            <circle
+              cx={RING_SIZE / 2}
+              cy={RING_SIZE / 2}
+              r={RING_R}
+              fill="none"
+              stroke="rgba(255,255,255,0.07)"
+              strokeWidth="13"
+            />
+            {/* Progress */}
+            <circle
+              cx={RING_SIZE / 2}
+              cy={RING_SIZE / 2}
+              r={RING_R}
+              fill="none"
+              stroke={palette.stroke}
+              strokeWidth="13"
+              strokeLinecap="round"
+              strokeDasharray={RING_CIRC}
+              strokeDashoffset={ringOffset}
+            />
+          </svg>
+          {/* Inner labels */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
+            <span
+              className={`font-black leading-none tracking-[-0.04em] ${gradeSize}`}
+              style={{ color: palette.textColor }}
+            >
+              {grade}
+            </span>
+            <span className="text-lg font-semibold text-slate-300">{clamped}/100</span>
           </div>
         </div>
 
-        <p className="max-w-2xl text-sm leading-7 text-slate-300">{summary}</p>
+        {/* ── Copy ── */}
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-slate-500">
+            Security posture
+          </p>
+          <p className="text-sm leading-7 text-slate-300">{summary}</p>
+        </div>
       </div>
 
-      {pulse ? <div className="mt-5 border-t border-white/10 pt-5">{pulse}</div> : null}
+      {pulse ? (
+        <div className="mt-5 border-t border-white/10 pt-5">{pulse}</div>
+      ) : null}
 
       {actions ? (
         <div className="mt-5 border-t border-white/10 pt-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">Export</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-slate-500">Export report</p>
           <div className="mt-3 flex flex-wrap gap-3">{actions}</div>
         </div>
       ) : null}

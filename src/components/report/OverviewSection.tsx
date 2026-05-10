@@ -8,6 +8,7 @@ import {
   Sparkles,
   TrendingUp,
 } from "lucide-react";
+import { GRADE_PALETTE } from "@/components/SecurityGrade";
 import { MonitoringPanel } from "@/components/MonitoringPanel";
 import { PostureSummaryPanel } from "@/components/PostureSummaryPanel";
 import { PriorityActionsPanel } from "@/components/PriorityActionsPanel";
@@ -64,7 +65,8 @@ const healthcheckStatusForGrade = (grade: string): keyof typeof healthcheckStyle
   return "weak";
 };
 
-const DONUT_RADIUS = 78;
+const DONUT_RADIUS = 90;
+const DONUT_SIZE   = 220;
 const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_RADIUS;
 
 interface OverviewSectionProps {
@@ -205,57 +207,82 @@ export const OverviewSection = ({
             </div>
 
             <div className="space-y-4">
-              <div className={`rounded-[1.7rem] border px-6 py-6 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)] ${healthcheckStyle.tile}`}>
-                <div className="flex flex-col items-center text-center">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                    {isLimitedAssessment ? "Directional read" : "Overall score"}
-                  </p>
-                  <div className="relative mt-5 h-52 w-52">
-                    <svg viewBox="0 0 180 180" className="h-52 w-52 -rotate-90 drop-shadow-[0_18px_38px_rgba(0,0,0,0.35)]">
-                      <circle
-                        cx="90"
-                        cy="90"
-                        r={DONUT_RADIUS}
-                        fill="none"
-                        stroke="rgba(255,255,255,0.08)"
-                        strokeWidth="14"
-                      />
-                      <circle
-                        cx="90"
-                        cy="90"
-                        r={DONUT_RADIUS}
-                        fill="none"
-                        stroke="url(#healthcheck-gradient)"
-                        strokeWidth="14"
-                        strokeLinecap="round"
-                        strokeDasharray={DONUT_CIRCUMFERENCE}
-                        strokeDashoffset={donutOffset}
-                      />
-                      <defs>
-                        <linearGradient id="healthcheck-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                          <stop offset="0%" stopColor={healthcheckStyle.dot.includes("b56a2c") ? "#8e5c3b" : "#cbd5e1"} />
-                          <stop offset="55%" stopColor={healthcheckStyle.dot.includes("b56a2c") ? "#b56a2c" : "#dbe4f0"} />
-                          <stop offset="100%" stopColor={healthcheckStyle.dot.includes("8e5c3b") ? "#d08a4b" : "#f8fafc"} />
-                        </linearGradient>
-                      </defs>
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                      <span className={`text-7xl font-semibold tracking-[-0.06em] leading-none ${healthcheckStyle.grade}`}>
-                        {analysisData.grade}
-                      </span>
-                      <span className="mt-2 text-2xl font-semibold text-slate-100">{overallPercent}%</span>
-                      <span className="mt-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                        {overallPostureLabel}
-                      </span>
+              {(() => {
+                const gp = GRADE_PALETTE[analysisData.grade] ?? GRADE_PALETTE.U;
+                const gradeFontSize = analysisData.grade.length > 1 ? "text-6xl" : "text-7xl";
+                return (
+                  <div
+                    className="rounded-[1.7rem] px-6 py-6 shadow-[0_24px_56px_-32px_rgba(0,0,0,0.75)]"
+                    style={{
+                      border: `1px solid ${gp.borderColor}`,
+                      background: "linear-gradient(135deg,rgba(11,18,32,0.97),rgba(16,24,39,0.94))",
+                    }}
+                  >
+                    <div className="flex flex-col items-center text-center">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-slate-500">
+                        {isLimitedAssessment ? "Directional read" : "Overall score"}
+                      </p>
+
+                      {/* Ring */}
+                      <div className="relative mt-4" style={{ width: DONUT_SIZE, height: DONUT_SIZE }}>
+                        {/* Glow */}
+                        <div
+                          className="absolute inset-0 rounded-full"
+                          style={{ background: `radial-gradient(circle, ${gp.glow} 0%, transparent 65%)`, filter: "blur(20px)" }}
+                        />
+                        <svg
+                          viewBox={`0 0 ${DONUT_SIZE} ${DONUT_SIZE}`}
+                          width={DONUT_SIZE}
+                          height={DONUT_SIZE}
+                          className="relative -rotate-90 drop-shadow-[0_16px_40px_rgba(0,0,0,0.4)]"
+                        >
+                          <circle
+                            cx={DONUT_SIZE / 2}
+                            cy={DONUT_SIZE / 2}
+                            r={DONUT_RADIUS}
+                            fill="none"
+                            stroke="rgba(255,255,255,0.07)"
+                            strokeWidth="14"
+                          />
+                          <circle
+                            cx={DONUT_SIZE / 2}
+                            cy={DONUT_SIZE / 2}
+                            r={DONUT_RADIUS}
+                            fill="none"
+                            stroke={gp.stroke}
+                            strokeWidth="14"
+                            strokeLinecap="round"
+                            strokeDasharray={DONUT_CIRCUMFERENCE}
+                            strokeDashoffset={donutOffset}
+                          />
+                        </svg>
+                        {/* Inner labels */}
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
+                          <span
+                            className={`font-black leading-none tracking-[-0.05em] ${gradeFontSize}`}
+                            style={{ color: gp.textColor }}
+                          >
+                            {analysisData.grade}
+                          </span>
+                          <span className="text-xl font-semibold text-slate-200">{overallPercent}/100</span>
+                          <span
+                            className="mt-1 text-[10px] font-semibold uppercase tracking-[0.22em]"
+                            style={{ color: gp.textColor, opacity: 0.75 }}
+                          >
+                            {overallPostureLabel}
+                          </span>
+                        </div>
+                      </div>
+
+                      <p className="mt-4 text-sm leading-6 text-slate-400">
+                        {isLimitedAssessment
+                          ? "Directional transport and exposure signal — not a full posture verdict."
+                          : "Normalised score across browser, trust, and exposure controls."}
+                      </p>
                     </div>
                   </div>
-                  <p className="mt-4 text-sm leading-6 text-slate-300">
-                    {isLimitedAssessment
-                      ? "Use this as a directional transport and exposure signal rather than a full category-by-category verdict."
-                      : "A normalized score for a fast executive read across browser, trust, and exposure controls."}
-                  </p>
-                </div>
-              </div>
+                );
+              })()}
 
               <div className="rounded-[1.4rem] border border-white/10 bg-white/[0.04] p-4 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
                 <div className="flex items-center justify-between gap-3">
@@ -273,38 +300,42 @@ export const OverviewSection = ({
           </div>
 
           <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-[1.35rem] border border-[#8e5c3b]/28 bg-[#8e5c3b]/10 px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
-              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f0d5bc]">
-                <AlertTriangle className="h-4 w-4" />
-                Critical issues
+            {/* Critical */}
+            <div className="rounded-[1.35rem] border border-red-500/20 bg-red-500/[0.07] px-5 py-5 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.7)]">
+              <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-red-400">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                Critical
               </div>
-              <p className="mt-3 text-3xl font-semibold text-[#f0d5bc]">{criticalCount}</p>
-              <p className="mt-2 text-sm leading-6 text-[#f0d5bc]/80">Highest-priority items for immediate attention.</p>
+              <p className="mt-3 text-4xl font-black leading-none tracking-[-0.04em] text-red-300">{criticalCount}</p>
+              <p className="mt-2 text-xs leading-5 text-red-300/70">Highest-priority items for immediate attention.</p>
             </div>
-            <div className="rounded-[1.35rem] border border-[#b56a2c]/28 bg-[#b56a2c]/10 px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
-              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f0d5bc]">
-                <ShieldAlert className="h-4 w-4" />
-                Warning issues
+            {/* Warning */}
+            <div className="rounded-[1.35rem] border border-amber-500/20 bg-amber-500/[0.07] px-5 py-5 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.7)]">
+              <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-400">
+                <ShieldAlert className="h-3.5 w-3.5" />
+                Warning
               </div>
-              <p className="mt-3 text-3xl font-semibold text-[#e2c0a2]">{warningCount}</p>
-              <p className="mt-2 text-sm leading-6 text-[#e2c0a2]/85">Important weaknesses shaping the posture score.</p>
+              <p className="mt-3 text-4xl font-black leading-none tracking-[-0.04em] text-amber-300">{warningCount}</p>
+              <p className="mt-2 text-xs leading-5 text-amber-300/70">Important weaknesses shaping the posture score.</p>
             </div>
-            <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
-              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                <ShieldCheck className="h-4 w-4 text-slate-300" />
-                Observed strengths
+            {/* Strengths */}
+            <div className="rounded-[1.35rem] border border-emerald-500/20 bg-emerald-500/[0.07] px-5 py-5 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.7)]">
+              <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-400">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Strengths
               </div>
-              <p className="mt-3 text-3xl font-semibold text-slate-100">{analysisData.strengths.length}</p>
-              <p className="mt-2 text-sm leading-6 text-slate-400">Signals that reduce concern or reinforce baseline confidence.</p>
+              <p className="mt-3 text-4xl font-black leading-none tracking-[-0.04em] text-emerald-300">{analysisData.strengths.length}</p>
+              <p className="mt-2 text-xs leading-5 text-emerald-300/70">Signals reducing concern or reinforcing confidence.</p>
             </div>
-            <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
-              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                <TrendingUp className="h-4 w-4 text-[#d89a63]" />
-                Monitoring alerts
+            {/* Monitoring */}
+            <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] px-5 py-5 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.7)]">
+              <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                <TrendingUp className="h-3.5 w-3.5 text-slate-400" />
+                Monitoring
               </div>
-              <p className="mt-3 text-3xl font-semibold text-slate-100">{monitoringAlerts.length}</p>
-              <p className="mt-2 text-sm leading-6 text-slate-400">
-                {monitoringAlerts.length ? monitoringAlerts[0]?.title : "No alerting changes surfaced from saved history."}
+              <p className="mt-3 text-4xl font-black leading-none tracking-[-0.04em] text-slate-100">{monitoringAlerts.length}</p>
+              <p className="mt-2 text-xs leading-5 text-slate-500">
+                {monitoringAlerts.length ? monitoringAlerts[0]?.title : "No alerting changes from saved history."}
               </p>
             </div>
           </div>
@@ -338,24 +369,23 @@ export const OverviewSection = ({
                     <p className="mt-2 text-lg font-semibold text-white">Where risk is concentrated</p>
                   </div>
                 </div>
-                <div className="mt-4 space-y-3">
+                <div className="mt-4 space-y-2.5">
                   {sortedAreaScores.map((area) => {
-                    const style = trafficLightStyles[area.status];
+                    const barColor = area.status === "strong" ? "#22c55e" : area.status === "watch" ? "#f59e0b" : "#ef4444";
+                    const scoreColor = area.status === "strong" ? "#86efac" : area.status === "watch" ? "#fcd34d" : "#fca5a5";
                     return (
-                      <div key={area.key} className="grid gap-2 md:grid-cols-[13rem_1fr_auto] md:items-center">
-                        <div className="flex items-center gap-3">
-                          <span className={`inline-flex h-2.5 w-2.5 rounded-full ${style.pill}`} aria-hidden="true" />
-                          <p className="text-sm font-medium text-slate-200">{area.label}</p>
-                        </div>
-                        <div className="relative h-3 overflow-hidden rounded-full bg-white/[0.06] ring-1 ring-white/[0.05]">
+                      <div key={area.key} className="grid gap-2 md:grid-cols-[12rem_1fr_4.5rem] md:items-center">
+                        <p className="text-sm font-medium text-slate-300">{area.label}</p>
+                        <div className="relative h-2 overflow-hidden rounded-full bg-white/[0.07]">
                           <div
-                            className={`absolute inset-y-0 left-0 rounded-full bg-gradient-to-r ${style.bar}`}
-                            style={{ width: `${area.score}%` }}
+                            className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
+                            style={{ width: `${area.score}%`, background: barColor, opacity: 0.85 }}
                           />
                         </div>
-                        <div className="flex min-w-[6.25rem] items-baseline justify-end gap-2 text-right">
-                          <span className={`text-lg font-semibold leading-none ${style.text}`}>{area.score}%</span>
-                        </div>
+                        <p className="text-right text-sm font-bold leading-none" style={{ color: scoreColor }}>
+                          {area.score}
+                          <span className="ml-0.5 text-[11px] font-medium text-slate-500">/100</span>
+                        </p>
                       </div>
                     );
                   })}
@@ -372,29 +402,40 @@ export const OverviewSection = ({
                 <ShieldAlert className="h-5 w-5 text-[#d89a63]" />
               </div>
               {priorityActions.length ? (
-                <div className="mt-4 space-y-3">
-                  {priorityActions.map((action, index) => (
-                    <div key={`${action.area}-${action.title}`} className="rounded-[1.2rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#b56a2c]/16 px-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#f0d5bc]">
-                              {index + 1}
-                            </span>
-                            <p className="text-sm font-semibold text-white">{action.title}</p>
+                <div className="mt-4 space-y-2.5">
+                  {priorityActions.map((action, index) => {
+                    const accentColor = action.severity === "critical" ? "#ef4444" : action.severity === "warning" ? "#f59e0b" : "#64748b";
+                    const accentBg    = action.severity === "critical" ? "rgba(239,68,68,0.08)"  : action.severity === "warning" ? "rgba(245,158,11,0.08)" : "rgba(100,116,139,0.08)";
+                    const accentBorder= action.severity === "critical" ? "rgba(239,68,68,0.20)"  : action.severity === "warning" ? "rgba(245,158,11,0.20)" : "rgba(100,116,139,0.15)";
+                    return (
+                      <div
+                        key={`${action.area}-${action.title}`}
+                        className="overflow-hidden rounded-[1.2rem] border"
+                        style={{ borderColor: accentBorder, background: accentBg }}
+                      >
+                        <div className="px-4 pt-4 pb-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span
+                                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-black"
+                                  style={{ background: accentColor, color: "#0a0e1a" }}
+                                >
+                                  {index + 1}
+                                </span>
+                                <p className="text-sm font-semibold text-white">{action.title}</p>
+                              </div>
+                              <p className="mt-2 text-xs leading-5 text-slate-400">{action.detail}</p>
+                            </div>
                           </div>
-                          <p className="mt-2 text-sm leading-6 text-slate-300">{action.detail}</p>
+                          <div className="mt-2.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: accentColor, opacity: 0.7 }}>
+                            <ArrowRight className="h-3 w-3" />
+                            {action.area}
+                          </div>
                         </div>
-                        <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300">
-                          {action.severity}
-                        </span>
                       </div>
-                      <div className="mt-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                        <ArrowRight className="h-3.5 w-3.5" />
-                        {action.area}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="mt-4 rounded-[1.2rem] border border-white/10 bg-slate-950/45 px-4 py-4 text-sm leading-6 text-slate-300">
