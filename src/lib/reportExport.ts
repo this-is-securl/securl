@@ -709,11 +709,7 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
   const limitItems = reportLimits
     .map((l) => `<div class="limit-item">${escapeHtml(l)}</div>`).join("");
 
-  const pageFooter = `
-    <div class="page-footer">
-      <span>${escapeHtml(analysis.host)}</span>
-      <span>SecURL · External Security Posture Report · ${escapeHtml(generatedAt)}</span>
-    </div>`;
+  const pageFooter = "";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -924,8 +920,8 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
     .limit-item { padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--muted); line-height: 1.55; }
     .limit-item:last-child { border-bottom: none; }
 
-    /* ─ PAGE FOOTER ───────────────────────────────────────────────────── */
-    .page-footer { margin-top: 36px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-size: 11px; color: var(--subtle); }
+    /* ─ STACKED CARDS (single-column variant of two-col) ────────────────── */
+    .stacked-cards { display: flex; flex-direction: column; gap: 14px; }
 
     /* Responsive collapse — screen only, never fires during print */
     @media screen and (max-width: 680px) {
@@ -1094,7 +1090,7 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
     </table>
   </div>
 
-  <div class="two-col">
+  <div class="stacked-cards">
     <div class="info-card">
       <div class="info-title">Domain &amp; Email Trust</div>
       <p>SPF: ${escapeHtml(analysis.domainSecurity.spf ?? "Not found")}</p>
