@@ -197,9 +197,10 @@ const Index = () => {
 
         {analysisData && (
           <section className="mt-6 space-y-4">
-            <div className="flex items-center gap-2 px-1 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-              <Layers3 className="h-4 w-4" />
-              Report workspace
+            <div className="flex items-center gap-2.5 px-1">
+              <Layers3 className="h-4 w-4 text-[#d89a63]" />
+              <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Report workspace</span>
+              <span className="h-px flex-1 bg-white/[0.06]" />
             </div>
             <div className="space-y-4">
               <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-4 py-4 shadow-2xl shadow-black/15 ring-1 ring-white/[0.03] backdrop-blur sm:px-5">
@@ -256,21 +257,21 @@ const Index = () => {
                               type="button"
                               onClick={() => setActiveReportSection(section.key)}
                               className={cn(
-                                "min-w-[12rem] flex-1 rounded-[1.15rem] border px-4 py-3 text-left transition duration-200",
+                                "min-w-[11rem] flex-1 rounded-[1.1rem] border px-4 py-3.5 text-left transition-all duration-200",
                                 active
-                                  ? "border-[#b56a2c]/45 bg-[#b56a2c]/14 shadow-[0_18px_36px_-28px_rgba(181,106,44,0.55)]"
-                                  : "border-white/10 bg-slate-950/35 hover:border-white/15 hover:bg-white/[0.06]",
+                                  ? "border-[#b56a2c]/40 bg-[#b56a2c]/12 shadow-[0_12px_32px_-20px_rgba(181,106,44,0.5),0_0_0_1px_rgba(181,106,44,0.12)_inset]"
+                                  : "border-white/[0.08] bg-white/[0.03] hover:border-white/[0.14] hover:bg-white/[0.06]",
                               )}
                             >
-                              <div className="flex items-center justify-between gap-3">
-                                <span className={cn("text-sm font-semibold", active ? "text-white" : "text-slate-200")}>
+                              <div className="flex items-start justify-between gap-2">
+                                <span className={cn("text-sm font-semibold leading-snug", active ? "text-white" : "text-slate-300")}>
                                   {section.title}
                                 </span>
                                 {active ? (
-                                  <span className="inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-[#d89a63] shadow-[0_0_0_5px_rgba(181,106,44,0.16)]" />
+                                  <span className="mt-0.5 inline-flex h-2 w-2 shrink-0 rounded-full bg-[#d89a63] shadow-[0_0_0_4px_rgba(181,106,44,0.18)]" />
                                 ) : null}
                               </div>
-                              <p className="mt-2 text-[11px] uppercase tracking-[0.14em] text-slate-400">
+                              <p className="mt-1.5 text-[10px] uppercase tracking-[0.16em] text-slate-500 line-clamp-1">
                                 {section.context ?? section.summary}
                               </p>
                             </button>
@@ -285,17 +286,20 @@ const Index = () => {
               {activeSection ? (
                 <div
                   key={activeSection.key}
-                  className="min-w-0 overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/15 ring-1 ring-white/[0.03] backdrop-blur animate-in fade-in-50 slide-in-from-bottom-2 duration-500"
+                  className="min-w-0 overflow-hidden rounded-[1.75rem] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(255,255,255,0.025)_100%)] shadow-[0_32px_80px_-32px_rgba(0,0,0,0.6)] ring-1 ring-white/[0.04] backdrop-blur animate-in fade-in-50 slide-in-from-bottom-2 duration-500"
                 >
-                  <div className="border-b border-white/10 px-5 py-5 sm:px-6">
-                    <h2 className="text-2xl font-semibold tracking-[-0.035em] text-white">
+                  <div className="border-b border-white/[0.08] px-6 py-5 sm:px-7">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-[#d89a63]/70">
+                      {activeSection.context ?? "Report section"}
+                    </p>
+                    <h2 className="mt-1.5 text-2xl font-bold tracking-[-0.04em] text-white sm:text-3xl">
                       {activeSection.title}
                     </h2>
-                    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
                       {activeSection.summary}
                     </p>
                   </div>
-                  <div className="bg-white/[0.02] px-4 py-6 text-slate-100 sm:px-6 lg:px-8">
+                  <div className="px-5 py-7 text-slate-100 sm:px-7 lg:px-8">
                     {activeSection.content}
                   </div>
                 </div>
