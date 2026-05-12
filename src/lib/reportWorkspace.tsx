@@ -86,7 +86,7 @@ export const buildReportWorkspaceSections = ({
     key: "overview",
     title: "At a glance",
     summary: "Score, priorities, exports, and monitoring.",
-    context: `${analysisData.grade} • ${analysisData.score}% posture`,
+    context: `${analysisData.grade} • ${analysisData.score}/100 posture score`,
     content: (
       <OverviewSection
         analysisData={analysisData}

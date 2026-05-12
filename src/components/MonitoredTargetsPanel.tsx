@@ -151,7 +151,7 @@ export const MonitoredTargetsPanel = ({
                       <span>Next: {new Date(target.nextDueAt).toLocaleDateString()}</span>
                       {target.latestScan?.score !== null ? (
                         <span>
-                          Latest: {target.latestScan?.score}%{target.latestScan?.grade ? ` (${target.latestScan.grade})` : ""}
+                          Latest: {target.latestScan?.score}/100{target.latestScan?.grade ? ` (${target.latestScan.grade})` : ""}
                         </span>
                       ) : null}
                     </div>
@@ -286,7 +286,7 @@ export const MonitoredTargetsPanel = ({
                       <span>Next: {new Date(target.nextDueAt).toLocaleDateString()}</span>
                       {target.latestScan != null ? (
                         <span>
-                          Latest: {target.latestScan.score}%{target.latestScan.grade ? ` (${target.latestScan.grade})` : ""}
+                          Latest: {target.latestScan.score}/100{target.latestScan.grade ? ` (${target.latestScan.grade})` : ""}
                         </span>
                       ) : null}
                     </div>
