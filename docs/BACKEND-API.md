@@ -21,6 +21,13 @@ This project now treats the backend as a real scan service boundary rather than 
 - `POST /api/monitoring-targets/:id/run`
 - `DELETE /api/monitoring-targets/:id`
 
+## Current auth resources
+
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/auth/session`
+- `POST /api/auth/logout`
+
 Monitoring targets are currently scoped by the same client-owned `X-Scan-Owner` token as scan resources.
 
 The collection payload includes:
@@ -39,17 +46,35 @@ The detail payload includes:
 - latest-vs-previous comparison when two completed scans exist
 - recent lifecycle events aggregated from recent scans
 
-## Scan-owner model
+## Auth model
 
-Unauthenticated browser-style clients currently authenticate scan resources with a client-owned token sent in:
+The backend now supports two client auth modes:
+
+### Preferred: bearer session auth
+
+Registered clients can authenticate with:
+
+- `Authorization: Bearer <session-token>`
+
+That mode gives us:
+
+- user-owned scans and monitoring targets
+- a stable ownership boundary across browsers and future mobile clients
+- a cleaner path to shared SDKs and future paid tiers
+
+### Transitional fallback: browser-owned scan token
+
+Unauthenticated browser-style clients can still scope scan resources with:
 
 - `X-Scan-Owner`
 
-That token is still a transitional model, not the final multi-user auth story, but it gives us:
+That mode remains available as a migration bridge. It still gives us:
 
 - resource scoping per client
 - fewer shared-IP collisions
-- a service contract that mobile clients can also use until real user auth lands
+- a non-shared fallback for anonymous use
+
+But it is no longer the long-term auth story.
 
 ## Web client base URL
 

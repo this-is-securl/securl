@@ -147,3 +147,28 @@ export interface MonitoringTargetDetailResponse {
   comparison: TargetHistoryComparison | null;
   events: ApiScanEvent[];
 }
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  displayName: string | null;
+  createdAt: string;
+}
+
+export interface AuthSession {
+  token?: string;
+  createdAt: string;
+  expiresAt: string;
+  lastSeenAt?: string;
+}
+
+export interface AuthSessionResponse {
+  user: AuthUser;
+  session: AuthSession;
+}
+
+export interface AuthStatusResponse {
+  authenticated: boolean;
+  user?: AuthUser;
+  session?: AuthSession;
+}

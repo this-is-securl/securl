@@ -18,6 +18,15 @@ const scanOwnerJsonHeaders = (owner = SCAN_OWNER_ONE) => ({
   ...scanOwnerHeaders(owner),
 });
 
+const bearerHeaders = (token) => ({
+  Authorization: `Bearer ${token}`,
+});
+
+const bearerJsonHeaders = (token) => ({
+  "Content-Type": "application/json",
+  ...bearerHeaders(token),
+});
+
 const postScan = (baseUrl, url, options = {}) =>
   fetch(`${baseUrl}/api/scans`, {
     method: "POST",
@@ -69,7 +78,32 @@ const runMonitoringTarget = (baseUrl, targetId, options = {}) =>
 
 const getMonitoringTarget = (baseUrl, targetId, options = {}) =>
   fetch(`${baseUrl}/api/monitoring-targets/${targetId}`, {
-    headers: scanOwnerHeaders(options.owner),
+    headers: options.token ? bearerHeaders(options.token) : scanOwnerHeaders(options.owner),
+  });
+
+const registerUser = (baseUrl, { email, password, displayName }) =>
+  fetch(`${baseUrl}/api/auth/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email,
+      password,
+      ...(displayName ? { displayName } : {}),
+    }),
+  });
+
+const loginUser = (baseUrl, { email, password }) =>
+  fetch(`${baseUrl}/api/auth/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email,
+      password,
+    }),
   });
 
 const getFreePort = () =>
@@ -397,14 +431,110 @@ test("api preflight allows the Hostinger frontend origin", async () => {
       headers: {
         Origin: "https://app.securl.online",
         "Access-Control-Request-Method": "POST",
-        "Access-Control-Request-Headers": "content-type,x-scan-owner",
+        "Access-Control-Request-Headers": "content-type,x-scan-owner,authorization",
       },
     });
 
     assert.equal(response.status, 204);
     assert.equal(response.headers.get("access-control-allow-origin"), "https://app.securl.online");
     assert.match(response.headers.get("access-control-allow-methods") || "", /POST/);
+    assert.match(response.headers.get("access-control-allow-methods") || "", /DELETE/);
     assert.match(response.headers.get("access-control-allow-headers") || "", /X-Scan-Owner/i);
+    assert.match(response.headers.get("access-control-allow-headers") || "", /Authorization/i);
+  } finally {
+    await server.stop();
+  }
+});
+
+test("auth register, session, login, and logout flow works", async () => {
+  const server = await startServer();
+
+  try {
+    const registerResponse = await registerUser(server.baseUrl, {
+      email: "keith@example.com",
+      password: "correct horse battery staple",
+      displayName: "Keith",
+    });
+    const registerPayload = await registerResponse.json();
+    assert.equal(registerResponse.status, 201);
+    assert.equal(registerPayload.user.email, "keith@example.com");
+    assert.ok(registerPayload.session.token);
+
+    const sessionResponse = await fetch(`${server.baseUrl}/api/auth/session`, {
+      headers: bearerHeaders(registerPayload.session.token),
+    });
+    const sessionPayload = await sessionResponse.json();
+    assert.equal(sessionResponse.status, 200);
+    assert.equal(sessionPayload.authenticated, true);
+    assert.equal(sessionPayload.user.email, "keith@example.com");
+
+    const logoutResponse = await fetch(`${server.baseUrl}/api/auth/logout`, {
+      method: "POST",
+      headers: bearerHeaders(registerPayload.session.token),
+    });
+    const logoutPayload = await logoutResponse.json();
+    assert.equal(logoutResponse.status, 200);
+    assert.equal(logoutPayload.ok, true);
+
+    const loggedOutSession = await fetch(`${server.baseUrl}/api/auth/session`, {
+      headers: bearerHeaders(registerPayload.session.token),
+    });
+    const loggedOutPayload = await loggedOutSession.json();
+    assert.equal(loggedOutSession.status, 401);
+    assert.match(loggedOutPayload.error, /invalid or expired/i);
+
+    const loginResponse = await loginUser(server.baseUrl, {
+      email: "keith@example.com",
+      password: "correct horse battery staple",
+    });
+    const loginPayload = await loginResponse.json();
+    assert.equal(loginResponse.status, 200);
+    assert.ok(loginPayload.session.token);
+  } finally {
+    await server.stop();
+  }
+});
+
+test("authenticated sessions can own scan and monitoring resources without scan-owner headers", async () => {
+  const server = await startServer();
+
+  try {
+    const registerResponse = await registerUser(server.baseUrl, {
+      email: "owner@example.com",
+      password: "very strong password",
+    });
+    const registerPayload = await registerResponse.json();
+    const token = registerPayload.session.token;
+
+    const scanResponse = await fetch(`${server.baseUrl}/api/scans`, {
+      method: "POST",
+      headers: bearerJsonHeaders(token),
+      body: JSON.stringify({
+        url: "https://example.com",
+      }),
+    });
+    const scanPayload = await scanResponse.json();
+    assert.equal(scanResponse.status, 202);
+    assert.match(scanPayload.scan.id, /[a-f0-9-]{36}/i);
+
+    const listResponse = await fetch(`${server.baseUrl}/api/scans`, {
+      headers: bearerHeaders(token),
+    });
+    const listPayload = await listResponse.json();
+    assert.equal(listResponse.status, 200);
+    assert.equal(listPayload.scans.length, 1);
+
+    const monitoringResponse = await fetch(`${server.baseUrl}/api/monitoring-targets`, {
+      method: "POST",
+      headers: bearerJsonHeaders(token),
+      body: JSON.stringify({
+        url: "https://example.com",
+        cadence: "daily",
+      }),
+    });
+    const monitoringPayload = await monitoringResponse.json();
+    assert.equal(monitoringResponse.status, 201);
+    assert.match(monitoringPayload.target.ownerId, /^user:/);
   } finally {
     await server.stop();
   }

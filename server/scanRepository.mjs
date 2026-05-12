@@ -5,8 +5,26 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
   const qualifiedTable = `${schema}.scans`;
   const qualifiedEventsTable = `${schema}.scan_events`;
   const qualifiedTargetsTable = `${schema}.monitoring_targets`;
+  const qualifiedUsersTable = `${schema}.users`;
+  const qualifiedSessionsTable = `${schema}.auth_sessions`;
   return [
     `create schema if not exists ${schema}`,
+    `create table if not exists ${qualifiedUsersTable} (
+      id uuid primary key,
+      email text not null unique,
+      display_name text null,
+      password_hash text not null,
+      created_at timestamptz not null,
+      updated_at timestamptz not null
+    )`,
+    `create table if not exists ${qualifiedSessionsTable} (
+      id uuid primary key,
+      user_id uuid not null references ${qualifiedUsersTable}(id) on delete cascade,
+      token_hash text not null unique,
+      created_at timestamptz not null,
+      expires_at timestamptz not null,
+      last_seen_at timestamptz not null
+    )`,
     `create table if not exists ${qualifiedTable} (
       id uuid primary key,
       owner_id text null,
@@ -50,6 +68,8 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
     `create index if not exists monitoring_targets_owner_added_idx on ${qualifiedTargetsTable} (owner_id, added_at desc)`,
     `create index if not exists monitoring_targets_requester_added_idx on ${qualifiedTargetsTable} (requester_scope, added_at desc)`,
     `create unique index if not exists monitoring_targets_owner_url_uidx on ${qualifiedTargetsTable} (owner_id, url)`,
+    `create index if not exists auth_sessions_user_idx on ${qualifiedSessionsTable} (user_id, created_at desc)`,
+    `create index if not exists auth_sessions_expires_idx on ${qualifiedSessionsTable} (expires_at)`,
   ];
 }
 
@@ -140,6 +160,42 @@ export function buildMonitoringTargetRecord({
   };
 }
 
+export function buildUserRecord({
+  id = crypto.randomUUID(),
+  email,
+  displayName = null,
+  passwordHash,
+  createdAt = new Date().toISOString(),
+  updatedAt = createdAt,
+}) {
+  return {
+    id,
+    email,
+    displayName,
+    passwordHash,
+    createdAt,
+    updatedAt,
+  };
+}
+
+export function buildAuthSessionRecord({
+  id = crypto.randomUUID(),
+  userId,
+  tokenHash,
+  createdAt = new Date().toISOString(),
+  expiresAt,
+  lastSeenAt = createdAt,
+}) {
+  return {
+    id,
+    userId,
+    tokenHash,
+    createdAt,
+    expiresAt,
+    lastSeenAt,
+  };
+}
+
 function enrichScan(scan) {
   if (!scan) {
     return null;
@@ -206,6 +262,36 @@ function hydrateMonitoringTargetFromRow(row) {
   };
 }
 
+function hydrateUserFromRow(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    email: row.email,
+    displayName: row.display_name ?? null,
+    passwordHash: row.password_hash,
+    createdAt: row.created_at?.toISOString?.() ?? row.created_at,
+    updatedAt: row.updated_at?.toISOString?.() ?? row.updated_at,
+  };
+}
+
+function hydrateAuthSessionFromRow(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    userId: row.user_id,
+    tokenHash: row.token_hash,
+    createdAt: row.created_at?.toISOString?.() ?? row.created_at,
+    expiresAt: row.expires_at?.toISOString?.() ?? row.expires_at,
+    lastSeenAt: row.last_seen_at?.toISOString?.() ?? row.last_seen_at,
+  };
+}
+
 function matchesScope(scan, { requesterScope = null, ownerId = null } = {}) {
   if (!scan) {
     return false;
@@ -225,6 +311,10 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
   const events = new Map();
   const monitoringTargets = new Map();
   const monitoringOrder = [];
+  const users = new Map();
+  const usersByEmail = new Map();
+  const authSessions = new Map();
+  const authSessionsByTokenHash = new Map();
 
   const touchOrder = (id) => {
     const index = order.indexOf(id);
@@ -255,6 +345,68 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       return true;
     },
     async ping() {
+      return true;
+    },
+    async createUser({ email, displayName = null, passwordHash }) {
+      const normalizedEmail = email.trim().toLowerCase();
+      if (usersByEmail.has(normalizedEmail)) {
+        return null;
+      }
+      const user = buildUserRecord({
+        email: normalizedEmail,
+        displayName,
+        passwordHash,
+      });
+      users.set(user.id, user);
+      usersByEmail.set(user.email, user.id);
+      return { ...user };
+    },
+    async getUserByEmail(email) {
+      const normalizedEmail = email.trim().toLowerCase();
+      const userId = usersByEmail.get(normalizedEmail);
+      if (!userId) {
+        return null;
+      }
+      const user = users.get(userId);
+      return user ? { ...user } : null;
+    },
+    async getUserById(id) {
+      const user = users.get(id);
+      return user ? { ...user } : null;
+    },
+    async createAuthSession({ userId, tokenHash, expiresAt }) {
+      const session = buildAuthSessionRecord({
+        userId,
+        tokenHash,
+        expiresAt,
+      });
+      authSessions.set(session.id, session);
+      authSessionsByTokenHash.set(session.tokenHash, session.id);
+      return { ...session };
+    },
+    async getAuthSessionByTokenHash(tokenHash) {
+      const sessionId = authSessionsByTokenHash.get(tokenHash);
+      if (!sessionId) {
+        return null;
+      }
+      const session = authSessions.get(sessionId);
+      return session ? { ...session } : null;
+    },
+    async touchAuthSession(id) {
+      const session = authSessions.get(id);
+      if (!session) {
+        return null;
+      }
+      session.lastSeenAt = new Date().toISOString();
+      return { ...session };
+    },
+    async deleteAuthSession(id) {
+      const session = authSessions.get(id);
+      if (!session) {
+        return false;
+      }
+      authSessions.delete(id);
+      authSessionsByTokenHash.delete(session.tokenHash);
       return true;
     },
     async createScan({ url, mode, requesterScope, clientIp, ownerId = null }) {
@@ -500,6 +652,8 @@ export function createPostgresScanRepository({
   const table = `${schema}.scans`;
   const eventsTable = `${schema}.scan_events`;
   const targetsTable = `${schema}.monitoring_targets`;
+  const usersTable = `${schema}.users`;
+  const sessionsTable = `${schema}.auth_sessions`;
   const schemaStatements = buildScanRepositorySchemaStatements(schema);
 
   const repository = {
@@ -519,6 +673,93 @@ export function createPostgresScanRepository({
       await pool.query("SELECT 1");
       await pool.query(`select 1 from ${table} limit 1`);
       return true;
+    },
+    async createUser({ email, displayName = null, passwordHash }) {
+      const user = buildUserRecord({
+        email: email.trim().toLowerCase(),
+        displayName,
+        passwordHash,
+      });
+      const { rows } = await pool.query(
+        `insert into ${usersTable}
+          (id, email, display_name, password_hash, created_at, updated_at)
+         values
+          ($1, $2, $3, $4, $5::timestamptz, $6::timestamptz)
+         on conflict (email) do nothing
+         returning *`,
+        [
+          user.id,
+          user.email,
+          user.displayName,
+          user.passwordHash,
+          user.createdAt,
+          user.updatedAt,
+        ],
+      );
+      return hydrateUserFromRow(rows[0]);
+    },
+    async getUserByEmail(email) {
+      const normalizedEmail = email.trim().toLowerCase();
+      const { rows } = await pool.query(
+        `select * from ${usersTable} where email = $1 limit 1`,
+        [normalizedEmail],
+      );
+      return hydrateUserFromRow(rows[0]);
+    },
+    async getUserById(id) {
+      const { rows } = await pool.query(
+        `select * from ${usersTable} where id = $1 limit 1`,
+        [id],
+      );
+      return hydrateUserFromRow(rows[0]);
+    },
+    async createAuthSession({ userId, tokenHash, expiresAt }) {
+      const session = buildAuthSessionRecord({
+        userId,
+        tokenHash,
+        expiresAt,
+      });
+      const { rows } = await pool.query(
+        `insert into ${sessionsTable}
+          (id, user_id, token_hash, created_at, expires_at, last_seen_at)
+         values
+          ($1, $2, $3, $4::timestamptz, $5::timestamptz, $6::timestamptz)
+         returning *`,
+        [
+          session.id,
+          session.userId,
+          session.tokenHash,
+          session.createdAt,
+          session.expiresAt,
+          session.lastSeenAt,
+        ],
+      );
+      return hydrateAuthSessionFromRow(rows[0]);
+    },
+    async getAuthSessionByTokenHash(tokenHash) {
+      const { rows } = await pool.query(
+        `select * from ${sessionsTable} where token_hash = $1 limit 1`,
+        [tokenHash],
+      );
+      return hydrateAuthSessionFromRow(rows[0]);
+    },
+    async touchAuthSession(id) {
+      const lastSeenAt = new Date().toISOString();
+      const { rows } = await pool.query(
+        `update ${sessionsTable}
+         set last_seen_at = $2::timestamptz
+         where id = $1
+         returning *`,
+        [id, lastSeenAt],
+      );
+      return hydrateAuthSessionFromRow(rows[0]);
+    },
+    async deleteAuthSession(id) {
+      const result = await pool.query(
+        `delete from ${sessionsTable} where id = $1`,
+        [id],
+      );
+      return result.rowCount > 0;
     },
     async createScan({ url, mode, requesterScope, clientIp, ownerId = null }) {
       const scan = {

@@ -1,5 +1,7 @@
 import type { AnalysisResult } from "@/types/analysis";
 import type {
+  AuthSessionResponse,
+  AuthStatusResponse,
   ApiMonitoringTarget,
   ApiScanRecord,
   CreateScanResponse,
@@ -17,6 +19,7 @@ import { SCAN_OWNER_KEY, STORAGE_SCHEMA_VERSION } from "@/lib/scanWorkspace";
 
 const DEFAULT_SCAN_POLL_ATTEMPTS = 120;
 const DEFAULT_SCAN_POLL_DELAY_MS = 1000;
+const AUTH_SESSION_KEY = "secure-header-insight:auth-session";
 
 const normalizeBaseUrl = (value: string) => value.trim().replace(/\/+$/, "");
 
@@ -92,13 +95,161 @@ const buildScanOwnerHeaders = (scanOwnerToken: string) => ({
   "X-Scan-Owner": scanOwnerToken,
 });
 
+export interface StoredAuthSession {
+  token: string;
+  user: AuthSessionResponse["user"];
+  session: Omit<AuthSessionResponse["session"], "token">;
+}
+
+export const getStoredAuthSession = async () =>
+  readBrowserStorage<StoredAuthSession | null>(AUTH_SESSION_KEY, null, STORAGE_SCHEMA_VERSION);
+
+export const setStoredAuthSession = async (value: AuthSessionResponse) =>
+  writeBrowserStorage(
+    AUTH_SESSION_KEY,
+    {
+      token: value.session.token || "",
+      user: value.user,
+      session: {
+        createdAt: value.session.createdAt,
+        expiresAt: value.session.expiresAt,
+        ...(value.session.lastSeenAt ? { lastSeenAt: value.session.lastSeenAt } : {}),
+      },
+    },
+    STORAGE_SCHEMA_VERSION,
+  );
+
+export const clearStoredAuthSession = async () =>
+  writeBrowserStorage<StoredAuthSession | null>(AUTH_SESSION_KEY, null, STORAGE_SCHEMA_VERSION);
+
+const buildRequestAuthHeaders = async ({
+  scanOwnerToken = null,
+  requireScanOwner = false,
+}: {
+  scanOwnerToken?: string | null;
+  requireScanOwner?: boolean;
+}) => {
+  const authSession = await getStoredAuthSession();
+  if (authSession?.token) {
+    return {
+      Authorization: `Bearer ${authSession.token}`,
+    };
+  }
+
+  if (scanOwnerToken) {
+    return buildScanOwnerHeaders(scanOwnerToken);
+  }
+
+  if (!requireScanOwner) {
+    return {};
+  }
+
+  const fallbackToken = await getScanOwnerToken();
+  return buildScanOwnerHeaders(fallbackToken);
+};
+
+export const registerUser = async ({
+  email,
+  password,
+  displayName,
+}: {
+  email: string;
+  password: string;
+  displayName?: string;
+}) => {
+  const response = await fetch(buildApiUrl("/api/auth/register"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email,
+      password,
+      ...(displayName ? { displayName } : {}),
+    }),
+  });
+  const payload = await readJsonResponse<AuthSessionResponse>(response);
+  await setStoredAuthSession(payload);
+  return payload;
+};
+
+export const loginUser = async ({
+  email,
+  password,
+}: {
+  email: string;
+  password: string;
+}) => {
+  const response = await fetch(buildApiUrl("/api/auth/login"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email,
+      password,
+    }),
+  });
+  const payload = await readJsonResponse<AuthSessionResponse>(response);
+  await setStoredAuthSession(payload);
+  return payload;
+};
+
+export const getAuthSession = async () => {
+  const authSession = await getStoredAuthSession();
+  const response = await fetch(buildApiUrl("/api/auth/session"), {
+    headers: authSession?.token
+      ? {
+          Authorization: `Bearer ${authSession.token}`,
+        }
+      : {},
+  });
+  if (response.status === 401) {
+    await clearStoredAuthSession();
+  }
+  const payload = await readJsonResponse<AuthStatusResponse>(response);
+  if (!payload.authenticated) {
+    await clearStoredAuthSession();
+    return payload;
+  }
+  if (authSession?.token && payload.user && payload.session) {
+    await writeBrowserStorage(
+      AUTH_SESSION_KEY,
+      {
+        token: authSession.token,
+        user: payload.user,
+        session: {
+          createdAt: payload.session.createdAt,
+          expiresAt: payload.session.expiresAt,
+          ...(payload.session.lastSeenAt ? { lastSeenAt: payload.session.lastSeenAt } : {}),
+        },
+      },
+      STORAGE_SCHEMA_VERSION,
+    );
+  }
+  return payload;
+};
+
+export const logoutUser = async () => {
+  const authSession = await getStoredAuthSession();
+  await fetch(buildApiUrl("/api/auth/logout"), {
+    method: "POST",
+    headers: authSession?.token
+      ? {
+          Authorization: `Bearer ${authSession.token}`,
+        }
+      : {},
+  });
+  await clearStoredAuthSession();
+};
+
 export const createScan = async (url: string, mode: "standard" | "quiet" = "standard") => {
   const scanOwnerToken = await getScanOwnerToken();
   const response = await fetch(buildApiUrl("/api/scans"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...buildScanOwnerHeaders(scanOwnerToken),
+      ...(await buildRequestAuthHeaders({ scanOwnerToken, requireScanOwner: true })),
     },
     body: JSON.stringify({ url, mode }),
   });
@@ -112,7 +263,7 @@ export const createScan = async (url: string, mode: "standard" | "quiet" = "stan
 
 export const getScan = async (scanId: string, scanOwnerToken: string) => {
   const response = await fetch(buildApiUrl(`/api/scans/${encodeURIComponent(scanId)}`), {
-    headers: buildScanOwnerHeaders(scanOwnerToken),
+    headers: await buildRequestAuthHeaders({ scanOwnerToken, requireScanOwner: true }),
   });
   return readJsonResponse<GetScanResponse>(response);
 };
@@ -161,43 +312,42 @@ export const analyzeTarget = async (url: string, setMode: "standard" | "quiet" =
 export const getTargetHistory = async (url: string) => {
   const scanOwnerToken = await getScanOwnerToken();
   const response = await fetch(buildApiUrl(`/api/scans?url=${encodeURIComponent(url)}`), {
-    headers: buildScanOwnerHeaders(scanOwnerToken),
+    headers: await buildRequestAuthHeaders({ scanOwnerToken, requireScanOwner: true }),
   });
   return readJsonResponse<TargetHistoryResponse>(response);
 };
 
 export const getScanSummary = async (scanId: string, scanOwnerToken: string) => {
   const response = await fetch(buildApiUrl(`/api/scans/${encodeURIComponent(scanId)}/summary`), {
-    headers: buildScanOwnerHeaders(scanOwnerToken),
+    headers: await buildRequestAuthHeaders({ scanOwnerToken, requireScanOwner: true }),
   });
   return readJsonResponse<ScanSummaryResponse>(response);
 };
 
 export const getScanFindings = async (scanId: string, scanOwnerToken: string) => {
   const response = await fetch(buildApiUrl(`/api/scans/${encodeURIComponent(scanId)}/findings`), {
-    headers: buildScanOwnerHeaders(scanOwnerToken),
+    headers: await buildRequestAuthHeaders({ scanOwnerToken, requireScanOwner: true }),
   });
   return readJsonResponse<ScanFindingsResponse>(response);
 };
 
 export const getScanEvidence = async (scanId: string, scanOwnerToken: string) => {
   const response = await fetch(buildApiUrl(`/api/scans/${encodeURIComponent(scanId)}/evidence`), {
-    headers: buildScanOwnerHeaders(scanOwnerToken),
+    headers: await buildRequestAuthHeaders({ scanOwnerToken, requireScanOwner: true }),
   });
   return readJsonResponse<ScanEvidenceResponse>(response);
 };
 
 export const getScanHistory = async (scanId: string, scanOwnerToken: string) => {
   const response = await fetch(buildApiUrl(`/api/scans/${encodeURIComponent(scanId)}/history`), {
-    headers: buildScanOwnerHeaders(scanOwnerToken),
+    headers: await buildRequestAuthHeaders({ scanOwnerToken, requireScanOwner: true }),
   });
   return readJsonResponse<ScanHistoryResponse>(response);
 };
 
 export const getMonitoringTargets = async () => {
-  const scanOwnerToken = await getScanOwnerToken();
   const response = await fetch(buildApiUrl("/api/monitoring-targets"), {
-    headers: buildScanOwnerHeaders(scanOwnerToken),
+    headers: await buildRequestAuthHeaders({ requireScanOwner: true }),
   });
   return readJsonResponse<MonitoringTargetsResponse>(response);
 };
@@ -207,12 +357,11 @@ export const saveMonitoringTarget = async (
   cadence: "daily" | "weekly",
   label?: string,
 ): Promise<ApiMonitoringTarget> => {
-  const scanOwnerToken = await getScanOwnerToken();
   const response = await fetch(buildApiUrl("/api/monitoring-targets"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...buildScanOwnerHeaders(scanOwnerToken),
+      ...(await buildRequestAuthHeaders({ requireScanOwner: true })),
     },
     body: JSON.stringify({
       url,
@@ -225,10 +374,9 @@ export const saveMonitoringTarget = async (
 };
 
 export const deleteMonitoringTarget = async (targetId: string) => {
-  const scanOwnerToken = await getScanOwnerToken();
   const response = await fetch(buildApiUrl(`/api/monitoring-targets/${encodeURIComponent(targetId)}`), {
     method: "DELETE",
-    headers: buildScanOwnerHeaders(scanOwnerToken),
+    headers: await buildRequestAuthHeaders({ requireScanOwner: true }),
   });
   return readJsonResponse<{ ok: boolean }>(response);
 };

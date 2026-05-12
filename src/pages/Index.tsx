@@ -1,4 +1,5 @@
 import { Clock3, Layers3, ShieldCheck, Sparkles } from "lucide-react";
+import { AuthCard } from "@/components/AuthCard";
 import { MonitoredTargetsPanel } from "@/components/MonitoredTargetsPanel";
 import {
   Select,
@@ -13,6 +14,7 @@ import {
   type ReportWorkspaceSectionKey,
 } from "@/lib/reportWorkspace";
 import { cn } from "@/lib/utils";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import { useScanWorkspace } from "@/hooks/useScanWorkspace";
 
 const Index = () => {
@@ -31,6 +33,18 @@ const Index = () => {
   })();
   const buildLabel = __BUILD_SHA__ !== "unknown" ? `build ${__BUILD_SHA__}` : buildDateLabel ? `built ${buildDateLabel}` : null;
   const coreLabel = `core ${__CORE_VERSION__}`;
+  const {
+    authSession,
+    isAuthenticated,
+    isLoading: authLoading,
+    isSubmitting: authSubmitting,
+    mode: authMode,
+    setMode: setAuthMode,
+    signIn,
+    signUp,
+    signOut,
+  } = useAuthSession();
+
   const {
     isLoading,
     scanStage,
@@ -138,60 +152,81 @@ const Index = () => {
             </div>
           </div>
 
-          <div className="mt-5 rounded-[1.7rem] border border-white/10 bg-white/[0.04] p-4 sm:p-5">
-            <div className="grid gap-5 xl:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] xl:items-start">
-              <div className={`space-y-3 ${recentScans.length > 0 ? "" : "hidden"}`}>
-                <div className="flex items-center gap-2 text-sm font-semibold text-slate-200">
-                  <Clock3 className="h-4 w-4 text-[#d89a63]" />
-                  Recent scans
+          <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]">
+            <div className="rounded-[1.7rem] border border-white/10 bg-white/[0.04] p-4 sm:p-5">
+              {!isAuthenticated ? (
+                <div className="mb-4 rounded-[1.25rem] border border-[#b56a2c]/25 bg-[#b56a2c]/10 px-4 py-3 text-sm leading-6 text-[#f0d5bc]">
+                  Signed-out mode keeps recent scans and monitoring state in this browser only. Sign in to make them account-owned and portable.
                 </div>
-                <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-1">
-                  {recentScans.slice(0, 3).map((scan) => (
-                    <button
-                      key={scan.url}
-                      type="button"
-                      onClick={() => void handleAnalyze(scan.url, "recent")}
-                      disabled={isLoading}
-                      className={`rounded-[1.2rem] border px-4 py-3 text-left shadow-sm transition duration-300 ${
-                        activeRecentScanUrl === scan.url
-                          ? "border-[#b56a2c]/45 bg-[#b56a2c]/12 shadow-[0_18px_36px_-28px_rgba(181,106,44,0.6)]"
-                          : "border-white/10 bg-slate-950/45 hover:-translate-y-0.5 hover:border-[#b56a2c]/25 hover:bg-white/[0.08]"
-                      } ${isLoading ? "cursor-wait" : ""}`}
-                      aria-busy={activeRecentScanUrl === scan.url}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="truncate text-sm font-medium text-slate-100">{scan.url}</span>
-                        <div className="flex items-center gap-2">
-                          {activeRecentScanUrl === scan.url ? (
-                            <span className="inline-flex h-2 w-2 rounded-full bg-[#d89a63] shadow-[0_0_0_4px_rgba(181,106,44,0.16)]" />
-                          ) : null}
-                          <span className="text-sm font-semibold uppercase tracking-[0.14em] text-[#f0d5bc]">
-                            {activeRecentScanUrl === scan.url ? scanStage?.label ?? "Scanning" : scan.grade}
-                          </span>
+              ) : (
+                <div className="mb-4 rounded-[1.25rem] border border-emerald-400/20 bg-emerald-400/[0.08] px-4 py-3 text-sm leading-6 text-emerald-200">
+                  Account mode is active. New scans and monitoring targets will follow <span className="font-semibold text-white">{authSession?.user.email}</span> across browsers and future clients.
+                </div>
+              )}
+              <div className="grid gap-5 xl:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] xl:items-start">
+                <div className={`space-y-3 ${recentScans.length > 0 ? "" : "hidden"}`}>
+                  <div className="flex items-center gap-2 text-sm font-semibold text-slate-200">
+                    <Clock3 className="h-4 w-4 text-[#d89a63]" />
+                    Recent scans
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-1">
+                    {recentScans.slice(0, 3).map((scan) => (
+                      <button
+                        key={scan.url}
+                        type="button"
+                        onClick={() => void handleAnalyze(scan.url, "recent")}
+                        disabled={isLoading}
+                        className={`rounded-[1.2rem] border px-4 py-3 text-left shadow-sm transition duration-300 ${
+                          activeRecentScanUrl === scan.url
+                            ? "border-[#b56a2c]/45 bg-[#b56a2c]/12 shadow-[0_18px_36px_-28px_rgba(181,106,44,0.6)]"
+                            : "border-white/10 bg-slate-950/45 hover:-translate-y-0.5 hover:border-[#b56a2c]/25 hover:bg-white/[0.08]"
+                        } ${isLoading ? "cursor-wait" : ""}`}
+                        aria-busy={activeRecentScanUrl === scan.url}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="truncate text-sm font-medium text-slate-100">{scan.url}</span>
+                          <div className="flex items-center gap-2">
+                            {activeRecentScanUrl === scan.url ? (
+                              <span className="inline-flex h-2 w-2 rounded-full bg-[#d89a63] shadow-[0_0_0_4px_rgba(181,106,44,0.16)]" />
+                            ) : null}
+                            <span className="text-sm font-semibold uppercase tracking-[0.14em] text-[#f0d5bc]">
+                              {activeRecentScanUrl === scan.url ? scanStage?.label ?? "Scanning" : scan.grade}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                      <p className="mt-2 text-xs text-slate-500">{new Date(scan.scannedAt).toLocaleString()}</p>
-                    </button>
-                  ))}
+                        <p className="mt-2 text-xs text-slate-500">{new Date(scan.scannedAt).toLocaleString()}</p>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <div className={recentScans.length > 0 ? "border-t border-white/10 pt-5 xl:border-l xl:border-t-0 xl:pt-0 xl:pl-5" : ""}>
-                <MonitoredTargetsPanel
-                  targets={monitoredViews}
-                  currentUrl={analysisData?.finalUrl ?? recentScans[0]?.url ?? null}
-                  monitoredCount={monitoredTargets.length}
-                  dueCount={monitoredViews.filter((target) => target.due).length}
-                  embedded
-                  onAddDaily={() => saveCurrentAsMonitored("daily")}
-                  onAddWeekly={() => saveCurrentAsMonitored("weekly")}
-                  onRunDue={runDueScans}
-                  onRunTarget={(url) => void runTargetScan(url, true)}
-                  onRemove={removeMonitoredTarget}
-                  busy={isLoading}
-                />
+                <div className={recentScans.length > 0 ? "border-t border-white/10 pt-5 xl:border-l xl:border-t-0 xl:pt-0 xl:pl-5" : ""}>
+                  <MonitoredTargetsPanel
+                    targets={monitoredViews}
+                    currentUrl={analysisData?.finalUrl ?? recentScans[0]?.url ?? null}
+                    monitoredCount={monitoredTargets.length}
+                    dueCount={monitoredViews.filter((target) => target.due).length}
+                    embedded
+                    onAddDaily={() => saveCurrentAsMonitored("daily")}
+                    onAddWeekly={() => saveCurrentAsMonitored("weekly")}
+                    onRunDue={runDueScans}
+                    onRunTarget={(url) => void runTargetScan(url, true)}
+                    onRemove={removeMonitoredTarget}
+                    busy={isLoading}
+                  />
+                </div>
               </div>
             </div>
+            <AuthCard
+              authSession={authSession}
+              isLoading={authLoading}
+              isSubmitting={authSubmitting}
+              mode={authMode}
+              setMode={setAuthMode}
+              signIn={signIn}
+              signUp={signUp}
+              signOut={signOut}
+            />
           </div>
         </section>
 

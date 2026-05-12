@@ -56,6 +56,13 @@ function getPresentedScanOwner(request, scanOwnerHeader) {
   return typeof candidate === "string" ? candidate : "";
 }
 
+function getPresentedBearerToken(request) {
+  const candidate = request.headers.authorization;
+  const raw = Array.isArray(candidate) ? candidate[0] || "" : typeof candidate === "string" ? candidate : "";
+  const match = raw.match(/^Bearer\s+(.+)$/i);
+  return match?.[1]?.trim() || "";
+}
+
 async function tokenFingerprint(token, apiKeyFingerprintSalt) {
   const digest = await scryptAsync(token, apiKeyFingerprintSalt, 32);
   return `${apiKeyFingerprintSalt}:${digest.toString("hex")}`;
@@ -264,6 +271,7 @@ export function createRequestGuards({
     request,
     response,
     requestPath,
+    resolveSessionAuth = null,
     enforceRateLimit = true,
     requireScanOwner = false,
     sendJsonResponse = sendJson,
@@ -272,12 +280,75 @@ export function createRequestGuards({
     const clientIp = getClientIp(request, { trustProxy, isLocalHostname, isPrivateAddress }) || "unknown";
     const presentedApiKey = getPresentedApiKey(request);
     const presentedScanOwner = getPresentedScanOwner(request, scanOwnerHeader);
+    const presentedBearerToken = getPresentedBearerToken(request);
+    const sessionAuth = presentedBearerToken && typeof resolveSessionAuth === "function"
+      ? await resolveSessionAuth(presentedBearerToken)
+      : null;
     const requesterScope = await getRequesterScope({
       clientIp,
       presentedApiKey,
       apiKey,
       apiKeyFingerprintSalt,
     });
+
+    if (presentedBearerToken && !sessionAuth) {
+      telemetry.recordAuthRejected();
+      telemetry.recordFailure("auth_rejected");
+      recordAbuseSignal("session_token_rejected", {
+        clientIp,
+        path: requestPath,
+      }, {
+        abuseSignalBuckets,
+        abuseAlertWindowMs,
+        abuseAlertThreshold,
+        log,
+      });
+      sendJsonResponse(response, 401, {
+        error: "A valid session token is required for this request.",
+      });
+      return null;
+    }
+
+    if (sessionAuth) {
+      const sessionScope = `user:${sessionAuth.user.id}`;
+      if (!enforceRateLimit) {
+        return {
+          clientIp,
+          requesterScope: sessionScope,
+          ownerId: sessionScope,
+          user: sessionAuth.user,
+          session: sessionAuth.session,
+          authMode: "session",
+        };
+      }
+
+      const rateLimitState = await rateLimiter.check(sessionScope);
+      if (rateLimitState.limited) {
+        telemetry.recordRequesterRateLimited();
+        telemetry.recordFailure("requester_rate_limited");
+        recordAbuseSignal("rate_limit_exceeded", {
+          clientIp,
+          requesterScope: sessionScope,
+          path: requestPath,
+        }, {
+          abuseSignalBuckets,
+          abuseAlertWindowMs,
+          abuseAlertThreshold,
+          log,
+        });
+        sendRateLimitedResponse(response, rateLimitState.retryAfterSeconds);
+        return null;
+      }
+
+      return {
+        clientIp,
+        requesterScope: sessionScope,
+        ownerId: sessionScope,
+        user: sessionAuth.user,
+        session: sessionAuth.session,
+        authMode: "session",
+      };
+    }
 
     if (apiKey && presentedApiKey !== apiKey) {
       telemetry.recordAuthRejected();
@@ -325,7 +396,7 @@ export function createRequestGuards({
     }
 
     if (!enforceRateLimit) {
-      return { clientIp, requesterScope, ownerId };
+      return { clientIp, requesterScope, ownerId, user: null, session: null, authMode: ownerId ? "scan-owner" : "anonymous" };
     }
 
     const rateLimitState = await rateLimiter.check(requesterScope);
@@ -346,7 +417,7 @@ export function createRequestGuards({
       return null;
     }
 
-    return { clientIp, requesterScope, ownerId };
+    return { clientIp, requesterScope, ownerId, user: null, session: null, authMode: ownerId ? "scan-owner" : "anonymous" };
   }
 
   return {

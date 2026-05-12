@@ -9,6 +9,7 @@ const DEFAULT_DEVELOPMENT_ORIGINS = [
 
 const DEFAULT_ALLOWED_HEADERS = [
   "Content-Type",
+  "Authorization",
   "X-API-Key",
   "X-Scan-Owner",
 ];
@@ -16,6 +17,7 @@ const DEFAULT_ALLOWED_HEADERS = [
 const DEFAULT_ALLOWED_METHODS = [
   "GET",
   "POST",
+  "DELETE",
   "OPTIONS",
 ];
 
