@@ -19,6 +19,7 @@ import {
   handleMonitoringTargetCollectionRequest,
   handleMonitoringTargetItemRequest,
 } from "./monitoringTargetHandlers.mjs";
+import { handleAuthRequest, resolveAuthenticatedSession } from "./authHandlers.mjs";
 import { handleScanCollectionRequest, handleScanResourceRequest, runQueuedScan } from "./scanResourceHandlers.mjs";
 import { createStaticHandler } from "./staticServer.mjs";
 import { enforceStartupConfiguration, initializeScanRepository } from "./startupValidation.mjs";
@@ -55,6 +56,7 @@ const scanRepositoryBackend = configuredScanRepositoryBackend || "memory";
 const databaseUrl = (process.env.DATABASE_URL || "").trim();
 const allowedOrigins = resolveAllowedOrigins(process.env.ALLOWED_ORIGINS, isProduction);
 const SCAN_OWNER_HEADER = "x-scan-owner";
+const AUTH_TOKEN_FINGERPRINT_SALT = process.env.AUTH_TOKEN_FINGERPRINT_SALT || "epi-auth-token-fingerprint-v1";
 const RATE_LIMIT_WINDOW_MS = (() => {
   const raw = Number(process.env.RATE_LIMIT_WINDOW_MS || DEFAULT_RATE_LIMIT_WINDOW_MS);
   if (!Number.isFinite(raw) || raw < 1000) {
@@ -270,6 +272,21 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
+  if (requestUrl.pathname.startsWith("/api/auth/")) {
+    await handleAuthRequest({
+      request,
+      response,
+      requestUrl,
+      scanRepository,
+      readJsonBody,
+      sendJson: sendApiJson,
+      sendMethodNotAllowed: sendApiMethodNotAllowed,
+      sendRepositoryUnavailable: sendApiRepositoryUnavailable,
+      authTokenFingerprintSalt: AUTH_TOKEN_FINGERPRINT_SALT,
+    });
+    return;
+  }
+
   if (requestUrl.pathname === "/api/scans") {
     await handleScanCollectionRequest({
       request,
@@ -278,6 +295,11 @@ const server = http.createServer(async (request, response) => {
       scanRepository,
       authorizeAnalysisRequest: (options) => authorizeAnalysisRequest({
         ...options,
+        resolveSessionAuth: (token) => resolveAuthenticatedSession({
+          token,
+          scanRepository,
+          authTokenFingerprintSalt: AUTH_TOKEN_FINGERPRINT_SALT,
+        }),
         sendJsonResponse: sendApiJson,
         sendRateLimitedResponse: sendApiRateLimited,
       }),
@@ -311,6 +333,11 @@ const server = http.createServer(async (request, response) => {
       scanRepository,
       authorizeAnalysisRequest: (options) => authorizeAnalysisRequest({
         ...options,
+        resolveSessionAuth: (token) => resolveAuthenticatedSession({
+          token,
+          scanRepository,
+          authTokenFingerprintSalt: AUTH_TOKEN_FINGERPRINT_SALT,
+        }),
         sendJsonResponse: sendApiJson,
         sendRateLimitedResponse: sendApiRateLimited,
       }),
@@ -336,6 +363,11 @@ const server = http.createServer(async (request, response) => {
       scanRepository,
       authorizeAnalysisRequest: (options) => authorizeAnalysisRequest({
         ...options,
+        resolveSessionAuth: (token) => resolveAuthenticatedSession({
+          token,
+          scanRepository,
+          authTokenFingerprintSalt: AUTH_TOKEN_FINGERPRINT_SALT,
+        }),
         sendJsonResponse: sendApiJson,
         sendRateLimitedResponse: sendApiRateLimited,
       }),
@@ -368,6 +400,11 @@ const server = http.createServer(async (request, response) => {
       scanRepository,
       authorizeAnalysisRequest: (options) => authorizeAnalysisRequest({
         ...options,
+        resolveSessionAuth: (token) => resolveAuthenticatedSession({
+          token,
+          scanRepository,
+          authTokenFingerprintSalt: AUTH_TOKEN_FINGERPRINT_SALT,
+        }),
         sendJsonResponse: sendApiJson,
         sendRateLimitedResponse: sendApiRateLimited,
       }),

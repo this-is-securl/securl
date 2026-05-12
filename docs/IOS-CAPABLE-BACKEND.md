@@ -74,6 +74,13 @@ Phase 3:
 - `DELETE /api/monitoring-targets/:id`
 - `POST /api/monitoring-targets/:id/run`
 
+Phase 4:
+
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/auth/session`
+- `POST /api/auth/logout`
+
 ## Resource Shape
 
 ### Scan summary
@@ -153,6 +160,7 @@ Current transitional shape:
 The in-memory store is only a stepping stone. The durable version should store:
 
 - users
+- auth sessions
 - scans
 - scan summaries
 - monitoring targets
@@ -180,6 +188,13 @@ Instead, it should depend on a repository contract that can be backed by:
 
 Current repository responsibilities:
 
+- `createUser`
+- `getUserByEmail`
+- `getUserById`
+- `createAuthSession`
+- `getAuthSessionByTokenHash`
+- `touchAuthSession`
+- `deleteAuthSession`
 - `createScan`
 - `markRunning`
 - `markCompleted`

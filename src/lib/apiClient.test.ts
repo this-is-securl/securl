@@ -112,4 +112,34 @@ describe("api client URL helpers", () => {
 
     await expect(analyzeTarget("https://example.com")).rejects.toThrow("Unexpected scan result shape received from server.");
   });
+
+  it("prefers bearer auth over scan-owner headers when a stored session exists", async () => {
+    const browserStorage = await import("@/lib/browserStorage");
+    vi.mocked(browserStorage.readBrowserStorage)
+      .mockResolvedValueOnce({
+        token: "session-token-123",
+        user: {
+          id: "user-1",
+          email: "keith@example.com",
+          displayName: "Keith",
+          createdAt: "2026-05-12T00:00:00.000Z",
+        },
+        session: {
+          createdAt: "2026-05-12T00:00:00.000Z",
+          expiresAt: "2026-06-12T00:00:00.000Z",
+        },
+      });
+
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ targets: [] }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { getMonitoringTargets } = await import("./apiClient");
+    await getMonitoringTargets();
+
+    const [, options] = fetchMock.mock.calls[0];
+    expect(options.headers).toEqual({
+      Authorization: "Bearer session-token-123",
+    });
+    expect("X-Scan-Owner" in options.headers).toBe(false);
+  });
 });
