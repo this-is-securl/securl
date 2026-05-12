@@ -3,10 +3,25 @@
 [![npm version](https://img.shields.io/npm/v/%40ktbatterham%2Fexternal-posture-core)](https://www.npmjs.com/package/@ktbatterham/external-posture-core)
 [![npm package](https://img.shields.io/badge/npm-package-red)](https://www.npmjs.com/package/@ktbatterham/external-posture-core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Core package checks](https://github.com/ktbatterham/external-posture-insight/actions/workflows/core-package-checks.yml/badge.svg)](https://github.com/ktbatterham/external-posture-insight/actions/workflows/core-package-checks.yml)
 
 Low-noise external posture analysis for public web targets.
 
 This package is the reusable scanner engine extracted from the External Posture Insight app. It is designed for passive or near-passive posture assessment rather than active exploitation or noisy recon.
+
+## Package trust and release signals
+
+- public source repository with package code under `packages/core`
+- npm publishing from GitHub Actions with provenance enabled
+- CI checks covering audit, build, lint, tests, and dry-run packaging
+- no install scripts
+- one runtime dependency (`cheerio`)
+- published MIT license, changelog, release notes, and security policy
+
+Security disclosure guidance:
+
+- [`packages/core/SECURITY.md`](./SECURITY.md)
+- [`/SECURITY.md`](../../SECURITY.md)
 
 ## Safety model
 
@@ -38,6 +53,7 @@ It is also used by the External Posture Insight app from the local workspace dur
 - CI verification: `.github/workflows/core-package-checks.yml`
 - publish workflow: `.github/workflows/publish-core-package.yml`
 - publish requires an `NPM_TOKEN` repository secret
+- publish uses npm provenance (`npm publish --provenance`)
 
 Recommended release flow:
 

@@ -3,7 +3,10 @@
   "version": "0.8.1",
   "type": "module",
   "description": "Low-noise external posture analysis core for web targets.",
-  "author": "Keith Batterham",
+  "author": {
+    "name": "Keith Batterham",
+    "url": "https://github.com/ktbatterham"
+  },
   "homepage": "https://github.com/ktbatterham/external-posture-insight/tree/main/packages/core",
   "repository": {
     "type": "git",
@@ -48,6 +51,7 @@
     "CHANGELOG.md",
     "README.md",
     "RELEASING.md",
+    "SECURITY.md",
     "LICENSE"
   ],
   "scripts": {
@@ -61,7 +65,11 @@
     "dns",
     "owasp",
     "posture",
-    "scanner"
+    "scanner",
+    "defensive-security",
+    "cli",
+    "monitoring",
+    "supply-chain"
   ],
   "license": "MIT",
   "dependencies": {
