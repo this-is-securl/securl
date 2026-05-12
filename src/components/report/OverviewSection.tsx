@@ -220,7 +220,7 @@ export const OverviewSection = ({
                   >
                     <div className="flex flex-col items-center text-center">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-                        {isLimitedAssessment ? "Directional read" : "Overall score"}
+                        {isLimitedAssessment ? "Directional read" : "Posture score"}
                       </p>
 
                       {/* Ring — 168 px, stroke 10, purposeful not decorative */}
