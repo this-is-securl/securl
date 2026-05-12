@@ -45,6 +45,8 @@ const Index = () => {
     signOut,
   } = useAuthSession();
 
+  const authScopeKey = authSession?.user.id ?? null;
+
   const {
     isLoading,
     scanStage,
@@ -66,7 +68,7 @@ const Index = () => {
     exportReport,
     exportMarkdown,
     exportPdf,
-  } = useScanWorkspace();
+  } = useScanWorkspace({ authScopeKey });
 
   const reportSections = analysisData
     ? buildReportWorkspaceSections({

@@ -30,6 +30,10 @@ export const useRecentScans = () => {
     });
   }, []);
 
+  const clearRecentScans = useCallback(() => {
+    setRecentScans([]);
+  }, []);
+
   return {
     recentScans,
     setRecentScans,
@@ -37,5 +41,6 @@ export const useRecentScans = () => {
     setActiveRecentScanUrl,
     loadRecentScans,
     addRecentScan,
+    clearRecentScans,
   };
 };

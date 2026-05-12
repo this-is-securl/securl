@@ -35,7 +35,7 @@ const scanLifecycleStages = [
 
 export type ScanLifecycleStage = (typeof scanLifecycleStages)[number];
 
-export const useScanWorkspace = () => {
+export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: string | null } = {}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null);
   const [activeReportSection, setActiveReportSection] = useState<ReportWorkspaceSectionKey>("overview");
@@ -52,6 +52,7 @@ export const useScanWorkspace = () => {
     setActiveRecentScanUrl,
     loadRecentScans,
     addRecentScan,
+    clearRecentScans,
   } = useRecentScans();
 
   const {
@@ -62,6 +63,7 @@ export const useScanWorkspace = () => {
     saveCurrentAsMonitored,
     removeMonitoredTarget,
     syncMonitoredTarget,
+    clearMonitoredTargets,
   } = useMonitoredTargets();
 
   const {
@@ -69,10 +71,18 @@ export const useScanWorkspace = () => {
     historyDiff,
     loadHistory,
     addHistorySnapshot,
+    clearHistoryState,
   } = useScanHistory();
 
   useEffect(() => {
     let cancelled = false;
+
+    setAnalysisData(null);
+    setActiveRecentScanUrl(null);
+    setActiveReportSection("overview");
+    clearRecentScans();
+    clearMonitoredTargets();
+    clearHistoryState();
 
     void (async () => {
       const [storedRecentScans, storedMonitoredTargets] = await Promise.all([
@@ -94,7 +104,17 @@ export const useScanWorkspace = () => {
     return () => {
       cancelled = true;
     };
-  }, [loadRecentScans, loadMonitoredTargets, loadHistory, setRecentScans, setMonitoredTargets]);
+  }, [
+    authScopeKey,
+    clearHistoryState,
+    clearMonitoredTargets,
+    clearRecentScans,
+    loadHistory,
+    loadMonitoredTargets,
+    loadRecentScans,
+    setMonitoredTargets,
+    setRecentScans,
+  ]);
 
   useEffect(() => {
     stageTimeoutsRef.current.forEach((timeout) => window.clearTimeout(timeout));

@@ -495,6 +495,55 @@ test("auth register, session, login, and logout flow works", async () => {
   }
 });
 
+test("auth registration does not reveal whether an email already exists", async () => {
+  const server = await startServer();
+
+  try {
+    const firstResponse = await registerUser(server.baseUrl, {
+      email: "repeat@example.com",
+      password: "correct horse battery staple",
+    });
+    assert.equal(firstResponse.status, 201);
+
+    const secondResponse = await registerUser(server.baseUrl, {
+      email: "repeat@example.com",
+      password: "correct horse battery staple",
+    });
+    const secondPayload = await secondResponse.json();
+    assert.equal(secondResponse.status, 400);
+    assert.equal(secondPayload.error, "Unable to create an account with those credentials.");
+  } finally {
+    await server.stop();
+  }
+});
+
+test("auth attempts are rate limited", async () => {
+  const server = await startServer({
+    AUTH_RATE_LIMIT_MAX_REQUESTS: "1",
+    AUTH_RATE_LIMIT_WINDOW_MS: "60000",
+  });
+
+  try {
+    const firstResponse = await loginUser(server.baseUrl, {
+      email: "nobody@example.com",
+      password: "correct horse battery staple",
+    });
+    const firstPayload = await firstResponse.json();
+    assert.equal(firstResponse.status, 401);
+    assert.match(firstPayload.error, /incorrect/i);
+
+    const secondResponse = await loginUser(server.baseUrl, {
+      email: "nobody@example.com",
+      password: "correct horse battery staple",
+    });
+    const secondPayload = await secondResponse.json();
+    assert.equal(secondResponse.status, 429);
+    assert.match(secondPayload.error, /too many authentication attempts/i);
+  } finally {
+    await server.stop();
+  }
+});
+
 test("authenticated sessions can own scan and monitoring resources without scan-owner headers", async () => {
   const server = await startServer();
 
