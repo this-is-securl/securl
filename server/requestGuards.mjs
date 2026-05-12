@@ -27,7 +27,7 @@ function shouldTrustForwardedHeaders(request, { isLocalHostname, isPrivateAddres
   return false;
 }
 
-function getClientIp(request, { trustProxy, isLocalHostname, isPrivateAddress }) {
+export function getClientIp(request, { trustProxy, isLocalHostname, isPrivateAddress }) {
   if (trustProxy && shouldTrustForwardedHeaders(request, { isLocalHostname, isPrivateAddress })) {
     const forwarded = request.headers["x-forwarded-for"];
     const candidate = Array.isArray(forwarded) ? forwarded[0] : forwarded;
@@ -56,7 +56,7 @@ function getPresentedScanOwner(request, scanOwnerHeader) {
   return typeof candidate === "string" ? candidate : "";
 }
 
-function getPresentedBearerToken(request) {
+export function getPresentedBearerToken(request) {
   const candidate = request.headers.authorization;
   const raw = Array.isArray(candidate) ? candidate[0] || "" : typeof candidate === "string" ? candidate : "";
   const match = raw.match(/^Bearer\s+(.+)$/i);

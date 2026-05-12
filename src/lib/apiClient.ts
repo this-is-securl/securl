@@ -20,6 +20,7 @@ import { SCAN_OWNER_KEY, STORAGE_SCHEMA_VERSION } from "@/lib/scanWorkspace";
 const DEFAULT_SCAN_POLL_ATTEMPTS = 120;
 const DEFAULT_SCAN_POLL_DELAY_MS = 1000;
 const AUTH_SESSION_KEY = "secure-header-insight:auth-session";
+let inMemoryAuthSession: StoredAuthSession | null = null;
 
 const normalizeBaseUrl = (value: string) => value.trim().replace(/\/+$/, "");
 
@@ -101,26 +102,55 @@ export interface StoredAuthSession {
   session: Omit<AuthSessionResponse["session"], "token">;
 }
 
-export const getStoredAuthSession = async () =>
-  readBrowserStorage<StoredAuthSession | null>(AUTH_SESSION_KEY, null, STORAGE_SCHEMA_VERSION);
+const readSessionStorageAuthSession = (): StoredAuthSession | null => {
+  if (typeof window === "undefined") {
+    return inMemoryAuthSession;
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(AUTH_SESSION_KEY);
+    if (!raw) {
+      return inMemoryAuthSession;
+    }
+
+    const parsed = JSON.parse(raw) as StoredAuthSession | null;
+    return parsed && parsed.token ? parsed : null;
+  } catch {
+    return inMemoryAuthSession;
+  }
+};
+
+const writeSessionStorageAuthSession = (value: StoredAuthSession | null) => {
+  inMemoryAuthSession = value;
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    if (value) {
+      window.sessionStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(value));
+    } else {
+      window.sessionStorage.removeItem(AUTH_SESSION_KEY);
+    }
+  } catch {
+    // Ignore sessionStorage failures and keep the in-memory fallback.
+  }
+};
+
+export const getStoredAuthSession = async () => readSessionStorageAuthSession();
 
 export const setStoredAuthSession = async (value: AuthSessionResponse) =>
-  writeBrowserStorage(
-    AUTH_SESSION_KEY,
-    {
-      token: value.session.token || "",
-      user: value.user,
-      session: {
-        createdAt: value.session.createdAt,
-        expiresAt: value.session.expiresAt,
-        ...(value.session.lastSeenAt ? { lastSeenAt: value.session.lastSeenAt } : {}),
-      },
+  writeSessionStorageAuthSession({
+    token: value.session.token || "",
+    user: value.user,
+    session: {
+      createdAt: value.session.createdAt,
+      expiresAt: value.session.expiresAt,
+      ...(value.session.lastSeenAt ? { lastSeenAt: value.session.lastSeenAt } : {}),
     },
-    STORAGE_SCHEMA_VERSION,
-  );
+  });
 
-export const clearStoredAuthSession = async () =>
-  writeBrowserStorage<StoredAuthSession | null>(AUTH_SESSION_KEY, null, STORAGE_SCHEMA_VERSION);
+export const clearStoredAuthSession = async () => writeSessionStorageAuthSession(null);
 
 const buildRequestAuthHeaders = async ({
   scanOwnerToken = null,
@@ -213,19 +243,15 @@ export const getAuthSession = async () => {
     return payload;
   }
   if (authSession?.token && payload.user && payload.session) {
-    await writeBrowserStorage(
-      AUTH_SESSION_KEY,
-      {
-        token: authSession.token,
-        user: payload.user,
-        session: {
-          createdAt: payload.session.createdAt,
-          expiresAt: payload.session.expiresAt,
-          ...(payload.session.lastSeenAt ? { lastSeenAt: payload.session.lastSeenAt } : {}),
-        },
+    writeSessionStorageAuthSession({
+      token: authSession.token,
+      user: payload.user,
+      session: {
+        createdAt: payload.session.createdAt,
+        expiresAt: payload.session.expiresAt,
+        ...(payload.session.lastSeenAt ? { lastSeenAt: payload.session.lastSeenAt } : {}),
       },
-      STORAGE_SCHEMA_VERSION,
-    );
+    });
   }
   return payload;
 };

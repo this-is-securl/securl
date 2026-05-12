@@ -33,10 +33,16 @@ export const useScanHistory = () => {
     }
   }, []);
 
+  const clearHistoryState = useCallback(() => {
+    setHistory([]);
+    setHistoryDiff(null);
+  }, []);
+
   return {
     history,
     historyDiff,
     loadHistory,
     addHistorySnapshot,
+    clearHistoryState,
   };
 };

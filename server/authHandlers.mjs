@@ -84,6 +84,32 @@ function validateCredentials({ email, password }) {
   };
 }
 
+async function checkAuthAttemptRateLimit({
+  request,
+  response,
+  requestPath,
+  sendRateLimited,
+  getClientIp,
+  authRateLimiter,
+  trustProxy,
+  isLocalHostname,
+  isPrivateAddress,
+  emailScope = "unknown",
+}) {
+  if (!authRateLimiter) {
+    return true;
+  }
+
+  const clientIp = getClientIp(request, { trustProxy, isLocalHostname, isPrivateAddress }) || "unknown";
+  const rateLimitState = await authRateLimiter.check(`auth:${clientIp}:${emailScope}`);
+  if (!rateLimitState.limited) {
+    return true;
+  }
+
+  sendRateLimited(response, rateLimitState.retryAfterSeconds, "Too many authentication attempts. Please try again later.");
+  return false;
+}
+
 export async function resolveAuthenticatedSession({
   token,
   scanRepository,
@@ -121,9 +147,15 @@ export async function handleAuthRequest({
   scanRepository,
   readJsonBody,
   sendJson,
+  sendRateLimited,
   sendMethodNotAllowed,
   sendRepositoryUnavailable,
   authTokenFingerprintSalt,
+  authRateLimiter,
+  getClientIp,
+  trustProxy,
+  isLocalHostname,
+  isPrivateAddress,
 }) {
   if (requestUrl.pathname === "/api/auth/register") {
     if (request.method !== "POST") {
@@ -139,9 +171,25 @@ export async function handleAuthRequest({
         return;
       }
 
+      const authAttemptAllowed = await checkAuthAttemptRateLimit({
+        request,
+        response,
+        requestPath: requestUrl.pathname,
+        sendRateLimited,
+        getClientIp,
+        authRateLimiter,
+        trustProxy,
+        isLocalHostname,
+        isPrivateAddress,
+        emailScope: credentials.email,
+      });
+      if (!authAttemptAllowed) {
+        return;
+      }
+
       const existing = await scanRepository.getUserByEmail(credentials.email);
       if (existing) {
-        sendJson(response, 409, { error: "An account already exists for that email address." });
+        sendJson(response, 400, { error: "Unable to create an account with those credentials." });
         return;
       }
 
@@ -153,7 +201,7 @@ export async function handleAuthRequest({
       });
 
       if (!user) {
-        sendJson(response, 409, { error: "An account already exists for that email address." });
+        sendJson(response, 400, { error: "Unable to create an account with those credentials." });
         return;
       }
 
@@ -186,6 +234,22 @@ export async function handleAuthRequest({
       const credentials = validateCredentials(body);
       if ("error" in credentials) {
         sendJson(response, 400, { error: credentials.error });
+        return;
+      }
+
+      const authAttemptAllowed = await checkAuthAttemptRateLimit({
+        request,
+        response,
+        requestPath: requestUrl.pathname,
+        sendRateLimited,
+        getClientIp,
+        authRateLimiter,
+        trustProxy,
+        isLocalHostname,
+        isPrivateAddress,
+        emailScope: credentials.email,
+      });
+      if (!authAttemptAllowed) {
         return;
       }
 

@@ -43,6 +43,10 @@ export const useMonitoredTargets = () => {
     setMonitoredTargets(payload.targets);
   }, []);
 
+  const clearMonitoredTargets = useCallback(() => {
+    setMonitoredTargets([]);
+  }, []);
+
   return {
     monitoredTargets,
     setMonitoredTargets,
@@ -51,5 +55,6 @@ export const useMonitoredTargets = () => {
     saveCurrentAsMonitored,
     removeMonitoredTarget,
     syncMonitoredTarget,
+    clearMonitoredTargets,
   };
 };
