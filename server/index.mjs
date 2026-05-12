@@ -4,7 +4,13 @@ import { fileURLToPath, URL } from "node:url";
 import { createCorsPolicy, resolveAllowedOrigins } from "./cors.mjs";
 import { createRateLimiter } from "./rateLimiter.mjs";
 import { sendJson, sendMethodNotAllowed, sendRateLimited } from "./httpResponses.mjs";
-import { createRequestGuards, getRequestedScanMode, normalizeScanErrorMessage, readJsonBody } from "./requestGuards.mjs";
+import {
+  createRequestGuards,
+  getClientIp,
+  getRequestedScanMode,
+  normalizeScanErrorMessage,
+  readJsonBody,
+} from "./requestGuards.mjs";
 import {
   buildMonitoringTargetDetailPayload,
   buildMonitoringTargetView,
@@ -48,6 +54,8 @@ const DEFAULT_TARGET_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const DEFAULT_TARGET_RATE_LIMIT_MAX_REQUESTS = 10;
 const DEFAULT_ABUSE_ALERT_WINDOW_MS = 10 * 60 * 1000;
 const DEFAULT_ABUSE_ALERT_THRESHOLD = 25;
+const DEFAULT_AUTH_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const DEFAULT_AUTH_RATE_LIMIT_MAX_REQUESTS = 8;
 const RATE_LIMIT_MAX_BUCKETS = 20000;
 const configuredRateLimitBackend = (process.env.RATE_LIMIT_BACKEND || "").trim().toLowerCase();
 const rateLimitBackend = configuredRateLimitBackend || (deploymentMode === "multi-instance" ? "upstash" : "in-memory");
@@ -96,6 +104,20 @@ const ABUSE_ALERT_THRESHOLD = (() => {
   const raw = Number(process.env.ABUSE_ALERT_THRESHOLD || DEFAULT_ABUSE_ALERT_THRESHOLD);
   if (!Number.isFinite(raw) || raw < 1) {
     return DEFAULT_ABUSE_ALERT_THRESHOLD;
+  }
+  return Math.floor(raw);
+})();
+const AUTH_RATE_LIMIT_WINDOW_MS = (() => {
+  const raw = Number(process.env.AUTH_RATE_LIMIT_WINDOW_MS || DEFAULT_AUTH_RATE_LIMIT_WINDOW_MS);
+  if (!Number.isFinite(raw) || raw < 1000) {
+    return DEFAULT_AUTH_RATE_LIMIT_WINDOW_MS;
+  }
+  return Math.floor(raw);
+})();
+const AUTH_RATE_LIMIT_MAX_REQUESTS = (() => {
+  const raw = Number(process.env.AUTH_RATE_LIMIT_MAX_REQUESTS || DEFAULT_AUTH_RATE_LIMIT_MAX_REQUESTS);
+  if (!Number.isFinite(raw) || raw < 1) {
+    return DEFAULT_AUTH_RATE_LIMIT_MAX_REQUESTS;
   }
   return Math.floor(raw);
 })();
@@ -155,6 +177,17 @@ const targetRateLimiter = createRateLimiter({
   upstashUrl: upstashRestUrl,
   upstashToken: upstashRestToken,
   prefix: "epi:rate-limit:target",
+  log,
+});
+
+const authRateLimiter = createRateLimiter({
+  backend: rateLimitBackend,
+  windowMs: AUTH_RATE_LIMIT_WINDOW_MS,
+  maxRequests: AUTH_RATE_LIMIT_MAX_REQUESTS,
+  maxBuckets: RATE_LIMIT_MAX_BUCKETS,
+  upstashUrl: upstashRestUrl,
+  upstashToken: upstashRestToken,
+  prefix: "epi:rate-limit:auth",
   log,
 });
 
@@ -280,9 +313,15 @@ const server = http.createServer(async (request, response) => {
       scanRepository,
       readJsonBody,
       sendJson: sendApiJson,
+      sendRateLimited: sendApiRateLimited,
       sendMethodNotAllowed: sendApiMethodNotAllowed,
       sendRepositoryUnavailable: sendApiRepositoryUnavailable,
       authTokenFingerprintSalt: AUTH_TOKEN_FINGERPRINT_SALT,
+      authRateLimiter,
+      getClientIp,
+      trustProxy,
+      isLocalHostname,
+      isPrivateAddress,
     });
     return;
   }

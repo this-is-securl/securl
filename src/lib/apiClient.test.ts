@@ -8,8 +8,24 @@ vi.mock("@/lib/browserStorage", () => ({
 
 describe("api client URL helpers", () => {
   beforeEach(() => {
+    const sessionStore = new Map<string, string>();
+    vi.stubGlobal("window", {
+      sessionStorage: {
+        getItem: (key: string) => sessionStore.get(key) ?? null,
+        setItem: (key: string, value: string) => {
+          sessionStore.set(key, value);
+        },
+        removeItem: (key: string) => {
+          sessionStore.delete(key);
+        },
+        clear: () => {
+          sessionStore.clear();
+        },
+      },
+    });
     vi.resetModules();
     vi.clearAllMocks();
+    window.sessionStorage.clear();
   });
 
   it("normalizes configured API base URLs", async () => {
@@ -114,21 +130,19 @@ describe("api client URL helpers", () => {
   });
 
   it("prefers bearer auth over scan-owner headers when a stored session exists", async () => {
-    const browserStorage = await import("@/lib/browserStorage");
-    vi.mocked(browserStorage.readBrowserStorage)
-      .mockResolvedValueOnce({
-        token: "session-token-123",
-        user: {
-          id: "user-1",
-          email: "keith@example.com",
-          displayName: "Keith",
-          createdAt: "2026-05-12T00:00:00.000Z",
-        },
-        session: {
-          createdAt: "2026-05-12T00:00:00.000Z",
-          expiresAt: "2026-06-12T00:00:00.000Z",
-        },
-      });
+    window.sessionStorage.setItem("secure-header-insight:auth-session", JSON.stringify({
+      token: "session-token-123",
+      user: {
+        id: "user-1",
+        email: "keith@example.com",
+        displayName: "Keith",
+        createdAt: "2026-05-12T00:00:00.000Z",
+      },
+      session: {
+        createdAt: "2026-05-12T00:00:00.000Z",
+        expiresAt: "2026-06-12T00:00:00.000Z",
+      },
+    }));
 
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ targets: [] }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
