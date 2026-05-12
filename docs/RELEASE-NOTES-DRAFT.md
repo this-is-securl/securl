@@ -1,7 +1,10 @@
-# Release Notes Draft (Next Version)
+# Release Notes — app 0.9.0 / core 0.8.1
 
 ## Highlights
 
+- **Premium SVG ring gauge** replaces the flat score badge throughout the report workspace and scan-input page. The ring fills to the exact score percentage with a grade-coloured stroke (green A/A+, blue B, amber C, orange D, red F, slate U) and a restrained radial glow — data-forward, not decorative.
+- **Stronger typography hierarchy** — section eyebrows, stat-tile numerals, card titles, and category bars have all been tuned for clearer visual weight and breathing room.
+- **Cleaner PDF export** — inconsistent footer text removed; Section 06 (Technical Details) now stacks its cards in a single column instead of an awkward two-column grid.
 - Recalibrated the overall security grade so it reflects weighted posture areas, not just the older header/TLS/cookie hardening baseline.
 - Added passive infrastructure inference for likely cloud, CDN, edge, PaaS, and hosting providers.
 - Reduced scan burstiness with bounded concurrency across CT sampling, crawl checks, and OSV detail lookups.
@@ -12,6 +15,20 @@
 - Completed dependency maintenance and PR backlog cleanup for current `main`.
 
 ## What Changed
+
+### Report workspace UI (app 0.9.0)
+
+- Replaced flat score badge with a 168 px SVG ring gauge using `stroke-dashoffset` fill and per-grade colour tokens (`GRADE_PALETTE`). Applies to both `OverviewSection` (workspace) and `SecurityGrade` (scan-input card).
+- Grade letter renders at `text-6xl font-bold` (single-char) or `text-5xl` (two-char, e.g. A+); score at `text-sm font-medium text-slate-400`.
+- Section eyebrows standardised at `text-[11px] tracking-[0.18em]`; stat-tile numerals at `text-[2rem] font-bold tracking-[-0.04em]`; card titles at `text-xl font-semibold tracking-[-0.02em]`.
+- Category bar height reduced from `h-2` → `h-1.5` for a lighter read.
+- Card padding and row gap increased throughout `OverviewSection` for better breathing room.
+- `SecurityGrade` card border now uses grade-specific `borderColor` token from `GRADE_PALETTE`.
+
+### PDF report export
+
+- Removed per-page footer text that appeared inconsistently across pages.
+- Section 06 (Technical Details) changed from `.two-col` grid to `.stacked-cards` single-column layout; sections 05, 07, 08 retain two-column.
 
 ### UX and report clarity
 
@@ -47,10 +64,15 @@
 
 ## Validation
 
-- `npm run build`
-- `npm run test:core`
-- `npm run test:app:unit`
-- `npm run test:server`
+- `npm run build` — clean
+- `npm run test:core` — passing
+- `npm run test:app:unit` — 39/39 passing
+- `npm run test:server` — passing
+- Live UX sign-off at app.securl.online (1280 / 1024 / 768 / 390 px):
+  - ek.co → D / 69 — orange ring ✅
+  - bbc.co.uk → C / 77 — amber ring, category bars, export buttons ✅
+  - github.com → C / 74 — clean layout ✅
+  - wsj.com → U / 26 — slate ring, assessment-limited banner ✅
 
 ## Follow-ups
 

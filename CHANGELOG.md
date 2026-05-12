@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-05-11 — app 0.9.0
+
+### Changed
+
+- Replaced the flat score badge with a full SVG ring gauge (168 px, grade-coloured stroke, `stroke-dashoffset` fill) across both the report workspace `OverviewSection` and the `SecurityGrade` card used on the scan-input page.  Ring colour matches the per-grade palette (green A/A+, blue B, amber C, orange D, red F, slate U).
+- Strengthened typography hierarchy throughout the report workspace: section eyebrows at `text-[11px]` tracking `0.18 em`, stat-tile numerals at `text-[2rem] font-bold tracking-[-0.04em]`, card titles at `text-xl font-semibold tracking-[-0.02em]`.
+- Increased card padding, row gaps, and breathing room across `OverviewSection` stat tiles, scan-fact tiles, and category-bar cards.
+- Reduced category bar height from `h-2` to `h-1.5` for a lighter data-forward feel.
+- Removed inconsistent per-page footer text from the PDF report export.
+- Changed Section 06 (Technical Details) in the PDF export from a two-column grid to a single stacked column so the six detail cards read without awkward overflow.
+
+### Verified
+
+- `npm run build` — clean
+- `npm run test:app:unit` — 39/39 passing
+- Live UX sign-off pass at app.securl.online:
+  - ek.co → D / 69 (amber ring)
+  - bbc.co.uk → C / 77 (amber ring, category bars, export buttons)
+  - github.com → C / 74 (clean layout)
+  - wsj.com → U / 26 (slate ring, assessment-limited banner)
+- Responsive: 1280 / 1024 / 768 / 390 px — all layouts pass
+
 ## 2026-04-25
 
 ### Added
