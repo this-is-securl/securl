@@ -522,6 +522,64 @@ export const buildMarkdownReport = (analysis: AnalysisResult, diff: HistoryDiff 
   ].join("\n");
 };
 
+const findingSoWhat = (title: string): string => {
+  const t = title.toLowerCase();
+  if (t.includes("coop") || t.includes("cross-origin opener"))
+    return "Without this control, cross-origin pages can retain a reference to this window and extract data via timing channels.";
+  if (t.includes("coep") || t.includes("cross-origin embedder"))
+    return "Without this control, cross-origin resources load without explicit permission, weakening browser process isolation.";
+  if (t.includes("corp") || t.includes("cross-origin resource policy"))
+    return "Without CORP, cross-origin pages can embed resources from this origin and probe their contents via side-channels.";
+  if (t.includes("dnssec"))
+    return "Without DNSSEC, spoofed DNS responses can silently redirect users to attacker-controlled infrastructure.";
+  if (t.includes("content security policy") || t.includes("csp"))
+    return "Without a policy, the browser cannot restrict which scripts execute, making XSS exploitation significantly easier.";
+  if (t.includes("security.txt"))
+    return "Without it, security researchers have no standard path to report vulnerabilities, slowing response time.";
+  if (t.includes("hsts") || t.includes("strict-transport"))
+    return "Without HSTS, browsers may accept plain HTTP responses, leaving users exposed to SSL-stripping attacks.";
+  if (t.includes("x-frame") || t.includes("framing") || t.includes("clickjack"))
+    return "Without framing controls, this page can be embedded in attacker-controlled iframes, enabling clickjacking.";
+  if (t.includes("referrer") || t.includes("referrer-policy"))
+    return "Without a restrictive policy, full URLs with sensitive parameters leak to third-party requests in the Referer header.";
+  if (t.includes("permissions-policy") || t.includes("feature-policy"))
+    return "Without it, embedded content can silently request sensitive browser APIs such as camera and microphone.";
+  if (t.includes("x-content-type") || t.includes("mime") || t.includes("sniff"))
+    return "Without this header, browsers may execute mistyped responses as scripts, enabling content-type confusion attacks.";
+  if (t.includes("cookie") || t.includes("samesite") || t.includes("same-site"))
+    return "Without SameSite enforcement, session cookies are sent on cross-site requests, enabling CSRF-style attacks.";
+  if (t.includes("dmarc"))
+    return "Without an enforced DMARC policy, spoofed emails using this domain can reach inboxes unchecked.";
+  if (t.includes("spf"))
+    return "Without SPF, any mail server can claim to send from this domain, enabling phishing and spoofed communications.";
+  if (t.includes("mta-sts") || t.includes("mta sts"))
+    return "Without MTA-STS, mail transit can be downgraded to plain text, exposing messages to interception.";
+  if (t.includes("caa"))
+    return "Without CAA records, any certificate authority can issue certificates for this domain, enabling impersonation.";
+  if (t.includes("takeover") || t.includes("dangling"))
+    return "A dangling subdomain can be claimed by an attacker to serve content under your domain.";
+  if (t.includes("disclosure") || t.includes("server header") || t.includes("version leak"))
+    return "Exposed version or configuration details reduce the reconnaissance effort needed for a targeted exploit.";
+  if (t.includes("api") || t.includes("endpoint"))
+    return "Unintentionally exposed API paths increase the attack surface available to unauthenticated external parties.";
+  if (t.includes("third-party") || t.includes("third party"))
+    return "Third-party scripts load with full page permissions — a compromised vendor is a direct path to data theft.";
+  if (t.includes("tls") || t.includes("ssl") || t.includes("certificate"))
+    return "Weak transport configuration exposes connections to downgrade and interception attacks.";
+  return "This finding reduces external security posture and should be reviewed against the operational risk appetite.";
+};
+
+const isCleanTechName = (name: string): boolean =>
+  !name.includes("'") && !name.includes("<") && !name.includes(">") &&
+  !name.toUpperCase().includes("DELETE") && !name.toUpperCase().includes(" FROM ") &&
+  !name.includes("--") && !name.includes("/*") && !name.includes("*/");
+
+const truncateRecord = (value: string | null | undefined, max = 72): string => {
+  if (!value) return "—";
+  const s = String(value);
+  return s.length > max ? s.slice(0, max - 1).trimEnd() + "…" : s;
+};
+
 export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | null = null) => {
   const areas = getAreaScores(analysis);
   const priorityActions = getPriorityActions(analysis);
@@ -652,6 +710,7 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
           <h3 class="finding-title">${escapeHtml(issue.title)}</h3>
           ${severityBadge(issue.severity)}
         </div>
+        <p class="finding-consequence">${escapeHtml(findingSoWhat(issue.title))}</p>
         <p class="finding-body">${escapeHtml(issue.detail)}</p>
         ${tags ? `<div class="tag-row">${tags}</div>` : ""}
       </div>`;
@@ -923,6 +982,34 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
     /* ─ STACKED CARDS (single-column variant of two-col) ────────────────── */
     .stacked-cards { display: flex; flex-direction: column; gap: 14px; }
 
+    /* ─ COVER STATS ──────────────────────────────────────────────────────── */
+    .cover-stats {
+      display: flex; align-items: stretch; gap: 0;
+      border: 1px solid var(--cv-border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .cs-pill { padding: 13px 20px; text-align: center; flex: 1; }
+    .cs-sep  { width: 1px; background: var(--cv-border); flex-shrink: 0; }
+    .cs-val  { font-size: 20px; font-weight: 800; color: var(--cv-text); letter-spacing: -0.03em; line-height: 1; margin-bottom: 4px; }
+    .cs-key  { font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--cv-muted); }
+
+    /* ─ FINDING CONSEQUENCE ──────────────────────────────────────────────── */
+    .finding-consequence { font-size: 13px; color: var(--text-2); line-height: 1.5; margin-bottom: 5px; }
+    .finding-body        { font-size: 12px; color: var(--muted); line-height: 1.5; font-style: italic; }
+
+    /* ─ KV TABLE (appendix detail cards) ────────────────────────────────── */
+    .kv-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 2px; }
+    .kv-table td { padding: 6px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .kv-table tr:last-child td { border-bottom: none; }
+    .kv-key { color: var(--muted); font-weight: 600; white-space: nowrap; padding-right: 16px; width: 1%; }
+    .kv-val { color: var(--text-2); font-family: ui-monospace, 'SF Mono', monospace; font-size: 11.5px; word-break: break-all; }
+    .kv-val-prose { color: var(--text-2); font-size: 13px; }
+
+    /* ─ APPENDIX SECTION ─────────────────────────────────────────────────── */
+    .appendix-note { font-size: 12px; color: var(--muted); margin-top: 6px; font-style: italic; }
+
     /* Responsive collapse — screen only, never fires during print */
     @media screen and (max-width: 680px) {
       .priority-grid, .findings-grid, .two-col { grid-template-columns: 1fr; }
@@ -973,6 +1060,27 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
     </div>
     <div class="cover-url">${escapeHtml(analysis.finalUrl)}</div>
     <p class="cover-verdict">${escapeHtml(analysis.executiveSummary.mainRisk)}</p>
+    <div class="cover-stats">
+      <div class="cs-pill">
+        <div class="cs-val">${priorityActions.length}</div>
+        <div class="cs-key">Priority Actions</div>
+      </div>
+      <div class="cs-sep"></div>
+      <div class="cs-pill">
+        <div class="cs-val">${analysis.issues.length}</div>
+        <div class="cs-key">Findings</div>
+      </div>
+      <div class="cs-sep"></div>
+      <div class="cs-pill">
+        <div class="cs-val">${areas.length}</div>
+        <div class="cs-key">Areas Assessed</div>
+      </div>
+      <div class="cs-sep"></div>
+      <div class="cs-pill">
+        <div class="cs-val">${escapeHtml(weakestAreas[0]?.label ?? "—")}</div>
+        <div class="cs-key">Needs Most Work</div>
+      </div>
+    </div>
   </main>
 
   <footer class="cover-foot">
@@ -1077,8 +1185,9 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
 <!-- ══ 06 TECHNICAL DETAILS ═════════════════════════════════════════════════ -->
 <div class="rpage">
   <div class="section-head">
-    <div class="eyebrow">06 — Technical Details</div>
-    <h2 class="section-title">Evidence for the security team</h2>
+    <div class="eyebrow">APPENDIX · 06 — Technical Details</div>
+    <h2 class="section-title">Evidence record</h2>
+    <p class="appendix-note">Complete technical evidence for the security team. All observations are passive and unauthenticated.</p>
   </div>
 
   <div style="margin-bottom:20px">
@@ -1093,26 +1202,33 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
   <div class="stacked-cards">
     <div class="info-card">
       <div class="info-title">Domain &amp; Email Trust</div>
-      <p>SPF: ${escapeHtml(analysis.domainSecurity.spf ?? "Not found")}</p>
-      <p>DMARC: ${escapeHtml(analysis.domainSecurity.dmarc ?? "Not found")}</p>
-      <p>DNSSEC: ${escapeHtml(analysis.domainSecurity.dnssec.status)}</p>
-      <p>MX records: ${analysis.domainSecurity.mxRecords.length}</p>
-      <p>CAA records: ${analysis.domainSecurity.caaRecords.length}</p>
-      <div class="note-box">${escapeHtml(disclosure.summary)}</div>
+      <table class="kv-table">
+        <tr><td class="kv-key">SPF</td><td class="kv-val">${escapeHtml(truncateRecord(analysis.domainSecurity.spf, 80))}</td></tr>
+        <tr><td class="kv-key">DMARC</td><td class="kv-val">${escapeHtml(truncateRecord(analysis.domainSecurity.dmarc, 80))}</td></tr>
+        <tr><td class="kv-key">DNSSEC</td><td class="kv-val-prose">${escapeHtml(analysis.domainSecurity.dnssec.status)}</td></tr>
+        <tr><td class="kv-key">MX records</td><td class="kv-val-prose">${analysis.domainSecurity.mxRecords.length ? String(analysis.domainSecurity.mxRecords.length) : "None observed"}</td></tr>
+        <tr><td class="kv-key">CAA records</td><td class="kv-val-prose">${analysis.domainSecurity.caaRecords.length ? String(analysis.domainSecurity.caaRecords.length) : "None observed"}</td></tr>
+      </table>
+      <div class="note-box" style="margin-top:12px">${escapeHtml(disclosure.summary)}</div>
     </div>
     <div class="info-card">
       <div class="info-title">Certificate Transparency</div>
-      <p>${escapeHtml(analysis.ctDiscovery.coverageSummary)}</p>
-      <p style="margin-top:8px">Subdomains: ${analysis.ctDiscovery.subdomains.length}</p>
-      <p>Wildcard entries: ${analysis.ctDiscovery.wildcardEntries.length}</p>
-      <ul style="margin-top:10px;font-size:13px;color:var(--muted)">${ctHtml}</ul>
+      <table class="kv-table">
+        <tr><td class="kv-key">Coverage</td><td class="kv-val-prose">${escapeHtml(analysis.ctDiscovery.coverageSummary)}</td></tr>
+        <tr><td class="kv-key">Subdomains</td><td class="kv-val-prose">${analysis.ctDiscovery.subdomains.length || "None recorded"}</td></tr>
+        <tr><td class="kv-key">Wildcards</td><td class="kv-val-prose">${analysis.ctDiscovery.wildcardEntries.length || "None"}</td></tr>
+      </table>
+      ${analysis.ctDiscovery.subdomains.length ? `
+        <ul style="margin-top:12px;font-size:13px;color:var(--muted)">${ctHtml}</ul>
+      ` : `<p class="p-muted" style="margin-top:10px">No CT-discovered subdomains were recorded on this scan.</p>`}
     </div>
     <div class="info-card">
       <div class="info-title">Third-Party Providers</div>
-      <table class="data-table">
-        <thead><tr><th>Name</th><th>Category</th><th>Domain</th><th>Risk</th></tr></thead>
-        <tbody>${thirdPartyRows}</tbody>
-      </table>
+      ${analysis.thirdPartyTrust.providers.length ? `
+        <table class="data-table">
+          <thead><tr><th>Name</th><th>Category</th><th>Domain</th><th>Risk</th></tr></thead>
+          <tbody>${thirdPartyRows}</tbody>
+        </table>` : `<p class="p-muted">No third-party providers were observed loading on this scan.</p>`}
     </div>
     <div class="info-card">
       <div class="info-title">WAF &amp; Edge</div>
@@ -1124,16 +1240,21 @@ export const buildHtmlReport = (analysis: AnalysisResult, diff: HistoryDiff | nu
     </div>
     <div class="info-card">
       <div class="info-title">AI &amp; Automation Surface</div>
-      <p>${escapeHtml(aiSummary)}</p>
-      <p style="margin-top:6px">Detected: ${analysis.aiSurface.detected ? "Yes" : "No"} · Assistant visible: ${analysis.aiSurface.assistantVisible ? "Yes" : "No"}</p>
-      ${analysis.aiSurface.vendors.length ? `<p style="margin-top:6px">Vendors: ${escapeHtml(analysis.aiSurface.vendors.map((v) => v.name).join(", "))}</p>` : ""}
+      <table class="kv-table">
+        <tr><td class="kv-key">Classification</td><td class="kv-val-prose">${escapeHtml(aiSummary)}</td></tr>
+        <tr><td class="kv-key">Detected</td><td class="kv-val-prose">${analysis.aiSurface.detected ? "Yes" : "No signal observed"}</td></tr>
+        <tr><td class="kv-key">Assistant visible</td><td class="kv-val-prose">${analysis.aiSurface.assistantVisible ? "Yes" : "No"}</td></tr>
+        ${analysis.aiSurface.vendors.length ? `<tr><td class="kv-key">Vendors</td><td class="kv-val-prose">${escapeHtml(analysis.aiSurface.vendors.map((v) => v.name).join(", "))}</td></tr>` : ""}
+      </table>
     </div>
     <div class="info-card">
       <div class="info-title">Detected Stack</div>
-      ${analysis.technologies.length ? `
-        <ul style="padding-left:16px">
-          ${analysis.technologies.map((t) => `<li style="font-size:13px;color:var(--muted)"><strong style="color:var(--text-2)">${escapeHtml(t.name)}</strong> — ${escapeHtml(t.category)}, ${escapeHtml(t.confidence)} confidence</li>`).join("")}
-        </ul>` : `<p class="p-muted">No stack signals recorded.</p>`}
+      ${(() => {
+        const cleanTechs = analysis.technologies.filter((t) => isCleanTechName(t.name));
+        return cleanTechs.length
+          ? `<ul style="padding-left:16px">${cleanTechs.map((t) => `<li style="font-size:13px;color:var(--muted)"><strong style="color:var(--text-2)">${escapeHtml(t.name)}</strong> — ${escapeHtml(t.category)}, ${escapeHtml(t.confidence)} confidence</li>`).join("")}</ul>`
+          : `<p class="p-muted">No stack signals were recorded from this scan.</p>`;
+      })()}
     </div>
   </div>
   ${pageFooter}
