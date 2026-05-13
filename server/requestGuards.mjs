@@ -59,8 +59,15 @@ function getPresentedScanOwner(request, scanOwnerHeader) {
 export function getPresentedBearerToken(request) {
   const candidate = request.headers.authorization;
   const raw = Array.isArray(candidate) ? candidate[0] || "" : typeof candidate === "string" ? candidate : "";
-  const match = raw.match(/^Bearer\s+(.+)$/i);
-  return match?.[1]?.trim() || "";
+  const trimmed = raw.trim();
+  const separatorIndex = trimmed.indexOf(" ");
+  if (separatorIndex < 0) {
+    return "";
+  }
+
+  const scheme = trimmed.slice(0, separatorIndex);
+  const token = trimmed.slice(separatorIndex + 1).trim();
+  return scheme.toLowerCase() === "bearer" ? token : "";
 }
 
 async function tokenFingerprint(token, apiKeyFingerprintSalt) {

@@ -4,10 +4,12 @@ import type {
   AuthStatusResponse,
   ApiMonitoringTarget,
   ApiScanRecord,
+  ApiScanSummary,
   CreateScanResponse,
   GetScanResponse,
   MonitoringTargetResponse,
   MonitoringTargetsResponse,
+  ScansResponse,
   ScanEvidenceResponse,
   ScanFindingsResponse,
   ScanHistoryResponse,
@@ -333,6 +335,14 @@ export const analyzeTarget = async (url: string, setMode: "standard" | "quiet" =
     throw new ApiClientError("Unexpected scan result shape received from server.", 500, completedScan);
   }
   return completedScan.result;
+};
+
+export const getRecentScanSummaries = async (limit = 10): Promise<ApiScanSummary[]> => {
+  const response = await fetch(buildApiUrl(`/api/scans?limit=${encodeURIComponent(String(limit))}`), {
+    headers: await buildRequestAuthHeaders({ requireScanOwner: true }),
+  });
+  const payload = await readJsonResponse<ScansResponse>(response);
+  return payload.scans;
 };
 
 export const getTargetHistory = async (url: string) => {
