@@ -244,6 +244,7 @@ async function analyzeUrlCore(input: string | URL, options: AnalyzeTargetOptions
       } catch (fallbackError) {
         throw new Error(
           `HTTPS failed and the site did not respond cleanly over HTTP either: ${formatErrorMessage(fallbackError)}`,
+          { cause: fallbackError },
         );
       }
     } else {
