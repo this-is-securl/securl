@@ -1,8 +1,8 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const expectedApiBaseUrl =
-  process.env.HOSTINGER_API_BASE_URL || "https://securl-app-production.up.railway.app";
+const expectedApiBaseUrl = "https://securl-app-production.up.railway.app";
+const expectedApiBaseUrlBytes = Buffer.from(expectedApiBaseUrl, "utf8");
 const distDir = new URL("../dist/", import.meta.url);
 const assetsDir = new URL("../dist/assets/", import.meta.url);
 
@@ -27,7 +27,7 @@ const filesToCheck = [
 ];
 
 const containsExpectedApiBase = filesToCheck.some((filename) =>
-  readFileSync(filename, "utf8").includes(expectedApiBaseUrl),
+  readFileSync(filename).includes(expectedApiBaseUrlBytes),
 );
 
 if (!containsExpectedApiBase) {
