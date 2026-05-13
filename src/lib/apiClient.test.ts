@@ -156,4 +156,54 @@ describe("api client URL helpers", () => {
     });
     expect("X-Scan-Owner" in options.headers).toBe(false);
   });
+
+  it("loads recent scan summaries through the authenticated account scope", async () => {
+    window.sessionStorage.setItem("secure-header-insight:auth-session", JSON.stringify({
+      token: "session-token-123",
+      user: {
+        id: "user-1",
+        email: "keith@example.com",
+        displayName: "Keith",
+        createdAt: "2026-05-12T00:00:00.000Z",
+      },
+      session: {
+        createdAt: "2026-05-12T00:00:00.000Z",
+        expiresAt: "2026-06-12T00:00:00.000Z",
+      },
+    }));
+
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      scans: [
+        {
+          id: "scan-1",
+          status: "completed",
+          url: "https://example.com/",
+          mode: "standard",
+          requestedAt: "2026-05-12T00:00:00.000Z",
+          startedAt: "2026-05-12T00:00:01.000Z",
+          completedAt: "2026-05-12T00:00:02.000Z",
+          failureClass: null,
+          error: null,
+          score: 73,
+          grade: "C",
+          limited: false,
+          limitedKind: null,
+          title: "Example",
+          mainRisk: "Risk",
+          findingsCount: 3,
+        },
+      ],
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { getRecentScanSummaries } = await import("./apiClient");
+    const scans = await getRecentScanSummaries();
+
+    expect(scans).toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledWith("/api/scans?limit=10", {
+      headers: {
+        Authorization: "Bearer session-token-123",
+      },
+    });
+  });
 });

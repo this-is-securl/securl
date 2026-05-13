@@ -53,7 +53,7 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
     loadRecentScans,
     addRecentScan,
     clearRecentScans,
-  } = useRecentScans();
+  } = useRecentScans({ accountOwned: Boolean(authScopeKey) });
 
   const {
     monitoredTargets,
@@ -112,6 +112,7 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
     loadHistory,
     loadMonitoredTargets,
     loadRecentScans,
+    setActiveRecentScanUrl,
     setMonitoredTargets,
     setRecentScans,
   ]);

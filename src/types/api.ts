@@ -57,6 +57,10 @@ export interface GetScanResponse {
   scan: ApiScanRecord;
 }
 
+export interface ScansResponse {
+  scans: ApiScanSummary[];
+}
+
 export interface ScanSummaryResponse {
   summary: ApiScanSummary;
 }
