@@ -75,7 +75,6 @@ const parseArgs = (argv: string[]): ParsedArgs => {
   let format: OutputFormat = "summary";
   let outputPath: string | null = null;
   let baselinePath: string | null = null;
-  let currentPath: string | null = null;
   let failOnSeverity: FailOnSeverity | null = null;
   let failOnRegression = false;
   let failIfScoreBelow: number | null = null;
@@ -181,15 +180,15 @@ const parseArgs = (argv: string[]): ParsedArgs => {
     };
   }
 
-  [currentPath, baselinePath] = positionals;
-  if (!currentPath || !baselinePath) {
+  const [currentPath, compareBaselinePath] = positionals;
+  if (!currentPath || !compareBaselinePath) {
     throw new Error("Missing report paths. Usage: external-posture-insight compare <current-report.json> <baseline-report.json>");
   }
 
   return {
     command: "compare",
     currentPath,
-    baselinePath,
+    baselinePath: compareBaselinePath,
     format,
     outputPath,
     failOnSeverity,
