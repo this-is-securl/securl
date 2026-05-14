@@ -6,6 +6,17 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-05-14
+
+### Added
+- Added optional scan timing metadata for total, core, and enrichment phases so callers can understand slow or partial scans.
+- Added a configurable maximum scan duration option for callers that need bounded execution.
+
+### Changed
+- Bounded secondary enrichment so long-running scans return a partial timed-out posture result instead of hanging indefinitely.
+- Tightened network and runtime safety around redirects, request failures, memory usage, and Node.js runtime support.
+- Refined passive DNS, certificate-transparency, and secondary probe handling to reduce latency spikes while preserving useful evidence.
+
 ## [0.8.1] - 2026-05-07
 
 ### Changed
