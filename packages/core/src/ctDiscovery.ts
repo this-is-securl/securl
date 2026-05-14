@@ -75,8 +75,8 @@ const toDiscoveryDomain = (host: string) => {
   }
 
   const secondLevelLabels = new Set(["co", "com", "org", "net", "gov", "ac", "edu"]);
-  const last = labels[labels.length - 1];
-  const secondLast = labels[labels.length - 2];
+  const last = labels[labels.length - 1] ?? "";
+  const secondLast = labels[labels.length - 2] ?? "";
   if (last.length === 2 && secondLevelLabels.has(secondLast)) {
     return labels.slice(-3).join(".");
   }

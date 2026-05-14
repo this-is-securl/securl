@@ -71,7 +71,7 @@ const collectRedirectUriSignals = (html: string, finalUrl: URL) => {
 
   for (const match of matches) {
     try {
-      const decoded = decodeURIComponent(match[1]);
+      const decoded = decodeURIComponent(match[1] ?? "");
       const redirectUrl = new URL(decoded, finalUrl);
       if (
         redirectUrl.protocol === "http:" ||

@@ -61,7 +61,9 @@ export const mapWithConcurrency = async <T, R>(
     while (nextIndex < items.length) {
       const currentIndex = nextIndex;
       nextIndex += 1;
-      results[currentIndex] = await mapper(items[currentIndex], currentIndex);
+      // currentIndex < items.length is guaranteed by the while condition
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      results[currentIndex] = await mapper(items[currentIndex]!, currentIndex);
     }
   };
 

@@ -11,30 +11,34 @@ import { useMonitoredTargets } from "./useMonitoredTargets";
 import { useScanHistory } from "./useScanHistory";
 import { exportReportJson, exportReportMarkdown, exportReportPdf } from "@/lib/exportUtils";
 
-const scanLifecycleStages = [
+const SCAN_STAGES: ReadonlyArray<{ key: string; label: string; detail: string; delayMs: number }> = [
   {
     key: "queueing",
     label: "Queueing scan",
     detail: "Opening a fresh scan resource and locking the browser-owned access token.",
+    delayMs: 0,
   },
   {
     key: "reading",
     label: "Reading target",
     detail: "Checking transport, headers, visible page signals, and passive trust evidence.",
+    delayMs: 1200,
   },
   {
     key: "analyzing",
     label: "Analyzing evidence",
     detail: "Normalizing visible findings into category scores, priorities, and confidence-labelled risks.",
+    delayMs: 8000,
   },
   {
     key: "waiting",
     label: "Still checking target",
     detail: "Some sites take longer while DNS, TLS, page, and public-trust checks finish. Keep this tab open.",
+    delayMs: 25000,
   },
-] as const;
+];
 
-export type ScanLifecycleStage = (typeof scanLifecycleStages)[number];
+export type ScanLifecycleStage = (typeof SCAN_STAGES)[number];
 
 export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: string | null } = {}) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -127,12 +131,11 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
       return;
     }
 
-    setScanStage(scanLifecycleStages[0]);
-    const stageDelaysMs = [1200, 8000, 25000];
-    scanLifecycleStages.slice(1).forEach((stage, index) => {
+    setScanStage(SCAN_STAGES[0] ?? null);
+    SCAN_STAGES.slice(1).forEach((stage) => {
       const timeout = window.setTimeout(() => {
         setScanStage(stage);
-      }, stageDelaysMs[index]);
+      }, stage.delayMs);
       stageTimeoutsRef.current.push(timeout);
     });
 

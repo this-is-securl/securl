@@ -126,5 +126,8 @@ export const buildHistoryDiff = (history: HistorySnapshot[]): HistoryDiff | null
     return null;
   }
 
-  return buildHistoryDiffFromSnapshots(history[0], history[1]);
+  const current = history[0];
+  const previous = history[1];
+  if (!current || !previous) return null;
+  return buildHistoryDiffFromSnapshots(current, previous);
 };

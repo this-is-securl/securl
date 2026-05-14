@@ -82,7 +82,7 @@ const parseArgs = (argv: string[]): ParsedArgs => {
   const positionals: string[] = [];
 
   for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
+    const arg = args[index] ?? "";
 
     if (arg === "--format") {
       const value = args[index + 1];
@@ -382,7 +382,8 @@ const hasIssuesAtOrAboveThreshold = (analyses: AnalysisResult[], threshold: Fail
   );
 };
 
-const statusClass = (statusCode: number) => {
+const statusClass = (statusCode: number | null) => {
+  if (statusCode === null) return 2;
   if (statusCode >= 500) {
     return 4;
   }
@@ -675,7 +676,9 @@ const main = async () => {
       const analyses = await scanTargets(parsed);
 
       if (analyses.length === 1) {
-        const [analysis] = analyses;
+        // analyses.length === 1 guarantees analyses[0] is defined
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const analysis = analyses[0]!;
         const baselineAnalysis = parsed.baselinePath ? await parseBaselineAnalysis(parsed.baselinePath) : null;
         const diff = baselineAnalysis
           ? buildHistoryDiffFromSnapshots(snapshotFromAnalysis(analysis), snapshotFromAnalysis(baselineAnalysis))

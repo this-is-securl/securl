@@ -4,12 +4,12 @@ import { getAreaScores } from "@/lib/posture";
 type PriorityAreaKey = "edge" | "content" | "domain" | "exposure" | "api" | "trust" | "ai";
 
 export interface PrioritizedAction {
-  title: string;
-  detail: string;
-  severity: "critical" | "warning" | "info";
-  area: string;
-  areaKey?: PriorityAreaKey;
-  priorityReason?: string;
+  readonly title: string;
+  readonly detail: string;
+  readonly severity: "critical" | "warning" | "info";
+  readonly area: string;
+  readonly areaKey?: PriorityAreaKey;
+  readonly priorityReason?: string;
 }
 
 export interface MonitoringAlert {
@@ -24,7 +24,7 @@ const severityOrder: Record<PrioritizedAction["severity"], number> = {
   info: 2,
 };
 
-export const getPriorityActions = (analysis: AnalysisResult): PrioritizedAction[] => {
+export const getPriorityActions = (analysis: AnalysisResult): ReadonlyArray<PrioritizedAction> => {
   const actions: PrioritizedAction[] = [];
   const seen = new Set<string>();
   const areaScores = getAreaScores(analysis);

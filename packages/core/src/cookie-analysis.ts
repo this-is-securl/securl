@@ -4,11 +4,11 @@ export const parseSetCookie = (setCookieHeaders: string[] | undefined): CookieRe
   (setCookieHeaders || []).map((cookieLine) => {
     const parts = cookieLine.split(";").map((item) => item.trim());
     const [nameValue, ...attributes] = parts;
-    const [rawName, ...rawValue] = nameValue.split("=");
+    const [rawName, ...rawValue] = (nameValue ?? "").split("=");
     const attributeMap = Object.fromEntries(
       attributes.map((attribute) => {
-        const [key, ...value] = attribute.split("=");
-        return [key.toLowerCase(), value.join("=") || true];
+        const [key, ...value] = (attribute ?? "").split("=");
+        return [(key ?? "").toLowerCase(), value.join("=") || true];
       }),
     );
 
@@ -33,7 +33,7 @@ export const parseSetCookie = (setCookieHeaders: string[] | undefined): CookieRe
     }
 
     return {
-      name: rawName,
+      name: rawName ?? "",
       valuePreview: rawValue.join("="),
       secure: Boolean(attributeMap.secure),
       httpOnly: Boolean(attributeMap.httponly),

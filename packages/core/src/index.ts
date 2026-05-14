@@ -46,7 +46,7 @@ import { fetchSecurityTxt } from "./security-txt.js";
 import { detectTechnologies } from "./technology-detection.js";
 import { headerValue, mapWithConcurrency, unique } from "./utils.js";
 import { analyzeWafFingerprint } from "./wafFingerprint.js";
-import type { AnalysisResult, AnalyzeTargetOptions, HtmlSecurityInfo } from "./types.js";
+import type { AnalysisResult, AnalyzeTargetOptions, HtmlSecurityInfo, ScanIssue } from "./types.js";
 
 type ScanMode = NonNullable<AnalyzeTargetOptions["scanMode"]>;
 type CoreScanResult = Awaited<ReturnType<typeof analyzeUrlCore>>;
@@ -70,7 +70,10 @@ const emptyCertificate = () => ({
   issues: [],
 });
 
-function normalizeUrl(input) {
+function normalizeUrl(input: string | URL): URL {
+  if (input instanceof URL) {
+    return input;
+  }
   let candidate = input.trim();
   if (!candidate) {
     throw new Error("Enter a URL to scan.");
@@ -88,7 +91,7 @@ function normalizeUrl(input) {
   return normalized;
 }
 
-function shouldRetryOverHttp(error) {
+function shouldRetryOverHttp(error: unknown): boolean {
   if (!(error instanceof Error)) {
     return false;
   }
@@ -104,7 +107,7 @@ function shouldRetryOverHttp(error) {
   );
 }
 
-function formatErrorMessage(error) {
+function formatErrorMessage(error: unknown): string {
   if (error instanceof AggregateError && Array.isArray(error.errors) && error.errors.length) {
     const messages = error.errors
       .map((item) => (item instanceof Error ? item.message : String(item)))
@@ -183,13 +186,13 @@ function parseRobotsSitemaps(body: string): string[] {
 function parseSitemapPaths(xml: string, finalUrl: URL): string[] {
   return rankDiscoveredPaths(
     [...xml.matchAll(/<loc>([\s\S]*?)<\/loc>/gi)].map((match) =>
-      normalizeDiscoveredPath(match[1].trim(), finalUrl),
+      normalizeDiscoveredPath((match[1] ?? "").trim(), finalUrl),
     ),
   );
 }
 
-async function collectDiscoveryPaths(finalUrl, htmlSecurity, requestTextFn = requestText) {
-  const discoverySources = [];
+async function collectDiscoveryPaths(finalUrl: URL, htmlSecurity: HtmlSecurityInfo, requestTextFn = requestText) {
+  const discoverySources: string[] = [];
   const discoveredPaths = [...(htmlSecurity.firstPartyPaths || [])];
 
   if (htmlSecurity.firstPartyPaths?.length) {
@@ -269,8 +272,8 @@ async function analyzeUrlCore(input: string | URL, options: AnalyzeTargetOptions
     redirects: requestData.redirects,
   });
 
-  const cookieIssues = cookies.flatMap((cookie) =>
-    cookie.issues.map((detail) => ({
+  const cookieIssues: ScanIssue[] = cookies.flatMap((cookie) =>
+    cookie.issues.map((detail): ScanIssue => ({
       severity: cookie.risk === "high" ? "warning" : "info",
       area: "cookies",
       title: `Cookie ${cookie.name} needs attention`,
@@ -282,7 +285,7 @@ async function analyzeUrlCore(input: string | URL, options: AnalyzeTargetOptions
     })),
   );
 
-  const redirectIssues =
+  const redirectIssues: ScanIssue[] =
     requestData.redirects.length > 1
       ? [
           {
@@ -301,7 +304,7 @@ async function analyzeUrlCore(input: string | URL, options: AnalyzeTargetOptions
   const issues = [...headerIssues, ...cookieIssues, ...redirectIssues];
   if (certificate.issues.length) {
     issues.push(
-      ...certificate.issues.map((detail) => ({
+      ...certificate.issues.map((detail): ScanIssue => ({
         severity: /outdated|not trusted|expires/i.test(detail) ? "warning" : "info",
         area: "certificate",
         title: "TLS certificate needs attention",
@@ -677,33 +680,32 @@ async function enrichCoreResult(
   };
 }
 
-function toCandidateLabel(pathname) {
+function toCandidateLabel(pathname: string): string {
   if (pathname === "/") {
     return "Homepage";
   }
 
-  const segments = pathname
-    .split("?")[0]
+  const segments = (pathname.split("?")[0] ?? pathname)
     .split("/")
     .filter(Boolean)
     .map((segment) => decodeURIComponent(segment).replace(/[-_]+/g, " ").trim())
     .filter(Boolean);
 
   const uniqueSegments = segments.filter((segment, index) => {
-    return index === 0 || segment.toLowerCase() !== segments[index - 1].toLowerCase();
+    return index === 0 || segment.toLowerCase() !== segments[index - 1]?.toLowerCase();
   });
 
   const preferredSegments =
     uniqueSegments.length <= 2
       ? uniqueSegments
-      : [uniqueSegments[0], uniqueSegments[uniqueSegments.length - 1]];
+      : [uniqueSegments[0], uniqueSegments[uniqueSegments.length - 1]].filter((s): s is string => s !== undefined);
 
   const label = preferredSegments
     .map((segment) =>
       segment
         .split(/\s+/)
         .slice(0, 3)
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .map((word) => (word ?? "").charAt(0).toUpperCase() + (word ?? "").slice(1))
         .join(" "),
     )
     .join(" / ");
@@ -711,7 +713,7 @@ function toCandidateLabel(pathname) {
   return label.length > 42 ? `${label.slice(0, 39).trimEnd()}...` : label;
 }
 
-function buildCrawlCandidates(result, discoveryPaths = []) {
+function buildCrawlCandidates(result: CoreScanResult, discoveryPaths: string[] = []) {
   const finalUrl = new URL(result.finalUrl);
   const userPath = new URL(result.normalizedUrl).pathname || "/";
   const seen = new Set<string>();
@@ -740,7 +742,7 @@ function buildCrawlCandidates(result, discoveryPaths = []) {
     .slice(0, 6);
 }
 
-function summarizePageAnalysis(label, path, pageResult, rootHost) {
+function summarizePageAnalysis(label: string, path: string, pageResult: CoreScanResult, rootHost: string) {
   const sameOrigin = new URL(pageResult.finalUrl).hostname === rootHost;
   return {
     label,
@@ -761,7 +763,7 @@ function summarizePageAnalysis(label, path, pageResult, rootHost) {
   };
 }
 
-async function crawlRelatedPages(rootResult, discovery) {
+async function crawlRelatedPages(rootResult: CoreScanResult, discovery: DiscoveryResult) {
   const candidates = buildCrawlCandidates(rootResult, discovery.paths);
   const rootHost = new URL(rootResult.finalUrl).hostname;
   const pages = await mapWithConcurrency(candidates, CRAWL_CONCURRENCY_LIMIT, async (candidate) => {
@@ -790,11 +792,14 @@ async function crawlRelatedPages(rootResult, discovery) {
 
   const comparablePages = pages.filter((page) => page.sameOrigin);
 
+  // comparablePages.length is checked before reduce, so comparablePages[0] is always defined here
   const strongestPage = comparablePages.length
-    ? comparablePages.reduce((best, page) => (page.score > best.score ? page : best), comparablePages[0]).label
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    ? comparablePages.reduce((best, page) => (page.score > best.score ? page : best), comparablePages[0]!).label
     : null;
   const weakestPage = comparablePages.length
-    ? comparablePages.reduce((worst, page) => (page.score < worst.score ? page : worst), comparablePages[0]).label
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    ? comparablePages.reduce((worst, page) => (page.score < worst.score ? page : worst), comparablePages[0]!).label
     : null;
 
   const headerMap = new Map();

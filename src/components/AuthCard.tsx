@@ -99,7 +99,7 @@ export const AuthCard = ({
         <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.04] px-4 py-4 text-sm leading-6 text-slate-300">
           Sign in to keep scans, monitoring targets, and history attached to your account across browsers and future mobile clients.
         </div>
-        <Tabs value={mode} onValueChange={(value) => setMode(value as "login" | "register")} className="space-y-4">
+        <Tabs value={mode} onValueChange={(value) => { if (value === "login" || value === "register") setMode(value); }} className="space-y-4">
           <TabsList className="grid w-full grid-cols-2 rounded-xl border border-white/10 bg-slate-950/50 p-1">
             <TabsTrigger value="login" className="rounded-lg data-[state=active]:bg-white/[0.08]">Sign in</TabsTrigger>
             <TabsTrigger value="register" className="rounded-lg data-[state=active]:bg-white/[0.08]">Create account</TabsTrigger>

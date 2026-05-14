@@ -1,14 +1,14 @@
 import { AnalysisResult, MitreRelevance, OwaspCategory } from "@/types/analysis";
 
 export interface InsightBucket<T extends string> {
-  label: T;
-  count: number;
+  readonly label: T;
+  readonly count: number;
 }
 
 export interface ThemeDetail<T extends string> extends InsightBucket<T> {
-  summary: string;
-  whyItMatters: string;
-  examples: string[];
+  readonly summary: string;
+  readonly whyItMatters: string;
+  readonly examples: readonly string[];
 }
 
 export interface DisclosurePosture {

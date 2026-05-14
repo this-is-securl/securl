@@ -67,7 +67,7 @@ export const analyzeHeaders = (headers: ResponseHeaders, isHttps: boolean) => {
       const directives = Object.fromEntries(
         value.split(";").map((directive) => directive.trim()).filter(Boolean).map((directive) => {
           const [name, ...tokens] = directive.split(/\s+/);
-          return [name.toLowerCase(), tokens.map((token) => token.toLowerCase())];
+          return [(name ?? "").toLowerCase(), tokens.map((token) => token.toLowerCase())];
         }),
       );
       const scriptSources = directives["script-src"] || directives["default-src"] || [];
@@ -176,7 +176,7 @@ export const buildRemediation = (headerResults: SecurityHeaderResult[]): Remedia
 
   const nginxLines = requiredHeaders.map((header) => `add_header ${header.label} "${header.value}" always;`);
   const apacheLines = requiredHeaders.map((header) => `Header always set ${header.label} "${header.value}"`);
-  const cloudflareLines = requiredHeaders.map((header) => `secured.headers.set("${header.label}", "${header.value.replaceAll('"', '\\"')}");`);
+  const cloudflareLines = requiredHeaders.map((header) => `secured.headers.set("${header.label}", "${(header.value ?? "").replaceAll('"', '\\"')}");`);
   const vercelLines = requiredHeaders.map((header) => `        { key: "${header.label}", value: "${header.value}" },`);
   const netlifyLines = requiredHeaders.map((header) => `  ${header.label}: ${header.value}`);
   const names = requiredHeaders.map((header) => header.label).join(", ");

@@ -4,7 +4,9 @@ import { DNS_LOOKUP_TIMEOUT_MS } from "./scannerConfig.js";
 import { withTimeout } from "./utils.js";
 
 export function isPrivateIpv4(value: string): boolean {
-  const [first, second] = value.split(".").map((part) => Number(part));
+  const parts = value.split(".").map((part) => Number(part));
+  const first = parts[0] ?? NaN;
+  const second = parts[1] ?? NaN;
   if ([first, second].some((part) => Number.isNaN(part))) {
     return false;
   }

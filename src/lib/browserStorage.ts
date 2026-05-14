@@ -35,17 +35,22 @@ const readLegacyLocalStorage = <T,>(key: string, fallback: T, version: number): 
       return fallback;
     }
 
-    const parsed = JSON.parse(raw) as T | StorageEnvelope<T>;
+    const parsed: unknown = JSON.parse(raw);
     if (
-      parsed &&
+      parsed !== null &&
+      parsed !== undefined &&
       typeof parsed === "object" &&
       "version" in parsed &&
       "data" in parsed &&
-      typeof parsed.version === "number"
+      typeof (parsed as Record<string, unknown>).version === "number"
     ) {
-      return parsed.version === version ? parsed.data : fallback;
+      const envelope = parsed as StorageEnvelope<T>;
+      return envelope.version === version ? envelope.data : fallback;
     }
 
+    if (parsed === null || parsed === undefined) {
+      return fallback;
+    }
     return parsed as T;
   } catch {
     return fallback;

@@ -9,8 +9,8 @@
     "outDir": "./dist",
     "declaration": true,
     "sourceMap": false,
-    "strict": false,
-    "noImplicitAny": false,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true

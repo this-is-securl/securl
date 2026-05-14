@@ -1,11 +1,11 @@
 import { AnalysisResult } from "@/types/analysis";
 
 export interface AreaScore {
-  key: "edge" | "content" | "domain" | "exposure" | "api" | "trust" | "ai";
-  label: string;
-  score: number;
-  status: "strong" | "watch" | "weak";
-  notes: string[];
+  readonly key: "edge" | "content" | "domain" | "exposure" | "api" | "trust" | "ai";
+  readonly label: string;
+  readonly score: number;
+  readonly status: "strong" | "watch" | "weak";
+  readonly notes: readonly string[];
 }
 
 const clamp = (value: number) => Math.max(0, Math.min(100, value));
@@ -56,7 +56,7 @@ const cappedAreaScore = (analysis: AnalysisResult, areaKey: AreaScore["key"], sc
   return Math.min(score, areaKey === "domain" ? caps.domain : caps.default);
 };
 
-export const getAreaScores = (analysis: AnalysisResult): AreaScore[] => {
+export const getAreaScores = (analysis: AnalysisResult): ReadonlyArray<AreaScore> => {
   const cspHeaderFindings = analysis.headers.filter(
     (header) => header.key === "content-security-policy" && header.status !== "present",
   );

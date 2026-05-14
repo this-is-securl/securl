@@ -23,7 +23,8 @@ export function parseSecurityTxt(raw: string, url: URL): SecurityTxtInfo {
     if (!match) {
       continue;
     }
-    const [, key, value] = match;
+    const key = match[1] ?? "";
+    const value = match[2] ?? "";
     const normalizedKey = key.toLowerCase();
     if (normalizedKey === "contact") fields.contact.push(value);
     if (normalizedKey === "expires") fields.expires = value;

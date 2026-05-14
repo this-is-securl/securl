@@ -48,8 +48,11 @@ export class ApiClientError extends Error {
   }
 }
 
-const readJsonResponse = async <T,>(response: Response): Promise<T> => {
-  const payload = await response.json().catch(() => null);
+const readJsonResponse = async <T,>(
+  response: Response,
+  guard: (v: unknown) => v is T,
+): Promise<T> => {
+  const payload: unknown = await response.json().catch(() => null);
   if (!response.ok) {
     const message =
       payload && typeof payload === "object" && "error" in payload && typeof payload.error === "string"
@@ -57,7 +60,10 @@ const readJsonResponse = async <T,>(response: Response): Promise<T> => {
         : "Request failed.";
     throw new ApiClientError(message, response.status, payload);
   }
-  return payload as T;
+  if (!guard(payload)) {
+    throw new ApiClientError("Response shape did not match expected type", response.status, payload);
+  }
+  return payload;
 };
 
 const sleep = (delayMs: number) =>
@@ -76,12 +82,96 @@ const buildSecureFallbackToken = () => {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 };
 
-const isAnalysisResult = (value: unknown): value is AnalysisResult =>
-  typeof value === "object"
-  && value !== null
-  && typeof (value as AnalysisResult).host === "string"
-  && typeof (value as AnalysisResult).grade === "string"
-  && typeof (value as AnalysisResult).finalUrl === "string";
+const isAnalysisResult = (value: unknown): value is AnalysisResult => {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.host === "string" &&
+    typeof v.grade === "string" &&
+    typeof v.finalUrl === "string" &&
+    typeof v.score === "number" &&
+    Array.isArray(v.headers) &&
+    Array.isArray(v.issues) &&
+    Array.isArray(v.cookies)
+  );
+};
+
+const isAuthSessionResponse = (value: unknown): value is AuthSessionResponse => {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.user === "object" && v.user !== null && typeof v.session === "object" && v.session !== null;
+};
+
+const isAuthStatusResponse = (value: unknown): value is AuthStatusResponse => {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.authenticated === "boolean";
+};
+
+const isCreateScanResponse = (value: unknown): value is CreateScanResponse => {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.scan === "object" && v.scan !== null;
+};
+
+const isGetScanResponse = (value: unknown): value is GetScanResponse => {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.scan === "object" && v.scan !== null;
+};
+
+const isScansResponse = (value: unknown): value is ScansResponse => {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return Array.isArray(v.scans);
+};
+
+const isMonitoringTargetsResponse = (value: unknown): value is MonitoringTargetsResponse => {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return Array.isArray(v.targets);
+};
+
+const isMonitoringTargetResponse = (value: unknown): value is MonitoringTargetResponse => {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.target === "object" && v.target !== null;
+};
+
+const isTargetHistoryResponse = (value: unknown): value is TargetHistoryResponse => {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return Array.isArray(v.scans);
+};
+
+const isScanSummaryResponse = (value: unknown): value is ScanSummaryResponse => {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.summary === "object" && v.summary !== null;
+};
+
+const isScanFindingsResponse = (value: unknown): value is ScanFindingsResponse => {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return Array.isArray(v.findings);
+};
+
+const isScanEvidenceResponse = (value: unknown): value is ScanEvidenceResponse => {
+  if (typeof value !== "object" || value === null) return false;
+  return true; // evidence field may be null per the type definition
+};
+
+const isScanHistoryResponse = (value: unknown): value is ScanHistoryResponse => {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.scan === "object" && v.scan !== null && Array.isArray(v.events);
+};
+
+const isDeleteOkResponse = (value: unknown): value is { ok: boolean } => {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.ok === "boolean";
+};
 
 export const getScanOwnerToken = async () => {
   const existing = await readBrowserStorage<string | null>(SCAN_OWNER_KEY, null, STORAGE_SCHEMA_VERSION);
@@ -115,8 +205,22 @@ const readSessionStorageAuthSession = (): StoredAuthSession | null => {
       return inMemoryAuthSession;
     }
 
-    const parsed = JSON.parse(raw) as StoredAuthSession | null;
-    return parsed && parsed.token ? parsed : null;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+
+    if (
+      parsed === null ||
+      typeof parsed !== "object" ||
+      !("token" in parsed) ||
+      typeof (parsed as Record<string, unknown>).token !== "string"
+    ) {
+      return null;
+    }
+    return parsed as StoredAuthSession;
   } catch {
     return inMemoryAuthSession;
   }
@@ -200,7 +304,7 @@ export const registerUser = async ({
       ...(displayName ? { displayName } : {}),
     }),
   });
-  const payload = await readJsonResponse<AuthSessionResponse>(response);
+  const payload = await readJsonResponse(response, isAuthSessionResponse);
   await setStoredAuthSession(payload);
   return payload;
 };
@@ -222,7 +326,7 @@ export const loginUser = async ({
       password,
     }),
   });
-  const payload = await readJsonResponse<AuthSessionResponse>(response);
+  const payload = await readJsonResponse(response, isAuthSessionResponse);
   await setStoredAuthSession(payload);
   return payload;
 };
@@ -239,7 +343,7 @@ export const getAuthSession = async () => {
   if (response.status === 401) {
     await clearStoredAuthSession();
   }
-  const payload = await readJsonResponse<AuthStatusResponse>(response);
+  const payload = await readJsonResponse(response, isAuthStatusResponse);
   if (!payload.authenticated) {
     await clearStoredAuthSession();
     return payload;
@@ -282,7 +386,7 @@ export const createScan = async (url: string, mode: "standard" | "quiet" = "stan
     body: JSON.stringify({ url, mode }),
   });
 
-  const payload = await readJsonResponse<CreateScanResponse>(response);
+  const payload = await readJsonResponse(response, isCreateScanResponse);
   return {
     scanOwnerToken,
     scan: payload.scan,
@@ -293,14 +397,14 @@ export const getScan = async (scanId: string, scanOwnerToken: string) => {
   const response = await fetch(buildApiUrl(`/api/scans/${encodeURIComponent(scanId)}`), {
     headers: await buildRequestAuthHeaders({ scanOwnerToken, requireScanOwner: true }),
   });
-  return readJsonResponse<GetScanResponse>(response);
+  return readJsonResponse(response, isGetScanResponse);
 };
 
 export const getSavedScan = async (scanId: string) => {
   const response = await fetch(buildApiUrl(`/api/scans/${encodeURIComponent(scanId)}`), {
     headers: await buildRequestAuthHeaders({ requireScanOwner: true }),
   });
-  return readJsonResponse<GetScanResponse>(response);
+  return readJsonResponse(response, isGetScanResponse);
 };
 
 export const waitForScanCompletion = async (
@@ -348,7 +452,7 @@ export const getRecentScanSummaries = async (limit = 10): Promise<ApiScanSummary
   const response = await fetch(buildApiUrl(`/api/scans?limit=${encodeURIComponent(String(limit))}`), {
     headers: await buildRequestAuthHeaders({ requireScanOwner: true }),
   });
-  const payload = await readJsonResponse<ScansResponse>(response);
+  const payload = await readJsonResponse(response, isScansResponse);
   return payload.scans;
 };
 
@@ -357,42 +461,42 @@ export const getTargetHistory = async (url: string) => {
   const response = await fetch(buildApiUrl(`/api/scans?url=${encodeURIComponent(url)}`), {
     headers: await buildRequestAuthHeaders({ scanOwnerToken, requireScanOwner: true }),
   });
-  return readJsonResponse<TargetHistoryResponse>(response);
+  return readJsonResponse(response, isTargetHistoryResponse);
 };
 
 export const getScanSummary = async (scanId: string, scanOwnerToken: string) => {
   const response = await fetch(buildApiUrl(`/api/scans/${encodeURIComponent(scanId)}/summary`), {
     headers: await buildRequestAuthHeaders({ scanOwnerToken, requireScanOwner: true }),
   });
-  return readJsonResponse<ScanSummaryResponse>(response);
+  return readJsonResponse(response, isScanSummaryResponse);
 };
 
 export const getScanFindings = async (scanId: string, scanOwnerToken: string) => {
   const response = await fetch(buildApiUrl(`/api/scans/${encodeURIComponent(scanId)}/findings`), {
     headers: await buildRequestAuthHeaders({ scanOwnerToken, requireScanOwner: true }),
   });
-  return readJsonResponse<ScanFindingsResponse>(response);
+  return readJsonResponse(response, isScanFindingsResponse);
 };
 
 export const getScanEvidence = async (scanId: string, scanOwnerToken: string) => {
   const response = await fetch(buildApiUrl(`/api/scans/${encodeURIComponent(scanId)}/evidence`), {
     headers: await buildRequestAuthHeaders({ scanOwnerToken, requireScanOwner: true }),
   });
-  return readJsonResponse<ScanEvidenceResponse>(response);
+  return readJsonResponse(response, isScanEvidenceResponse);
 };
 
 export const getScanHistory = async (scanId: string, scanOwnerToken: string) => {
   const response = await fetch(buildApiUrl(`/api/scans/${encodeURIComponent(scanId)}/history`), {
     headers: await buildRequestAuthHeaders({ scanOwnerToken, requireScanOwner: true }),
   });
-  return readJsonResponse<ScanHistoryResponse>(response);
+  return readJsonResponse(response, isScanHistoryResponse);
 };
 
 export const getMonitoringTargets = async () => {
   const response = await fetch(buildApiUrl("/api/monitoring-targets"), {
     headers: await buildRequestAuthHeaders({ requireScanOwner: true }),
   });
-  return readJsonResponse<MonitoringTargetsResponse>(response);
+  return readJsonResponse(response, isMonitoringTargetsResponse);
 };
 
 export const saveMonitoringTarget = async (
@@ -412,7 +516,7 @@ export const saveMonitoringTarget = async (
       ...(label ? { label } : {}),
     }),
   });
-  const payload = await readJsonResponse<MonitoringTargetResponse>(response);
+  const payload = await readJsonResponse(response, isMonitoringTargetResponse);
   return payload.target;
 };
 
@@ -421,5 +525,5 @@ export const deleteMonitoringTarget = async (targetId: string) => {
     method: "DELETE",
     headers: await buildRequestAuthHeaders({ requireScanOwner: true }),
   });
-  return readJsonResponse<{ ok: boolean }>(response);
+  return readJsonResponse(response, isDeleteOkResponse);
 };

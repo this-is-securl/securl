@@ -83,8 +83,8 @@ export function collectPassiveLeakSignals(
   metaGenerator: string | null,
   externalScriptUrls: string[],
   externalStylesheetUrls: string[],
-) {
-  const signals = [];
+): Array<{ category: "source_map" | "client_config" | "public_token" | "version_leak"; severity: "info" | "warning"; title: string; detail: string; evidence: string[] }> {
+  const signals: Array<{ category: "source_map" | "client_config" | "public_token" | "version_leak"; severity: "info" | "warning"; title: string; detail: string; evidence: string[] }> = [];
   const boundedHtml = html.slice(0, HTML_SIGNATURE_LIMIT * 100);
   const sourceMapReferences = summarizeEvidence([
     ...[...boundedHtml.matchAll(/sourceMappingURL\s*=\s*([^\s"'<>]+)/gi)].map((match) => match[1]),
@@ -175,8 +175,8 @@ export function collectPassiveLeakSignals(
   return signals;
 }
 
-export function collectClientExposureSignals(html: string, finalUrl: URL) {
-  const signals = [];
+export function collectClientExposureSignals(html: string, finalUrl: URL): Array<{ category: "api_endpoint" | "config" | "service" | "environment"; severity: "info" | "warning"; title: string; detail: string; evidence: string[] }> {
+  const signals: Array<{ category: "api_endpoint" | "config" | "service" | "environment"; severity: "info" | "warning"; title: string; detail: string; evidence: string[] }> = [];
   const isLikelyApiAsset = (value: string) =>
     /\/assets?\//i.test(value) ||
     /\.(?:css|js|mjs|png|jpe?g|gif|svg|webp|avif|woff2?|ttf|eot)(?:[?#]|$)/i.test(value);

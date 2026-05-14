@@ -198,7 +198,7 @@ export async function analyzeDomainSecurity(host: string, requestText: RequestTe
   const spf = txtValues.find((value) => value.toLowerCase().startsWith("v=spf1")) || null;
   const dmarc = dmarcValues.find((value) => value.toLowerCase().startsWith("v=dmarc1")) || null;
   const mtaStsDns = mtaStsValues.find((value) => value.toLowerCase().startsWith("v=stsv1")) || null;
-  const mtaStsTargetHost = txtMtaStsByHost[0]?.length ? candidateHosts[0] : candidateHosts[1] || candidateHosts[0];
+  const mtaStsTargetHost = txtMtaStsByHost[0]?.length ? (candidateHosts[0] ?? "") : (candidateHosts[1] ?? candidateHosts[0] ?? "");
   const mtaStsPolicy = mtaStsDns ? await fetchMtaStsPolicy(mtaStsTargetHost, requestText) : { policyUrl: null, policy: null };
   const emailPolicy = {
     spf: evaluateSpfPolicy(spf),
