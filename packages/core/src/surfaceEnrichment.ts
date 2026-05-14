@@ -6,6 +6,11 @@ import type {
   PublicSignalsInfo,
 } from "./types.js";
 
+function sanitiseErrorDetail(msg: string): string {
+  // Remove raw IP addresses to avoid leaking internal network topology
+  return msg.replace(/\b(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?\b/g, "<host>");
+}
+
 type ResponseHeaders = http.IncomingHttpHeaders;
 
 interface RequestHeadResult {
@@ -263,7 +268,7 @@ export const analyzeExposure = async (
         statusCode: 0,
         finalUrl: probeUrl.toString(),
         finding: "error",
-        detail: deps.formatErrorMessage(error) || "Probe failed unexpectedly.",
+        detail: sanitiseErrorDetail(deps.formatErrorMessage(error) || "Probe failed unexpectedly."),
       });
       sawErrorProbe = true;
     }

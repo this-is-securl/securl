@@ -88,8 +88,8 @@ export async function assertPublicRedirectTarget(targetUrl: URL): Promise<void> 
       DNS_LOOKUP_TIMEOUT_MS,
       `DNS lookup for ${targetUrl.hostname} timed out.`,
     );
-    if (lookups.length && lookups.every((entry) => isPrivateAddress(entry.address))) {
-      throw new Error(`Redirect target ${targetUrl.hostname} resolved only to private or loopback addresses and was blocked.`);
+    if (!lookups.length || lookups.some((entry) => isPrivateAddress(entry.address))) {
+      throw new Error(`Redirect target ${targetUrl.hostname} did not resolve exclusively to public IP addresses.`);
     }
   } catch (error) {
     if (error instanceof Error && error.message.includes("was blocked")) {

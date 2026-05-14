@@ -507,12 +507,17 @@ enforceStartupConfiguration({
   log,
 });
 
-scanRepository = await initializeScanRepository({
-  scanRepositoryBackend,
-  databaseUrl,
-  log,
-  formatErrorMessage,
-});
+try {
+  scanRepository = await initializeScanRepository({
+    scanRepositoryBackend,
+    databaseUrl,
+    log,
+    formatErrorMessage,
+  });
+} catch (err) {
+  log("error", "startup_failed", { message: formatErrorMessage(err) });
+  process.exit(1);
+}
 
 process.on("unhandledRejection", (reason) => {
   log("error", "unhandled_rejection", {

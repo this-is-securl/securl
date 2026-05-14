@@ -316,6 +316,8 @@ function matchesScope(scan, { requesterScope = null, ownerId = null } = {}) {
   return true;
 }
 
+const MAX_MONITORING_TARGETS = 500;
+
 export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
   const scans = new Map();
   const order = [];
@@ -594,6 +596,13 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
         cadence,
         lastScannedAt,
       });
+      if (monitoringTargets.size >= MAX_MONITORING_TARGETS) {
+        const oldestKey = monitoringOrder[monitoringOrder.length - 1];
+        if (oldestKey) {
+          monitoringTargets.delete(oldestKey);
+          monitoringOrder.splice(monitoringOrder.length - 1, 1);
+        }
+      }
       monitoringTargets.set(target.id, target);
       touchMonitoringOrder(target.id);
       return { ...target };

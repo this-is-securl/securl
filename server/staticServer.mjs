@@ -52,6 +52,8 @@ export function createStaticHandler({
   isProduction,
   telemetry,
 }) {
+  const resolvedPathCache = new Map();
+
   return function serveStatic(requestPath, method, response) {
     const cleanPath = requestPath === "/" ? "/index.html" : requestPath;
     const staticTarget = resolveStaticPath(distDir, cleanPath);
@@ -64,13 +66,17 @@ export function createStaticHandler({
       return;
     }
 
-    const preferredPath = fs.existsSync(staticTarget)
-      ? staticTarget
-      : fs.existsSync(publicTarget)
-        ? publicTarget
-        : fs.existsSync(fallbackTarget)
-          ? fallbackTarget
-          : null;
+    let preferredPath = resolvedPathCache.get(cleanPath);
+    if (preferredPath === undefined) {
+      preferredPath = fs.existsSync(staticTarget)
+        ? staticTarget
+        : fs.existsSync(publicTarget)
+          ? publicTarget
+          : fs.existsSync(fallbackTarget)
+            ? fallbackTarget
+            : null;
+      resolvedPathCache.set(cleanPath, preferredPath);
+    }
 
     if (!preferredPath) {
       response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
@@ -102,6 +108,13 @@ export function createStaticHandler({
       response.end();
       return;
     }
-    fs.createReadStream(preferredPath).pipe(response);
+    const stream = fs.createReadStream(preferredPath);
+    stream.on("error", (_err) => {
+      if (!response.headersSent) {
+        response.writeHead(500, { "Content-Type": "text/plain" });
+      }
+      response.end();
+    });
+    stream.pipe(response);
   };
 }
