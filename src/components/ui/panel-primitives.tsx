@@ -49,7 +49,7 @@ export const StatBox = ({ label, value, note, variant = "default", className }: 
         className,
       )}
     >
-      <p className={cn("text-xs uppercase tracking-[0.18em]", v.label)}>{label}</p>
+      <p className={cn("text-[11px] font-bold uppercase tracking-[0.2em]", v.label)}>{label}</p>
       <div className={cn("mt-2", v.value)}>{value}</div>
       {note && <div className="mt-1 text-slate-400">{note}</div>}
     </div>
@@ -125,7 +125,7 @@ export const SignalList = ({ title, items, icon, variant = "neutral" }: SignalLi
 
   return (
     <div className={cn("rounded-[1.35rem] border p-4 shadow-[0_12px_30px_-18px_rgba(0,0,0,0.55)]", v.container)}>
-      <p className={cn("text-xs font-semibold uppercase tracking-[0.18em]", v.title)}>{title}</p>
+      <p className={cn("text-[11px] font-bold uppercase tracking-[0.2em]", v.title)}>{title}</p>
       <ul className={cn("mt-3 space-y-2 text-sm", v.body)}>
         {items.map((item, index) => (
           <li key={`${item}-${index}`} className="flex gap-2">

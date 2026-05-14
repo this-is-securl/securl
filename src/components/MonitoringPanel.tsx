@@ -180,7 +180,7 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="max-w-2xl">
               <p
-                className={`text-xs font-semibold uppercase tracking-[0.18em] ${
+                className={`text-[11px] font-bold uppercase tracking-[0.2em] ${
                   changeLead.tone === "warning"
                     ? "text-[#d89a63]"
                     : changeLead.tone === "info"
@@ -202,7 +202,7 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
             <>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-[1.15rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Score</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Score</p>
                 <p className="mt-3 text-3xl font-semibold text-white">
                   {formatSignedDelta(diff.scoreDelta)}
                 </p>
@@ -211,21 +211,21 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
                 </p>
                 </div>
                 <div className="rounded-[1.15rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">New findings</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">New findings</p>
                 <p className="mt-3 text-3xl font-semibold text-white">{diff.newIssues.length}</p>
                 <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">
                   {diff.newIssues[0] ?? "No new findings"}
                 </p>
                 </div>
                 <div className="rounded-[1.15rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Resolved</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Resolved</p>
                 <p className="mt-3 text-3xl font-semibold text-white">{diff.resolvedIssues.length}</p>
                 <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">
                   {diff.resolvedIssues[0] ?? "No resolved findings"}
                 </p>
                 </div>
                 <div className="rounded-[1.15rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Header changes</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Header changes</p>
                 <p className="mt-3 text-3xl font-semibold text-white">{diff.headerChanges.length}</p>
                 <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">
                   {diff.headerChanges[0]?.label ?? "No header movement"}
@@ -234,7 +234,7 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
               </div>
               {areaDeltas.length ? (
                 <div className="mt-4 rounded-[1.15rem] border border-white/10 bg-slate-950/35 px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Most moved areas</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Most moved areas</p>
                   <div className="mt-3 grid gap-2 md:grid-cols-2">
                     {areaDeltas.map((item) => (
                       <div key={item.label} className="text-sm text-slate-300">
@@ -251,7 +251,7 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
         <div className="rounded-[1.35rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(15,23,42,0.35))] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Score trend</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Score trend</p>
               <p className="mt-2 text-sm text-slate-300">
                 {scoreSeries.length >= 2
                   ? "Short-window movement across recent saved scans."

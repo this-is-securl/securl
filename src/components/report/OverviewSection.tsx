@@ -143,7 +143,7 @@ export const OverviewSection = ({
     <div id="overview" className="space-y-7">
       {analysisData.assessmentLimitation.limited ? (
         <div className="rounded-[1.75rem] border border-[#b56a2c]/35 bg-[#b56a2c]/12 px-6 py-5 text-[#f4dfcd]">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#d89a63]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#d89a63]">
             {analysisData.assessmentLimitation.title}
           </p>
           <p className="mt-2 text-sm leading-7 text-[#f0d5bc]/90">
@@ -236,11 +236,11 @@ export const OverviewSection = ({
 
               <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-6 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" className="border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-slate-300">
+                  <Badge variant="outline" className="border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-300">
                     Overall posture: {overallPostureLabel}
                   </Badge>
                   {hasTrainingSurfaceNarrative ? (
-                    <Badge variant="outline" className="border-[#b56a2c]/30 bg-[#b56a2c]/12 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[#f0d5bc]">
+                    <Badge variant="outline" className="border-[#b56a2c]/30 bg-[#b56a2c]/12 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-[#f0d5bc]">
                       Training surface
                     </Badge>
                   ) : null}
@@ -281,7 +281,7 @@ export const OverviewSection = ({
             {/* Critical */}
             <div className="rounded-[1.35rem] border border-red-500/20 bg-red-500/[0.06] px-5 py-5">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-red-400">Critical</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-red-400">Critical</p>
                 <AlertTriangle className="h-3.5 w-3.5 text-red-400/60" />
               </div>
               <p className="mt-3 text-[2rem] font-bold leading-none tracking-[-0.04em] text-red-300">{criticalCount}</p>
@@ -290,7 +290,7 @@ export const OverviewSection = ({
             {/* Warning */}
             <div className="rounded-[1.35rem] border border-amber-500/20 bg-amber-500/[0.06] px-5 py-5">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-400">Warning</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-400">Warning</p>
                 <ShieldAlert className="h-3.5 w-3.5 text-amber-400/60" />
               </div>
               <p className="mt-3 text-[2rem] font-bold leading-none tracking-[-0.04em] text-amber-300">{warningCount}</p>
@@ -299,7 +299,7 @@ export const OverviewSection = ({
             {/* Strengths */}
             <div className="rounded-[1.35rem] border border-emerald-500/20 bg-emerald-500/[0.06] px-5 py-5">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-400">Strengths</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-400">Strengths</p>
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-400/60" />
               </div>
               <p className="mt-3 text-[2rem] font-bold leading-none tracking-[-0.04em] text-emerald-300">{analysisData.strengths.length}</p>

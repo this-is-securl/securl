@@ -27,7 +27,7 @@ export const IdentityProviderPanel = ({ identityProvider }: IdentityProviderPane
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <CardTitle>Identity Provider</CardTitle>
-          <div className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-100">
+          <div className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-100">
             {identityProvider.detected ? "Detected" : "Not detected"}
           </div>
         </div>
@@ -45,7 +45,7 @@ export const IdentityProviderPanel = ({ identityProvider }: IdentityProviderPane
 
         <div className="grid gap-6 xl:grid-cols-2">
           <div className="space-y-3">
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Observed endpoints</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Observed endpoints</p>
             <div className="space-y-2 rounded-[1.25rem] border border-white/10 bg-slate-950/45 p-4 text-sm text-slate-300">
               <p className="break-words"><span className="font-semibold text-white">Issuer:</span> {identityProvider.issuer ?? "Not discovered"}</p>
               <p className="break-words"><span className="font-semibold text-white">Authorization:</span> {identityProvider.authorizationEndpoint ?? "Not discovered"}</p>
@@ -57,7 +57,7 @@ export const IdentityProviderPanel = ({ identityProvider }: IdentityProviderPane
           </div>
 
           <div className="space-y-3">
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Discovery</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Discovery</p>
             <div className="rounded-[1.25rem] border border-white/10 bg-slate-950/45 p-4 text-sm text-slate-300">
               {identityProvider.redirectOrigins.length > 0 && (
                 <div className="mb-3">
@@ -136,7 +136,7 @@ export const IdentityProviderPanel = ({ identityProvider }: IdentityProviderPane
           />
           {reviewItems.length ? (
             <div className="rounded-[1.25rem] border border-amber-400/30 bg-amber-400/10 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-200">Watch points</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-200">Watch points</p>
               <ul className="mt-3 space-y-2 text-sm text-amber-50">
                 {reviewItems.map((item) => (
                   <li key={item} className="flex gap-2">

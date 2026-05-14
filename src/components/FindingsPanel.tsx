@@ -61,19 +61,19 @@ export const FindingsPanel = ({ issues, strengths }: FindingsPanelProps) => {
           <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
             <div className="flex items-center gap-2">
               <TriangleAlert className="h-4 w-4 text-[#d89a63]" />
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Finding mix</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Finding mix</p>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               <div className="rounded-[1.15rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Critical</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Critical</p>
                 <p className="mt-2 text-2xl font-semibold text-[#f0d5bc]">{severityCounts.critical}</p>
               </div>
               <div className="rounded-[1.15rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Warning</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Warning</p>
                 <p className="mt-2 text-2xl font-semibold text-[#e2c0a2]">{severityCounts.warning}</p>
               </div>
               <div className="rounded-[1.15rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Informational</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Informational</p>
                 <p className="mt-2 text-2xl font-semibold text-slate-100">{severityCounts.info}</p>
               </div>
             </div>
@@ -82,7 +82,7 @@ export const FindingsPanel = ({ issues, strengths }: FindingsPanelProps) => {
           <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-[#d89a63]" />
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">How to read this</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">How to read this</p>
             </div>
             <p className="mt-3 text-sm leading-7 text-slate-300">
               The first finding gives the quickest read. Expand any card for confidence, mapped frameworks, and the exact surface where the signal was observed.
@@ -94,7 +94,7 @@ export const FindingsPanel = ({ issues, strengths }: FindingsPanelProps) => {
           <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-[#d89a63]" />
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Observed strengths</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Observed strengths</p>
             </div>
             <div className="mt-3 grid gap-2">
               {strengths.slice(0, 3).map((strength) => (
@@ -167,13 +167,13 @@ export const FindingsPanel = ({ issues, strengths }: FindingsPanelProps) => {
                         </div>
                         <div className="mt-4 grid gap-3 md:grid-cols-2">
                           <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] px-4 py-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Confidence read</p>
+                            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Confidence read</p>
                             <p className="mt-2 text-sm leading-6 text-slate-300">
                               This was assessed at <span className="font-semibold text-slate-100">{issue.confidence}</span> confidence from the visible public response.
                             </p>
                           </div>
                           <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] px-4 py-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Observed surface</p>
+                            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Observed surface</p>
                             <p className="mt-2 text-sm leading-6 text-slate-300">
                               Signal surfaced through <span className="font-semibold text-slate-100">{issue.source}</span>.
                             </p>

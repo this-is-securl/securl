@@ -26,7 +26,7 @@ export const RedirectChain = ({ redirects }: RedirectChainProps) => {
                   <p className="truncate text-sm font-medium text-slate-100">{hop.url}</p>
                   <p className="text-xs text-slate-400">{hop.secure ? "HTTPS" : "HTTP"}</p>
                 </div>
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
                   <span>Status {hop.statusCode} {status.label}</span>
                   {hop.location && <ArrowRight className="h-3.5 w-3.5" />}
                 </div>

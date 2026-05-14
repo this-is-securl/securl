@@ -27,7 +27,7 @@ export const WafFingerprintPanel = ({ wafFingerprint }: WafFingerprintPanelProps
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <CardTitle>WAF & Edge Fingerprint</CardTitle>
-          <div className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-100">
+          <div className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-100">
             {wafFingerprint.detected ? "Detected" : "No strong match"}
           </div>
         </div>
@@ -40,14 +40,14 @@ export const WafFingerprintPanel = ({ wafFingerprint }: WafFingerprintPanelProps
 
         <div className="grid gap-6 xl:grid-cols-2">
           <div className="rounded-[1.25rem] border border-white/10 bg-slate-950/45 p-4">
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Providers</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Providers</p>
             {wafFingerprint.providers.length ? (
               <ul className="mt-3 space-y-3 text-sm text-slate-300">
                 {wafFingerprint.providers.map((provider) => (
                   <li key={`${provider.name}-${provider.evidence}`} className="rounded-[1.1rem] border border-white/10 bg-white/[0.04] p-3">
                     <div className="flex items-center justify-between gap-3">
                       <span className="font-semibold text-white">{provider.name}</span>
-                      <span className="text-xs uppercase tracking-[0.18em] text-slate-400">
+                      <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
                         {provider.detection} · {provider.confidence}
                       </span>
                     </div>
@@ -61,7 +61,7 @@ export const WafFingerprintPanel = ({ wafFingerprint }: WafFingerprintPanelProps
           </div>
 
           <div className="rounded-[1.25rem] border border-white/10 bg-slate-950/45 p-4">
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Edge evidence</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Edge evidence</p>
             {wafFingerprint.edgeSignals.length ? (
               <ul className="mt-3 space-y-2 text-sm text-slate-300">
                 {wafFingerprint.edgeSignals.map((signal) => (
@@ -83,7 +83,7 @@ export const WafFingerprintPanel = ({ wafFingerprint }: WafFingerprintPanelProps
           />
           {reviewItems.length ? (
             <div className="rounded-[1.25rem] border border-amber-400/30 bg-amber-400/10 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-200">Watch points</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-200">Watch points</p>
               <ul className="mt-3 space-y-2 text-sm text-amber-50">
                 {reviewItems.map((item) => (
                   <li key={item} className="flex gap-2">

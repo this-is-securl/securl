@@ -10,15 +10,15 @@ interface PriorityActionsPanelProps {
 
 const severityTone = {
   critical: {
-    rail: "bg-[#b56a2c]",
-    chip: "bg-[#8e5c3b]/18 text-[#f0d5bc] border-[#b56a2c]/28",
+    rail: "bg-red-500",
+    chip: "bg-red-500/10 text-red-300 border-red-500/25",
   },
   warning: {
-    rail: "bg-[#8e5c3b]",
-    chip: "bg-[#74452b]/18 text-[#e2c0a2] border-[#8e5c3b]/28",
+    rail: "bg-amber-500",
+    chip: "bg-amber-500/10 text-amber-300 border-amber-500/25",
   },
   info: {
-    rail: "bg-slate-300",
+    rail: "bg-slate-500/50",
     chip: "bg-white/[0.08] text-slate-200 border-white/10",
   },
 } as const;
@@ -66,7 +66,7 @@ export const PriorityActionsPanel = ({ analysis }: PriorityActionsPanelProps) =>
                 <div className="flex items-start justify-center pt-0.5">
                   <div className="flex flex-col items-center gap-2">
                     <span className={`h-7 w-1.5 rounded-full ${tone.rail}`} aria-hidden="true" />
-                    <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
                       {index + 1}
                     </span>
                   </div>
@@ -74,7 +74,7 @@ export const PriorityActionsPanel = ({ analysis }: PriorityActionsPanelProps) =>
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-base font-semibold text-white">{action.title}</p>
-                    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${tone.chip}`}>
+                    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.2em] ${tone.chip}`}>
                       {action.severity}
                     </span>
                   </div>
@@ -86,7 +86,7 @@ export const PriorityActionsPanel = ({ analysis }: PriorityActionsPanelProps) =>
                   ) : null}
                 </div>
                 <div className="md:pt-1 md:text-right">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Focus area</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Focus area</p>
                   <p className="mt-2 text-sm font-medium text-slate-200">{action.area}</p>
                 </div>
               </div>

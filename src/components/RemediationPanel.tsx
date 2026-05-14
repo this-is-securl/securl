@@ -80,7 +80,7 @@ export const RemediationPanel = ({ remediation }: RemediationPanelProps) => {
             <div>
               <h3 className="text-lg font-semibold text-slate-50">{active.title}</h3>
               <p className="mt-1 text-sm text-slate-300">{active.description}</p>
-              <p className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-400">{active.filename}</p>
+              <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">{active.filename}</p>
             </div>
             <Button variant="outline" className="rounded-2xl border-white/10 bg-white/[0.04] text-slate-100 hover:bg-white/[0.08]" onClick={copySnippet}>
               <Copy className="mr-2 h-4 w-4" />
