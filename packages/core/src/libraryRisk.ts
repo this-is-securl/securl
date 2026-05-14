@@ -78,6 +78,8 @@ export const collectLibraryFingerprints = (externalScriptUrls: string[]): Librar
   const seen = new Set<string>();
 
   for (const sourceUrl of externalScriptUrls) {
+    // Skip pathologically long URLs to guard against ReDoS
+    if (sourceUrl.length > 1024) continue;
     for (const matcher of LIBRARY_PATTERNS) {
       const match = sourceUrl.match(matcher.pattern);
       if (!match?.[1]) {
@@ -185,6 +187,7 @@ export const fetchLibraryRiskSignals = async (fingerprints: LibraryFingerprint[]
       ];
     });
 
+    if (riskCache.size > 500) riskCache.clear();
     riskCache.set(cacheKey, signals);
     return signals;
   } catch {

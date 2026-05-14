@@ -358,9 +358,11 @@ export const fetchCtDiscovery = async (
   const { sampleHosts = true } = options;
   const queriedDomain = toDiscoveryDomain(host);
   const cached = ctCache.get(queriedDomain);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.value;
+  if (cached) {
+    if (cached.expiresAt > Date.now()) return cached.value; // still valid
+    ctCache.delete(queriedDomain); // expired — evict before re-fetch
   }
+  if (ctCache.size > 2000) ctCache.clear();
 
   const sourceUrl = `https://crt.sh/?q=%25.${queriedDomain}&output=json`;
 

@@ -123,6 +123,11 @@ function formatErrorMessage(error) {
   return "Unable to analyze URL.";
 }
 
+function sanitiseErrorDetail(msg: string): string {
+  // Remove raw IP addresses to avoid leaking internal network topology
+  return msg.replace(/\b(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?\b/g, "<host>");
+}
+
 function classifyAssessmentFailure(error: unknown) {
   const detail = formatErrorMessage(error);
   const message = detail.toLowerCase();
@@ -145,7 +150,7 @@ function classifyAssessmentFailure(error: unknown) {
     return {
       kind: "other" as const,
       title: "TLS certificate validation failed.",
-      detail: `The scanner could not establish a trusted HTTPS connection: ${detail}`,
+      detail: sanitiseErrorDetail(`The scanner could not establish a trusted HTTPS connection: ${detail}`),
     };
   }
 
@@ -578,54 +583,74 @@ async function enrichCoreResult(
   const secondaryFetchWithRedirects = (targetUrl: URL, redirectLimit?: number) =>
     fetchWithRedirects(targetUrl, redirectLimit, { timeoutMs: SECONDARY_REQUEST_TIMEOUT_MS });
 
-  const discoveryPromise = pageAnalysisEnabled
-    ? collectDiscoveryPaths(finalUrl, htmlSecurity, secondaryRequestText)
-    : Promise.resolve({ paths: [], sources: ["quiet mode"] } satisfies DiscoveryResult);
-  const publicSignalsPromise = fetchPublicSignals(result.host, { requestText });
-  const infrastructurePromise = analyzeInfrastructure(finalUrl, result.rawHeaders, technologies);
-  const domainSecurityPromise = analyzeDomainSecurity(result.host, secondaryRequestText);
-  const securityTxtPromise = pageAnalysisEnabled ? fetchSecurityTxt(finalUrl, secondaryRequestText) : Promise.resolve(emptySecurityTxt());
-  const exposurePromise = pageAnalysisEnabled
-    ? analyzeExposure(finalUrl, htmlDocument, {
-        exposureProbes: EXPOSURE_PROBES,
-        requestOnce: secondaryRequestOnce,
-        requestText: secondaryRequestText,
-        fetchWithRedirects: secondaryFetchWithRedirects,
-        headerValue,
-        formatErrorMessage,
-        isAccessDeniedHtml,
-        classifyHtmlApiFallback,
-      })
-    : Promise.resolve(emptyExposure());
-  const corsSecurityPromise = pageAnalysisEnabled
-    ? analyzeCorsSecurity(finalUrl, result.rawHeaders, {
-        requestWithHeaders: secondaryRequestWithHeaders,
-        headerValue,
-      })
-    : Promise.resolve(emptyCorsSecurity());
-  const apiSurfacePromise = pageAnalysisEnabled
-    ? analyzeApiSurface(finalUrl, htmlDocument, {
-        apiSurfaceProbes: API_SURFACE_PROBES,
-        requestText: secondaryRequestText,
-        fetchWithRedirects: secondaryFetchWithRedirects,
-        headerValue,
-        isAccessDeniedHtml,
-        classifyHtmlApiFallback,
-      })
-    : Promise.resolve(emptyApiSurface());
-  const crawlPromise = discoveryPromise.then((discovery) =>
-    pageAnalysisEnabled ? crawlRelatedPages(result, discovery) : emptyCrawlSummary(discovery.sources),
-  );
-  const identityProviderPromise = pageAnalysisEnabled
-    ? ctDiscoveryPromise.then((ctDiscovery) => analyzeIdentityProvider(
-      finalUrl,
-      result.redirects,
-      htmlSecurity,
-      htmlDocument?.html || null,
-      requestJson,
-      ctDiscovery,
-    ))
-    : Promise.resolve(emptyIdentityProvider());
+  // Batch 1: fast/non-network tasks plus the two heaviest long-running ones
+  const [
+    discovery,
+    publicSignals,
+    infrastructure,
+    ctDiscovery,
+    domainSecurity,
+    securityTxt,
+  ] = await Promise.all([
+    pageAnalysisEnabled
+      ? collectDiscoveryPaths(finalUrl, htmlSecurity, secondaryRequestText)
+      : Promise.resolve({ paths: [], sources: ["quiet mode"] } satisfies DiscoveryResult),
+    fetchPublicSignals(result.host, { requestText }),
+    analyzeInfrastructure(finalUrl, result.rawHeaders, technologies),
+    ctDiscoveryPromise,
+    analyzeDomainSecurity(result.host, secondaryRequestText),
+    pageAnalysisEnabled ? fetchSecurityTxt(finalUrl, secondaryRequestText) : Promise.resolve(emptySecurityTxt()),
+  ]);
+
+  // Batch 2: tasks that depend on batch-1 results or do additional network probing
+  const [
+    identityProvider,
+    crawl,
+    exposure,
+    corsSecurity,
+    apiSurface,
+  ] = await Promise.all([
+    pageAnalysisEnabled
+      ? analyzeIdentityProvider(
+          finalUrl,
+          result.redirects,
+          htmlSecurity,
+          htmlDocument?.html || null,
+          requestJson,
+          ctDiscovery,
+        )
+      : Promise.resolve(emptyIdentityProvider()),
+    pageAnalysisEnabled ? crawlRelatedPages(result, discovery) : Promise.resolve(emptyCrawlSummary(discovery.sources)),
+    pageAnalysisEnabled
+      ? analyzeExposure(finalUrl, htmlDocument, {
+          exposureProbes: EXPOSURE_PROBES,
+          requestOnce: secondaryRequestOnce,
+          requestText: secondaryRequestText,
+          fetchWithRedirects: secondaryFetchWithRedirects,
+          headerValue,
+          formatErrorMessage,
+          isAccessDeniedHtml,
+          classifyHtmlApiFallback,
+        })
+      : Promise.resolve(emptyExposure()),
+    pageAnalysisEnabled
+      ? analyzeCorsSecurity(finalUrl, result.rawHeaders, {
+          requestWithHeaders: secondaryRequestWithHeaders,
+          headerValue,
+        })
+      : Promise.resolve(emptyCorsSecurity()),
+    pageAnalysisEnabled
+      ? analyzeApiSurface(finalUrl, htmlDocument, {
+          apiSurfaceProbes: API_SURFACE_PROBES,
+          requestText: secondaryRequestText,
+          fetchWithRedirects: secondaryFetchWithRedirects,
+          headerValue,
+          isAccessDeniedHtml,
+          classifyHtmlApiFallback,
+        })
+      : Promise.resolve(emptyApiSurface()),
+  ]);
+
   const wafFingerprint = analyzeWafFingerprint(
     finalUrl,
     result.rawHeaders,
@@ -637,31 +662,6 @@ async function enrichCoreResult(
     result.rawHeaders,
     htmlDocument?.html || null,
   );
-  const [
-    discovery,
-    publicSignals,
-    infrastructure,
-    ctDiscovery,
-    identityProvider,
-    crawl,
-    securityTxt,
-    domainSecurity,
-    exposure,
-    corsSecurity,
-    apiSurface,
-  ] = await Promise.all([
-    discoveryPromise,
-    publicSignalsPromise,
-    infrastructurePromise,
-    ctDiscoveryPromise,
-    identityProviderPromise,
-    crawlPromise,
-    securityTxtPromise,
-    domainSecurityPromise,
-    exposurePromise,
-    corsSecurityPromise,
-    apiSurfacePromise,
-  ]);
 
   return {
     ...result,

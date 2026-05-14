@@ -130,6 +130,11 @@ export async function requestText(
   });
 }
 
+function tryParseJson(body: string | null | undefined): unknown {
+  if (!body) return null;
+  try { return JSON.parse(body); } catch { return null; }
+}
+
 export async function requestJson(
   targetUrl: URL,
   extraHeaders: Record<string, string> = {},
@@ -141,7 +146,7 @@ export async function requestJson(
   }, options);
   return {
     ...response,
-    json: response.body ? JSON.parse(response.body) : null,
+    json: tryParseJson(response.body),
   };
 }
 
