@@ -3,6 +3,8 @@ import { promisify } from "node:util";
 
 const scryptAsync = promisify(crypto.scrypt);
 const DEFAULT_SESSION_TTL_DAYS = 30;
+const MAX_EMAIL_LENGTH = 254;
+const MAX_PASSWORD_LENGTH = 256;
 
 const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
 const normalizeDisplayName = (value) => {
@@ -79,12 +81,20 @@ function validateCredentials({ email, password }) {
   const normalizedEmail = normalizeEmail(email);
   const normalizedPassword = String(password || "");
 
-  if (!normalizedEmail || !normalizedEmail.includes("@")) {
+  if (
+    !normalizedEmail ||
+    normalizedEmail.length > MAX_EMAIL_LENGTH ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+  ) {
     return { error: "Enter a valid email address." };
   }
 
   if (normalizedPassword.length < 10) {
     return { error: "Password must be at least 10 characters long." };
+  }
+
+  if (normalizedPassword.length > MAX_PASSWORD_LENGTH) {
+    return { error: "Password must be 256 characters or fewer." };
   }
 
   return {

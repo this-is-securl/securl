@@ -1,3 +1,5 @@
+import { API_VERSION } from "./scanDtos.mjs";
+
 export function parseScanResourcePath(requestPath) {
   const match = requestPath.match(/^\/api\/scans\/([^/]+)(?:\/([^/]+))?$/);
   if (!match) {
@@ -155,7 +157,7 @@ export async function handleScanCollectionRequest({
         limit: clampLimit(requestUrl.searchParams.get("limit")),
         ownerId: authState.ownerId,
       });
-      sendJson(response, 200, { scans });
+      sendJson(response, 200, { apiVersion: API_VERSION, scans });
     } catch (error) {
       sendRepositoryUnavailable(response, error, "list_scans");
     }
@@ -205,6 +207,7 @@ export async function handleScanCollectionRequest({
       });
 
       sendJson(response, 202, {
+        apiVersion: API_VERSION,
         scan: (await scanRepository.getScan(scan.id, { ownerId: authState.ownerId })).summary,
       });
     } catch (error) {
@@ -289,7 +292,7 @@ export async function handleScanResourceRequest({
     }
 
     if (!resource) {
-      sendJson(response, 200, { scan });
+      sendJson(response, 200, { apiVersion: API_VERSION, scan });
       return true;
     }
 

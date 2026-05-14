@@ -6,6 +6,7 @@ import type {
   ApiScanRecord,
   ApiScanSummary,
   CreateScanResponse,
+  DeleteMonitoringTargetResponse,
   GetScanResponse,
   MonitoringTargetResponse,
   MonitoringTargetsResponse,
@@ -421,5 +422,5 @@ export const deleteMonitoringTarget = async (targetId: string) => {
     method: "DELETE",
     headers: await buildRequestAuthHeaders({ requireScanOwner: true }),
   });
-  return readJsonResponse<{ ok: boolean }>(response);
+  return readJsonResponse<DeleteMonitoringTargetResponse>(response);
 };

@@ -99,4 +99,22 @@ export function enforceStartupConfiguration({
     });
     process.exit(1);
   }
+
+  if (isProduction && scanRepositoryBackend === "postgres" && process.env.PGSSL_REJECT_UNAUTHORIZED !== "true") {
+    log("warn", "postgres_tls_verification_not_enforced", {
+      message: "Postgres TLS is enabled without certificate verification. Set PGSSL_REJECT_UNAUTHORIZED=true when your provider chain is trusted.",
+    });
+  }
+
+  if (isProduction && !process.env.AUTH_TOKEN_FINGERPRINT_SALT) {
+    log("warn", "default_auth_fingerprint_salt", {
+      message: "Set AUTH_TOKEN_FINGERPRINT_SALT to a deployment-specific secret before handling real user accounts.",
+    });
+  }
+
+  if (isProduction && !process.env.API_KEY_FINGERPRINT_SALT) {
+    log("warn", "default_api_key_fingerprint_salt", {
+      message: "Set API_KEY_FINGERPRINT_SALT to a deployment-specific secret before handling production API keys.",
+    });
+  }
 }

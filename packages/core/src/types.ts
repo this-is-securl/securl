@@ -448,6 +448,14 @@ export interface AssessmentLimitation {
   detail: string | null;
 }
 
+export interface ScanTimingInfo {
+  totalMs: number;
+  coreMs: number;
+  enrichmentMs: number;
+  timedOut: boolean;
+  timeoutMs: number | null;
+}
+
 export interface ExposureProbe {
   label: string;
   path: string;
@@ -537,10 +545,12 @@ export interface AnalysisResult {
   apiSurface: ApiSurfaceInfo;
   publicSignals: PublicSignalsInfo;
   wafFingerprint: WafFingerprintInfo;
+  scanTiming?: ScanTimingInfo;
 }
 
 export interface AnalyzeTargetOptions {
   includeCertificate?: boolean;
+  maxScanDurationMs?: number;
   requestTimeoutMs?: number;
   scanMode?: "standard" | "quiet";
 }
