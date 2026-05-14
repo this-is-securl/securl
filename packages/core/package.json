@@ -1,6 +1,6 @@
 {
   "name": "@ktbatterham/external-posture-core",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "type": "module",
   "description": "Low-noise external posture analysis core for web targets.",
   "author": {
