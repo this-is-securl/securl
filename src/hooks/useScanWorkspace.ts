@@ -3,7 +3,8 @@ import { toast } from "sonner";
 import type { AnalysisResult } from "@/types/analysis";
 import { getAreaScores } from "@/lib/posture";
 import type { ReportWorkspaceSectionKey } from "@/lib/reportWorkspace";
-import { analyzeTarget } from "@/lib/apiClient";
+import { analyzeTarget, ApiClientError, getSavedScan } from "@/lib/apiClient";
+import type { RecentScan } from "@/lib/scanWorkspace";
 
 import { useRecentScans } from "./useRecentScans";
 import { useMonitoredTargets } from "./useMonitoredTargets";
@@ -178,6 +179,33 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
     }
   };
 
+  const openRecentScan = async (scan: RecentScan) => {
+    if (!scan.id || !authScopeKey) {
+      await handleAnalyze(scan.url, "recent");
+      return;
+    }
+
+    setIsLoading(true);
+    setActiveRecentScanUrl(scan.id);
+
+    try {
+      const payload = await getSavedScan(scan.id);
+      if (payload.scan.status !== "completed" || !payload.scan.result) {
+        throw new ApiClientError("That saved scan is not ready to reopen yet.", 409, payload);
+      }
+      startTransition(() => {
+        setAnalysisData(payload.scan.result);
+        addHistorySnapshot(payload.scan.result, true);
+      });
+      toast.success(`Reopened ${payload.scan.result.host}.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to reopen that saved report.");
+    } finally {
+      setActiveRecentScanUrl(null);
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (typeof window === "undefined" || autoScanRanRef.current) {
       return;
@@ -259,6 +287,7 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
     monitoredViews,
     setActiveReportSection,
     handleAnalyze,
+    openRecentScan,
     saveCurrentAsMonitored: async (cadence: "daily" | "weekly") => {
       await saveCurrentAsMonitored(cadence, analysisData);
     },
