@@ -2,6 +2,7 @@
 // is designed for low-noise, best-effort external posture analysis rather than
 // deep crawling or full content retrieval.
 export const REQUEST_TIMEOUT_MS = 12_000;
+export const SECONDARY_REQUEST_TIMEOUT_MS = 4_000;
 export const TLS_HANDSHAKE_TIMEOUT_MS = 10_000;
 export const DNS_LOOKUP_TIMEOUT_MS = 2_500;
 

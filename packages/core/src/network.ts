@@ -29,15 +29,25 @@ export interface RequestJsonResult<T = unknown> {
 export type RequestTextFn = (targetUrl: URL, extraHeaders?: Record<string, string>) => Promise<RequestTextResult>;
 export type RequestJsonFn = (targetUrl: URL, extraHeaders?: Record<string, string>) => Promise<RequestJsonResult>;
 
-export function requestOnce(targetUrl: URL, method = "HEAD"): Promise<RequestHeadResult> {
-  return requestWithHeaders(targetUrl, method);
+interface RequestOptions {
+  timeoutMs?: number;
 }
 
-export async function requestWithHeaders(targetUrl: URL, method = "HEAD", extraHeaders: Record<string, string> = {}): Promise<RequestHeadResult> {
+export function requestOnce(targetUrl: URL, method = "HEAD", options: RequestOptions = {}): Promise<RequestHeadResult> {
+  return requestWithHeaders(targetUrl, method, {}, options);
+}
+
+export async function requestWithHeaders(
+  targetUrl: URL,
+  method = "HEAD",
+  extraHeaders: Record<string, string> = {},
+  options: RequestOptions = {},
+): Promise<RequestHeadResult> {
   await assertPublicRequestTarget(targetUrl);
   const isHttps = targetUrl.protocol === "https:";
   const transport = isHttps ? https : http;
   const startedAt = Date.now();
+  const timeoutMs = options.timeoutMs ?? REQUEST_TIMEOUT_MS;
 
   return new Promise((resolve, reject) => {
     const request = transport.request(
@@ -63,17 +73,22 @@ export async function requestWithHeaders(targetUrl: URL, method = "HEAD", extraH
     );
 
     request.on("error", reject);
-    request.setTimeout(REQUEST_TIMEOUT_MS, () => {
+    request.setTimeout(timeoutMs, () => {
       request.destroy(new Error("Request timed out."));
     });
     request.end();
   });
 }
 
-export async function requestText(targetUrl: URL, extraHeaders: Record<string, string> = {}): Promise<RequestTextResult> {
+export async function requestText(
+  targetUrl: URL,
+  extraHeaders: Record<string, string> = {},
+  options: RequestOptions = {},
+): Promise<RequestTextResult> {
   await assertPublicRequestTarget(targetUrl);
   const isHttps = targetUrl.protocol === "https:";
   const transport = isHttps ? https : http;
+  const timeoutMs = options.timeoutMs ?? REQUEST_TIMEOUT_MS;
 
   return new Promise((resolve, reject) => {
     const request = transport.request(
@@ -108,31 +123,35 @@ export async function requestText(targetUrl: URL, extraHeaders: Record<string, s
     );
 
     request.on("error", reject);
-    request.setTimeout(REQUEST_TIMEOUT_MS, () => {
+    request.setTimeout(timeoutMs, () => {
       request.destroy(new Error("Request timed out."));
     });
     request.end();
   });
 }
 
-export async function requestJson(targetUrl: URL, extraHeaders: Record<string, string> = {}): Promise<RequestJsonResult> {
+export async function requestJson(
+  targetUrl: URL,
+  extraHeaders: Record<string, string> = {},
+  options: RequestOptions = {},
+): Promise<RequestJsonResult> {
   const response = await requestText(targetUrl, {
     Accept: "application/json,text/plain;q=0.9,*/*;q=0.1",
     ...extraHeaders,
-  });
+  }, options);
   return {
     ...response,
     json: response.body ? JSON.parse(response.body) : null,
   };
 }
 
-export async function fetchWithRedirects(initialUrl: URL, redirectLimit = REDIRECT_LIMIT) {
+export async function fetchWithRedirects(initialUrl: URL, redirectLimit = REDIRECT_LIMIT, options: RequestOptions = {}) {
   const redirects: Array<{ url: string; statusCode: number; location: string | null; secure: boolean }> = [];
   let currentUrl = initialUrl;
-  let response = await requestOnce(currentUrl, "HEAD");
+  let response = await requestOnce(currentUrl, "HEAD", options);
 
   if (response.statusCode === 405 || response.statusCode === 403) {
-    response = await requestOnce(currentUrl, "GET");
+    response = await requestOnce(currentUrl, "GET", options);
   }
 
   while (
@@ -149,9 +168,9 @@ export async function fetchWithRedirects(initialUrl: URL, redirectLimit = REDIRE
     });
     currentUrl = new URL(location!, currentUrl);
     await assertPublicRedirectTarget(currentUrl);
-    response = await requestOnce(currentUrl, "HEAD");
+    response = await requestOnce(currentUrl, "HEAD", options);
     if (response.statusCode === 405 || response.statusCode === 403) {
-      response = await requestOnce(currentUrl, "GET");
+      response = await requestOnce(currentUrl, "GET", options);
     }
   }
 
