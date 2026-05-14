@@ -8,6 +8,7 @@ import {
   CRAWL_CONCURRENCY_LIMIT,
   CRAWL_CANDIDATES,
   EXPOSURE_PROBES,
+  SECONDARY_REQUEST_TIMEOUT_MS,
 } from "./scannerConfig.js";
 import {
   analyzeHeaders,
@@ -187,7 +188,7 @@ function parseSitemapPaths(xml: string, finalUrl: URL): string[] {
   );
 }
 
-async function collectDiscoveryPaths(finalUrl, htmlSecurity) {
+async function collectDiscoveryPaths(finalUrl, htmlSecurity, requestTextFn = requestText) {
   const discoverySources = [];
   const discoveredPaths = [...(htmlSecurity.firstPartyPaths || [])];
 
@@ -198,7 +199,7 @@ async function collectDiscoveryPaths(finalUrl, htmlSecurity) {
   const sitemapCandidates = [new URL("/sitemap.xml", finalUrl.origin).toString()];
 
   try {
-    const robotsResponse = await requestText(new URL("/robots.txt", finalUrl.origin));
+    const robotsResponse = await requestTextFn(new URL("/robots.txt", finalUrl.origin));
     if (robotsResponse.statusCode >= 200 && robotsResponse.statusCode < 300 && robotsResponse.body.trim()) {
       discoverySources.push("robots.txt");
       sitemapCandidates.push(...parseRobotsSitemaps(robotsResponse.body));
@@ -210,7 +211,7 @@ async function collectDiscoveryPaths(finalUrl, htmlSecurity) {
   for (const sitemapCandidate of unique(sitemapCandidates).slice(0, 2)) {
     try {
       const sitemapUrl = new URL(sitemapCandidate, finalUrl);
-      const response = await requestText(sitemapUrl);
+      const response = await requestTextFn(sitemapUrl);
       if (response.statusCode >= 200 && response.statusCode < 300 && response.body.includes("<loc>")) {
         discoveredPaths.push(...parseSitemapPaths(response.body, finalUrl));
         discoverySources.push(sitemapUrl.pathname === "/sitemap.xml" ? "sitemap.xml" : "robots.txt sitemap");
@@ -229,18 +230,19 @@ async function collectDiscoveryPaths(finalUrl, htmlSecurity) {
 
 async function analyzeUrlCore(input: string | URL, options: AnalyzeTargetOptions = {}) {
   const { includeCertificate = true } = options;
+  const requestOptions = options.requestTimeoutMs ? { timeoutMs: options.requestTimeoutMs } : {};
   let normalizedUrl = input instanceof URL ? input : normalizeUrl(input);
   let requestData: Awaited<ReturnType<typeof fetchWithRedirects>>;
 
   try {
-    requestData = await fetchWithRedirects(normalizedUrl);
+    requestData = await fetchWithRedirects(normalizedUrl, undefined, requestOptions);
   } catch (error) {
     if (normalizedUrl.protocol === "https:" && shouldRetryOverHttp(error)) {
       const fallbackUrl = new URL(normalizedUrl);
       fallbackUrl.protocol = "http:";
       normalizedUrl = fallbackUrl;
       try {
-        requestData = await fetchWithRedirects(normalizedUrl);
+        requestData = await fetchWithRedirects(normalizedUrl, undefined, requestOptions);
       } catch (fallbackError) {
         throw new Error(
           `HTTPS failed and the site did not respond cleanly over HTTP either: ${formatErrorMessage(fallbackError)}`,
@@ -557,24 +559,65 @@ async function enrichCoreResult(
     sampleHosts: pageAnalysisEnabled,
   });
   const { htmlDocument, htmlSecurity } = await analyzeHtmlSecuritySignals(finalUrl, pageAnalysisEnabled);
-  const discovery = pageAnalysisEnabled
-    ? await collectDiscoveryPaths(finalUrl, htmlSecurity)
-    : { paths: [], sources: ["quiet mode"] };
-  const publicSignals = await fetchPublicSignals(result.host, { requestText });
   const thirdPartyTrust = analyzeThirdPartyTrust(finalUrl, htmlSecurity, htmlSecurity.aiSurface);
   const technologies = mergeTechnologies(result.technologies, htmlSecurity.detectedTechnologies);
-  const infrastructure = await analyzeInfrastructure(finalUrl, result.rawHeaders, technologies);
-  const ctDiscovery: CtDiscoveryResult = await ctDiscoveryPromise;
-  const identityProvider = pageAnalysisEnabled
-    ? await analyzeIdentityProvider(
-        finalUrl,
-        result.redirects,
-        htmlSecurity,
-        htmlDocument?.html || null,
-        requestJson,
-        ctDiscovery,
-      )
-    : emptyIdentityProvider();
+  const secondaryRequestText = (targetUrl: URL, extraHeaders: Record<string, string> = {}) =>
+    requestText(targetUrl, extraHeaders, { timeoutMs: SECONDARY_REQUEST_TIMEOUT_MS });
+  const secondaryRequestOnce = (targetUrl: URL, method = "HEAD") =>
+    requestOnce(targetUrl, method, { timeoutMs: SECONDARY_REQUEST_TIMEOUT_MS });
+  const secondaryRequestWithHeaders = (targetUrl: URL, method = "HEAD", extraHeaders: Record<string, string> = {}) =>
+    requestWithHeaders(targetUrl, method, extraHeaders, { timeoutMs: SECONDARY_REQUEST_TIMEOUT_MS });
+  const secondaryFetchWithRedirects = (targetUrl: URL, redirectLimit?: number) =>
+    fetchWithRedirects(targetUrl, redirectLimit, { timeoutMs: SECONDARY_REQUEST_TIMEOUT_MS });
+
+  const discoveryPromise = pageAnalysisEnabled
+    ? collectDiscoveryPaths(finalUrl, htmlSecurity, secondaryRequestText)
+    : Promise.resolve({ paths: [], sources: ["quiet mode"] } satisfies DiscoveryResult);
+  const publicSignalsPromise = fetchPublicSignals(result.host, { requestText });
+  const infrastructurePromise = analyzeInfrastructure(finalUrl, result.rawHeaders, technologies);
+  const domainSecurityPromise = analyzeDomainSecurity(result.host, secondaryRequestText);
+  const securityTxtPromise = pageAnalysisEnabled ? fetchSecurityTxt(finalUrl, secondaryRequestText) : Promise.resolve(emptySecurityTxt());
+  const exposurePromise = pageAnalysisEnabled
+    ? analyzeExposure(finalUrl, htmlDocument, {
+        exposureProbes: EXPOSURE_PROBES,
+        requestOnce: secondaryRequestOnce,
+        requestText: secondaryRequestText,
+        fetchWithRedirects: secondaryFetchWithRedirects,
+        headerValue,
+        formatErrorMessage,
+        isAccessDeniedHtml,
+        classifyHtmlApiFallback,
+      })
+    : Promise.resolve(emptyExposure());
+  const corsSecurityPromise = pageAnalysisEnabled
+    ? analyzeCorsSecurity(finalUrl, result.rawHeaders, {
+        requestWithHeaders: secondaryRequestWithHeaders,
+        headerValue,
+      })
+    : Promise.resolve(emptyCorsSecurity());
+  const apiSurfacePromise = pageAnalysisEnabled
+    ? analyzeApiSurface(finalUrl, htmlDocument, {
+        apiSurfaceProbes: API_SURFACE_PROBES,
+        requestText: secondaryRequestText,
+        fetchWithRedirects: secondaryFetchWithRedirects,
+        headerValue,
+        isAccessDeniedHtml,
+        classifyHtmlApiFallback,
+      })
+    : Promise.resolve(emptyApiSurface());
+  const crawlPromise = discoveryPromise.then((discovery) =>
+    pageAnalysisEnabled ? crawlRelatedPages(result, discovery) : emptyCrawlSummary(discovery.sources),
+  );
+  const identityProviderPromise = pageAnalysisEnabled
+    ? ctDiscoveryPromise.then((ctDiscovery) => analyzeIdentityProvider(
+      finalUrl,
+      result.redirects,
+      htmlSecurity,
+      htmlDocument?.html || null,
+      requestJson,
+      ctDiscovery,
+    ))
+    : Promise.resolve(emptyIdentityProvider());
   const wafFingerprint = analyzeWafFingerprint(
     finalUrl,
     result.rawHeaders,
@@ -586,14 +629,39 @@ async function enrichCoreResult(
     result.rawHeaders,
     htmlDocument?.html || null,
   );
+  const [
+    discovery,
+    publicSignals,
+    infrastructure,
+    ctDiscovery,
+    identityProvider,
+    crawl,
+    securityTxt,
+    domainSecurity,
+    exposure,
+    corsSecurity,
+    apiSurface,
+  ] = await Promise.all([
+    discoveryPromise,
+    publicSignalsPromise,
+    infrastructurePromise,
+    ctDiscoveryPromise,
+    identityProviderPromise,
+    crawlPromise,
+    securityTxtPromise,
+    domainSecurityPromise,
+    exposurePromise,
+    corsSecurityPromise,
+    apiSurfacePromise,
+  ]);
 
   return {
     ...result,
     issues: [...result.issues, ...buildLibraryRiskIssues(htmlSecurity.libraryRiskSignals).map(classifyIssueTaxonomy)],
     technologies,
-    crawl: pageAnalysisEnabled ? await crawlRelatedPages(result, discovery) : emptyCrawlSummary(discovery.sources),
-    securityTxt: pageAnalysisEnabled ? await fetchSecurityTxt(finalUrl, requestText) : emptySecurityTxt(),
-    domainSecurity: await analyzeDomainSecurity(result.host, requestText),
+    crawl,
+    securityTxt,
+    domainSecurity,
     identityProvider,
     ctDiscovery,
     htmlSecurity,
@@ -601,34 +669,9 @@ async function enrichCoreResult(
     thirdPartyTrust,
     infrastructure,
     wafFingerprint,
-    exposure: pageAnalysisEnabled
-      ? await analyzeExposure(finalUrl, htmlDocument, {
-          exposureProbes: EXPOSURE_PROBES,
-          requestOnce,
-          requestText,
-          fetchWithRedirects,
-          headerValue,
-          formatErrorMessage,
-          isAccessDeniedHtml,
-          classifyHtmlApiFallback,
-        })
-      : emptyExposure(),
-    corsSecurity: pageAnalysisEnabled
-      ? await analyzeCorsSecurity(finalUrl, result.rawHeaders, {
-          requestWithHeaders,
-          headerValue,
-        })
-      : emptyCorsSecurity(),
-    apiSurface: pageAnalysisEnabled
-      ? await analyzeApiSurface(finalUrl, htmlDocument, {
-          apiSurfaceProbes: API_SURFACE_PROBES,
-          requestText,
-          fetchWithRedirects,
-          headerValue,
-          isAccessDeniedHtml,
-          classifyHtmlApiFallback,
-        })
-      : emptyApiSurface(),
+    exposure,
+    corsSecurity,
+    apiSurface,
     publicSignals,
     assessmentLimitation,
   };
@@ -723,7 +766,10 @@ async function crawlRelatedPages(rootResult, discovery) {
   const rootHost = new URL(rootResult.finalUrl).hostname;
   const pages = await mapWithConcurrency(candidates, CRAWL_CONCURRENCY_LIMIT, async (candidate) => {
     try {
-      const pageResult = await analyzeUrlCore(candidate.url, { includeCertificate: false });
+      const pageResult = await analyzeUrlCore(candidate.url, {
+        includeCertificate: false,
+        requestTimeoutMs: SECONDARY_REQUEST_TIMEOUT_MS,
+      });
       return summarizePageAnalysis(candidate.label, candidate.path, pageResult, rootHost);
     } catch {
       return {

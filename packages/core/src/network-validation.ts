@@ -1,5 +1,7 @@
 import dns from "node:dns/promises";
 import net from "node:net";
+import { DNS_LOOKUP_TIMEOUT_MS } from "./scannerConfig.js";
+import { withTimeout } from "./utils.js";
 
 export function isPrivateIpv4(value: string): boolean {
   const [first, second] = value.split(".").map((part) => Number(part));
@@ -65,7 +67,11 @@ export async function assertPublicRequestTarget(targetUrl: URL): Promise<void> {
     return;
   }
 
-  const lookups = await dns.lookup(targetUrl.hostname, { all: true });
+  const lookups = await withTimeout(
+    dns.lookup(targetUrl.hostname, { all: true }),
+    DNS_LOOKUP_TIMEOUT_MS,
+    `DNS lookup for ${targetUrl.hostname} timed out.`,
+  );
   if (!lookups.length || lookups.some((entry) => isPrivateAddress(entry.address))) {
     throw new Error(`Target ${targetUrl.hostname} did not resolve exclusively to public IP addresses.`);
   }
@@ -77,7 +83,11 @@ export async function assertPublicRedirectTarget(targetUrl: URL): Promise<void> 
   }
 
   try {
-    const lookups = await dns.lookup(targetUrl.hostname, { all: true });
+    const lookups = await withTimeout(
+      dns.lookup(targetUrl.hostname, { all: true }),
+      DNS_LOOKUP_TIMEOUT_MS,
+      `DNS lookup for ${targetUrl.hostname} timed out.`,
+    );
     if (lookups.length && lookups.every((entry) => isPrivateAddress(entry.address))) {
       throw new Error(`Redirect target ${targetUrl.hostname} resolved only to private or loopback addresses and was blocked.`);
     }
