@@ -9,6 +9,7 @@ export const STORAGE_SCHEMA_VERSION = 1;
 export const MONITORED_TARGET_LIMIT = 12;
 
 export interface RecentScan {
+  id?: string;
   url: string;
   grade: string;
   scannedAt: string;
@@ -34,7 +35,10 @@ export type StoredHistorySnapshot = HistorySnapshot & {
 };
 
 export const buildRecentScans = (current: RecentScan[], scan: RecentScan) =>
-  [scan, ...current.filter((item) => item.url !== scan.url)].slice(0, 6);
+  [
+    scan,
+    ...current.filter((item) => (scan.id && item.id ? item.id !== scan.id : item.url !== scan.url)),
+  ].slice(0, 6);
 
 export const syncMonitoredTargetFromAnalysis = (targets: MonitoredTarget[], payload: AnalysisResult) => {
   let changed = false;

@@ -19,6 +19,7 @@ export const useRecentScans = ({ accountOwned = false }: { accountOwned?: boolea
       return summaries
         .filter((scan) => scan.status === "completed" && scan.grade)
         .map((scan) => ({
+          id: scan.id,
           url: scan.url,
           grade: scan.grade || "?",
           scannedAt: scan.completedAt || scan.requestedAt,

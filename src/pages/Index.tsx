@@ -61,6 +61,7 @@ const Index = () => {
     monitoredViews,
     setActiveReportSection,
     handleAnalyze,
+    openRecentScan,
     saveCurrentAsMonitored,
     removeMonitoredTarget,
     runTargetScan,
@@ -174,25 +175,25 @@ const Index = () => {
                   <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-1">
                     {recentScans.slice(0, 3).map((scan) => (
                       <button
-                        key={scan.url}
+                        key={scan.id ?? scan.url}
                         type="button"
-                        onClick={() => void handleAnalyze(scan.url, "recent")}
+                        onClick={() => void openRecentScan(scan)}
                         disabled={isLoading}
                         className={`rounded-[1.2rem] border px-4 py-3 text-left shadow-sm transition duration-300 ${
-                          activeRecentScanUrl === scan.url
+                          activeRecentScanUrl === (scan.id ?? scan.url)
                             ? "border-[#b56a2c]/45 bg-[#b56a2c]/12 shadow-[0_18px_36px_-28px_rgba(181,106,44,0.6)]"
                             : "border-white/10 bg-slate-950/45 hover:-translate-y-0.5 hover:border-[#b56a2c]/25 hover:bg-white/[0.08]"
                         } ${isLoading ? "cursor-wait" : ""}`}
-                        aria-busy={activeRecentScanUrl === scan.url}
+                        aria-busy={activeRecentScanUrl === (scan.id ?? scan.url)}
                       >
                         <div className="flex items-center justify-between gap-3">
                           <span className="truncate text-sm font-medium text-slate-100">{scan.url}</span>
                           <div className="flex items-center gap-2">
-                            {activeRecentScanUrl === scan.url ? (
+                            {activeRecentScanUrl === (scan.id ?? scan.url) ? (
                               <span className="inline-flex h-2 w-2 rounded-full bg-[#d89a63] shadow-[0_0_0_4px_rgba(181,106,44,0.16)]" />
                             ) : null}
                             <span className="text-sm font-semibold uppercase tracking-[0.14em] text-[#f0d5bc]">
-                              {activeRecentScanUrl === scan.url ? scanStage?.label ?? "Scanning" : scan.grade}
+                              {activeRecentScanUrl === (scan.id ?? scan.url) ? scanStage?.label ?? "Opening" : scan.grade}
                             </span>
                           </div>
                         </div>

@@ -206,4 +206,49 @@ describe("api client URL helpers", () => {
       },
     });
   });
+
+  it("reopens saved scans through the authenticated account scope", async () => {
+    window.sessionStorage.setItem("secure-header-insight:auth-session", JSON.stringify({
+      token: "session-token-123",
+      user: {
+        id: "user-1",
+        email: "keith@example.com",
+        displayName: "Keith",
+        createdAt: "2026-05-12T00:00:00.000Z",
+      },
+      session: {
+        createdAt: "2026-05-12T00:00:00.000Z",
+        expiresAt: "2026-06-12T00:00:00.000Z",
+      },
+    }));
+
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      scan: {
+        id: "scan-1",
+        ownerId: "user:user-1",
+        status: "completed",
+        url: "https://example.com/",
+        mode: "standard",
+        requesterScope: "user:user-1",
+        clientIp: "127.0.0.1",
+        requestedAt: "2026-05-12T00:00:00.000Z",
+        startedAt: "2026-05-12T00:00:01.000Z",
+        completedAt: "2026-05-12T00:00:02.000Z",
+        failureClass: null,
+        error: null,
+        summary: null,
+        result: null,
+      },
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { getSavedScan } = await import("./apiClient");
+    await getSavedScan("scan-1");
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/scans/scan-1", {
+      headers: {
+        Authorization: "Bearer session-token-123",
+      },
+    });
+  });
 });

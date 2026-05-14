@@ -296,6 +296,13 @@ export const getScan = async (scanId: string, scanOwnerToken: string) => {
   return readJsonResponse<GetScanResponse>(response);
 };
 
+export const getSavedScan = async (scanId: string) => {
+  const response = await fetch(buildApiUrl(`/api/scans/${encodeURIComponent(scanId)}`), {
+    headers: await buildRequestAuthHeaders({ requireScanOwner: true }),
+  });
+  return readJsonResponse<GetScanResponse>(response);
+};
+
 export const waitForScanCompletion = async (
   scanId: string,
   scanOwnerToken: string,
