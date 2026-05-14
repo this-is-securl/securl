@@ -15,7 +15,7 @@ interface UrlFormProps {
   } | null;
 }
 
-const stageOrder = ["queueing", "reading", "synthesizing", "finalizing"];
+const stageOrder = ["queueing", "reading", "analyzing", "waiting"];
 
 export const UrlForm = ({ onSubmit, isLoading, initialValue = "", scanStage = null }: UrlFormProps) => {
   const [url, setUrl] = useState(initialValue);
