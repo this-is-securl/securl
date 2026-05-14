@@ -1,6 +1,7 @@
 import dns from "node:dns/promises";
+import { DNS_LOOKUP_TIMEOUT_MS } from "./scannerConfig.js";
 import type { InfrastructureInfo, InfrastructureSignal, TechnologyResult } from "./types.js";
-import { headerValue, mapWithConcurrency, safeResolve, unique } from "./utils.js";
+import { headerValue, mapWithConcurrency, safeResolveWithTimeout, unique } from "./utils.js";
 
 interface InfrastructureResolver {
   resolveCname(host: string): Promise<string[]>;
@@ -73,17 +74,19 @@ export async function analyzeInfrastructure(
   resolver: InfrastructureResolver = defaultResolver,
 ): Promise<InfrastructureInfo> {
   const host = finalUrl.hostname;
+  const resolveDns = <T>(operation: () => Promise<T>) =>
+    safeResolveWithTimeout(operation, DNS_LOOKUP_TIMEOUT_MS);
   const [cnameTargetsRaw, ipv4Raw, ipv6Raw] = await Promise.all([
-    safeResolve(() => resolver.resolveCname(host)),
-    safeResolve(() => resolver.resolve4(host)),
-    safeResolve(() => resolver.resolve6(host)),
+    resolveDns(() => resolver.resolveCname(host)),
+    resolveDns(() => resolver.resolve4(host)),
+    resolveDns(() => resolver.resolve6(host)),
   ]);
   const cnameTargets = cnameTargetsRaw || [];
   const addresses = unique([...(ipv4Raw || []), ...(ipv6Raw || [])]);
   const reverseDns = unique(
     (
       await mapWithConcurrency(addresses.slice(0, 4), 2, async (address) =>
-        (await safeResolve(() => resolver.reverse(address))) || [],
+        (await resolveDns(() => resolver.reverse(address))) || [],
       )
     ).flat(),
   );

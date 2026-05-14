@@ -1,7 +1,8 @@
 import dns from "node:dns/promises";
 import type { MxRecord, CaaRecord } from "node:dns";
 import type { DomainSecurityInfo } from "./types.js";
-import { safeResolve } from "./utils.js";
+import { DNS_LOOKUP_TIMEOUT_MS } from "./scannerConfig.js";
+import { safeResolveWithTimeout } from "./utils.js";
 import type { RequestTextFn } from "./network.js";
 
 type SpfPolicyEvaluation = DomainSecurityInfo["emailPolicy"]["spf"];
@@ -150,6 +151,8 @@ export const evaluateDmarcPolicy = (dmarc: string | null): DmarcPolicyEvaluation
 export async function analyzeDomainSecurity(host: string, requestText: RequestTextFn): Promise<DomainSecurityInfo> {
   const apexHost = host.startsWith("www.") ? host.slice(4) : host;
   const candidateHosts = [...new Set([host, apexHost])];
+  const resolveDns = <T>(operation: () => Promise<T>) =>
+    safeResolveWithTimeout(operation, DNS_LOOKUP_TIMEOUT_MS);
 
   const [
     mxByHost,
@@ -160,13 +163,13 @@ export async function analyzeDomainSecurity(host: string, requestText: RequestTe
     txtMtaStsByHost,
     dsByHost,
   ] = await Promise.all([
-    Promise.all(candidateHosts.map((candidate) => safeResolve(() => dns.resolveMx(candidate)))),
-    Promise.all(candidateHosts.map((candidate) => safeResolve(() => dns.resolveNs(candidate)))),
-    Promise.all(candidateHosts.map((candidate) => safeResolve(() => dns.resolveTxt(candidate)))),
-    Promise.all(candidateHosts.map((candidate) => safeResolve(() => dns.resolveTxt(`_dmarc.${candidate}`)))),
-    Promise.all(candidateHosts.map((candidate) => safeResolve(() => dns.resolveCaa(candidate)))),
-    Promise.all(candidateHosts.map((candidate) => safeResolve(() => dns.resolveTxt(`_mta-sts.${candidate}`)))),
-    Promise.all(candidateHosts.map((candidate) => safeResolve<unknown[]>(() => dns.resolve(candidate, "DS") as Promise<unknown[]>))),
+    Promise.all(candidateHosts.map((candidate) => resolveDns(() => dns.resolveMx(candidate)))),
+    Promise.all(candidateHosts.map((candidate) => resolveDns(() => dns.resolveNs(candidate)))),
+    Promise.all(candidateHosts.map((candidate) => resolveDns(() => dns.resolveTxt(candidate)))),
+    Promise.all(candidateHosts.map((candidate) => resolveDns(() => dns.resolveTxt(`_dmarc.${candidate}`)))),
+    Promise.all(candidateHosts.map((candidate) => resolveDns(() => dns.resolveCaa(candidate)))),
+    Promise.all(candidateHosts.map((candidate) => resolveDns(() => dns.resolveTxt(`_mta-sts.${candidate}`)))),
+    Promise.all(candidateHosts.map((candidate) => resolveDns<unknown[]>(() => dns.resolve(candidate, "DS") as Promise<unknown[]>))),
   ]);
 
   const pickFirst = (values: (unknown[] | null)[]) => values.find((value) => value && value.length) || null;

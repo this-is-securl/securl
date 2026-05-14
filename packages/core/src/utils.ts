@@ -37,6 +37,18 @@ export const safeResolve = async <T>(operation: () => Promise<T>): Promise<T | n
   }
 };
 
+export const safeResolveWithTimeout = async <T>(
+  operation: () => Promise<T>,
+  timeoutMs: number,
+  message = "DNS lookup timed out.",
+): Promise<T | null> => {
+  try {
+    return await withTimeout(operation(), timeoutMs, message);
+  } catch {
+    return null;
+  }
+};
+
 export const mapWithConcurrency = async <T, R>(
   items: T[],
   limit: number,
