@@ -49,7 +49,7 @@ export const AuthCard = ({
     return (
       <div className="h-full rounded-[1.8rem] border border-emerald-400/15 bg-slate-950/35 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
         <div className="mb-4 flex items-center justify-between gap-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">Signed in</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-300">Signed in</p>
           <ShieldCheck className="h-5 w-5 text-emerald-300" />
         </div>
         <div className="space-y-4">
@@ -92,7 +92,7 @@ export const AuthCard = ({
   return (
     <div className="h-full rounded-[1.8rem] border border-white/10 bg-slate-950/35 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Account</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Account</p>
         <KeyRound className="h-5 w-5 text-[#d89a63]" />
       </div>
       <div className="space-y-4">

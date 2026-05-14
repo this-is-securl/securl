@@ -573,20 +573,15 @@ const Index = () => {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col gap-4">
-                      <div className="flex items-start gap-3">
-                        <Activity className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#d89a63]" />
-                        <div>
-                          <p className="text-sm font-semibold text-slate-200">Monitoring & drift tracking</p>
-                          <p className="mt-1 text-xs leading-5 text-slate-400">
-                            Save a target to monitor it over time. SecURL tracks grade changes, new
-                            findings, and resolved issues between scans.
-                          </p>
-                        </div>
+                    <div className="flex items-start gap-3">
+                      <Activity className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#d89a63]" />
+                      <div>
+                        <p className="text-sm font-semibold text-slate-200">Monitoring & drift tracking</p>
+                        <p className="mt-1 text-xs leading-5 text-slate-400">
+                          Scan a target above, then pin it here. SecURL will track grade changes,
+                          new findings, and resolved issues between scans — so regressions don't go unnoticed.
+                        </p>
                       </div>
-                      <p className="text-sm text-slate-500">
-                        Run your first scan above to unlock monitoring.
-                      </p>
                     </div>
                   )}
                 </div>
