@@ -23,14 +23,14 @@ const scanLifecycleStages = [
     detail: "Checking transport, headers, visible page signals, and passive trust evidence.",
   },
   {
-    key: "synthesizing",
-    label: "Scoring posture",
-    detail: "Normalizing findings into category scores, priorities, and confidence-labelled risks.",
+    key: "analyzing",
+    label: "Analyzing evidence",
+    detail: "Normalizing visible findings into category scores, priorities, and confidence-labelled risks.",
   },
   {
-    key: "finalizing",
-    label: "Finalizing report",
-    detail: "Preparing the workspace, recent history, and monitoring summaries.",
+    key: "waiting",
+    label: "Still checking target",
+    detail: "Some sites take longer while DNS, TLS, page, and public-trust checks finish. Keep this tab open.",
   },
 ] as const;
 
@@ -128,10 +128,11 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
     }
 
     setScanStage(scanLifecycleStages[0]);
+    const stageDelaysMs = [1200, 8000, 25000];
     scanLifecycleStages.slice(1).forEach((stage, index) => {
       const timeout = window.setTimeout(() => {
         setScanStage(stage);
-      }, (index + 1) * 900);
+      }, stageDelaysMs[index]);
       stageTimeoutsRef.current.push(timeout);
     });
 
