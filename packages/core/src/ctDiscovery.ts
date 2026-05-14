@@ -1,13 +1,14 @@
 import dns from "node:dns/promises";
 import {
   CT_CACHE_TTL_MS,
+  DNS_LOOKUP_TIMEOUT_MS,
   CT_LOOKUP_TIMEOUT_MS,
   CT_SAMPLE_CONCURRENCY_LIMIT,
   CT_SAMPLE_LIMIT,
 } from "./scannerConfig.js";
 import type { CtDiscoveryInfo, CtDiscoveredHost, CtHostObservation } from "./types.js";
 import { detectIdentityProviderName } from "./identityProvider.js";
-import { headerValue, mapWithConcurrency, safeResolve, unique, withTimeout } from "./utils.js";
+import { headerValue, mapWithConcurrency, safeResolve, safeResolveWithTimeout, unique, withTimeout } from "./utils.js";
 
 const CT_SUBDOMAIN_LIMIT = 20;
 const CT_WILDCARD_LIMIT = 5;
@@ -289,7 +290,10 @@ const observeSampledHosts = async (
     CT_SAMPLE_CONCURRENCY_LIMIT,
     async (hostInfo) => {
       const target = new URL(`https://${hostInfo.host}/`);
-      const cnameTargets = (await safeResolve(() => dns.resolveCname(hostInfo.host))) || [];
+      const cnameTargets = (await safeResolveWithTimeout(
+        () => dns.resolveCname(hostInfo.host),
+        DNS_LOOKUP_TIMEOUT_MS,
+      )) || [];
 
       try {
         const response = await withTimeout(
