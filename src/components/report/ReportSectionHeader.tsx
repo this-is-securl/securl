@@ -4,7 +4,7 @@ interface ReportSectionHeaderProps {
   description?: string;
 }
 
-export const sectionTitleClass = "text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400";
+export const sectionTitleClass = "text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500";
 
 export const ReportSectionHeader = ({
   eyebrow,
