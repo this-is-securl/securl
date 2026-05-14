@@ -27,7 +27,7 @@ export const CertificateAnalysis = ({ certInfo }: CertificateAnalysisProps) => {
           <>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Trust</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Trust</p>
                 <div className="mt-2 flex items-center gap-2">
                   <Badge variant={certInfo.valid ? "secondary" : "destructive"} className={certInfo.valid ? "bg-white/[0.08] text-slate-100" : undefined}>
                     {certInfo.valid ? "Trusted" : "Untrusted"}
@@ -40,7 +40,7 @@ export const CertificateAnalysis = ({ certInfo }: CertificateAnalysisProps) => {
               </div>
 
               <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Expiry</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Expiry</p>
                 <div className="mt-2 flex items-center gap-2 text-sm font-medium text-slate-100">
                   <Calendar className="h-4 w-4" />
                   {certInfo.validTo ?? "Unknown"}

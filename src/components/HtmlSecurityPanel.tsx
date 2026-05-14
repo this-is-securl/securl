@@ -73,7 +73,7 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
             <div className="grid gap-3 md:grid-cols-2">
               {clientCodeSignalRows.map((row) => (
                 <div key={row.label} className="rounded-[1.15rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{row.label}</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">{row.label}</p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {row.value.map((item) => (
                       <TruncatedChip key={`${row.label}-${item}`} value={item} />
@@ -305,7 +305,7 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
                               {item.aliases.length ? ` • ${item.aliases.join(", ")}` : ""}
                             </p>
                             <p className="mt-1 text-slate-300">{item.summary}</p>
-                            <p className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-400">Severity: {item.severity}</p>
+                            <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Severity: {item.severity}</p>
                           </div>
                         ))}
                       </div>

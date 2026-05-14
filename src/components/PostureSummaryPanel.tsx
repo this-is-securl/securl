@@ -23,29 +23,29 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatBox variant="warning" label="Critical" value={<p className="text-3xl font-semibold tracking-tight">{severityCounts.critical}</p>} />
+          <StatBox variant="warning" label="Critical" value={<p className="text-[2rem] font-bold leading-none tracking-[-0.04em]">{severityCounts.critical}</p>} />
           <StatBox
             variant="warning"
             label="Priority Warnings"
-            value={<p className="text-3xl font-semibold tracking-tight">{severityCounts.priorityWarnings}</p>}
+            value={<p className="text-[2rem] font-bold leading-none tracking-[-0.04em]">{severityCounts.priorityWarnings}</p>}
             note={<p className="text-xs text-slate-400">Actionable normalized findings only.</p>}
           />
           <StatBox
             variant="info"
             label="Supporting Watch Items"
-            value={<p className="text-3xl font-semibold tracking-tight">{severityCounts.supportingWatchItems}</p>}
+            value={<p className="text-[2rem] font-bold leading-none tracking-[-0.04em]">{severityCounts.supportingWatchItems}</p>}
             note={<p className="text-xs text-slate-400">Panel-level evidence; not added to warnings.</p>}
           />
           <StatBox
             variant="info"
             label="Observed Signals"
-            value={<p className="text-3xl font-semibold tracking-tight">{severityCounts.observedSignals}</p>}
+            value={<p className="text-[2rem] font-bold leading-none tracking-[-0.04em]">{severityCounts.observedSignals}</p>}
             note={<p className="text-xs text-slate-400">Informational findings plus interesting probes.</p>}
           />
         </div>
 
         <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
-          <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Category scores</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Category scores</p>
           <div className="mt-3 grid gap-2">
             {rankedAreaScores.map((area, index) => (
               <div
@@ -56,14 +56,14 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
                   <span className="font-medium">{area.label}</span>
                   <span className="font-semibold">{area.score}/100</span>
                 </div>
-                <div className="mt-2 h-2 rounded-full bg-white/10">
+                <div className="mt-2 h-[5px] rounded-full bg-white/[0.07]">
                   <div
-                    className={`h-2 rounded-full ${
+                    className={`h-full rounded-full ${
                       area.status === "strong"
-                        ? "bg-slate-300"
+                        ? "bg-emerald-400/70"
                         : area.status === "watch"
-                          ? "bg-[#b56a2c]"
-                          : "bg-[#8e5c3b]"
+                          ? "bg-amber-500/70"
+                          : "bg-red-500/70"
                     }`}
                     style={{ width: `${area.score}%` }}
                   />

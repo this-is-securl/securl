@@ -65,8 +65,8 @@ const healthcheckStatusForGrade = (grade: string): keyof typeof healthcheckStyle
   return "weak";
 };
 
-const DONUT_RADIUS = 72;
-const DONUT_SIZE   = 168;
+const DONUT_RADIUS = 96;
+const DONUT_SIZE   = 224;
 const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_RADIUS;
 
 interface OverviewSectionProps {
@@ -143,7 +143,7 @@ export const OverviewSection = ({
     <div id="overview" className="space-y-7">
       {analysisData.assessmentLimitation.limited ? (
         <div className="rounded-[1.75rem] border border-[#b56a2c]/35 bg-[#b56a2c]/12 px-6 py-5 text-[#f4dfcd]">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#d89a63]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#d89a63]">
             {analysisData.assessmentLimitation.title}
           </p>
           <p className="mt-2 text-sm leading-7 text-[#f0d5bc]/90">
@@ -154,9 +154,81 @@ export const OverviewSection = ({
 
       <div className="space-y-5">
         <div className="rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,rgba(11,18,32,0.96),rgba(16,24,39,0.92))] px-7 py-7 shadow-[0_30px_80px_-48px_rgba(0,0,0,0.8)] ring-1 ring-white/[0.04]">
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.18fr)_272px]">
+          <div className="grid gap-7 xl:grid-cols-[240px_minmax(0,1fr)]">
+
+            {/* ── LEFT: Ring gauge — first thing the eye hits ── */}
+            {(() => {
+              const gp = GRADE_PALETTE[analysisData.grade] ?? GRADE_PALETTE.U;
+              const gradeFontSize = analysisData.grade.length > 1 ? "text-6xl" : "text-7xl";
+              return (
+                <div
+                  className="flex flex-col items-center rounded-[1.7rem] px-5 py-7 shadow-[0_24px_56px_-32px_rgba(0,0,0,0.75)] text-center"
+                  style={{
+                    border: `1px solid ${gp.borderColor}`,
+                    background: "linear-gradient(135deg,rgba(11,18,32,0.97),rgba(16,24,39,0.94))",
+                  }}
+                >
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
+                    {isLimitedAssessment ? "Directional read" : "Posture score"}
+                  </p>
+
+                  {/* Ring — 224 px, dominant anchor */}
+                  <div className="relative mt-5" style={{ width: DONUT_SIZE, height: DONUT_SIZE }}>
+                    <div
+                      className="pointer-events-none absolute inset-0 rounded-full"
+                      style={{ background: `radial-gradient(circle, ${gp.glow} 0%, transparent 68%)`, filter: "blur(22px)" }}
+                    />
+                    <svg
+                      viewBox={`0 0 ${DONUT_SIZE} ${DONUT_SIZE}`}
+                      width={DONUT_SIZE}
+                      height={DONUT_SIZE}
+                      className="relative -rotate-90"
+                    >
+                      <circle cx={DONUT_SIZE / 2} cy={DONUT_SIZE / 2} r={DONUT_RADIUS}
+                        fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="11"
+                      />
+                      <circle cx={DONUT_SIZE / 2} cy={DONUT_SIZE / 2} r={DONUT_RADIUS}
+                        fill="none" stroke={gp.stroke} strokeWidth="11"
+                        strokeLinecap="round"
+                        strokeDasharray={DONUT_CIRCUMFERENCE}
+                        strokeDashoffset={donutOffset}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
+                      <span
+                        className={`font-black leading-none tracking-[-0.05em] ${gradeFontSize}`}
+                        style={{ color: gp.textColor }}
+                      >
+                        {analysisData.grade}
+                      </span>
+                      <span className="text-[15px] font-semibold text-slate-300">{overallPercent}/100</span>
+                      <span
+                        className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em]"
+                        style={{ color: gp.textColor, opacity: 0.8 }}
+                      >
+                        {overallPostureLabel}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Monitoring pulse — compact, below ring */}
+                  <div className="mt-6 w-full rounded-[1.1rem] border border-white/10 bg-slate-950/40 px-4 py-4 text-left">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Monitoring</p>
+                      <BellRing className="h-3.5 w-3.5 text-[#d89a63]/60" />
+                    </div>
+                    <p className={`mt-2 text-[13px] font-semibold leading-5 ${monitoringTone}`}>
+                      {history.length ? `${history.length} snapshot${history.length === 1 ? "" : "s"}` : "Not yet started"}
+                    </p>
+                    <p className="mt-1.5 text-xs leading-5 text-slate-500">{monitoringStatus}</p>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ── RIGHT: Target identity + executive verdict ── */}
             <div className="space-y-5">
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <p className={sectionTitleClass}>Target</p>
                 <p className="text-3xl font-bold tracking-[-0.05em] text-white sm:text-4xl">{analysisData.host}</p>
                 <p className="break-all text-sm text-slate-400">{analysisData.finalUrl}</p>
@@ -164,137 +236,43 @@ export const OverviewSection = ({
 
               <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-6 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" className="border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-slate-300">
+                  <Badge variant="outline" className="border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-300">
                     Overall posture: {overallPostureLabel}
                   </Badge>
                   {hasTrainingSurfaceNarrative ? (
-                    <Badge variant="outline" className="border-[#b56a2c]/30 bg-[#b56a2c]/12 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[#f0d5bc]">
+                    <Badge variant="outline" className="border-[#b56a2c]/30 bg-[#b56a2c]/12 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-[#f0d5bc]">
                       Training surface
                     </Badge>
                   ) : null}
                 </div>
 
-                <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
-                  <div>
-                    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                      <Sparkles className="h-3.5 w-3.5 text-[#d89a63]" />
-                      Executive posture verdict
-                    </div>
-                    <p className={`mt-3 text-xl font-semibold leading-8 text-white sm:text-2xl ${compact ? "" : "max-w-2xl"}`}>
-                      {analysisData.executiveSummary.mainRisk}
-                    </p>
-                    <p className={`mt-4 text-sm leading-7 text-slate-300`}>
-                      {analysisData.executiveSummary.overview}
-                    </p>
+                <div className="mt-5">
+                  <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                    <Sparkles className="h-3.5 w-3.5 text-[#d89a63]" />
+                    Executive posture verdict
                   </div>
+                  <p className={`mt-3 text-xl font-semibold leading-8 text-white sm:text-2xl ${compact ? "" : "max-w-2xl"}`}>
+                    {analysisData.executiveSummary.mainRisk}
+                  </p>
+                  <p className="mt-4 text-sm leading-7 text-slate-300">
+                    {analysisData.executiveSummary.overview}
+                  </p>
+                </div>
 
-                  <div className="rounded-[1.35rem] border border-white/10 bg-slate-950/45 p-5">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">What stands out</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {topTakeaways.map((takeaway) => (
-                        <Badge
-                          key={takeaway}
-                          variant="outline"
-                          className="rounded-full border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] leading-5 text-slate-200"
-                        >
-                          {takeaway}
-                        </Badge>
-                      ))}
-                    </div>
+                <div className="mt-5 rounded-[1.1rem] border border-white/10 bg-slate-950/45 p-4">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">What stands out</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {topTakeaways.map((takeaway) => (
+                      <Badge
+                        key={takeaway}
+                        variant="outline"
+                        className="rounded-full border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] leading-5 text-slate-200"
+                      >
+                        {takeaway}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {(() => {
-                const gp = GRADE_PALETTE[analysisData.grade] ?? GRADE_PALETTE.U;
-                const gradeFontSize = analysisData.grade.length > 1 ? "text-5xl" : "text-6xl";
-                return (
-                  <div
-                    className="rounded-[1.7rem] px-6 py-7 shadow-[0_24px_56px_-32px_rgba(0,0,0,0.75)]"
-                    style={{
-                      border: `1px solid ${gp.borderColor}`,
-                      background: "linear-gradient(135deg,rgba(11,18,32,0.97),rgba(16,24,39,0.94))",
-                    }}
-                  >
-                    <div className="flex flex-col items-center text-center">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-                        {isLimitedAssessment ? "Directional read" : "Posture score"}
-                      </p>
-
-                      {/* Ring — 168 px, stroke 10, purposeful not decorative */}
-                      <div className="relative mt-5" style={{ width: DONUT_SIZE, height: DONUT_SIZE }}>
-                        {/* Glow — restrained */}
-                        <div
-                          className="absolute inset-0 rounded-full"
-                          style={{ background: `radial-gradient(circle, ${gp.glow} 0%, transparent 68%)`, filter: "blur(18px)" }}
-                        />
-                        <svg
-                          viewBox={`0 0 ${DONUT_SIZE} ${DONUT_SIZE}`}
-                          width={DONUT_SIZE}
-                          height={DONUT_SIZE}
-                          className="relative -rotate-90"
-                        >
-                          <circle
-                            cx={DONUT_SIZE / 2}
-                            cy={DONUT_SIZE / 2}
-                            r={DONUT_RADIUS}
-                            fill="none"
-                            stroke="rgba(255,255,255,0.07)"
-                            strokeWidth="10"
-                          />
-                          <circle
-                            cx={DONUT_SIZE / 2}
-                            cy={DONUT_SIZE / 2}
-                            r={DONUT_RADIUS}
-                            fill="none"
-                            stroke={gp.stroke}
-                            strokeWidth="10"
-                            strokeLinecap="round"
-                            strokeDasharray={DONUT_CIRCUMFERENCE}
-                            strokeDashoffset={donutOffset}
-                          />
-                        </svg>
-                        {/* Inner labels */}
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-                          <span
-                            className={`font-bold leading-none tracking-[-0.04em] ${gradeFontSize}`}
-                            style={{ color: gp.textColor }}
-                          >
-                            {analysisData.grade}
-                          </span>
-                          <span className="text-sm font-medium text-slate-300">{overallPercent}/100</span>
-                          <span
-                            className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.22em]"
-                            style={{ color: gp.textColor, opacity: 0.7 }}
-                          >
-                            {overallPostureLabel}
-                          </span>
-                        </div>
-                      </div>
-
-                      <p className="mt-5 text-xs leading-6 text-slate-500">
-                        {isLimitedAssessment
-                          ? "Directional transport and exposure signal — not a full posture verdict."
-                          : "Normalised score across browser, trust, and exposure controls."}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              <div className="rounded-[1.4rem] border border-white/10 bg-white/[0.04] px-5 py-5 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Monitoring status</p>
-                    <p className="mt-2 text-base font-semibold text-white">
-                      {history.length ? `${history.length} saved snapshot${history.length === 1 ? "" : "s"}` : "Not yet started"}
-                    </p>
-                  </div>
-                  <BellRing className="h-4.5 w-4.5 text-[#d89a63]" />
-                </div>
-                <p className={`mt-2.5 text-sm leading-6 ${monitoringTone}`}>{monitoringStatus}</p>
               </div>
             </div>
           </div>
@@ -303,7 +281,7 @@ export const OverviewSection = ({
             {/* Critical */}
             <div className="rounded-[1.35rem] border border-red-500/20 bg-red-500/[0.06] px-5 py-5">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-red-400">Critical</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-red-400">Critical</p>
                 <AlertTriangle className="h-3.5 w-3.5 text-red-400/60" />
               </div>
               <p className="mt-3 text-[2rem] font-bold leading-none tracking-[-0.04em] text-red-300">{criticalCount}</p>
@@ -312,7 +290,7 @@ export const OverviewSection = ({
             {/* Warning */}
             <div className="rounded-[1.35rem] border border-amber-500/20 bg-amber-500/[0.06] px-5 py-5">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-400">Warning</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-400">Warning</p>
                 <ShieldAlert className="h-3.5 w-3.5 text-amber-400/60" />
               </div>
               <p className="mt-3 text-[2rem] font-bold leading-none tracking-[-0.04em] text-amber-300">{warningCount}</p>
@@ -321,7 +299,7 @@ export const OverviewSection = ({
             {/* Strengths */}
             <div className="rounded-[1.35rem] border border-emerald-500/20 bg-emerald-500/[0.06] px-5 py-5">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-400">Strengths</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-400">Strengths</p>
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-400/60" />
               </div>
               <p className="mt-3 text-[2rem] font-bold leading-none tracking-[-0.04em] text-emerald-300">{analysisData.strengths.length}</p>
@@ -330,7 +308,7 @@ export const OverviewSection = ({
             {/* Monitoring */}
             <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] px-5 py-5">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Monitoring</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Monitoring</p>
                 <TrendingUp className="h-3.5 w-3.5 text-slate-500" />
               </div>
               <p className="mt-3 text-[2rem] font-bold leading-none tracking-[-0.04em] text-slate-200">{monitoringAlerts.length}</p>
@@ -345,16 +323,16 @@ export const OverviewSection = ({
               <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-6 py-6">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-base font-semibold tracking-[-0.02em] text-white">Assessment constraints</p>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Directional read only</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Directional read only</p>
                 </div>
                 <div className="mt-5 grid gap-3 md:grid-cols-2">
                   <div className="rounded-[1.15rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Why this result is constrained</p>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Why this result is constrained</p>
                     <p className="mt-3 text-base font-semibold leading-7 text-white">{analysisData.assessmentLimitation.title}</p>
                     <p className="mt-2 text-sm leading-6 text-slate-300">{analysisData.assessmentLimitation.detail}</p>
                   </div>
                   <div className="rounded-[1.15rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">How to read this</p>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">How to read this</p>
                     <p className="mt-3 text-sm leading-6 text-slate-300">
                       Use this result as a transport and access-control signal, not as a full category-by-category posture verdict.
                     </p>
@@ -365,7 +343,7 @@ export const OverviewSection = ({
               <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-6 py-6">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Category scores</p>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Category scores</p>
                     <p className="mt-2 text-xl font-semibold tracking-[-0.02em] text-white">Where risk is concentrated</p>
                   </div>
                 </div>
@@ -396,7 +374,7 @@ export const OverviewSection = ({
             <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-6 py-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">What to do next</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">What to do next</p>
                   <p className="mt-2 text-xl font-semibold tracking-[-0.02em] text-white">Priority actions</p>
                 </div>
                 <ShieldAlert className="h-4.5 w-4.5 text-[#d89a63]" />
@@ -445,22 +423,22 @@ export const OverviewSection = ({
             <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-6 py-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Scan facts</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Scan facts</p>
                   <p className="mt-2 text-xl font-semibold tracking-[-0.02em] text-white">Capture details</p>
                 </div>
               </div>
               <div className="mt-5 grid gap-3 sm:grid-cols-3">
                 <div className="rounded-[1.1rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Scanned</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Scanned</p>
                   <p className="mt-2.5 text-sm font-semibold leading-6 text-white">{new Date(analysisData.scannedAt).toLocaleString()}</p>
                 </div>
                 <div className="rounded-[1.1rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">HTTP</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">HTTP</p>
                   <p className="mt-2.5 text-2xl font-bold tracking-[-0.03em] text-white">{analysisData.statusCode}</p>
                   <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-slate-500">{getHttpStatusDetails(analysisData.statusCode).label}</p>
                 </div>
                 <div className="rounded-[1.1rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Latency</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Latency</p>
                   <p className="mt-2.5 text-2xl font-bold tracking-[-0.03em] text-white">{analysisData.responseTimeMs}ms</p>
                 </div>
               </div>
@@ -469,7 +447,7 @@ export const OverviewSection = ({
             <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-6 py-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Report outputs</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Report outputs</p>
                   <p className="mt-2 text-xl font-semibold tracking-[-0.02em] text-white">Share or hand off this scan</p>
                 </div>
                 <Download className="h-4 w-4 text-[#d89a63]" />

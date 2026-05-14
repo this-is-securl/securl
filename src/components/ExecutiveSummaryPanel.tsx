@@ -23,7 +23,7 @@ export const ExecutiveSummaryPanel = ({ summary }: ExecutiveSummaryPanelProps) =
       </CardHeader>
       <CardContent className="space-y-5">
         <div className={`rounded-2xl border px-5 py-5 ${postureStyles[summary.posture]}`}>
-          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] opacity-75">
+          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] opacity-75">
             <Sparkles className="h-4 w-4" />
             Analyst read
           </div>
@@ -31,12 +31,12 @@ export const ExecutiveSummaryPanel = ({ summary }: ExecutiveSummaryPanelProps) =
         </div>
 
         <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] p-5">
-          <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Main visible risk</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Main visible risk</p>
           <p className="mt-3 text-base font-medium leading-7 text-slate-50">{summary.mainRisk}</p>
         </div>
 
         <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] p-5">
-          <p className="text-xs uppercase tracking-[0.18em] text-slate-400">What stands out</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">What stands out</p>
           <div className="mt-4 space-y-3">
             {summary.takeaways.map((takeaway, index) => (
               <div key={takeaway} className="flex gap-3 rounded-[1.15rem] border border-white/10 bg-slate-950/45 px-4 py-4 text-sm text-slate-300">

@@ -75,14 +75,14 @@ export const SecurityGrade = ({ grade, score, summary, context, actions, pulse }
             />
           </svg>
           {/* Inner labels */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
             <span
-              className={`font-bold leading-none tracking-[-0.04em] ${gradeSize}`}
+              className={`font-black leading-none tracking-[-0.05em] ${gradeSize}`}
               style={{ color: palette.textColor }}
             >
               {grade}
             </span>
-            <span className="text-sm font-medium text-slate-400">{clamped}/100</span>
+            <span className="text-[13px] font-semibold text-slate-300">{clamped}/100</span>
           </div>
         </div>
 

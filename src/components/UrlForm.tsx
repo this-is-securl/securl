@@ -70,7 +70,7 @@ export const UrlForm = ({ onSubmit, isLoading, initialValue = "", scanStage = nu
         <div className="mt-4 rounded-[1.2rem] border border-[#b56a2c]/20 bg-slate-950/40 px-4 py-3 shadow-[0_18px_36px_-28px_rgba(0,0,0,0.75)]">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#d89a63]">Live scan status</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#d89a63]">Live scan status</p>
               <p className="mt-1 text-sm font-semibold text-slate-100">{scanStage.label}</p>
             </div>
             <div className="flex items-center gap-2">

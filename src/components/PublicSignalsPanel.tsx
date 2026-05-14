@@ -33,7 +33,7 @@ export const PublicSignalsPanel = ({ publicSignals }: PublicSignalsPanelProps) =
       <CardContent className="space-y-4">
         <div className="min-w-0 rounded-[1.35rem] border border-white/10 bg-white/[0.04] p-4">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">HSTS preload dataset</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">HSTS preload dataset</p>
             <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles[publicSignals.hstsPreload.status]}`}>
               {formatStatus(publicSignals.hstsPreload.status)}
             </span>

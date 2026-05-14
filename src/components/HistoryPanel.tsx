@@ -230,7 +230,7 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
         <div className="rounded-[1.35rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(15,23,42,0.35))] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#d89a63]">{lead.eyebrow}</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#d89a63]">{lead.eyebrow}</p>
               <p className="mt-2 text-lg font-semibold text-slate-50">{lead.title}</p>
               <p className="mt-2 text-sm leading-6 text-slate-300">{lead.detail}</p>
             </div>
@@ -245,7 +245,7 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-[1.15rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Score change</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Score change</p>
               <p className="mt-3 text-3xl font-semibold text-white">{diff ? formatSignedDelta(diff.scoreDelta) : "—"}</p>
               <p className="mt-2 text-xs text-slate-400">
                 {diff?.previousScore !== null && diff?.previousScore !== undefined
@@ -256,7 +256,7 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
 
             {supportingChanges.map((item) => (
               <div key={item.label} className="rounded-[1.15rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{item.label}</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">{item.label}</p>
                 <p className="mt-3 text-3xl font-semibold text-white">{diff ? item.value : "—"}</p>
                 <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">{item.detail}</p>
               </div>
@@ -267,7 +267,7 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
         <div className="rounded-[1.35rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(15,23,42,0.35))] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Trend window</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Trend window</p>
               <p className="mt-2 text-sm text-slate-300">
                 {trendPoints.length > 1
                   ? `${trendState.label} over ${trendPoints.length} saved scans.`
@@ -314,7 +314,7 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
 
         {diff?.summary.length ? (
           <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Change summary</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Change summary</p>
             <div className="mt-3 space-y-2 text-sm text-slate-300">
               {diff.summary.map((item) => (
                 <p key={item}>{item}</p>
@@ -326,7 +326,7 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
         <div className="grid gap-3 xl:grid-cols-2">
           {movementSummary.map((item) => (
             <div key={item.label} className="rounded-[1.15rem] border border-white/10 bg-slate-950/35 px-4 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{item.label}</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">{item.label}</p>
               <p className="mt-3 text-sm leading-6 text-slate-300">{item.detail}</p>
             </div>
           ))}
