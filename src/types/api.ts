@@ -2,6 +2,8 @@ import type { AnalysisResult, HistoryDiff } from "@/types/analysis";
 
 export type ApiScanStatus = "queued" | "running" | "completed" | "failed";
 
+export type ApiVersion = "2026-05-14";
+
 export interface ApiScanSummary {
   id: string;
   status: ApiScanStatus;
@@ -19,6 +21,11 @@ export interface ApiScanSummary {
   title: string | null;
   mainRisk: string | null;
   findingsCount: number;
+  scanTiming: AnalysisResult["scanTiming"] | null;
+}
+
+export interface VersionedApiResponse {
+  apiVersion: ApiVersion;
 }
 
 export interface ApiScanRecord {
@@ -49,29 +56,29 @@ export interface ApiScanEvent {
   metadata: Record<string, unknown>;
 }
 
-export interface CreateScanResponse {
+export interface CreateScanResponse extends VersionedApiResponse {
   scan: ApiScanSummary;
 }
 
-export interface GetScanResponse {
+export interface GetScanResponse extends VersionedApiResponse {
   scan: ApiScanRecord;
 }
 
-export interface ScansResponse {
+export interface ScansResponse extends VersionedApiResponse {
   scans: ApiScanSummary[];
 }
 
-export interface ScanSummaryResponse {
+export interface ScanSummaryResponse extends VersionedApiResponse {
   summary: ApiScanSummary;
 }
 
-export interface ScanFindingsResponse {
+export interface ScanFindingsResponse extends VersionedApiResponse {
   findings: AnalysisResult["issues"];
   strengths: AnalysisResult["strengths"];
   priorityActions: string[];
 }
 
-export interface ScanEvidenceResponse {
+export interface ScanEvidenceResponse extends VersionedApiResponse {
   evidence: {
     headers: AnalysisResult["headers"];
     rawHeaders: AnalysisResult["rawHeaders"];
@@ -96,7 +103,7 @@ export interface ScanEvidenceResponse {
   } | null;
 }
 
-export interface ScanHistoryResponse {
+export interface ScanHistoryResponse extends VersionedApiResponse {
   scan: {
     id: string;
     status: ApiScanStatus;
@@ -113,7 +120,7 @@ export interface TargetHistoryComparison {
   diff: HistoryDiff | null;
 }
 
-export interface TargetHistoryResponse {
+export interface TargetHistoryResponse extends VersionedApiResponse {
   target: {
     url: string;
   };
@@ -137,15 +144,19 @@ export interface ApiMonitoringTarget {
   scoreDelta: number | null;
 }
 
-export interface MonitoringTargetsResponse {
+export interface MonitoringTargetsResponse extends VersionedApiResponse {
   targets: ApiMonitoringTarget[];
 }
 
-export interface MonitoringTargetResponse {
+export interface MonitoringTargetResponse extends VersionedApiResponse {
   target: ApiMonitoringTarget;
 }
 
-export interface MonitoringTargetDetailResponse {
+export interface DeleteMonitoringTargetResponse extends VersionedApiResponse {
+  ok: boolean;
+}
+
+export interface MonitoringTargetDetailResponse extends VersionedApiResponse {
   target: ApiMonitoringTarget;
   scans: ApiScanSummary[];
   comparison: TargetHistoryComparison | null;

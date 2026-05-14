@@ -10,9 +10,11 @@ test("telemetry tracker records aggregate counts", () => {
   telemetry.recordScanRequested({ mode: "quiet" });
   telemetry.recordScanCompleted({
     assessmentLimitation: { limited: false },
+    scanTiming: { totalMs: 1000, coreMs: 250, enrichmentMs: 750, timedOut: false },
   });
   telemetry.recordScanCompleted({
     assessmentLimitation: { limited: true, kind: "blocked_edge_response" },
+    scanTiming: { totalMs: 45000, coreMs: 1000, enrichmentMs: 44000, timedOut: true },
   });
   telemetry.recordFailure("invalid_target_private");
   telemetry.recordAuthRejected();
@@ -26,7 +28,11 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.scans.fullReads, 1);
   assert.equal(snapshot.scans.limitedReads, 1);
   assert.equal(snapshot.scans.quietMode, 1);
+  assert.equal(snapshot.scans.timedOut, 1);
   assert.equal(snapshot.scans.limitedReadKinds.blocked_edge_response, 1);
+  assert.equal(snapshot.scans.timing.total.count, 2);
+  assert.equal(snapshot.scans.timing.total.maxMs, 45000);
+  assert.equal(snapshot.scans.timing.enrichment.p95Ms, 750);
   assert.equal(snapshot.failures.classes.invalid_target_private, 1);
   assert.equal(snapshot.failures.authRejected, 1);
   assert.equal(snapshot.failures.requesterRateLimited, 1);

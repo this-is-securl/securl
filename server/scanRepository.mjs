@@ -73,6 +73,16 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
   ];
 }
 
+function buildPostgresSslConfig() {
+  if (process.env.PGSSLMODE === "disable") {
+    return false;
+  }
+
+  return {
+    rejectUnauthorized: process.env.PGSSL_REJECT_UNAUTHORIZED === "true",
+  };
+}
+
 export function buildScanSummary(scan) {
   const result = scan.result;
   const limitation = result?.assessmentLimitation;
@@ -92,6 +102,7 @@ export function buildScanSummary(scan) {
     grade: result?.grade ?? null,
     limited: limitation?.limited ?? false,
     limitedKind: limitation?.kind ?? null,
+    scanTiming: result?.scanTiming ?? null,
     title: result?.title ?? null,
     mainRisk: result?.executiveSummary?.mainRisk ?? null,
     findingsCount,
@@ -646,7 +657,7 @@ export function createPostgresScanRepository({
   const pool = new Pool({
     connectionString,
     max: maxConnections,
-    ssl: process.env.PGSSLMODE === "disable" ? false : { rejectUnauthorized: false },
+    ssl: buildPostgresSslConfig(),
   });
 
   const table = `${schema}.scans`;

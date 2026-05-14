@@ -3,6 +3,7 @@
 // deep crawling or full content retrieval.
 export const REQUEST_TIMEOUT_MS = 12_000;
 export const SECONDARY_REQUEST_TIMEOUT_MS = 4_000;
+export const MAX_SCAN_DURATION_MS = 45_000;
 export const TLS_HANDSHAKE_TIMEOUT_MS = 10_000;
 export const DNS_LOOKUP_TIMEOUT_MS = 2_500;
 

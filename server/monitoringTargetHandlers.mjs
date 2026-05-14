@@ -1,3 +1,5 @@
+import { API_VERSION } from "./scanDtos.mjs";
+
 function clampLimit(value, fallback = 50, max = 100) {
   if (value === null || value === undefined || value === "") {
     return fallback;
@@ -120,6 +122,7 @@ export async function handleMonitoringTargetCollectionRequest({
     });
 
     sendJson(response, 201, {
+      apiVersion: API_VERSION,
       target: buildMonitoringTargetView(savedTarget, records),
     });
   } catch (error) {
@@ -239,6 +242,7 @@ export async function handleMonitoringTargetItemRequest({
         });
 
         sendJson(response, 202, {
+          apiVersion: API_VERSION,
           scan: (await scanRepository.getScan(scan.id, { ownerId: authState.ownerId })).summary,
           target: {
             id: target.id,
@@ -292,6 +296,7 @@ export async function handleMonitoringTargetItemRequest({
     }
 
     sendJson(response, 200, {
+      apiVersion: API_VERSION,
       ok: true,
     });
   } catch (error) {

@@ -1,5 +1,7 @@
 import { buildHistoryDiffFromSnapshots, snapshotFromAnalysis } from "../packages/core/dist/historyDiff.js";
 
+export const API_VERSION = "2026-05-14";
+
 function normalizeArray(value) {
   return Array.isArray(value) ? value : [];
 }
@@ -48,6 +50,7 @@ export function buildMonitoringTargetView(target, records = []) {
 
 export function buildScanSummaryPayload(scan) {
   return {
+    apiVersion: API_VERSION,
     summary: scan.summary,
   };
 }
@@ -63,6 +66,7 @@ export function buildScanFindingsPayload(scan) {
   }
 
   return {
+    apiVersion: API_VERSION,
     findings: normalizeArray(result.issues),
     strengths: normalizeArray(result.strengths),
     priorityActions: normalizeArray(result.executiveSummary?.takeaways),
@@ -78,6 +82,7 @@ export function buildScanEvidencePayload(scan) {
   }
 
   return {
+    apiVersion: API_VERSION,
     evidence: {
       headers: normalizeArray(result.headers),
       rawHeaders: result.rawHeaders ?? {},
@@ -105,6 +110,7 @@ export function buildScanEvidencePayload(scan) {
 
 export function buildScanHistoryPayload(scan, events) {
   return {
+    apiVersion: API_VERSION,
     scan: {
       id: scan.id,
       status: scan.status,
@@ -118,6 +124,7 @@ export function buildScanHistoryPayload(scan, events) {
 
 export function buildTargetHistoryPayload(url, records) {
   return {
+    apiVersion: API_VERSION,
     target: {
       url,
     },
@@ -128,6 +135,7 @@ export function buildTargetHistoryPayload(url, records) {
 
 export function buildMonitoringTargetsPayload(targets) {
   return {
+    apiVersion: API_VERSION,
     targets: normalizeArray(targets),
   };
 }
@@ -136,6 +144,7 @@ export function buildMonitoringTargetDetailPayload(target, records = [], events 
   const view = buildMonitoringTargetView(target, records);
 
   return {
+    apiVersion: API_VERSION,
     target: view,
     scans: normalizeArray(records).map((record) => record.summary).filter(Boolean),
     comparison: buildStoredTargetDiff(records),

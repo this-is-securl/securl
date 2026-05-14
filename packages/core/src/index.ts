@@ -8,6 +8,8 @@ import {
   CRAWL_CONCURRENCY_LIMIT,
   CRAWL_CANDIDATES,
   EXPOSURE_PROBES,
+  MAX_SCAN_DURATION_MS,
+  REQUEST_TIMEOUT_MS,
   SECONDARY_REQUEST_TIMEOUT_MS,
 } from "./scannerConfig.js";
 import {
@@ -44,7 +46,7 @@ import { normalizeDiscoveredPath, rankDiscoveredPaths } from "./path-discovery.j
 import { scoreAnalysis, scorePostureAnalysis, summarizePostureGrade } from "./scoring.js";
 import { fetchSecurityTxt } from "./security-txt.js";
 import { detectTechnologies } from "./technology-detection.js";
-import { headerValue, mapWithConcurrency, unique } from "./utils.js";
+import { headerValue, mapWithConcurrency, unique, withTimeout } from "./utils.js";
 import { analyzeWafFingerprint } from "./wafFingerprint.js";
 import type { AnalysisResult, AnalyzeTargetOptions, HtmlSecurityInfo } from "./types.js";
 
@@ -399,7 +401,12 @@ async function analyzeHtmlSecuritySignals(finalUrl: URL, pageAnalysisEnabled: bo
   return { htmlDocument, htmlSecurity };
 }
 
-async function buildLimitedResult(input: string, normalizedInput: URL, failure: ReturnType<typeof classifyAssessmentFailure>): Promise<AnalysisResult> {
+async function buildLimitedResult(
+  input: string,
+  normalizedInput: URL,
+  failure: ReturnType<typeof classifyAssessmentFailure>,
+  scanTiming?: AnalysisResult["scanTiming"],
+): Promise<AnalysisResult> {
   const publicSignals = await fetchPublicSignals(normalizedInput.host, { requestText }).catch(() => ({
     hstsPreload: {
       status: "unknown" as const,
@@ -535,6 +542,7 @@ async function buildLimitedResult(input: string, normalizedInput: URL, failure: 
       title: failure.title,
       detail: failure.detail,
     },
+    scanTiming,
     exposure: emptyExposure(),
     corsSecurity: emptyCorsSecurity(),
     apiSurface: emptyApiSurface(),
@@ -892,22 +900,174 @@ const emptyApiSurface = () => ({
   strengths: [],
 });
 
+const emptyPublicSignals = (host: string) => ({
+  hstsPreload: {
+    status: "unknown" as const,
+    summary: "Public HSTS preload status could not be determined before the scan timeout.",
+    sourceUrl: `https://hstspreload.org/api/v2/status?domain=${encodeURIComponent(host)}`,
+  },
+  issues: [],
+  strengths: [],
+});
+
+function buildTimedOutEnrichmentResult(
+  result: CoreScanResult,
+  pageAnalysisEnabled: boolean,
+  timeoutMs: number,
+  coreMs: number,
+): AnalysisResult {
+  const finalUrl = new URL(result.finalUrl);
+  const fallbackHtmlSecurity = analyzeHtmlSecurity(finalUrl, null);
+  const timeoutIssue = classifyIssueTaxonomy({
+    severity: "info",
+    area: "transport",
+    title: "Secondary evidence collection timed out",
+    detail: `The primary response was assessed, but secondary enrichment exceeded the ${Math.round(timeoutMs / 1000)} second scan budget. Treat crawl, discovery, and passive enrichment sections as partial for this run.`,
+    confidence: "high",
+    source: "observed",
+    owasp: [],
+    mitre: [],
+  });
+  const timedOutResult = {
+    ...result,
+    issues: [...result.issues, timeoutIssue],
+    crawl: emptyCrawlSummary(pageAnalysisEnabled ? ["scan timeout"] : ["quiet mode"]),
+    securityTxt: emptySecurityTxt(),
+    domainSecurity: {
+      host: result.host,
+      mxRecords: [],
+      nsRecords: [],
+      caaRecords: [],
+      dnssec: { enabled: false, dsRecords: [], status: "unknown" as const },
+      spf: null,
+      dmarc: null,
+      emailPolicy: {
+        spf: {
+          status: "missing" as const,
+          allMechanism: null,
+          dnsLookupMechanisms: 0,
+          summary: "SPF was not evaluated before the scan timeout.",
+        },
+        dmarc: {
+          status: "missing" as const,
+          policy: null,
+          subdomainPolicy: null,
+          pct: null,
+          reporting: false,
+          summary: "DMARC was not evaluated before the scan timeout.",
+        },
+      },
+      mtaSts: { dns: null, policyUrl: null, policy: null },
+      issues: [],
+      strengths: [],
+    },
+    identityProvider: emptyIdentityProvider(),
+    ctDiscovery: {
+      queriedDomain: result.host,
+      sourceUrl: `https://crt.sh/?q=%25.${result.host}&output=json`,
+      subdomains: [],
+      wildcardEntries: [],
+      prioritizedHosts: [],
+      sampledHosts: [],
+      coverageSummary: "Certificate transparency discovery did not complete before the scan timeout.",
+      issues: [],
+      strengths: [],
+    },
+    htmlSecurity: fallbackHtmlSecurity,
+    aiSurface: fallbackHtmlSecurity.aiSurface,
+    thirdPartyTrust: {
+      totalProviders: 0,
+      highRiskProviders: 0,
+      providers: [],
+      issues: [],
+      strengths: [],
+      summary: "Third-party trust could not be fully assessed before the scan timeout.",
+    },
+    infrastructure: {
+      host: result.host,
+      addresses: [],
+      cnameTargets: [],
+      reverseDns: [],
+      providers: [],
+      issues: [],
+      strengths: [],
+      summary: "Infrastructure attribution did not complete before the scan timeout.",
+    },
+    exposure: emptyExposure(),
+    corsSecurity: emptyCorsSecurity(),
+    apiSurface: emptyApiSurface(),
+    publicSignals: emptyPublicSignals(result.host),
+    wafFingerprint: analyzeWafFingerprint(finalUrl, result.rawHeaders, null, result.redirects),
+    assessmentLimitation: {
+      limited: true,
+      kind: "other" as const,
+      title: "Assessment limited by scan timeout",
+      detail: "The primary page response was assessed, but secondary enrichment did not complete within the scan budget.",
+    },
+    scanTiming: {
+      totalMs: timeoutMs,
+      coreMs,
+      enrichmentMs: Math.max(0, timeoutMs - coreMs),
+      timedOut: true,
+      timeoutMs,
+    },
+  };
+
+  return {
+    ...timedOutResult,
+    executiveSummary: buildExecutiveSummary(timedOutResult),
+  };
+}
+
 export async function analyzeUrl(input: string, options: AnalyzeTargetOptions = {}): Promise<AnalysisResult> {
+  const scanStartedAt = Date.now();
   const scanMode: ScanMode = options.scanMode || "standard";
   const pageAnalysisEnabled = scanMode === "standard";
   const normalizedInput = normalizeUrl(input);
+  const maxScanDurationMs = options.maxScanDurationMs ?? MAX_SCAN_DURATION_MS;
+  const requestTimeoutMs = Math.min(options.requestTimeoutMs ?? REQUEST_TIMEOUT_MS, maxScanDurationMs);
   let result: CoreScanResult;
 
   try {
-    result = await analyzeUrlCore(normalizedInput, { includeCertificate: true });
+    result = await withTimeout(
+      analyzeUrlCore(normalizedInput, {
+        ...options,
+        includeCertificate: true,
+        requestTimeoutMs,
+      }),
+      maxScanDurationMs,
+      "Primary scan timed out.",
+    );
   } catch (error) {
     const failure = classifyAssessmentFailure(error);
-    return buildLimitedResult(input, normalizedInput, failure);
+    const elapsedMs = Date.now() - scanStartedAt;
+    return buildLimitedResult(input, normalizedInput, failure, {
+      totalMs: elapsedMs,
+      coreMs: elapsedMs,
+      enrichmentMs: 0,
+      timedOut: error instanceof Error && error.message === "Primary scan timed out.",
+      timeoutMs: maxScanDurationMs,
+    });
   }
 
-  const enrichedResult = await enrichCoreResult(result, pageAnalysisEnabled);
+  const coreMs = Date.now() - scanStartedAt;
+  const remainingMs = Math.max(1, maxScanDurationMs - coreMs);
+  let enrichedResult: EnrichedAnalysisResult;
+  try {
+    enrichedResult = await withTimeout(
+      enrichCoreResult(result, pageAnalysisEnabled),
+      remainingMs,
+      "Secondary scan enrichment timed out.",
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message === "Secondary scan enrichment timed out.") {
+      return buildTimedOutEnrichmentResult(result, pageAnalysisEnabled, maxScanDurationMs, coreMs);
+    }
+    throw error;
+  }
   const assessmentLimitation = enrichedResult.assessmentLimitation;
   const postureScore = scorePostureAnalysis(enrichedResult);
+  const totalMs = Date.now() - scanStartedAt;
   const scoredResult = {
     ...enrichedResult,
     score: postureScore.score,
@@ -915,6 +1075,13 @@ export async function analyzeUrl(input: string, options: AnalyzeTargetOptions = 
     summary: assessmentLimitation.limited
       ? "Assessment is limited because the target returned a blocked or restricted response."
       : summarizePostureGrade(postureScore.grade),
+    scanTiming: {
+      totalMs,
+      coreMs,
+      enrichmentMs: Math.max(0, totalMs - coreMs),
+      timedOut: false,
+      timeoutMs: maxScanDurationMs,
+    },
   };
 
   return {

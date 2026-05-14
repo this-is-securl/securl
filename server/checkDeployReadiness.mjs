@@ -92,6 +92,18 @@ if (allowUnauthenticated) {
   warnings.push("ALLOW_UNAUTHENTICATED=true is enabled. Confirm this is intentional for a public deployment.");
 }
 
+if (scanRepositoryBackend === "postgres" && env.PGSSLMODE !== "disable" && env.PGSSL_REJECT_UNAUTHORIZED !== "true") {
+  warnings.push("Postgres TLS certificate verification is not enforced. Set PGSSL_REJECT_UNAUTHORIZED=true when your provider chain is trusted.");
+}
+
+if (!env.AUTH_TOKEN_FINGERPRINT_SALT) {
+  warnings.push("AUTH_TOKEN_FINGERPRINT_SALT is not set. Use a deployment-specific secret before handling real user accounts.");
+}
+
+if (!env.API_KEY_FINGERPRINT_SALT) {
+  warnings.push("API_KEY_FINGERPRINT_SALT is not set. Use a deployment-specific secret before relying on API-key fingerprinting in production.");
+}
+
 const summary = {
   nodeEnv,
   deploymentMode,

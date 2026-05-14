@@ -56,6 +56,7 @@ const DEFAULT_ABUSE_ALERT_WINDOW_MS = 10 * 60 * 1000;
 const DEFAULT_ABUSE_ALERT_THRESHOLD = 25;
 const DEFAULT_AUTH_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const DEFAULT_AUTH_RATE_LIMIT_MAX_REQUESTS = 8;
+const DEFAULT_SCAN_TIMEOUT_MS = 45 * 1000;
 const RATE_LIMIT_MAX_BUCKETS = 20000;
 const configuredRateLimitBackend = (process.env.RATE_LIMIT_BACKEND || "").trim().toLowerCase();
 const rateLimitBackend = configuredRateLimitBackend || (deploymentMode === "multi-instance" ? "upstash" : "in-memory");
@@ -121,6 +122,13 @@ const AUTH_RATE_LIMIT_MAX_REQUESTS = (() => {
   }
   return Math.floor(raw);
 })();
+const SCAN_TIMEOUT_MS = (() => {
+  const raw = Number(process.env.SCAN_TIMEOUT_MS || DEFAULT_SCAN_TIMEOUT_MS);
+  if (!Number.isFinite(raw) || raw < 5_000) {
+    return DEFAULT_SCAN_TIMEOUT_MS;
+  }
+  return Math.floor(raw);
+})();
 const upstashRestUrl = (process.env.UPSTASH_REDIS_REST_URL || "").trim();
 const upstashRestToken = (process.env.UPSTASH_REDIS_REST_TOKEN || "").trim();
 const abuseSignalBuckets = new Map();
@@ -146,6 +154,7 @@ const log = (level, event, details = {}) => {
 };
 
 async function runScanAnalysis({ validatedTarget, mode, clientIp, requesterScope }) {
+  const startedAt = Date.now();
   telemetry.recordScanRequested({ mode });
   log("info", "analysis_requested", {
     clientIp,
@@ -153,8 +162,22 @@ async function runScanAnalysis({ validatedTarget, mode, clientIp, requesterScope
     target: validatedTarget.toString(),
     mode,
   });
-  const result = await analyzeUrl(validatedTarget.toString(), { scanMode: mode });
+  const result = await analyzeUrl(validatedTarget.toString(), {
+    scanMode: mode,
+    maxScanDurationMs: SCAN_TIMEOUT_MS,
+  });
   telemetry.recordScanCompleted(result);
+  log("info", "analysis_completed", {
+    clientIp,
+    requesterScope,
+    target: validatedTarget.toString(),
+    mode,
+    durationMs: Date.now() - startedAt,
+    score: result.score,
+    grade: result.grade,
+    limited: result.assessmentLimitation?.limited ?? false,
+    timedOut: result.scanTiming?.timedOut ?? false,
+  });
   return result;
 }
 
@@ -287,6 +310,7 @@ const server = http.createServer(async (request, response) => {
         threshold: ABUSE_ALERT_THRESHOLD,
         windowMs: ABUSE_ALERT_WINDOW_MS,
       };
+      payload.scanTimeoutMs = SCAN_TIMEOUT_MS;
     }
 
     sendApiJson(response, 200, payload);
@@ -523,6 +547,7 @@ server.listen(port, () => {
       maxRequests: TARGET_RATE_LIMIT_MAX_REQUESTS,
       windowMs: TARGET_RATE_LIMIT_WINDOW_MS,
     },
+    scanTimeoutMs: SCAN_TIMEOUT_MS,
     abuseAlerting: {
       threshold: ABUSE_ALERT_THRESHOLD,
       windowMs: ABUSE_ALERT_WINDOW_MS,

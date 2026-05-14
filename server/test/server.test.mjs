@@ -583,6 +583,7 @@ test("authenticated sessions can own scan and monitoring resources without scan-
     });
     const monitoringPayload = await monitoringResponse.json();
     assert.equal(monitoringResponse.status, 201);
+    assert.equal(monitoringPayload.apiVersion, "2026-05-14");
     assert.match(monitoringPayload.target.ownerId, /^user:/);
   } finally {
     await server.stop();
@@ -666,6 +667,7 @@ test("monitoring targets require the same browser owner token as scan resources"
     });
     assert.equal(createResponse.status, 201);
     const created = await createResponse.json();
+    assert.equal(created.apiVersion, "2026-05-14");
     assert.equal(created.target.cadence, "weekly");
 
     const wrongOwnerListResponse = await fetch(`${server.baseUrl}/api/monitoring-targets`, {
@@ -690,6 +692,7 @@ test("monitoring targets can be created, listed, and deleted", async () => {
     });
     const createPayload = await createResponse.json();
     assert.equal(createResponse.status, 201);
+    assert.equal(createPayload.apiVersion, "2026-05-14");
     assert.equal(createPayload.target.url, "https://example.com/");
     assert.equal(createPayload.target.label, "Example target");
     assert.equal(createPayload.target.due, false);
@@ -710,6 +713,7 @@ test("monitoring targets can be created, listed, and deleted", async () => {
     });
     const deletePayload = await deleteResponse.json();
     assert.equal(deleteResponse.status, 200);
+    assert.equal(deletePayload.apiVersion, "2026-05-14");
     assert.equal(deletePayload.ok, true);
 
     const emptyListResponse = await fetch(`${server.baseUrl}/api/monitoring-targets`, {
@@ -740,6 +744,7 @@ test("monitoring target run action queues a new scan for the saved target", asyn
     });
     const runPayload = await runResponse.json();
     assert.equal(runResponse.status, 202);
+    assert.equal(runPayload.apiVersion, "2026-05-14");
     assert.equal(runPayload.target.id, createTargetPayload.target.id);
     assert.equal(runPayload.scan.url, "https://example.com/");
     assert.equal(runPayload.scan.mode, "quiet");
@@ -1068,16 +1073,20 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     const historyPayload = await historyResponse.json();
 
     assert.equal(summaryResponse.status, 200);
+    assert.equal(summaryPayload.apiVersion, "2026-05-14");
     assert.equal(summaryPayload.summary.id, scanId);
     assert.equal(findingsResponse.status, 200);
+    assert.equal(findingsPayload.apiVersion, "2026-05-14");
     assert.ok(Array.isArray(findingsPayload.findings));
     assert.ok(Array.isArray(findingsPayload.strengths));
     assert.ok(Array.isArray(findingsPayload.priorityActions));
     assert.equal(evidenceResponse.status, 200);
+    assert.equal(evidencePayload.apiVersion, "2026-05-14");
     assert.ok(Array.isArray(evidencePayload.evidence.headers));
     assert.ok(Array.isArray(evidencePayload.evidence.cookies));
     assert.ok(Array.isArray(evidencePayload.evidence.redirects));
     assert.equal(historyResponse.status, 200);
+    assert.equal(historyPayload.apiVersion, "2026-05-14");
     assert.equal(historyPayload.scan.id, scanId);
     assert.ok(Array.isArray(historyPayload.events));
     assert.ok(historyPayload.events.length >= 3);
