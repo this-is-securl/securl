@@ -19,51 +19,7 @@ import { getHttpStatusDetails } from "@/lib/httpStatus";
 import { getMonitoringAlerts, getPriorityActions } from "@/lib/priorities";
 import { sectionTitleClass } from "./ReportSectionHeader";
 
-const trafficLightStyles = {
-  strong: {
-    ring: "border-white/10",
-    pill: "bg-slate-300",
-    text: "text-slate-100",
-    bar: "from-slate-200 via-slate-300 to-slate-400",
-  },
-  watch: {
-    ring: "border-[#b56a2c]/45",
-    pill: "bg-[#b56a2c]",
-    text: "text-[#f0d5bc]",
-    bar: "from-[#9d5a28] via-[#b56a2c] to-[#d08a4b]",
-  },
-  weak: {
-    ring: "border-[#8e5c3b]/45",
-    pill: "bg-[#8e5c3b]",
-    text: "text-[#e2c0a2]",
-    bar: "from-[#74452b] via-[#8e5c3b] to-[#b56a2c]",
-  },
-} as const;
-
-const healthcheckStyles = {
-  strong: {
-    tile: "border-white/10 bg-white/[0.04]",
-    dot: "bg-slate-300",
-    grade: "text-slate-100",
-  },
-  watch: {
-    tile: "border-[#b56a2c]/35 bg-[#b56a2c]/12",
-    dot: "bg-[#b56a2c]",
-    grade: "text-[#f0d5bc]",
-  },
-  weak: {
-    tile: "border-[#8e5c3b]/35 bg-[#8e5c3b]/12",
-    dot: "bg-[#8e5c3b]",
-    grade: "text-[#e2c0a2]",
-  },
-} as const;
-
-const healthcheckStatusForGrade = (grade: string): keyof typeof healthcheckStyles => {
-  const normalized = grade.trim().toUpperCase();
-  if (normalized === "A" || normalized === "B") return "strong";
-  if (normalized === "C") return "watch";
-  return "weak";
-};
+type TrafficLightStatus = "strong" | "watch" | "weak";
 
 const DONUT_RADIUS = 96;
 const DONUT_SIZE   = 224;
@@ -84,7 +40,7 @@ interface OverviewSectionProps {
     key: string;
     label: string;
     score: number;
-    status: keyof typeof trafficLightStyles;
+    status: TrafficLightStatus;
   }>;
   exportPdf: () => void;
   exportMarkdown: () => void;
@@ -103,7 +59,6 @@ export const OverviewSection = ({
   compact = false,
 }: OverviewSectionProps) => {
   const isLimitedAssessment = analysisData.assessmentLimitation.limited;
-  const healthcheckStyle = healthcheckStyles[healthcheckStatusForGrade(analysisData.grade)];
   const sortedAreaScores = [...areaScores].sort((left, right) => left.score - right.score);
   const hasTrainingSurfaceNarrative =
     analysisData.executiveSummary.overview.toLowerCase().includes("lab or training surface") ||

@@ -8,7 +8,7 @@ import {
 } from "./scannerConfig.js";
 import type { CtDiscoveryInfo, CtDiscoveredHost, CtHostObservation } from "./types.js";
 import { detectIdentityProviderName } from "./identityProvider.js";
-import { headerValue, mapWithConcurrency, safeResolve, safeResolveWithTimeout, unique, withTimeout } from "./utils.js";
+import { headerValue, mapWithConcurrency, safeResolveWithTimeout, unique, withTimeout } from "./utils.js";
 
 const CT_SUBDOMAIN_LIMIT = 20;
 const CT_WILDCARD_LIMIT = 5;

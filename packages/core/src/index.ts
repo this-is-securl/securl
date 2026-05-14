@@ -52,7 +52,6 @@ import type { AnalysisResult, AnalyzeTargetOptions, HtmlSecurityInfo } from "./t
 
 type ScanMode = NonNullable<AnalyzeTargetOptions["scanMode"]>;
 type CoreScanResult = Awaited<ReturnType<typeof analyzeUrlCore>>;
-type CtDiscoveryResult = Awaited<ReturnType<typeof fetchCtDiscovery>>;
 type DiscoveryResult = Awaited<ReturnType<typeof collectDiscoveryPaths>>;
 type EnrichedAnalysisResult = Omit<AnalysisResult, "executiveSummary">;
 
@@ -662,7 +661,6 @@ async function enrichCoreResult(
     result.rawHeaders,
     htmlDocument?.html || null,
   );
-
   return {
     ...result,
     issues: [...result.issues, ...buildLibraryRiskIssues(htmlSecurity.libraryRiskSignals).map(classifyIssueTaxonomy)],
