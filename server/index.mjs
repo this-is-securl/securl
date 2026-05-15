@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath, URL } from "node:url";
@@ -66,6 +67,8 @@ const databaseUrl = (process.env.DATABASE_URL || "").trim();
 const allowedOrigins = resolveAllowedOrigins(process.env.ALLOWED_ORIGINS, isProduction);
 const SCAN_OWNER_HEADER = "x-scan-owner";
 const AUTH_TOKEN_FINGERPRINT_SALT = process.env.AUTH_TOKEN_FINGERPRINT_SALT || "epi-auth-token-fingerprint-v1";
+const TELEMETRY_TOKEN = (process.env.TELEMETRY_TOKEN || process.env.ADMIN_TELEMETRY_TOKEN || "").trim();
+const TELEMETRY_VISITOR_SALT = process.env.TELEMETRY_VISITOR_SALT || "epi-visitor-count-v1";
 const RATE_LIMIT_WINDOW_MS = (() => {
   const raw = Number(process.env.RATE_LIMIT_WINDOW_MS || DEFAULT_RATE_LIMIT_WINDOW_MS);
   if (!Number.isFinite(raw) || raw < 1000) {
@@ -136,6 +139,33 @@ const exposeDetailedHealth = !isProduction;
 const exposeTelemetry = process.env.EXPOSE_TELEMETRY === "true" || !isProduction;
 const telemetry = createTelemetryTracker();
 let scanRepository;
+
+function buildVisitorKey(request) {
+  const clientIp = getClientIp(request, { trustProxy });
+  const userAgent = String(request.headers["user-agent"] || "unknown").slice(0, 300);
+  return crypto
+    .createHash("sha256")
+    .update(`${TELEMETRY_VISITOR_SALT}:${clientIp}:${userAgent}`)
+    .digest("hex");
+}
+
+function isTelemetryRequestAuthorized(request) {
+  if (!isProduction) {
+    return true;
+  }
+  if (!TELEMETRY_TOKEN) {
+    return false;
+  }
+
+  const authorization = String(request.headers.authorization || "");
+  const bearerPrefix = "Bearer ";
+  const providedToken = authorization.startsWith(bearerPrefix)
+    ? authorization.slice(bearerPrefix.length)
+    : String(request.headers["x-telemetry-token"] || "");
+
+  return providedToken.length === TELEMETRY_TOKEN.length
+    && crypto.timingSafeEqual(Buffer.from(providedToken), Buffer.from(TELEMETRY_TOKEN));
+}
 
 const log = (level, event, details = {}) => {
   const payload = {
@@ -237,6 +267,7 @@ const serveStatic = createStaticHandler({
   publicDir,
   isProduction,
   telemetry,
+  getVisitorKey: buildVisitorKey,
 });
 const corsPolicy = createCorsPolicy({
   allowedOrigins,
@@ -318,7 +349,7 @@ const server = http.createServer(async (request, response) => {
   }
 
   if (requestUrl.pathname === "/api/telemetry") {
-    if (!exposeTelemetry) {
+    if (!exposeTelemetry || !isTelemetryRequestAuthorized(request)) {
       sendApiJson(response, 404, {
         error: "Telemetry is not available.",
       });
@@ -484,7 +515,7 @@ const server = http.createServer(async (request, response) => {
   }
 
   if (request.method === "GET" || request.method === "HEAD") {
-    serveStatic(rawRequestPath, request.method, response);
+    serveStatic(rawRequestPath, request.method, request, response);
     return;
   }
 
