@@ -1,8 +1,11 @@
 export function createTelemetryTracker() {
   const startedAt = new Date().toISOString();
+  const startedDate = startedAt.slice(0, 10);
 
   const state = {
     pageLoads: 0,
+    visitorKeys: new Set(),
+    visitorDays: {},
     scansRequested: 0,
     scansCompleted: 0,
     fullReads: 0,
@@ -22,6 +25,20 @@ export function createTelemetryTracker() {
   const incrementBucket = (bucket, key) => {
     bucket[key] = (bucket[key] ?? 0) + 1;
   };
+  const getDayBucket = (dateKey) => {
+    if (!state.visitorDays[dateKey]) {
+      state.visitorDays[dateKey] = {
+        pageLoads: 0,
+        visitorKeys: new Set(),
+      };
+    }
+    return state.visitorDays[dateKey];
+  };
+  const serializeDayBucket = (date, bucket) => ({
+    date,
+    pageLoads: bucket.pageLoads,
+    uniqueVisitors: bucket.visitorKeys.size,
+  });
   const pushMetric = (values, value, maxValues = 200) => {
     if (!Number.isFinite(value) || value < 0) {
       return;
@@ -47,8 +64,15 @@ export function createTelemetryTracker() {
   };
 
   return {
-    recordPageLoad() {
+    recordPageLoad({ visitorKey = null, now = new Date() } = {}) {
       state.pageLoads += 1;
+      const dateKey = now.toISOString().slice(0, 10);
+      const dayBucket = getDayBucket(dateKey);
+      dayBucket.pageLoads += 1;
+      if (visitorKey) {
+        state.visitorKeys.add(visitorKey);
+        dayBucket.visitorKeys.add(visitorKey);
+      }
     },
     recordScanRequested({ mode }) {
       state.scansRequested += 1;
@@ -86,10 +110,25 @@ export function createTelemetryTracker() {
       state.targetRateLimited += 1;
     },
     snapshot() {
+      const todayKey = new Date().toISOString().slice(0, 10);
+      const recentDays = Object.entries(state.visitorDays)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .slice(-14)
+        .map(([date, bucket]) => serializeDayBucket(date, bucket));
       return {
         startedAt,
         persistence: "memory",
         pageLoads: state.pageLoads,
+        visitors: {
+          unique: state.visitorKeys.size,
+          totalPageLoads: state.pageLoads,
+          today: serializeDayBucket(todayKey, getDayBucket(todayKey)),
+          sinceStart: serializeDayBucket(startedDate, {
+            pageLoads: state.pageLoads,
+            visitorKeys: state.visitorKeys,
+          }),
+          recentDays,
+        },
         scans: {
           requested: state.scansRequested,
           completed: state.scansCompleted,

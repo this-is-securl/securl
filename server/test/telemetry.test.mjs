@@ -5,7 +5,9 @@ import { classifyScanFailure, createTelemetryTracker } from "../telemetry.mjs";
 test("telemetry tracker records aggregate counts", () => {
   const telemetry = createTelemetryTracker();
 
-  telemetry.recordPageLoad();
+  telemetry.recordPageLoad({ visitorKey: "visitor-one", now: new Date("2026-05-15T08:00:00Z") });
+  telemetry.recordPageLoad({ visitorKey: "visitor-one", now: new Date("2026-05-15T09:00:00Z") });
+  telemetry.recordPageLoad({ visitorKey: "visitor-two", now: new Date("2026-05-15T10:00:00Z") });
   telemetry.recordScanRequested({ mode: "standard" });
   telemetry.recordScanRequested({ mode: "quiet" });
   telemetry.recordScanCompleted({
@@ -22,7 +24,12 @@ test("telemetry tracker records aggregate counts", () => {
   telemetry.recordTargetRateLimited();
 
   const snapshot = telemetry.snapshot();
-  assert.equal(snapshot.pageLoads, 1);
+  assert.equal(snapshot.pageLoads, 3);
+  assert.equal(snapshot.visitors.unique, 2);
+  assert.equal(snapshot.visitors.totalPageLoads, 3);
+  assert.equal(snapshot.visitors.recentDays.at(-1).date, "2026-05-15");
+  assert.equal(snapshot.visitors.recentDays.at(-1).pageLoads, 3);
+  assert.equal(snapshot.visitors.recentDays.at(-1).uniqueVisitors, 2);
   assert.equal(snapshot.scans.requested, 2);
   assert.equal(snapshot.scans.completed, 2);
   assert.equal(snapshot.scans.fullReads, 1);

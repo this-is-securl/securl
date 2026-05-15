@@ -385,8 +385,18 @@ test("telemetry endpoint returns aggregate page-load and failure counters", asyn
   const server = await startServer();
 
   try {
-    const pageResponse = await fetch(server.baseUrl);
+    const pageResponse = await fetch(server.baseUrl, {
+      headers: {
+        "User-Agent": "TelemetryTest/1.0",
+      },
+    });
     assert.equal(pageResponse.status, 200);
+    const secondPageResponse = await fetch(server.baseUrl, {
+      headers: {
+        "User-Agent": "TelemetryTest/1.0",
+      },
+    });
+    assert.equal(secondPageResponse.status, 200);
 
     const badScan = await postScan(server.baseUrl, "https://user:pass@example.com");
     assert.equal(badScan.status, 400);
@@ -396,7 +406,11 @@ test("telemetry endpoint returns aggregate page-load and failure counters", asyn
 
     assert.equal(telemetryResponse.status, 200);
     assert.equal(payload.persistence, "memory");
-    assert.equal(payload.pageLoads, 1);
+    assert.equal(payload.pageLoads, 2);
+    assert.equal(payload.visitors.unique, 1);
+    assert.equal(payload.visitors.totalPageLoads, 2);
+    assert.equal(payload.visitors.today.pageLoads >= 2, true);
+    assert.equal(payload.visitors.today.uniqueVisitors >= 1, true);
     assert.equal(payload.scans.requested, 0);
     assert.equal(payload.scans.completed, 0);
     assert.equal(payload.failures.classes.invalid_target_credentials, 1);
@@ -417,6 +431,34 @@ test("telemetry endpoint is hidden by default in production", async () => {
 
     assert.equal(telemetryResponse.status, 404);
     assert.match(payload.error, /not available/i);
+  } finally {
+    await server.stop();
+  }
+});
+
+test("telemetry endpoint requires an admin token when exposed in production", async () => {
+  const server = await startServer({
+    NODE_ENV: "production",
+    API_KEY: "test-secret",
+    EXPOSE_TELEMETRY: "true",
+    TELEMETRY_TOKEN: "telemetry-secret",
+  });
+
+  try {
+    const unauthenticatedResponse = await fetch(`${server.baseUrl}/api/telemetry`);
+    const unauthenticatedPayload = await unauthenticatedResponse.json();
+    assert.equal(unauthenticatedResponse.status, 404);
+    assert.match(unauthenticatedPayload.error, /not available/i);
+
+    const authenticatedResponse = await fetch(`${server.baseUrl}/api/telemetry`, {
+      headers: {
+        Authorization: "Bearer telemetry-secret",
+      },
+    });
+    const authenticatedPayload = await authenticatedResponse.json();
+    assert.equal(authenticatedResponse.status, 200);
+    assert.equal(authenticatedPayload.persistence, "memory");
+    assert.ok(authenticatedPayload.visitors);
   } finally {
     await server.stop();
   }

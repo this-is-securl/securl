@@ -51,10 +51,11 @@ export function createStaticHandler({
   publicDir,
   isProduction,
   telemetry,
+  getVisitorKey = () => null,
 }) {
   const resolvedPathCache = new Map();
 
-  return function serveStatic(requestPath, method, response) {
+  return function serveStatic(requestPath, method, request, response) {
     const cleanPath = requestPath === "/" ? "/index.html" : requestPath;
     const staticTarget = resolveStaticPath(distDir, cleanPath);
     const publicTarget = resolveStaticPath(publicDir, cleanPath);
@@ -85,7 +86,9 @@ export function createStaticHandler({
     }
 
     if (method === "GET" && path.basename(preferredPath) === "index.html") {
-      telemetry.recordPageLoad();
+      telemetry.recordPageLoad({
+        visitorKey: getVisitorKey(request),
+      });
     }
 
     const connectSources = ["'self'"];
