@@ -14,7 +14,7 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
   const rankedAreaScores = [...areaScores].sort((left, right) => left.score - right.score);
 
   return (
-    <Card className="rounded-[1.75rem] border border-zinc-800/60 bg-[#0d1420] shadow-[0_32px_64px_-24px_rgba(0,0,0,0.6),0_1px_0_rgba(255,255,255,0.04)_inset]">
+    <Card className="rounded-[2rem] border border-zinc-800/70 bg-[#0d1420] shadow-[0_40px_80px_-24px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.05)_inset]">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-xl font-bold tracking-[-0.03em] text-white">
           <BarChart3 className="h-5 w-5 text-[#d89a63]" />
@@ -53,17 +53,19 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
                 className="rounded-[1.1rem] border border-white/10 bg-slate-950/50 px-3 py-3 text-sm text-slate-200 shadow-[0_12px_28px_-20px_rgba(0,0,0,0.7)]"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="font-medium">{area.label}</span>
-                  <span className="font-bold">{area.score}/100</span>
+                  <span className="font-semibold text-slate-100">{area.label}</span>
+                  <span className={`font-black text-base ${
+                    area.status === "strong" ? "text-emerald-400" : area.status === "watch" ? "text-amber-400" : "text-red-400"
+                  }`}>{area.score}</span>
                 </div>
-                <div className="mt-2 h-[6px] rounded-full bg-white/[0.07]">
+                <div className="mt-2.5 h-2 rounded-full bg-white/[0.06]">
                   <div
-                    className={`h-full rounded-full ${
+                    className={`h-full rounded-full shadow-[0_0_8px_0] ${
                       area.status === "strong"
-                        ? "bg-emerald-400/70"
+                        ? "bg-emerald-400 shadow-emerald-400/30"
                         : area.status === "watch"
-                          ? "bg-amber-500/70"
-                          : "bg-red-500/70"
+                          ? "bg-amber-400 shadow-amber-400/30"
+                          : "bg-red-500 shadow-red-500/30"
                     }`}
                     style={{ width: `${area.score}%` }}
                   />

@@ -57,10 +57,10 @@ export const UrlForm = ({ onSubmit, isLoading, initialValue = "", scanStage = nu
         <Button
           type="submit"
           disabled={isLoading}
-          className="h-12 rounded-[1.25rem] bg-[#b56a2c] px-8 text-sm font-bold text-[#faf5f0] shadow-[0_8px_24px_-8px_rgba(181,106,44,0.5)] hover:bg-[#c47a3a] hover:shadow-[0_12px_32px_-8px_rgba(181,106,44,0.65)] transition-all duration-200"
+          className="h-14 rounded-[1.25rem] bg-[#b56a2c] px-10 text-base font-bold text-[#faf5f0] shadow-[0_8px_32px_-8px_rgba(181,106,44,0.6),0_0_0_1px_rgba(181,106,44,0.3)_inset] hover:bg-[#c47a3a] hover:shadow-[0_14px_40px_-8px_rgba(181,106,44,0.75),0_0_0_1px_rgba(181,106,44,0.4)_inset] active:scale-[0.98] transition-all duration-200"
         >
-          <Search className="mr-2 h-4 w-4" />
-          {isLoading ? "Scanning..." : "Run Scan"}
+          <Search className="mr-2.5 h-5 w-5" />
+          {isLoading ? "Scanning…" : "Run Scan"}
         </Button>
       </div>
       <p className="px-2 pt-3 text-sm text-slate-400">
