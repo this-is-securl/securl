@@ -11,13 +11,13 @@ interface SecurityGradeProps {
 
 // Per-grade colour tokens — matches the PDF report colour system
 export const GRADE_PALETTE: Record<string, { stroke: string; glow: string; textColor: string; borderColor: string }> = {
-  "A+": { stroke: "#22c55e", glow: "rgba(34,197,94,0.28)",  textColor: "#86efac", borderColor: "rgba(34,197,94,0.28)"  },
-  A:    { stroke: "#22c55e", glow: "rgba(34,197,94,0.28)",  textColor: "#86efac", borderColor: "rgba(34,197,94,0.28)"  },
-  B:    { stroke: "#3b82f6", glow: "rgba(59,130,246,0.30)", textColor: "#93c5fd", borderColor: "rgba(59,130,246,0.30)" },
-  C:    { stroke: "#f59e0b", glow: "rgba(245,158,11,0.30)", textColor: "#fcd34d", borderColor: "rgba(245,158,11,0.28)" },
-  D:    { stroke: "#f97316", glow: "rgba(249,115,22,0.30)", textColor: "#fdba74", borderColor: "rgba(249,115,22,0.28)" },
-  F:    { stroke: "#ef4444", glow: "rgba(239,68,68,0.32)",  textColor: "#fca5a5", borderColor: "rgba(239,68,68,0.30)"  },
-  U:    { stroke: "#94a3b8", glow: "rgba(148,163,184,0.18)",textColor: "#cbd5e1", borderColor: "rgba(148,163,184,0.22)"},
+  "A+": { stroke: "#22c55e", glow: "rgba(34,197,94,0.20)",  textColor: "#86efac", borderColor: "rgba(34,197,94,0.15)"  },
+  A:    { stroke: "#22c55e", glow: "rgba(34,197,94,0.20)",  textColor: "#86efac", borderColor: "rgba(34,197,94,0.15)"  },
+  B:    { stroke: "#3b82f6", glow: "rgba(59,130,246,0.22)", textColor: "#93c5fd", borderColor: "rgba(59,130,246,0.18)" },
+  C:    { stroke: "#f59e0b", glow: "rgba(245,158,11,0.22)", textColor: "#fcd34d", borderColor: "rgba(245,158,11,0.16)" },
+  D:    { stroke: "#f97316", glow: "rgba(249,115,22,0.22)", textColor: "#fdba74", borderColor: "rgba(249,115,22,0.16)" },
+  F:    { stroke: "#ef4444", glow: "rgba(239,68,68,0.24)",  textColor: "#fca5a5", borderColor: "rgba(239,68,68,0.18)"  },
+  U:    { stroke: "#94a3b8", glow: "rgba(148,163,184,0.14)",textColor: "#cbd5e1", borderColor: "rgba(148,163,184,0.12)"},
 };
 
 const RING_R    = 72;
