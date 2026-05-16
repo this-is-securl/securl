@@ -444,6 +444,33 @@ test("telemetry page-load tracking works when trusted proxy mode is enabled", as
   }
 });
 
+test("telemetry page-load beacon records Hostinger frontend visits", async () => {
+  const server = await startServer({
+    TRUST_PROXY: "true",
+  });
+
+  try {
+    const beaconResponse = await fetch(`${server.baseUrl}/api/telemetry/page-load`, {
+      method: "POST",
+      headers: {
+        Origin: "https://app.securl.online",
+        "User-Agent": "TelemetryBeaconTest/1.0",
+        "X-Forwarded-For": "203.0.113.20",
+      },
+    });
+    assert.equal(beaconResponse.status, 202);
+    assert.equal(beaconResponse.headers.get("access-control-allow-origin"), "https://app.securl.online");
+
+    const telemetryResponse = await fetch(`${server.baseUrl}/api/telemetry`);
+    const payload = await telemetryResponse.json();
+
+    assert.equal(payload.visitors.totalPageLoads, 1);
+    assert.equal(payload.visitors.unique, 1);
+  } finally {
+    await server.stop();
+  }
+});
+
 test("telemetry endpoint is hidden by default in production", async () => {
   const server = await startServer({
     NODE_ENV: "production",

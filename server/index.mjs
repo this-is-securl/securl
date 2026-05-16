@@ -348,6 +348,19 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
+  if (requestUrl.pathname === "/api/telemetry/page-load") {
+    if (request.method !== "POST") {
+      sendApiMethodNotAllowed(response, ["POST", "OPTIONS"]);
+      return;
+    }
+
+    telemetry.recordPageLoad({
+      visitorKey: buildVisitorKey(request),
+    });
+    sendApiJson(response, 202, { ok: true });
+    return;
+  }
+
   if (requestUrl.pathname === "/api/telemetry") {
     if (!exposeTelemetry || !isTelemetryRequestAuthorized(request)) {
       sendApiJson(response, 404, {
