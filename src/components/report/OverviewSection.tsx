@@ -21,8 +21,8 @@ import { sectionTitleClass } from "./ReportSectionHeader";
 
 type TrafficLightStatus = "strong" | "watch" | "weak";
 
-const DONUT_RADIUS = 96;
-const DONUT_SIZE   = 224;
+const DONUT_RADIUS = 110;
+const DONUT_SIZE   = 256;
 const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_RADIUS;
 
 interface OverviewSectionProps {
@@ -108,13 +108,13 @@ export const OverviewSection = ({
       ) : null}
 
       <div className="space-y-5">
-        <div className="rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,rgba(11,18,32,0.96),rgba(16,24,39,0.92))] px-7 py-7 shadow-[0_30px_80px_-48px_rgba(0,0,0,0.8)] ring-1 ring-white/[0.04]">
-          <div className="grid gap-7 xl:grid-cols-[240px_minmax(0,1fr)]">
+        <div className="rounded-[2rem] border border-white/[0.08] bg-[#0d1420] px-7 py-7 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.6),0_1px_0_rgba(255,255,255,0.04)_inset]">
+          <div className="grid gap-10 xl:grid-cols-[240px_minmax(0,1fr)]">
 
             {/* ── LEFT: Ring gauge — first thing the eye hits ── */}
             {(() => {
               const gp = GRADE_PALETTE[analysisData.grade] ?? GRADE_PALETTE.U;
-              const gradeFontSize = analysisData.grade.length > 1 ? "text-6xl" : "text-7xl";
+              const gradeFontSize = analysisData.grade.length > 1 ? "text-7xl" : "text-8xl";
               return (
                 <div
                   className="flex flex-col items-center rounded-[1.7rem] px-5 py-7 shadow-[0_24px_56px_-32px_rgba(0,0,0,0.75)] text-center"
@@ -123,7 +123,7 @@ export const OverviewSection = ({
                     background: "linear-gradient(135deg,rgba(11,18,32,0.97),rgba(16,24,39,0.94))",
                   }}
                 >
-                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
                     {isLimitedAssessment ? "Directional read" : "Posture score"}
                   </p>
 
@@ -131,7 +131,7 @@ export const OverviewSection = ({
                   <div className="relative mt-5" style={{ width: DONUT_SIZE, height: DONUT_SIZE }}>
                     <div
                       className="pointer-events-none absolute inset-0 rounded-full"
-                      style={{ background: `radial-gradient(circle, ${gp.glow} 0%, transparent 68%)`, filter: "blur(22px)" }}
+                      style={{ background: `radial-gradient(circle, ${gp.glow} 0%, transparent 68%)`, filter: "blur(28px) brightness(1.3)" }}
                     />
                     <svg
                       viewBox={`0 0 ${DONUT_SIZE} ${DONUT_SIZE}`}
@@ -140,10 +140,10 @@ export const OverviewSection = ({
                       className="relative -rotate-90"
                     >
                       <circle cx={DONUT_SIZE / 2} cy={DONUT_SIZE / 2} r={DONUT_RADIUS}
-                        fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="11"
+                        fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="14"
                       />
                       <circle cx={DONUT_SIZE / 2} cy={DONUT_SIZE / 2} r={DONUT_RADIUS}
-                        fill="none" stroke={gp.stroke} strokeWidth="11"
+                        fill="none" stroke={gp.stroke} strokeWidth="14"
                         strokeLinecap="round"
                         strokeDasharray={DONUT_CIRCUMFERENCE}
                         strokeDashoffset={donutOffset}
@@ -156,7 +156,6 @@ export const OverviewSection = ({
                       >
                         {analysisData.grade}
                       </span>
-                      <span className="text-[15px] font-semibold text-slate-300">{overallPercent}/100</span>
                       <span
                         className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em]"
                         style={{ color: gp.textColor, opacity: 0.8 }}
@@ -167,7 +166,7 @@ export const OverviewSection = ({
                   </div>
 
                   {/* Monitoring pulse — compact, below ring */}
-                  <div className="mt-6 w-full rounded-[1.1rem] border border-white/10 bg-slate-950/40 px-4 py-4 text-left">
+                  <div className="mt-6 w-full rounded-[1.5rem] border border-white/[0.08] bg-slate-950/60 px-4 py-4 text-left shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Monitoring</p>
                       <BellRing className="h-3.5 w-3.5 text-[#d89a63]/60" />
@@ -185,11 +184,11 @@ export const OverviewSection = ({
             <div className="space-y-5">
               <div className="space-y-2">
                 <p className={sectionTitleClass}>Target</p>
-                <p className="text-3xl font-bold tracking-[-0.05em] text-white sm:text-4xl">{analysisData.host}</p>
+                <p className="text-[2.75rem] font-black tracking-[-0.04em] text-white">{analysisData.host}</p>
                 <p className="break-all text-sm text-slate-400">{analysisData.finalUrl}</p>
               </div>
 
-              <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-6 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
+              <div className="rounded-[1.6rem] border border-white/[0.1] bg-slate-950/40 p-6 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline" className="border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-300">
                     Overall posture: {overallPostureLabel}
@@ -234,7 +233,7 @@ export const OverviewSection = ({
 
           <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {/* Critical */}
-            <div className="rounded-[1.35rem] border border-red-500/20 bg-red-500/[0.06] px-5 py-5">
+            <div className="rounded-[1.5rem] border border-red-500/25 bg-red-500/[0.08] px-5 py-5">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-red-400">Critical</p>
                 <AlertTriangle className="h-3.5 w-3.5 text-red-400/60" />
@@ -243,7 +242,7 @@ export const OverviewSection = ({
               <p className="mt-2.5 text-xs leading-5 text-red-300/60">Highest-priority items for immediate attention.</p>
             </div>
             {/* Warning */}
-            <div className="rounded-[1.35rem] border border-amber-500/20 bg-amber-500/[0.06] px-5 py-5">
+            <div className="rounded-[1.5rem] border border-amber-500/25 bg-amber-500/[0.08] px-5 py-5">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-400">Warning</p>
                 <ShieldAlert className="h-3.5 w-3.5 text-amber-400/60" />
@@ -252,7 +251,7 @@ export const OverviewSection = ({
               <p className="mt-2.5 text-xs leading-5 text-amber-300/60">Important weaknesses shaping the posture score.</p>
             </div>
             {/* Strengths */}
-            <div className="rounded-[1.35rem] border border-emerald-500/20 bg-emerald-500/[0.06] px-5 py-5">
+            <div className="rounded-[1.5rem] border border-emerald-500/25 bg-emerald-500/[0.08] px-5 py-5">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-400">Strengths</p>
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-400/60" />
@@ -261,7 +260,7 @@ export const OverviewSection = ({
               <p className="mt-2.5 text-xs leading-5 text-emerald-300/60">Signals reducing concern or reinforcing confidence.</p>
             </div>
             {/* Monitoring */}
-            <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] px-5 py-5">
+            <div className="rounded-[1.5rem] border border-white/[0.08] bg-slate-950/60 px-5 py-5">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Monitoring</p>
                 <TrendingUp className="h-3.5 w-3.5 text-slate-500" />
@@ -275,7 +274,7 @@ export const OverviewSection = ({
 
           <div className="mt-6 grid gap-5 xl:grid-cols-[1.08fr_0.92fr]">
             {isLimitedAssessment ? (
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-6 py-6">
+              <div className="rounded-[1.5rem] border border-white/[0.08] bg-slate-950/60 px-6 py-6">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-base font-semibold tracking-[-0.02em] text-white">Assessment constraints</p>
                   <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Directional read only</p>
@@ -295,7 +294,7 @@ export const OverviewSection = ({
                 </div>
               </div>
             ) : (
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-6 py-6">
+              <div className="rounded-[1.5rem] border border-white/[0.08] bg-slate-950/60 px-6 py-6">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Category scores</p>
@@ -326,7 +325,7 @@ export const OverviewSection = ({
               </div>
             )}
 
-            <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-6 py-6">
+            <div className="rounded-[1.5rem] border border-white/[0.08] bg-slate-950/60 px-6 py-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">What to do next</p>
@@ -375,7 +374,7 @@ export const OverviewSection = ({
           </div>
 
           <div className="mt-6 grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
-            <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-6 py-6">
+            <div className="rounded-[1.5rem] border border-white/[0.08] bg-slate-950/60 px-6 py-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Scan facts</p>
@@ -399,7 +398,7 @@ export const OverviewSection = ({
               </div>
             </div>
 
-            <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-6 py-6">
+            <div className="rounded-[1.5rem] border border-white/[0.08] bg-slate-950/60 px-6 py-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Report outputs</p>

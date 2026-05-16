@@ -15,9 +15,9 @@ const statBoxVariants: Record<StatBoxVariant, { container: string; label: string
     value: "text-white",
   },
   critical: {
-    container: "border-[#b56a2c]/35 bg-[#b56a2c]/12",
-    label: "text-[#d89a63]",
-    value: "text-[#f4dfcd]",
+    container: "border-red-500/25 bg-red-500/[0.08]",
+    label: "text-red-400",
+    value: "text-red-100",
   },
   warning: {
     container: "border-[#9b774f]/30 bg-[#9b774f]/10",
@@ -66,7 +66,7 @@ type StatusAlertVariant = "success" | "warning" | "critical" | "info";
 const statusAlertVariants: Record<StatusAlertVariant, string> = {
   success: "border-white/10 bg-white/[0.04] text-slate-100",
   warning: "border-[#b56a2c]/35 bg-[#b56a2c]/12 text-[#f4dfcd]",
-  critical: "border-[#b56a2c]/45 bg-[#3a2a20] text-[#f4dfcd]",
+  critical: "border-red-500/30 bg-red-500/[0.08] text-red-100",
   info: "border-white/10 bg-white/[0.04] text-slate-100",
 };
 

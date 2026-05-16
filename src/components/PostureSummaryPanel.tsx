@@ -14,16 +14,16 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
   const rankedAreaScores = [...areaScores].sort((left, right) => left.score - right.score);
 
   return (
-    <Card className="rounded-[1.75rem] border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="rounded-[1.75rem] border border-white/[0.08] bg-[#0d1420] shadow-[0_32px_64px_-24px_rgba(0,0,0,0.6),0_1px_0_rgba(255,255,255,0.04)_inset]">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-xl font-bold tracking-[-0.03em] text-white">
           <BarChart3 className="h-5 w-5 text-[#d89a63]" />
           Posture Summary
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatBox variant="warning" label="Critical" value={<p className="text-[2rem] font-bold leading-none tracking-[-0.04em]">{severityCounts.critical}</p>} />
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <StatBox variant="critical" label="Critical" value={<p className="text-[2rem] font-bold leading-none tracking-[-0.04em]">{severityCounts.critical}</p>} />
           <StatBox
             variant="warning"
             label="Priority Warnings"
@@ -44,9 +44,9 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
           />
         </div>
 
-        <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
+        <div className="rounded-[1.5rem] border border-white/[0.08] bg-slate-950/60 p-4 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Category scores</p>
-          <div className="mt-3 grid gap-2">
+          <div className="mt-3 grid gap-3">
             {rankedAreaScores.map((area, index) => (
               <div
                 key={area.key}
@@ -76,7 +76,7 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-3">
           <StatBox
             label="Header gaps"
             value={<p className="text-2xl font-semibold">{analysis.headers.filter((header) => header.status !== "present").length}</p>}
