@@ -22,7 +22,7 @@ import { sectionTitleClass } from "./ReportSectionHeader";
 type TrafficLightStatus = "strong" | "watch" | "weak";
 
 // ── Ring constants ────────────────────────────────────────────────────────────
-// 220 px display. Column is 260 px (= ring 220 + px-5 padding 20×2).
+// The numeric score drives the arc, but the letter grade is the product verdict.
 const DONUT_RADIUS = 96;
 const DONUT_SIZE   = 220;
 const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_RADIUS;
@@ -134,7 +134,7 @@ export const OverviewSection = ({
                 }}
               >
                 <p className={eyebrow}>
-                  {isLimitedAssessment ? "Directional read" : "Posture score"}
+                  {isLimitedAssessment ? "Directional read" : "Posture grade"}
                 </p>
 
                 {/* Ring */}
@@ -177,18 +177,18 @@ export const OverviewSection = ({
                     >
                       {analysisData.grade}
                     </span>
-                    <span className="text-xs font-medium tabular-nums text-zinc-500">
-                      {overallPercent}/100
-                    </span>
                   </div>
                 </div>
 
-                {/* Posture label — below ring, not inside it */}
+                {/* Verdict and weighted signal — the score is supporting context, not the headline. */}
                 <p
-                  className="mt-4 text-[10px] font-bold uppercase tracking-[0.24em]"
+                  className="mt-4 text-[11px] font-bold uppercase tracking-[0.24em]"
                   style={{ color: gp.textColor, opacity: 0.8 }}
                 >
                   {overallPostureLabel}
+                </p>
+                <p className="mt-1 text-[11px] font-medium text-zinc-600">
+                  Weighted signal: {overallPercent}
                 </p>
 
                 {/* Monitoring — clean, no inner card, just a divider section */}
@@ -285,7 +285,7 @@ export const OverviewSection = ({
               </div>
               <ShieldAlert className="mt-0.5 h-4 w-4 text-amber-400/50 shrink-0" />
             </div>
-            <p className="mt-3 text-xs leading-5 text-zinc-500">Weaknesses shaping the score.</p>
+            <p className="mt-3 text-xs leading-5 text-zinc-500">Weaknesses behind the grade.</p>
           </div>
 
           {/* Strengths */}
@@ -344,7 +344,7 @@ export const OverviewSection = ({
             </div>
           ) : (
             <div className={subCard}>
-              <p className={eyebrow}>Category scores</p>
+              <p className={eyebrow}>Category signals</p>
               <p className={cardTitle}>Where risk is concentrated</p>
               <div className="mt-5 space-y-3.5">
                 {sortedAreaScores.map((area) => {

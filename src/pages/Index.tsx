@@ -70,13 +70,13 @@ const HeroPreviewCard = () => (
           >
             B
           </span>
-          <span className="text-sm font-semibold tracking-[-0.01em] text-zinc-400">81/100</span>
           <span
             className="mt-0.5 inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em]"
             style={{ color: MINI_COLOR, background: `${MINI_COLOR}18`, border: `1px solid ${MINI_COLOR}30` }}
           >
             Good Posture
           </span>
+          <span className="text-[9px] font-medium uppercase tracking-[0.14em] text-zinc-500">Signal 81</span>
         </div>
       </div>
 

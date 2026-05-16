@@ -106,12 +106,14 @@ export const OutputPreview = () => (
           >
             B
           </span>
-          <span className="text-sm font-semibold text-zinc-400">{SCORE}/100</span>
           <span
             className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em]"
             style={{ color: GRADE_COLOR }}
           >
             Good Posture
+          </span>
+          <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-500">
+            Signal {SCORE}
           </span>
         </div>
       </div>
