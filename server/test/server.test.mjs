@@ -419,6 +419,31 @@ test("telemetry endpoint returns aggregate page-load and failure counters", asyn
   }
 });
 
+test("telemetry page-load tracking works when trusted proxy mode is enabled", async () => {
+  const server = await startServer({
+    TRUST_PROXY: "true",
+  });
+
+  try {
+    const pageResponse = await fetch(server.baseUrl, {
+      headers: {
+        "User-Agent": "TelemetryProxyTest/1.0",
+        "X-Forwarded-For": "203.0.113.10",
+      },
+    });
+    assert.equal(pageResponse.status, 200);
+
+    const telemetryResponse = await fetch(`${server.baseUrl}/api/telemetry`);
+    const payload = await telemetryResponse.json();
+
+    assert.equal(telemetryResponse.status, 200);
+    assert.equal(payload.visitors.totalPageLoads, 1);
+    assert.equal(payload.visitors.unique, 1);
+  } finally {
+    await server.stop();
+  }
+});
+
 test("telemetry endpoint is hidden by default in production", async () => {
   const server = await startServer({
     NODE_ENV: "production",

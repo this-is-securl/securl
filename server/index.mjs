@@ -141,7 +141,7 @@ const telemetry = createTelemetryTracker();
 let scanRepository;
 
 function buildVisitorKey(request) {
-  const clientIp = getClientIp(request, { trustProxy });
+  const clientIp = getClientIp(request, { trustProxy, isLocalHostname, isPrivateAddress });
   const userAgent = String(request.headers["user-agent"] || "unknown").slice(0, 300);
   return crypto
     .createHash("sha256")
