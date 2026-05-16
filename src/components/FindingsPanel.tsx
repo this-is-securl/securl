@@ -52,13 +52,13 @@ export const FindingsPanel = ({ issues, strengths }: FindingsPanelProps) => {
   };
 
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="rounded-[1.75rem] border border-white/[0.08] bg-[#0d1420] shadow-[0_32px_64px_-24px_rgba(0,0,0,0.6),0_1px_0_rgba(255,255,255,0.04)_inset]">
       <CardHeader className="pb-3">
-        <CardTitle>Top Findings</CardTitle>
+        <CardTitle className="text-xl font-bold tracking-[-0.03em] text-white">Top Findings</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-5">
         <div className="grid gap-3 md:grid-cols-[1.05fr_0.95fr]">
-          <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
+          <div className="rounded-[1.5rem] border border-white/[0.08] bg-slate-950/60 p-4 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]">
             <div className="flex items-center gap-2">
               <TriangleAlert className="h-4 w-4 text-[#d89a63]" />
               <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Finding mix</p>
@@ -79,7 +79,7 @@ export const FindingsPanel = ({ issues, strengths }: FindingsPanelProps) => {
             </div>
           </div>
 
-          <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
+          <div className="rounded-[1.5rem] border border-white/[0.08] bg-slate-950/60 p-4 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-[#d89a63]" />
               <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">How to read this</p>
@@ -91,7 +91,7 @@ export const FindingsPanel = ({ issues, strengths }: FindingsPanelProps) => {
         </div>
 
         {strengths.length ? (
-          <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
+          <div className="rounded-[1.5rem] border border-white/[0.08] bg-slate-950/60 p-4 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]">
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-[#d89a63]" />
               <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Observed strengths</p>
@@ -110,7 +110,7 @@ export const FindingsPanel = ({ issues, strengths }: FindingsPanelProps) => {
         ) : null}
 
         {topIssues.length ? (
-          <div className="overflow-hidden rounded-[1.35rem] border border-white/10 bg-white/[0.03] shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
+          <div className="overflow-hidden rounded-[1.5rem] border border-white/[0.08] bg-slate-950/60 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]">
             <Accordion type="single" collapsible {...(topIssues[0] ? { defaultValue: `finding-${topIssues[0].title}` } : {})}>
               {topIssues.map((issue, index) => {
                 const accent = issueAccent[issue.severity];
@@ -118,7 +118,7 @@ export const FindingsPanel = ({ issues, strengths }: FindingsPanelProps) => {
                   <AccordionItem
                     key={`${issue.area}-${issue.title}-${issue.detail}`}
                     value={`finding-${issue.title}`}
-                    className={`border-white/10 px-4 ${index === topIssues.length - 1 ? "border-b-0" : ""}`}
+                    className={`border-white/10 px-5 ${index === topIssues.length - 1 ? "border-b-0" : ""}`}
                   >
                     <AccordionTrigger className="py-4 hover:no-underline">
                       <div className="grid w-full gap-3 text-left md:grid-cols-[minmax(0,1.35fr)_8.5rem_7.5rem] md:items-start">

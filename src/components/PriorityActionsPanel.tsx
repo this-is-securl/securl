@@ -28,9 +28,9 @@ export const PriorityActionsPanel = ({ analysis }: PriorityActionsPanelProps) =>
 
   if (!actions.length) {
     return (
-      <Card className="rounded-[1.75rem] border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+      <Card className="rounded-[1.75rem] border border-white/[0.08] bg-[#0d1420] shadow-[0_32px_64px_-24px_rgba(0,0,0,0.6),0_1px_0_rgba(255,255,255,0.04)_inset]">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-xl font-bold tracking-[-0.03em] text-white">
             <ListTodo className="h-5 w-5 text-[#d89a63]" />
             Priority Actions for This Target
           </CardTitle>
@@ -45,21 +45,21 @@ export const PriorityActionsPanel = ({ analysis }: PriorityActionsPanelProps) =>
   }
 
   return (
-    <Card className="rounded-[1.75rem] border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="rounded-[1.75rem] border border-white/[0.08] bg-[#0d1420] shadow-[0_32px_64px_-24px_rgba(0,0,0,0.6),0_1px_0_rgba(255,255,255,0.04)_inset]">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-xl font-bold tracking-[-0.03em] text-white">
           <ListTodo className="h-5 w-5 text-[#d89a63]" />
           Priority Actions for This Target
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="overflow-hidden rounded-[1.35rem] border border-white/10 bg-white/[0.03] shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
+        <div className="overflow-hidden rounded-[1.5rem] border border-white/[0.08] bg-slate-950/60 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]">
           {actions.map((action, index) => {
             const tone = severityTone[action.severity];
             return (
               <div
                 key={`${action.area}-${action.title}`}
-                className={`grid gap-3 px-4 py-4 md:grid-cols-[2rem_minmax(0,1fr)_11rem] md:items-start ${
+                className={`grid gap-3 px-5 py-5 md:grid-cols-[2rem_minmax(0,1fr)_11rem] md:items-start ${
                   index < actions.length - 1 ? "border-b border-white/10" : ""
                 }`}
               >
@@ -78,7 +78,7 @@ export const PriorityActionsPanel = ({ analysis }: PriorityActionsPanelProps) =>
                       {action.severity}
                     </span>
                   </div>
-                  <p className="mt-2 text-sm leading-6 text-slate-300">{action.detail}</p>
+                  <p className="mt-2 text-sm leading-7 text-slate-300">{action.detail}</p>
                   {action.priorityReason ? (
                     <p className="mt-3 text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
                       {action.priorityReason}

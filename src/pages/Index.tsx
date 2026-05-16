@@ -300,7 +300,7 @@ const Index = () => {
 
         {/* ── Report workspace (post-scan) ──────────────────────────────── */}
         {analysisData && (
-          <section className="mt-6 space-y-4">
+          <section className="mt-8 space-y-5">
             <div className="flex items-center gap-2.5 px-1">
               <Layers3 className="h-4 w-4 text-[#d89a63]" />
               <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
@@ -308,7 +308,7 @@ const Index = () => {
               </span>
               <span className="h-px flex-1 bg-white/[0.06]" />
             </div>
-            <div className="space-y-4">
+            <div className="space-y-8">
               <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-4 py-4 shadow-2xl shadow-black/15 ring-1 ring-white/[0.03] backdrop-blur sm:px-5">
                 <div className="flex flex-col gap-4">
                   <div>
