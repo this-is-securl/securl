@@ -98,8 +98,8 @@ export const buildReportWorkspaceSections = ({
   {
     key: "overview",
     title: "At a glance",
-    summary: "Score, priorities, exports, and monitoring.",
-    context: `${analysisData.grade} • ${analysisData.score}/100 posture score`,
+    summary: "Grade, priorities, exports, and monitoring.",
+    context: `${analysisData.grade} grade • ${analysisData.grade === "A" || analysisData.grade === "B" ? "Strong" : analysisData.grade === "C" ? "Mixed" : "Needs attention"}`,
     badge: undefined,
     icon: LayoutDashboard,
     content: (

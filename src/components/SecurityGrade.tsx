@@ -74,7 +74,7 @@ export const SecurityGrade = ({ grade, score, summary, context, actions, pulse }
               strokeDashoffset={ringOffset}
             />
           </svg>
-          {/* Inner labels */}
+          {/* Inner labels: grade is the verdict; the number is supporting context. */}
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
             <span
               className={`font-black leading-none tracking-[-0.05em] ${gradeSize}`}
@@ -82,7 +82,6 @@ export const SecurityGrade = ({ grade, score, summary, context, actions, pulse }
             >
               {grade}
             </span>
-            <span className="text-[13px] font-semibold text-zinc-300">{clamped}/100</span>
           </div>
         </div>
 
@@ -90,6 +89,9 @@ export const SecurityGrade = ({ grade, score, summary, context, actions, pulse }
         <div className="flex min-w-0 flex-1 flex-col gap-2.5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
             Security posture
+          </p>
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">
+            Weighted signal: {clamped}
           </p>
           <p className="text-sm leading-7 text-zinc-300">{summary}</p>
         </div>
