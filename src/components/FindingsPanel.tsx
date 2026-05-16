@@ -118,9 +118,9 @@ export const FindingsPanel = ({ issues, strengths }: FindingsPanelProps) => {
                   <AccordionItem
                     key={`${issue.area}-${issue.title}-${issue.detail}`}
                     value={`finding-${issue.title}`}
-                    className={`border-white/10 px-5 ${index === topIssues.length - 1 ? "border-b-0" : ""}`}
+                    className={`border-white/10 px-5 transition-colors duration-150 ${index === topIssues.length - 1 ? "border-b-0" : ""}`}
                   >
-                    <AccordionTrigger className="py-4 hover:no-underline">
+                    <AccordionTrigger className="py-5 hover:no-underline transition-colors duration-150">
                       <div className="grid w-full gap-3 text-left md:grid-cols-[minmax(0,1.35fr)_8.5rem_7.5rem] md:items-start">
                         <div className="min-w-0">
                           <div className="flex items-start gap-3">

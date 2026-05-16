@@ -14,7 +14,7 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
   const rankedAreaScores = [...areaScores].sort((left, right) => left.score - right.score);
 
   return (
-    <Card className="rounded-[1.75rem] border border-white/[0.08] bg-[#0d1420] shadow-[0_32px_64px_-24px_rgba(0,0,0,0.6),0_1px_0_rgba(255,255,255,0.04)_inset]">
+    <Card className="rounded-[1.75rem] border border-zinc-800/60 bg-[#0d1420] shadow-[0_32px_64px_-24px_rgba(0,0,0,0.6),0_1px_0_rgba(255,255,255,0.04)_inset]">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-xl font-bold tracking-[-0.03em] text-white">
           <BarChart3 className="h-5 w-5 text-[#d89a63]" />
@@ -23,23 +23,23 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          <StatBox variant="critical" label="Critical" value={<p className="text-[2rem] font-bold leading-none tracking-[-0.04em]">{severityCounts.critical}</p>} />
+          <StatBox variant="critical" label="Critical" value={<p className="text-[2.25rem] font-black leading-none tracking-[-0.04em]">{severityCounts.critical}</p>} />
           <StatBox
             variant="warning"
             label="Priority Warnings"
-            value={<p className="text-[2rem] font-bold leading-none tracking-[-0.04em]">{severityCounts.priorityWarnings}</p>}
+            value={<p className="text-[2.25rem] font-black leading-none tracking-[-0.04em]">{severityCounts.priorityWarnings}</p>}
             note={<p className="text-xs text-slate-400">Actionable normalized findings only.</p>}
           />
           <StatBox
             variant="info"
             label="Supporting Watch Items"
-            value={<p className="text-[2rem] font-bold leading-none tracking-[-0.04em]">{severityCounts.supportingWatchItems}</p>}
+            value={<p className="text-[2.25rem] font-black leading-none tracking-[-0.04em]">{severityCounts.supportingWatchItems}</p>}
             note={<p className="text-xs text-slate-400">Panel-level evidence; not added to warnings.</p>}
           />
           <StatBox
             variant="info"
             label="Observed Signals"
-            value={<p className="text-[2rem] font-bold leading-none tracking-[-0.04em]">{severityCounts.observedSignals}</p>}
+            value={<p className="text-[2.25rem] font-black leading-none tracking-[-0.04em]">{severityCounts.observedSignals}</p>}
             note={<p className="text-xs text-slate-400">Informational findings plus interesting probes.</p>}
           />
         </div>
@@ -54,9 +54,9 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
               >
                 <div className="flex items-center justify-between gap-3">
                   <span className="font-medium">{area.label}</span>
-                  <span className="font-semibold">{area.score}/100</span>
+                  <span className="font-bold">{area.score}/100</span>
                 </div>
-                <div className="mt-2 h-[5px] rounded-full bg-white/[0.07]">
+                <div className="mt-2 h-[6px] rounded-full bg-white/[0.07]">
                   <div
                     className={`h-full rounded-full ${
                       area.status === "strong"
