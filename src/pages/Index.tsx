@@ -1,18 +1,12 @@
 import { Activity, Clock3, Layers3, Sparkles } from "lucide-react";
 import { AuthCard } from "@/components/AuthCard";
 import { MonitoredTargetsPanel } from "@/components/MonitoredTargetsPanel";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { UrlForm } from "@/components/UrlForm";
 import {
   buildReportWorkspaceSections,
   type ReportWorkspaceSectionKey,
 } from "@/lib/reportWorkspace";
+import { ReportSectionNav } from "@/components/report/ReportSectionNav";
 import { cn } from "@/lib/utils";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useScanWorkspace } from "@/hooks/useScanWorkspace";
@@ -303,102 +297,17 @@ const Index = () => {
           <section className="mt-8 space-y-5">
             <div className="flex items-center gap-2.5 px-1">
               <Layers3 className="h-4 w-4 text-[#d89a63]" />
-              <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
+              <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
                 Report workspace
               </span>
               <span className="h-px flex-1 bg-white/[0.06]" />
             </div>
             <div className="space-y-8">
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-4 py-4 shadow-2xl shadow-black/15 ring-1 ring-white/[0.03] backdrop-blur sm:px-5">
-                <div className="flex flex-col gap-4">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#d89a63]/80">
-                      Sections
-                    </p>
-                    <p className="mt-2 text-sm leading-6 text-slate-400">
-                      Move through the report without losing the main storyline.
-                    </p>
-                  </div>
-                  <div className="lg:hidden">
-                    <Select
-                      value={activeSection?.key}
-                      onValueChange={(value) =>
-                        setActiveReportSection(value as ReportWorkspaceSectionKey)
-                      }
-                    >
-                      <SelectTrigger className="h-auto min-h-14 rounded-2xl border-white/10 bg-slate-950/45 px-4 py-3 text-left text-sm font-medium text-slate-100 ring-offset-0 focus:ring-1 focus:ring-[#b56a2c]/40 focus:ring-offset-0">
-                        {activeSection ? (
-                          <div className="flex min-w-0 flex-col items-start text-left">
-                            <span className="text-sm font-semibold text-white">
-                              {activeSection.title}
-                            </span>
-                            <span className="mt-1 truncate text-xs uppercase tracking-[0.12em] text-slate-400">
-                              {activeSection.context ?? activeSection.summary}
-                            </span>
-                          </div>
-                        ) : (
-                          <SelectValue placeholder="Choose a report section" />
-                        )}
-                      </SelectTrigger>
-                      <SelectContent className="rounded-2xl border-white/10 bg-[#0f172a] text-slate-100 shadow-2xl">
-                        {reportSections.map((section) => (
-                          <SelectItem
-                            key={section.key}
-                            value={section.key}
-                            className="rounded-xl py-3 pl-8 pr-3 text-sm text-slate-100 focus:bg-white/[0.08] focus:text-white"
-                          >
-                            <div className="flex flex-col items-start">
-                              <span className="font-medium text-white">{section.title}</span>
-                              <span className="mt-1 text-[11px] uppercase tracking-[0.14em] text-slate-400">
-                                {section.context ?? section.summary}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="hidden lg:block">
-                    <div className="overflow-x-auto pb-1">
-                      <div className="inline-flex min-w-full gap-2">
-                        {reportSections.map((section) => {
-                          const active = section.key === activeSection?.key;
-                          return (
-                            <button
-                              key={section.key}
-                              type="button"
-                              onClick={() => setActiveReportSection(section.key)}
-                              className={cn(
-                                "min-w-[11rem] flex-1 rounded-[1.1rem] border px-4 py-3.5 text-left transition-all duration-200",
-                                active
-                                  ? "border-[#b56a2c]/40 bg-[#b56a2c]/12 shadow-[0_12px_32px_-20px_rgba(181,106,44,0.5),0_0_0_1px_rgba(181,106,44,0.12)_inset]"
-                                  : "border-white/[0.08] bg-white/[0.03] hover:border-white/[0.14] hover:bg-white/[0.06]",
-                              )}
-                            >
-                              <div className="flex items-start justify-between gap-2">
-                                <span
-                                  className={cn(
-                                    "text-sm font-semibold leading-snug",
-                                    active ? "text-white" : "text-slate-300",
-                                  )}
-                                >
-                                  {section.title}
-                                </span>
-                                {active ? (
-                                  <span className="mt-0.5 inline-flex h-2 w-2 shrink-0 rounded-full bg-[#d89a63] shadow-[0_0_0_4px_rgba(181,106,44,0.18)]" />
-                                ) : null}
-                              </div>
-                              <p className="mt-1.5 line-clamp-1 text-[10px] uppercase tracking-[0.16em] text-slate-500">
-                                {section.context ?? section.summary}
-                              </p>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <ReportSectionNav
+                sections={reportSections}
+                activeKey={activeSection?.key}
+                onChange={(key) => setActiveReportSection(key)}
+              />
 
               {activeSection ? (
                 <div
@@ -406,10 +315,17 @@ const Index = () => {
                   className="min-w-0 overflow-hidden rounded-[1.75rem] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(255,255,255,0.025)_100%)] shadow-[0_32px_80px_-32px_rgba(0,0,0,0.6)] ring-1 ring-white/[0.04] backdrop-blur animate-in fade-in-50 slide-in-from-bottom-2 duration-500"
                 >
                   <div className="border-b border-white/[0.08] px-6 py-5 sm:px-7">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-[#d89a63]/70">
-                      {activeSection.context ?? "Report section"}
-                    </p>
-                    <h2 className="mt-1.5 text-2xl font-bold tracking-[-0.04em] text-white sm:text-3xl">
+                    <div className="flex items-center gap-2.5">
+                      {activeSection.icon && (
+                        <activeSection.icon className="h-4 w-4 text-[#d89a63]" />
+                      )}
+                      {(activeSection.badge ?? activeSection.context) ? (
+                        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
+                          {activeSection.badge ?? activeSection.context}
+                        </p>
+                      ) : null}
+                    </div>
+                    <h2 className="mt-2 text-2xl font-bold tracking-[-0.04em] text-white sm:text-3xl">
                       {activeSection.title}
                     </h2>
                     <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">

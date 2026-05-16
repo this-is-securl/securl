@@ -1,4 +1,15 @@
 import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
+import {
+  LayoutDashboard,
+  AlertTriangle,
+  BarChart3,
+  ListTodo,
+  Wrench,
+  Globe,
+  ShieldCheck,
+  Server,
+} from "lucide-react";
 import { FindingsPanel } from "@/components/FindingsPanel";
 import { PostureSummaryPanel } from "@/components/PostureSummaryPanel";
 import { TaxonomySummaryPanel } from "@/components/TaxonomySummaryPanel";
@@ -39,6 +50,8 @@ export interface ReportWorkspaceSection {
   title: string;
   summary: string;
   context?: string;
+  badge?: string;
+  icon: LucideIcon;
   content: ReactNode;
 }
 
@@ -87,6 +100,8 @@ export const buildReportWorkspaceSections = ({
     title: "At a glance",
     summary: "Score, priorities, exports, and monitoring.",
     context: `${analysisData.grade} • ${analysisData.score}/100 posture score`,
+    badge: undefined,
+    icon: LayoutDashboard,
     content: (
       <OverviewSection
         analysisData={analysisData}
@@ -105,6 +120,8 @@ export const buildReportWorkspaceSections = ({
     title: "Top findings",
     summary: "The most important issues to understand first.",
     context: `${criticalCount} critical • ${warningCount} warning • ${analysisData.strengths.length} strengths`,
+    badge: criticalCount > 0 ? `${criticalCount} critical` : warningCount > 0 ? `${warningCount} warning` : undefined,
+    icon: AlertTriangle,
     content: <FindingsPanel issues={analysisData.issues} strengths={analysisData.strengths} />,
   },
   {
@@ -112,6 +129,8 @@ export const buildReportWorkspaceSections = ({
     title: "Risk themes",
     summary: "Grouped posture themes across browser, domain, trust, and exposure.",
     context: `${categoryCount} posture areas • ${mappedThemeCount} mapped findings`,
+    badge: `${categoryCount} areas`,
+    icon: BarChart3,
     content: (
       <div className="space-y-8">
         <PostureSummaryPanel analysis={analysisData} />
@@ -124,6 +143,8 @@ export const buildReportWorkspaceSections = ({
     title: "Priority actions",
     summary: "What should be done first and why it matters.",
     context: `${priorityActionCount} recommended next steps`,
+    badge: priorityActionCount > 0 ? `${priorityActionCount} actions` : undefined,
+    icon: ListTodo,
     content: <PriorityActionsPanel analysis={analysisData} />,
   },
   {
@@ -131,6 +152,8 @@ export const buildReportWorkspaceSections = ({
     title: "Fix snippets",
     summary: "Implementation examples by platform.",
     context: remediationCount ? `${remediationCount} platform snippets` : "No generated snippets",
+    badge: remediationCount > 0 ? `${remediationCount} snippets` : undefined,
+    icon: Wrench,
     content: <RemediationPanel remediation={analysisData.remediation} />,
   },
   {
@@ -138,6 +161,8 @@ export const buildReportWorkspaceSections = ({
     title: "Domain & email",
     summary: "Mail and DNS foundation.",
     context: domainIssueCount ? `${domainIssueCount} DNS or mail findings` : "Baseline looks steady",
+    badge: domainIssueCount > 0 ? `${domainIssueCount} findings` : undefined,
+    icon: Globe,
     content: <DomainSecurityPanel domainSecurity={analysisData.domainSecurity} />,
   },
   {
@@ -145,6 +170,8 @@ export const buildReportWorkspaceSections = ({
     title: "Trust signals",
     summary: "Disclosure readiness, public trust signals, and visible governance cues.",
     context: trustSignalIssueCount ? `${trustSignalIssueCount} disclosure or trust gaps` : "Public signals look healthy",
+    badge: trustSignalIssueCount > 0 ? `${trustSignalIssueCount} gaps` : undefined,
+    icon: ShieldCheck,
     content: (
       <div className="space-y-8">
         <PublicSignalsPanel publicSignals={analysisData.publicSignals} />
@@ -160,6 +187,11 @@ export const buildReportWorkspaceSections = ({
       edgeSignalCount || surfaceSignalCount || authCollectionSignalCount
         ? `${edgeSignalCount + surfaceSignalCount + authCollectionSignalCount} infra and surface signals`
         : "No major infrastructure or surface concerns surfaced",
+    badge:
+      edgeSignalCount + surfaceSignalCount + authCollectionSignalCount > 0
+        ? `${edgeSignalCount + surfaceSignalCount + authCollectionSignalCount} signals`
+        : undefined,
+    icon: Server,
     content: (
       <div className="space-y-8">
         <IdentityProviderPanel identityProvider={analysisData.identityProvider} />
