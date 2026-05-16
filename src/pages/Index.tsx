@@ -76,7 +76,6 @@ const HeroPreviewCard = () => (
           >
             Good Posture
           </span>
-          <span className="text-[9px] font-medium uppercase tracking-[0.14em] text-zinc-500">Signal 81</span>
         </div>
       </div>
 
@@ -191,13 +190,13 @@ const Index = () => {
   const hasHistory = recentScans.length > 0 || monitoredTargets.length > 0;
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[#09090b] text-zinc-100">
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(ellipse_60%_40%_at_18%_0%,rgba(20,184,166,0.18),transparent_50%),radial-gradient(ellipse_50%_50%_at_85%_8%,rgba(99,149,175,0.14),transparent_50%),radial-gradient(ellipse_40%_30%_at_5%_95%,rgba(99,100,175,0.06),transparent_50%),linear-gradient(180deg,#09090b_0%,#09090b_100%)]" />
+    <div className="min-h-screen overflow-hidden bg-[#040c08] text-zinc-100">
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(ellipse_90%_70%_at_18%_-5%,rgba(16,185,129,0.38),transparent_55%),radial-gradient(ellipse_50%_45%_at_88%_8%,rgba(20,184,166,0.18),transparent_52%),radial-gradient(ellipse_60%_55%_at_80%_95%,rgba(5,150,105,0.16),transparent_55%),radial-gradient(ellipse_35%_30%_at_5%_85%,rgba(52,211,153,0.09),transparent_48%),linear-gradient(180deg,#040c08_0%,#040c08_100%)]" />
 
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
 
         {/* ── Hero card ─────────────────────────────────────────────────── */}
-        <section className="rounded-[2.5rem] border border-white/[0.14] bg-[#09090b]/90 p-6 shadow-[0_48px_120px_-40px_rgba(0,0,0,0.8),0_1px_0_rgba(255,255,255,0.07)_inset] backdrop-blur-xl sm:p-8 lg:p-10">
+        <section className="rounded-[2.5rem] border border-emerald-700/20 bg-[#040c08]/60 p-6 shadow-[0_48px_120px_-40px_rgba(0,0,0,0.7),0_0_0_1px_rgba(16,185,129,0.10)_inset,0_1px_0_rgba(255,255,255,0.05)_inset] backdrop-blur-md sm:p-8 lg:p-10">
           <div className="grid gap-10 lg:grid-cols-[1.3fr_0.7fr] lg:items-start">
 
             {/* Left: headline + form */}
@@ -308,7 +307,7 @@ const Index = () => {
               {activeSection ? (
                 <div
                   key={activeSection.key}
-                  className="min-w-0 overflow-hidden rounded-[2rem] border border-zinc-800 bg-[#18181b] shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset] animate-in fade-in-50 slide-in-from-bottom-2 duration-500"
+                  className="min-w-0 overflow-hidden rounded-[2rem] border border-zinc-800 bg-[#111a14] shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset] animate-in fade-in-50 slide-in-from-bottom-2 duration-500"
                 >
                   <div className="border-b border-zinc-800 px-10 py-8 sm:px-11">
                     <div className="flex items-center gap-2.5">

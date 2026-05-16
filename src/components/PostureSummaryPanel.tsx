@@ -14,7 +14,7 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
   const rankedAreaScores = [...areaScores].sort((left, right) => left.score - right.score);
 
   return (
-    <Card className="rounded-[2rem] border border-zinc-800 bg-[#18181b] shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset]">
+    <Card className="rounded-[2rem] border border-zinc-800 bg-[#111a14] shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset]">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-xl font-black tracking-[-0.03em] text-white">
           <BarChart3 className="h-5 w-5 text-[#2dd4bf]" />
@@ -44,7 +44,7 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
           />
         </div>
 
-        <div className="rounded-[1.5rem] border border-zinc-800 bg-[#111115] p-6">
+        <div className="rounded-[1.5rem] border border-zinc-800 bg-[#0c1410] p-6">
           <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500 mb-4">Category scores</p>
           <div className="space-y-1">
             {rankedAreaScores.map((area, index) => {

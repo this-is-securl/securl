@@ -53,6 +53,11 @@ export default {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
         },
+        glass: {
+          bg: 'rgba(15, 23, 42, 0.65)',
+          border: 'rgba(148, 163, 184, 0.15)',
+          highlight: 'rgba(255, 255, 255, 0.08)',
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
