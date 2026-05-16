@@ -10,22 +10,22 @@ type StatBoxVariant = "default" | "critical" | "warning" | "info";
 
 const statBoxVariants: Record<StatBoxVariant, { container: string; label: string; value: string }> = {
   default: {
-    container: "border-zinc-800 bg-[#18181b]",
+    container: "border-zinc-800 bg-[#111a14]",
     label: "text-zinc-500",
     value: "text-white",
   },
   critical: {
-    container: "border-zinc-800 bg-[#18181b]",
+    container: "border-zinc-800 bg-[#111a14]",
     label: "text-rose-500/80",
     value: "text-white",
   },
   warning: {
-    container: "border-zinc-800 bg-[#18181b]",
+    container: "border-zinc-800 bg-[#111a14]",
     label: "text-amber-400/80",
     value: "text-white",
   },
   info: {
-    container: "border-zinc-800 bg-[#18181b]",
+    container: "border-zinc-800 bg-[#111a14]",
     label: "text-zinc-500",
     value: "text-white",
   },

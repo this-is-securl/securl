@@ -52,7 +52,7 @@ interface OverviewSectionProps {
 }
 
 // ── Shared sub-card style ─────────────────────────────────────────────────────
-const subCard = "rounded-[1.75rem] border border-zinc-800 bg-[#18181b] px-6 py-6 shadow-[0_4px_16px_rgba(0,0,0,0.3)]";
+const subCard = "rounded-[1.75rem] border border-zinc-800 bg-[#111a14] px-6 py-6 shadow-[0_4px_16px_rgba(0,0,0,0.3)]";
 const eyebrow  = "text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500";
 const cardTitle = "mt-2 text-xl font-black tracking-[-0.03em] text-white";
 
@@ -115,7 +115,7 @@ export const OverviewSection = ({
       ) : null}
 
       {/* ── Main overview card ── */}
-      <div className="rounded-[2rem] border border-zinc-800 bg-[#18181b] p-8 shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset]">
+      <div className="rounded-[2rem] border border-zinc-800 bg-[#111a14] p-8 shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset]">
 
         {/* ── TOP: Ring gauge + executive verdict ── */}
         <div className="grid gap-10 xl:grid-cols-[260px_minmax(0,1fr)]">
@@ -217,7 +217,7 @@ export const OverviewSection = ({
             </div>
 
             {/* Executive verdict */}
-            <div className="rounded-[1.75rem] border border-zinc-800 bg-[#111115] p-7 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
+            <div className="rounded-[1.75rem] border border-zinc-800 bg-[#0c1410] p-7 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
               <div className="flex flex-wrap items-center gap-2 mb-5">
                 <Badge variant="outline" className="border-white/[0.08] bg-white/[0.04] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-400">
                   Overall posture: {overallPostureLabel}
@@ -263,7 +263,7 @@ export const OverviewSection = ({
         {/* ── STAT TILES: left-accent rail style ── */}
         <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {/* Critical */}
-          <div className="group relative overflow-hidden rounded-2xl bg-[#18181b] px-5 py-6 ring-1 ring-white/[0.06] transition-all duration-200 hover:ring-white/[0.10] hover:-translate-y-px">
+          <div className="group relative overflow-hidden rounded-2xl bg-[#111a14] px-5 py-6 ring-1 ring-white/[0.06] transition-all duration-200 hover:ring-white/[0.10] hover:-translate-y-px">
             <div className="absolute inset-y-0 left-0 w-[3px] rounded-r-[2px] bg-rose-500/70" />
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -276,7 +276,7 @@ export const OverviewSection = ({
           </div>
 
           {/* Warning */}
-          <div className="group relative overflow-hidden rounded-2xl bg-[#18181b] px-5 py-6 ring-1 ring-white/[0.06] transition-all duration-200 hover:ring-white/[0.10] hover:-translate-y-px">
+          <div className="group relative overflow-hidden rounded-2xl bg-[#111a14] px-5 py-6 ring-1 ring-white/[0.06] transition-all duration-200 hover:ring-white/[0.10] hover:-translate-y-px">
             <div className="absolute inset-y-0 left-0 w-[3px] rounded-r-[2px] bg-amber-400/70" />
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -289,7 +289,7 @@ export const OverviewSection = ({
           </div>
 
           {/* Strengths */}
-          <div className="group relative overflow-hidden rounded-2xl bg-[#18181b] px-5 py-6 ring-1 ring-white/[0.06] transition-all duration-200 hover:ring-white/[0.10] hover:-translate-y-px">
+          <div className="group relative overflow-hidden rounded-2xl bg-[#111a14] px-5 py-6 ring-1 ring-white/[0.06] transition-all duration-200 hover:ring-white/[0.10] hover:-translate-y-px">
             <div className="absolute inset-y-0 left-0 w-[3px] rounded-r-[2px] bg-emerald-500/70" />
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -302,7 +302,7 @@ export const OverviewSection = ({
           </div>
 
           {/* Monitoring */}
-          <div className="group relative overflow-hidden rounded-2xl bg-[#18181b] px-5 py-6 ring-1 ring-white/[0.06] transition-all duration-200 hover:ring-white/[0.10] hover:-translate-y-px">
+          <div className="group relative overflow-hidden rounded-2xl bg-[#111a14] px-5 py-6 ring-1 ring-white/[0.06] transition-all duration-200 hover:ring-white/[0.10] hover:-translate-y-px">
             <div className="absolute inset-y-0 left-0 w-[3px] rounded-r-[2px] bg-zinc-600/60" />
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -329,12 +329,12 @@ export const OverviewSection = ({
                 <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">Directional only</span>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
-                <div className="rounded-[1.25rem] border border-zinc-800 bg-[#111115] px-4 py-4">
+                <div className="rounded-[1.25rem] border border-zinc-800 bg-[#0c1410] px-4 py-4">
                   <p className={eyebrow + " mb-2"}>Why constrained</p>
                   <p className="text-base font-semibold leading-7 text-white">{analysisData.assessmentLimitation.title}</p>
                   <p className="mt-1.5 text-sm leading-relaxed text-zinc-300">{analysisData.assessmentLimitation.detail}</p>
                 </div>
-                <div className="rounded-[1.25rem] border border-zinc-800 bg-[#111115] px-4 py-4">
+                <div className="rounded-[1.25rem] border border-zinc-800 bg-[#0c1410] px-4 py-4">
                   <p className={eyebrow + " mb-2"}>How to read this</p>
                   <p className="mt-1.5 text-sm leading-relaxed text-zinc-300">
                     Use this result as a transport and access-control signal, not as a full posture verdict.
@@ -393,7 +393,7 @@ export const OverviewSection = ({
                   return (
                     <div
                       key={`${action.area}-${action.title}`}
-                      className="flex gap-3.5 rounded-[1.25rem] border border-zinc-800 bg-[#111115] px-4 py-4"
+                      className="flex gap-3.5 rounded-[1.25rem] border border-zinc-800 bg-[#0c1410] px-4 py-4"
                     >
                       <span
                         className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-black"
@@ -417,7 +417,7 @@ export const OverviewSection = ({
                 })}
               </div>
             ) : (
-              <div className="rounded-[1.25rem] border border-zinc-800 bg-[#111115] px-4 py-4 text-sm leading-relaxed text-zinc-500">
+              <div className="rounded-[1.25rem] border border-zinc-800 bg-[#0c1410] px-4 py-4 text-sm leading-relaxed text-zinc-500">
                 No immediate remediation being prioritized from current public evidence.
               </div>
             )}
@@ -430,16 +430,16 @@ export const OverviewSection = ({
             <p className={eyebrow}>Scan facts</p>
             <p className={cardTitle}>Capture details</p>
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-[1.25rem] border border-zinc-800 bg-[#111115] px-4 py-4">
+              <div className="rounded-[1.25rem] border border-zinc-800 bg-[#0c1410] px-4 py-4">
                 <p className={eyebrow + " mb-2"}>Scanned</p>
                 <p className="text-sm font-semibold leading-6 text-white">{new Date(analysisData.scannedAt).toLocaleString()}</p>
               </div>
-              <div className="rounded-[1.25rem] border border-zinc-800 bg-[#111115] px-4 py-4">
+              <div className="rounded-[1.25rem] border border-zinc-800 bg-[#0c1410] px-4 py-4">
                 <p className={eyebrow + " mb-2"}>HTTP</p>
                 <p className="text-2xl font-black tracking-[-0.03em] text-white">{analysisData.statusCode}</p>
                 <p className="mt-0.5 text-[10px] uppercase tracking-[0.16em] text-zinc-500">{getHttpStatusDetails(analysisData.statusCode).label}</p>
               </div>
-              <div className="rounded-[1.25rem] border border-zinc-800 bg-[#111115] px-4 py-4">
+              <div className="rounded-[1.25rem] border border-zinc-800 bg-[#0c1410] px-4 py-4">
                 <p className={eyebrow + " mb-2"}>Latency</p>
                 <p className="text-2xl font-black tracking-[-0.03em] text-white">{analysisData.responseTimeMs}<span className="ml-0.5 text-sm font-medium text-zinc-500">ms</span></p>
               </div>

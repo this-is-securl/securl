@@ -24,7 +24,7 @@ export const ReportSectionNav = ({ sections, activeKey, onChange }: ReportSectio
           value={activeKey}
           onValueChange={(v) => onChange(v as ReportWorkspaceSectionKey)}
         >
-          <SelectTrigger className="h-auto w-full rounded-[1.5rem] border-zinc-800 bg-[#18181b] px-5 py-4 text-left ring-offset-0 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)] focus:ring-1 focus:ring-[#14b8a6]/50 focus:ring-offset-0 backdrop-blur">
+          <SelectTrigger className="h-auto w-full rounded-[1.5rem] border-zinc-800 bg-[#111a14] px-5 py-4 text-left ring-offset-0 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)] focus:ring-1 focus:ring-[#14b8a6]/50 focus:ring-offset-0 backdrop-blur">
             {activeSection ? (
               <div className="flex min-w-0 items-center gap-3">
                 <activeSection.icon className="h-5 w-5 shrink-0 text-[#2dd4bf]" />
@@ -41,7 +41,7 @@ export const ReportSectionNav = ({ sections, activeKey, onChange }: ReportSectio
               <span className="text-sm text-zinc-400">Choose section</span>
             )}
           </SelectTrigger>
-          <SelectContent className="rounded-2xl border-white/[0.1] bg-[#18181b] text-zinc-100 shadow-2xl backdrop-blur">
+          <SelectContent className="rounded-2xl border-white/[0.1] bg-[#111a14] text-zinc-100 shadow-2xl backdrop-blur">
             {sections.map((section) => {
               const Icon = section.icon;
               return (
@@ -73,7 +73,7 @@ export const ReportSectionNav = ({ sections, activeKey, onChange }: ReportSectio
 
       {/* ── Desktop: horizontal pill tab strip ── */}
       <div className="hidden lg:block">
-        <div className="overflow-x-auto rounded-[1.75rem] border border-zinc-800 bg-[#111115] p-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
+        <div className="overflow-x-auto rounded-[1.75rem] border border-zinc-800 bg-[#0c1410] p-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
           <div className="flex min-w-max gap-0.5">
             {sections.map((section) => {
               const active = section.key === activeKey;
