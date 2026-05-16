@@ -311,27 +311,27 @@ const Index = () => {
               {activeSection ? (
                 <div
                   key={activeSection.key}
-                  className="min-w-0 overflow-hidden rounded-[2rem] border border-zinc-800/60 bg-[#0c1219] shadow-[0_40px_80px_-24px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.04)_inset] animate-in fade-in-50 slide-in-from-bottom-2 duration-500"
+                  className="min-w-0 overflow-hidden rounded-[2rem] border border-zinc-800/55 bg-[#0c1219] shadow-[0_24px_64px_-24px_rgba(0,0,0,0.65),0_1px_0_rgba(255,255,255,0.04)_inset] animate-in fade-in-50 slide-in-from-bottom-2 duration-500"
                 >
-                  <div className="border-b border-zinc-800/60 px-7 py-6 sm:px-8">
+                  <div className="border-b border-zinc-800/50 px-8 py-6 sm:px-9">
                     <div className="flex items-center gap-2.5">
                       {activeSection.icon && (
-                        <activeSection.icon className="h-4 w-4 text-[#d89a63]" />
+                        <activeSection.icon className="h-3.5 w-3.5 text-[#d89a63]" />
                       )}
                       {(activeSection.badge ?? activeSection.context) ? (
-                        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500">
                           {activeSection.badge ?? activeSection.context}
                         </p>
                       ) : null}
                     </div>
-                    <h2 className="mt-2 text-2xl font-black tracking-[-0.04em] text-white sm:text-3xl">
+                    <h2 className="mt-2.5 text-2xl font-black tracking-[-0.04em] text-white sm:text-[1.75rem]">
                       {activeSection.title}
                     </h2>
-                    <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">
+                    <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-400">
                       {activeSection.summary}
                     </p>
                   </div>
-                  <div className="px-7 py-8 text-slate-100 sm:px-8 lg:px-9">
+                  <div className="px-8 py-8 text-slate-100 sm:px-9">
                     {activeSection.content}
                   </div>
                 </div>

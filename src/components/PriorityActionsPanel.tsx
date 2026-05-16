@@ -28,7 +28,7 @@ export const PriorityActionsPanel = ({ analysis }: PriorityActionsPanelProps) =>
 
   if (!actions.length) {
     return (
-      <Card className="rounded-[2rem] border border-zinc-800/70 bg-[#0d1420] shadow-[0_40px_80px_-24px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.05)_inset]">
+      <Card className="rounded-[2rem] border border-zinc-800/55 bg-[#0c1219] shadow-[0_24px_64px_-24px_rgba(0,0,0,0.65),0_1px_0_rgba(255,255,255,0.04)_inset]">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-xl font-bold tracking-[-0.03em] text-white">
             <ListTodo className="h-5 w-5 text-[#d89a63]" />
@@ -45,7 +45,7 @@ export const PriorityActionsPanel = ({ analysis }: PriorityActionsPanelProps) =>
   }
 
   return (
-    <Card className="rounded-[2rem] border border-zinc-800/70 bg-[#0d1420] shadow-[0_40px_80px_-24px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.05)_inset]">
+    <Card className="rounded-[2rem] border border-zinc-800/55 bg-[#0c1219] shadow-[0_24px_64px_-24px_rgba(0,0,0,0.65),0_1px_0_rgba(255,255,255,0.04)_inset]">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-xl font-bold tracking-[-0.03em] text-white">
           <ListTodo className="h-5 w-5 text-[#d89a63]" />
@@ -53,14 +53,14 @@ export const PriorityActionsPanel = ({ analysis }: PriorityActionsPanelProps) =>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="overflow-hidden rounded-[1.5rem] border border-white/[0.08] bg-slate-950/60 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]">
+        <div className="overflow-hidden rounded-[1.5rem] border border-zinc-800/50 bg-[#090d18]">
           {actions.map((action, index) => {
             const tone = severityTone[action.severity];
             return (
               <div
                 key={`${action.area}-${action.title}`}
                 className={`grid gap-3 px-5 py-5 md:grid-cols-[2rem_minmax(0,1fr)_11rem] md:items-start ${
-                  index < actions.length - 1 ? "border-b border-white/10" : ""
+                  index < actions.length - 1 ? "border-b border-white/[0.06]" : ""
                 }`}
               >
                 <div className="flex items-start justify-center pt-0.5">

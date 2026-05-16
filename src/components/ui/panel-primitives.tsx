@@ -10,23 +10,23 @@ type StatBoxVariant = "default" | "critical" | "warning" | "info";
 
 const statBoxVariants: Record<StatBoxVariant, { container: string; label: string; value: string }> = {
   default: {
-    container: "border-zinc-800/70 bg-[#0d1420]",
-    label: "text-slate-400",
+    container: "border-zinc-800/50 bg-[#0c1219]",
+    label: "text-zinc-500",
     value: "text-white",
   },
   critical: {
-    container: "border-red-500/25 bg-red-500/[0.08]",
-    label: "text-red-400",
-    value: "text-red-100",
+    container: "border-zinc-800/50 bg-[#0c1219]",
+    label: "text-rose-500/80",
+    value: "text-white",
   },
   warning: {
-    container: "border-[#9b774f]/30 bg-[#9b774f]/10",
-    label: "text-[#d9b488]",
-    value: "text-[#f0dfcf]",
+    container: "border-zinc-800/50 bg-[#0c1219]",
+    label: "text-amber-400/80",
+    value: "text-white",
   },
   info: {
-    container: "border-zinc-800/70 bg-[#0d1420]",
-    label: "text-slate-400",
+    container: "border-zinc-800/50 bg-[#0c1219]",
+    label: "text-zinc-500",
     value: "text-white",
   },
 };
@@ -44,12 +44,12 @@ export const StatBox = ({ label, value, note, variant = "default", className }: 
   return (
     <div
       className={cn(
-        "rounded-[1.5rem] border p-5 shadow-[0_12px_30px_-18px_rgba(0,0,0,0.55),0_1px_0_rgba(255,255,255,0.04)_inset] transition-transform duration-200 hover:-translate-y-0.5",
+        "rounded-[1.5rem] border p-5 shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition-all duration-200 hover:-translate-y-px hover:shadow-[0_8px_24px_rgba(0,0,0,0.4)]",
         v.container,
         className,
       )}
     >
-      <p className={cn("text-[11px] font-bold uppercase tracking-[0.2em]", v.label)}>{label}</p>
+      <p className={cn("text-[10px] font-bold uppercase tracking-[0.24em]", v.label)}>{label}</p>
       <div className={cn("mt-2", v.value)}>{value}</div>
       {note && <div className="mt-1 text-slate-400">{note}</div>}
     </div>

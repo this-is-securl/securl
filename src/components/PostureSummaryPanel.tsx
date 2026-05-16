@@ -14,7 +14,7 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
   const rankedAreaScores = [...areaScores].sort((left, right) => left.score - right.score);
 
   return (
-    <Card className="rounded-[2rem] border border-zinc-800/70 bg-[#0d1420] shadow-[0_40px_80px_-24px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.05)_inset]">
+    <Card className="rounded-[2rem] border border-zinc-800/55 bg-[#0c1219] shadow-[0_24px_64px_-24px_rgba(0,0,0,0.65),0_1px_0_rgba(255,255,255,0.04)_inset]">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-xl font-bold tracking-[-0.03em] text-white">
           <BarChart3 className="h-5 w-5 text-[#d89a63]" />
@@ -44,52 +44,56 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
           />
         </div>
 
-        <div className="rounded-[1.5rem] border border-white/[0.08] bg-slate-950/60 p-4 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Category scores</p>
-          <div className="mt-3 grid gap-3">
-            {rankedAreaScores.map((area, index) => (
-              <div
-                key={area.key}
-                className="rounded-[1.1rem] border border-white/10 bg-slate-950/50 px-3 py-3 text-sm text-slate-200 shadow-[0_12px_28px_-20px_rgba(0,0,0,0.7)]"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-semibold text-slate-100">{area.label}</span>
-                  <span className={`font-black text-base ${
-                    area.status === "strong" ? "text-emerald-400" : area.status === "watch" ? "text-amber-400" : "text-red-400"
-                  }`}>{area.score}</span>
+        <div className="rounded-[1.5rem] border border-zinc-800/50 bg-[#090d18] p-5">
+          <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500 mb-4">Category scores</p>
+          <div className="space-y-1">
+            {rankedAreaScores.map((area, index) => {
+              const barColor =
+                area.status === "strong" ? "#22c55e"
+                : area.status === "watch"  ? "#f59e0b"
+                : "#ef4444";
+              const scoreColor =
+                area.status === "strong" ? "#4ade80"
+                : area.status === "watch"  ? "#fbbf24"
+                : "#f87171";
+              return (
+                <div
+                  key={area.key}
+                  className={`py-3 ${index < rankedAreaScores.length - 1 ? "border-b border-white/[0.05]" : ""}`}
+                >
+                  <div className="grid gap-2 md:grid-cols-[10rem_1fr_2.5rem] md:items-center">
+                    <p className="text-sm font-medium text-slate-300">{area.label}</p>
+                    <div className="relative h-1.5 overflow-hidden rounded-full bg-white/[0.05]">
+                      <div
+                        className="absolute inset-y-0 left-0 rounded-full transition-all duration-700"
+                        style={{ width: `${area.score}%`, background: barColor }}
+                      />
+                    </div>
+                    <p className="text-right text-sm font-black tabular-nums" style={{ color: scoreColor }}>
+                      {area.score}
+                    </p>
+                  </div>
+                  {index === 0 && (
+                    <p className="mt-1 text-[10px] text-zinc-600 md:ml-[10.5rem]">Weakest area</p>
+                  )}
                 </div>
-                <div className="mt-2.5 h-2 rounded-full bg-white/[0.06]">
-                  <div
-                    className={`h-full rounded-full shadow-[0_0_8px_0] ${
-                      area.status === "strong"
-                        ? "bg-emerald-400 shadow-emerald-400/30"
-                        : area.status === "watch"
-                          ? "bg-amber-400 shadow-amber-400/30"
-                          : "bg-red-500 shadow-red-500/30"
-                    }`}
-                    style={{ width: `${area.score}%` }}
-                  />
-                </div>
-                <p className="mt-2 text-xs leading-5 text-slate-400">
-                  {index === 0 ? "Weakest area in this scan" : area.notes[0]}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3">
           <StatBox
             label="Header gaps"
-            value={<p className="text-2xl font-semibold">{analysis.headers.filter((header) => header.status !== "present").length}</p>}
+            value={<p className="text-3xl font-black tracking-[-0.03em]">{analysis.headers.filter((header) => header.status !== "present").length}</p>}
           />
           <StatBox
             label="Cookie watch items"
-            value={<p className="text-2xl font-semibold">{analysis.cookies.reduce((count, cookie) => count + cookie.issues.length, 0)}</p>}
+            value={<p className="text-3xl font-black tracking-[-0.03em]">{analysis.cookies.reduce((count, cookie) => count + cookie.issues.length, 0)}</p>}
           />
           <StatBox
             label="Crawled same-origin pages"
-            value={<p className="text-2xl font-semibold">{analysis.crawl.pages.filter((page) => page.sameOrigin).length}</p>}
+            value={<p className="text-3xl font-black tracking-[-0.03em]">{analysis.crawl.pages.filter((page) => page.sameOrigin).length}</p>}
           />
         </div>
       </CardContent>
