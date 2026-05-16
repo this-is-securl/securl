@@ -76,7 +76,6 @@ const HeroPreviewCard = () => (
           >
             Good Posture
           </span>
-          <span className="text-[9px] font-medium uppercase tracking-[0.14em] text-zinc-500">Signal 81</span>
         </div>
       </div>
 
