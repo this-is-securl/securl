@@ -2,12 +2,8 @@ import { Activity, Clock3, Layers3, Sparkles } from "lucide-react";
 import { AuthCard } from "@/components/AuthCard";
 import { MonitoredTargetsPanel } from "@/components/MonitoredTargetsPanel";
 import { UrlForm } from "@/components/UrlForm";
-import {
-  buildReportWorkspaceSections,
-  type ReportWorkspaceSectionKey,
-} from "@/lib/reportWorkspace";
+import { buildReportWorkspaceSections } from "@/lib/reportWorkspace";
 import { ReportSectionNav } from "@/components/report/ReportSectionNav";
-import { cn } from "@/lib/utils";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useScanWorkspace } from "@/hooks/useScanWorkspace";
 import { OutputPreview } from "@/components/landing/OutputPreview";
