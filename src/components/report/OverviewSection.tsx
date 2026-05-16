@@ -54,7 +54,7 @@ interface OverviewSectionProps {
 // ── Shared sub-card style ─────────────────────────────────────────────────────
 const subCard = "rounded-[1.75rem] border border-zinc-800 bg-[#18181b] px-6 py-6 shadow-[0_4px_16px_rgba(0,0,0,0.3)]";
 const eyebrow  = "text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500";
-const cardTitle = "mt-2 text-xl font-bold tracking-[-0.03em] text-white";
+const cardTitle = "mt-2 text-xl font-black tracking-[-0.03em] text-white";
 
 export const OverviewSection = ({
   analysisData,
@@ -115,7 +115,7 @@ export const OverviewSection = ({
       ) : null}
 
       {/* ── Main overview card ── */}
-      <div className="rounded-[2rem] border border-zinc-800 bg-[#18181b] p-8 shadow-[0_24px_64px_-24px_rgba(0,0,0,0.65),0_1px_0_rgba(255,255,255,0.04)_inset]">
+      <div className="rounded-[2rem] border border-zinc-800 bg-[#18181b] p-8 shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset]">
 
         {/* ── TOP: Ring gauge + executive verdict ── */}
         <div className="grid gap-10 xl:grid-cols-[260px_minmax(0,1fr)]">

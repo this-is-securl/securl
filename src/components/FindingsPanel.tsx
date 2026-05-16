@@ -52,13 +52,13 @@ export const FindingsPanel = ({ issues, strengths }: FindingsPanelProps) => {
   };
 
   return (
-    <Card className="rounded-[2rem] border border-zinc-800 bg-[#18181b] shadow-[0_24px_64px_-24px_rgba(0,0,0,0.65),0_1px_0_rgba(255,255,255,0.04)_inset]">
+    <Card className="rounded-[2rem] border border-zinc-800 bg-[#18181b] shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset]">
       <CardHeader className="pb-3">
-        <CardTitle className="text-xl font-bold tracking-[-0.03em] text-white">Top Findings</CardTitle>
+        <CardTitle className="text-xl font-black tracking-[-0.03em] text-white">Top Findings</CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="grid gap-4 md:grid-cols-[1.05fr_0.95fr]">
-          <div className="rounded-[1.5rem] border border-zinc-800 bg-[#18181b] p-5">
+          <div className="rounded-[1.5rem] border border-zinc-800 bg-[#18181b] p-6">
             <div className="flex items-center gap-2 mb-4">
               <TriangleAlert className="h-3.5 w-3.5 text-[#2dd4bf]" />
               <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500">Finding mix</p>
@@ -82,7 +82,7 @@ export const FindingsPanel = ({ issues, strengths }: FindingsPanelProps) => {
             </div>
           </div>
 
-          <div className="rounded-[1.5rem] border border-zinc-800 bg-[#18181b] p-5">
+          <div className="rounded-[1.5rem] border border-zinc-800 bg-[#18181b] p-6">
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="h-3.5 w-3.5 text-[#2dd4bf]" />
               <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500">How to read this</p>
@@ -94,7 +94,7 @@ export const FindingsPanel = ({ issues, strengths }: FindingsPanelProps) => {
         </div>
 
         {strengths.length ? (
-          <div className="rounded-[1.5rem] border border-zinc-800 bg-[#18181b] p-5">
+          <div className="rounded-[1.5rem] border border-zinc-800 bg-[#18181b] p-6">
             <div className="flex items-center gap-2 mb-3">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-500/70" />
               <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500">Observed strengths</p>
