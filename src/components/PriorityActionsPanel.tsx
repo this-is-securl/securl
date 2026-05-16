@@ -28,7 +28,7 @@ export const PriorityActionsPanel = ({ analysis }: PriorityActionsPanelProps) =>
 
   if (!actions.length) {
     return (
-      <Card className="rounded-[1.75rem] border border-white/[0.08] bg-[#0d1420] shadow-[0_32px_64px_-24px_rgba(0,0,0,0.6),0_1px_0_rgba(255,255,255,0.04)_inset]">
+      <Card className="rounded-[1.75rem] border border-zinc-800/60 bg-[#0d1420] shadow-[0_32px_64px_-24px_rgba(0,0,0,0.6),0_1px_0_rgba(255,255,255,0.04)_inset]">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-xl font-bold tracking-[-0.03em] text-white">
             <ListTodo className="h-5 w-5 text-[#d89a63]" />
@@ -65,7 +65,7 @@ export const PriorityActionsPanel = ({ analysis }: PriorityActionsPanelProps) =>
               >
                 <div className="flex items-start justify-center pt-0.5">
                   <div className="flex flex-col items-center gap-2">
-                    <span className={`h-7 w-1.5 rounded-full ${tone.rail}`} aria-hidden="true" />
+                    <span className={`h-8 w-[5px] rounded-full ${tone.rail}`} aria-hidden="true" />
                     <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
                       {index + 1}
                     </span>
@@ -73,7 +73,7 @@ export const PriorityActionsPanel = ({ analysis }: PriorityActionsPanelProps) =>
                 </div>
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-base font-semibold text-white">{action.title}</p>
+                    <p className="text-base font-bold text-white">{action.title}</p>
                     <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.2em] ${tone.chip}`}>
                       {action.severity}
                     </span>

@@ -195,12 +195,12 @@ const Index = () => {
 
   return (
     <div className="min-h-screen overflow-hidden bg-[#070b14] text-slate-100">
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_18%_0%,rgba(181,106,44,0.16),transparent_34%),radial-gradient(circle_at_82%_12%,rgba(122,166,182,0.12),transparent_30%),linear-gradient(180deg,#070b14_0%,#0b1220_48%,#101827_100%)]" />
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(ellipse_60%_40%_at_18%_0%,rgba(181,106,44,0.18),transparent_50%),radial-gradient(ellipse_50%_50%_at_85%_8%,rgba(99,149,175,0.14),transparent_50%),radial-gradient(ellipse_40%_30%_at_5%_95%,rgba(99,100,175,0.06),transparent_50%),linear-gradient(180deg,#060a13_0%,#0b1220_50%,#101827_100%)]" />
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 
         {/* ── Hero card ─────────────────────────────────────────────────── */}
-        <section className="rounded-[2.25rem] border border-white/10 bg-white/[0.05] p-5 shadow-2xl shadow-black/30 ring-1 ring-white/[0.04] backdrop-blur-xl sm:p-7 lg:p-8">
+        <section className="rounded-[2.25rem] border border-white/[0.12] bg-[#0b1221]/80 p-5 shadow-[0_40px_100px_-40px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.06)_inset] backdrop-blur-xl sm:p-7 lg:p-8">
           <div className="grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-start">
 
             {/* Left: headline + form */}
@@ -229,13 +229,11 @@ const Index = () => {
                 </div>
 
                 <div className="space-y-4">
-                  <h1 className="max-w-3xl text-4xl font-semibold tracking-[-0.055em] text-white sm:text-5xl lg:text-6xl">
-                    Public posture, quietly interpreted.
+                  <h1 className="max-w-3xl text-4xl font-bold tracking-[-0.055em] text-white sm:text-5xl lg:text-6xl">
+                    See what attackers see.
                   </h1>
-                  <p className="max-w-xl text-base leading-7 text-slate-400 sm:text-lg">
-                    Most security tools return raw data. SecURL returns a verdict — a graded read of
-                    what your target looks like from the outside, with specific findings and the
-                    context to act on them.
+                  <p className="max-w-xl text-base leading-7 text-slate-400">
+                    SecURL runs the same checks an attacker would. You get a letter grade, ranked findings, and the context to act — in under 30 seconds.
                   </p>
                 </div>
               </div>
@@ -351,7 +349,7 @@ const Index = () => {
                 <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.22em] text-[#d89a63]/70">
                   Sample output
                 </p>
-                <h2 className="text-2xl font-bold tracking-[-0.04em] text-white sm:text-3xl">
+                <h2 className="text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl">
                   Grade, findings, and context — in under 30 seconds
                 </h2>
                 <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-400">
@@ -367,7 +365,7 @@ const Index = () => {
               <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500">
                 Why SecURL
               </p>
-              <h2 className="text-2xl font-bold tracking-[-0.04em] text-white sm:text-3xl lg:text-4xl">
+              <h2 className="text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl lg:text-5xl">
                 Security tools give you data.
                 <br />
                 <span className="text-[#d89a63]">SecURL gives you a read.</span>
@@ -399,7 +397,7 @@ const Index = () => {
                 <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#d89a63]/70">
                   What it checks
                 </p>
-                <h2 className="text-2xl font-bold tracking-[-0.04em] text-white sm:text-3xl">
+                <h2 className="text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl">
                   Coverage across seven posture areas
                 </h2>
               </div>

@@ -73,7 +73,7 @@ export const ReportSectionNav = ({ sections, activeKey, onChange }: ReportSectio
 
       {/* ── Desktop: horizontal pill tab strip ── */}
       <div className="hidden lg:block">
-        <div className="overflow-x-auto rounded-[1.75rem] border border-white/[0.08] bg-slate-950/50 p-1.5 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.5)] backdrop-blur">
+        <div className="overflow-x-auto rounded-[1.75rem] border border-zinc-800/60 bg-[#080e1a]/70 p-1.5 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.5)] backdrop-blur">
           <div className="flex min-w-max gap-1">
             {sections.map((section) => {
               const active = section.key === activeKey;
@@ -86,7 +86,7 @@ export const ReportSectionNav = ({ sections, activeKey, onChange }: ReportSectio
                   className={cn(
                     "group flex min-w-0 flex-col items-start gap-1 rounded-[1.35rem] px-4 py-3 text-left transition-all duration-200",
                     active
-                      ? "bg-[#b56a2c]/18 shadow-[0_0_0_1px_rgba(181,106,44,0.3)_inset,0_8px_24px_-8px_rgba(181,106,44,0.25)]"
+                      ? "bg-[#b56a2c]/20 shadow-[0_0_0_1px_rgba(181,106,44,0.4)_inset,0_8px_32px_-6px_rgba(181,106,44,0.35)]"
                       : "hover:bg-white/[0.05]",
                   )}
                 >

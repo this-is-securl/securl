@@ -10,7 +10,7 @@ type StatBoxVariant = "default" | "critical" | "warning" | "info";
 
 const statBoxVariants: Record<StatBoxVariant, { container: string; label: string; value: string }> = {
   default: {
-    container: "border-white/10 bg-white/[0.04]",
+    container: "border-zinc-800/70 bg-[#0d1420]",
     label: "text-slate-400",
     value: "text-white",
   },
@@ -25,7 +25,7 @@ const statBoxVariants: Record<StatBoxVariant, { container: string; label: string
     value: "text-[#f0dfcf]",
   },
   info: {
-    container: "border-white/10 bg-white/[0.04]",
+    container: "border-zinc-800/70 bg-[#0d1420]",
     label: "text-slate-400",
     value: "text-white",
   },
@@ -44,7 +44,7 @@ export const StatBox = ({ label, value, note, variant = "default", className }: 
   return (
     <div
       className={cn(
-        "rounded-[1.35rem] border p-4 shadow-[0_12px_30px_-18px_rgba(0,0,0,0.55),0_1px_0_rgba(255,255,255,0.04)_inset]",
+        "rounded-[1.5rem] border p-5 shadow-[0_12px_30px_-18px_rgba(0,0,0,0.55),0_1px_0_rgba(255,255,255,0.04)_inset] transition-transform duration-200 hover:-translate-y-0.5",
         v.container,
         className,
       )}

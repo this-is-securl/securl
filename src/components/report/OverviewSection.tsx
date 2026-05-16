@@ -108,7 +108,7 @@ export const OverviewSection = ({
       ) : null}
 
       <div className="space-y-5">
-        <div className="rounded-[2rem] border border-white/[0.08] bg-[#0d1420] px-7 py-7 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.6),0_1px_0_rgba(255,255,255,0.04)_inset]">
+        <div className="rounded-[2rem] border border-zinc-800/60 bg-[#0d1420] px-7 py-7 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.6),0_1px_0_rgba(255,255,255,0.04)_inset]">
           <div className="grid gap-10 xl:grid-cols-[240px_minmax(0,1fr)]">
 
             {/* ── LEFT: Ring gauge — first thing the eye hits ── */}
@@ -120,7 +120,7 @@ export const OverviewSection = ({
                   className="flex flex-col items-center rounded-[1.7rem] px-5 py-7 shadow-[0_24px_56px_-32px_rgba(0,0,0,0.75)] text-center"
                   style={{
                     border: `1px solid ${gp.borderColor}`,
-                    background: "linear-gradient(135deg,rgba(11,18,32,0.97),rgba(16,24,39,0.94))",
+                    background: `linear-gradient(160deg, ${gp.stroke}0a 0%, rgba(11,18,32,0.98) 40%, rgba(16,24,39,0.95) 100%)`,
                   }}
                 >
                   <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
@@ -132,6 +132,10 @@ export const OverviewSection = ({
                     <div
                       className="pointer-events-none absolute inset-0 rounded-full"
                       style={{ background: `radial-gradient(circle, ${gp.glow} 0%, transparent 68%)`, filter: "blur(28px) brightness(1.3)" }}
+                    />
+                    <div
+                      className="pointer-events-none absolute -inset-4 rounded-full opacity-40"
+                      style={{ background: `radial-gradient(circle, ${gp.stroke}22 0%, transparent 60%)`, filter: "blur(40px)" }}
                     />
                     <svg
                       viewBox={`0 0 ${DONUT_SIZE} ${DONUT_SIZE}`}
@@ -147,6 +151,7 @@ export const OverviewSection = ({
                         strokeLinecap="round"
                         strokeDasharray={DONUT_CIRCUMFERENCE}
                         strokeDashoffset={donutOffset}
+                        filter={`drop-shadow(0 0 8px ${gp.stroke}88)`}
                       />
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
@@ -157,8 +162,12 @@ export const OverviewSection = ({
                         {analysisData.grade}
                       </span>
                       <span
-                        className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em]"
-                        style={{ color: gp.textColor, opacity: 0.8 }}
+                        className="mt-2 inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em]"
+                        style={{
+                          color: gp.textColor,
+                          background: `${gp.stroke}18`,
+                          border: `1px solid ${gp.stroke}30`
+                        }}
                       >
                         {overallPostureLabel}
                       </span>
@@ -188,7 +197,7 @@ export const OverviewSection = ({
                 <p className="break-all text-sm text-slate-400">{analysisData.finalUrl}</p>
               </div>
 
-              <div className="rounded-[1.6rem] border border-white/[0.1] bg-slate-950/40 p-6 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
+              <div className="rounded-[1.6rem] border border-white/[0.1] bg-slate-950/50 p-6 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline" className="border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-300">
                     Overall posture: {overallPostureLabel}
@@ -205,7 +214,7 @@ export const OverviewSection = ({
                     <Sparkles className="h-3.5 w-3.5 text-[#d89a63]" />
                     Executive posture verdict
                   </div>
-                  <p className={`mt-3 text-xl font-semibold leading-8 text-white sm:text-2xl ${compact ? "" : "max-w-2xl"}`}>
+                  <p className={`mt-3 text-xl font-bold leading-8 tracking-[-0.03em] text-white sm:text-2xl ${compact ? "" : "max-w-2xl"}`}>
                     {analysisData.executiveSummary.mainRisk}
                   </p>
                   <p className="mt-4 text-sm leading-7 text-slate-300">
@@ -233,39 +242,39 @@ export const OverviewSection = ({
 
           <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {/* Critical */}
-            <div className="rounded-[1.5rem] border border-red-500/25 bg-red-500/[0.08] px-5 py-5">
+            <div className="rounded-[1.5rem] border border-red-500/25 bg-red-500/[0.08] px-5 py-6 transition-transform duration-200 hover:-translate-y-0.5">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-red-400">Critical</p>
                 <AlertTriangle className="h-3.5 w-3.5 text-red-400/60" />
               </div>
-              <p className="mt-3 text-[2rem] font-bold leading-none tracking-[-0.04em] text-red-300">{criticalCount}</p>
+              <p className="mt-3 text-4xl font-black leading-none tracking-[-0.04em] text-red-300">{criticalCount}</p>
               <p className="mt-2.5 text-xs leading-5 text-red-300/60">Highest-priority items for immediate attention.</p>
             </div>
             {/* Warning */}
-            <div className="rounded-[1.5rem] border border-amber-500/25 bg-amber-500/[0.08] px-5 py-5">
+            <div className="rounded-[1.5rem] border border-amber-500/25 bg-amber-500/[0.08] px-5 py-6 transition-transform duration-200 hover:-translate-y-0.5">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-400">Warning</p>
                 <ShieldAlert className="h-3.5 w-3.5 text-amber-400/60" />
               </div>
-              <p className="mt-3 text-[2rem] font-bold leading-none tracking-[-0.04em] text-amber-300">{warningCount}</p>
+              <p className="mt-3 text-4xl font-black leading-none tracking-[-0.04em] text-amber-300">{warningCount}</p>
               <p className="mt-2.5 text-xs leading-5 text-amber-300/60">Important weaknesses shaping the posture score.</p>
             </div>
             {/* Strengths */}
-            <div className="rounded-[1.5rem] border border-emerald-500/25 bg-emerald-500/[0.08] px-5 py-5">
+            <div className="rounded-[1.5rem] border border-emerald-500/25 bg-emerald-500/[0.08] px-5 py-6 transition-transform duration-200 hover:-translate-y-0.5">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-400">Strengths</p>
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-400/60" />
               </div>
-              <p className="mt-3 text-[2rem] font-bold leading-none tracking-[-0.04em] text-emerald-300">{analysisData.strengths.length}</p>
+              <p className="mt-3 text-4xl font-black leading-none tracking-[-0.04em] text-emerald-300">{analysisData.strengths.length}</p>
               <p className="mt-2.5 text-xs leading-5 text-emerald-300/60">Signals reducing concern or reinforcing confidence.</p>
             </div>
             {/* Monitoring */}
-            <div className="rounded-[1.5rem] border border-white/[0.08] bg-slate-950/60 px-5 py-5">
+            <div className="rounded-[1.5rem] border border-white/[0.08] bg-slate-950/60 px-5 py-6 transition-transform duration-200 hover:-translate-y-0.5">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Monitoring</p>
                 <TrendingUp className="h-3.5 w-3.5 text-slate-500" />
               </div>
-              <p className="mt-3 text-[2rem] font-bold leading-none tracking-[-0.04em] text-slate-200">{monitoringAlerts.length}</p>
+              <p className="mt-3 text-4xl font-black leading-none tracking-[-0.04em] text-slate-200">{monitoringAlerts.length}</p>
               <p className="mt-2.5 text-xs leading-5 text-slate-500">
                 {monitoringAlerts.length ? monitoringAlerts[0]?.title : "No alerting changes from saved history."}
               </p>
