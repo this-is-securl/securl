@@ -8,11 +8,11 @@ interface PublicSignalsPanelProps {
 }
 
 const statusStyles = {
-  preloaded: "bg-white/[0.08] text-slate-100",
-  pending: "bg-white/[0.08] text-slate-100",
-  eligible: "bg-[#8e5c3b]/14 text-[#f0d5bc]",
-  not_preloaded: "bg-white/[0.08] text-slate-200",
-  unknown: "bg-white/[0.08] text-slate-200",
+  preloaded: "bg-white/[0.08] text-zinc-100",
+  pending: "bg-white/[0.08] text-zinc-100",
+  eligible: "bg-[#7f1d1d]/14 text-[#99f6e4]",
+  not_preloaded: "bg-white/[0.08] text-zinc-200",
+  unknown: "bg-white/[0.08] text-zinc-200",
 } as const;
 
 const formatStatus = (status: PublicSignalsInfo["hstsPreload"]["status"]) =>
@@ -33,17 +33,17 @@ export const PublicSignalsPanel = ({ publicSignals }: PublicSignalsPanelProps) =
       <CardContent className="space-y-4">
         <div className="min-w-0 rounded-[1.35rem] border border-white/10 bg-white/[0.04] p-4">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">HSTS preload dataset</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">HSTS preload dataset</p>
             <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles[publicSignals.hstsPreload.status]}`}>
               {formatStatus(publicSignals.hstsPreload.status)}
             </span>
           </div>
-          <p className="mt-3 overflow-hidden break-words text-sm leading-6 text-slate-200">{publicSignals.hstsPreload.summary}</p>
+          <p className="mt-3 overflow-hidden break-words text-sm leading-6 text-zinc-200">{publicSignals.hstsPreload.summary}</p>
           <a
             href={publicSignals.hstsPreload.sourceUrl}
             target="_blank"
             rel="noreferrer"
-            className="mt-3 inline-flex text-sm font-medium text-[#e0b286] hover:text-[#f0d5bc]"
+            className="mt-3 inline-flex text-sm font-medium text-[#e0b286] hover:text-[#99f6e4]"
           >
             Open dataset reference
           </a>

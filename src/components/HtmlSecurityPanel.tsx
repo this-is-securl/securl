@@ -72,8 +72,8 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
           value={
             <div className="grid gap-3 md:grid-cols-2">
               {clientCodeSignalRows.map((row) => (
-                <div key={row.label} className="rounded-[1.15rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">{row.label}</p>
+                <div key={row.label} className="rounded-[1.15rem] border border-white/10 bg-zinc-950/45 px-4 py-4">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">{row.label}</p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {row.value.map((item) => (
                       <TruncatedChip key={`${row.label}-${item}`} value={item} />
@@ -85,7 +85,7 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
           }
           note={
             htmlSecurity.detectedTechnologies.length || htmlSecurity.clientExposureSignals.length || htmlSecurity.libraryFingerprints.length ? (
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-zinc-400">
                 Derived from visible client assets, markup, and versioned resource hints. These signals help with surface intelligence, not exploit proof.
               </p>
             ) : null
@@ -114,14 +114,14 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
             label="Library risk signals"
             value={<p className="text-2xl font-semibold">{htmlSecurity.libraryRiskSignals.length}</p>}
             note={htmlSecurity.libraryFingerprints.length ? (
-              <p className="text-xs text-slate-400">{htmlSecurity.libraryFingerprints.length} versioned client librar{htmlSecurity.libraryFingerprints.length === 1 ? "y" : "ies"} observed</p>
+              <p className="text-xs text-zinc-400">{htmlSecurity.libraryFingerprints.length} versioned client librar{htmlSecurity.libraryFingerprints.length === 1 ? "y" : "ies"} observed</p>
             ) : null}
           />
         </div>
 
         {(htmlSecurity.metaGenerator || htmlSecurity.firstPartyPaths.length > 0 || htmlSecurity.sameSiteHosts.length > 0) && (
           <div className="grid gap-4 md:grid-cols-3">
-            <StatBox label="Meta generator" value={<p className="text-sm font-medium text-slate-100">{htmlSecurity.metaGenerator || "Not declared"}</p>} />
+            <StatBox label="Meta generator" value={<p className="text-sm font-medium text-zinc-100">{htmlSecurity.metaGenerator || "Not declared"}</p>} />
             <StatBox
               label="Discovered same-origin paths"
               value={
@@ -136,7 +136,7 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
                       )}
                     </>
                   ) : (
-                    <span className="text-sm text-slate-400">No same-origin page links were discovered passively.</span>
+                    <span className="text-sm text-zinc-400">No same-origin page links were discovered passively.</span>
                   )}
                 </div>
               }
@@ -155,7 +155,7 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
                       )}
                     </>
                   ) : (
-                    <span className="text-sm text-slate-400">No sibling same-site hosts were referenced by the fetched page.</span>
+                    <span className="text-sm text-zinc-400">No sibling same-site hosts were referenced by the fetched page.</span>
                   )}
                 </div>
               }
@@ -214,7 +214,7 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
             value={
               <div className="space-y-2">
                 {htmlSecurity.forms.map((form, index) => (
-                  <div key={`${form.action ?? "self"}-${index}`} className="rounded-[1.15rem] border border-white/10 bg-white/[0.04] p-3 text-sm text-slate-200">
+                  <div key={`${form.action ?? "self"}-${index}`} className="rounded-[1.15rem] border border-white/10 bg-white/[0.04] p-3 text-sm text-zinc-200">
                     <p>Method: {form.method}</p>
                     <p>Action: {form.action ?? "(same page)"}</p>
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -255,12 +255,12 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
             value={
               <div className="space-y-3">
                 {htmlSecurity.passiveLeakSignals.map((signal) => (
-                  <div key={`${signal.category}-${signal.title}`} className="rounded-[1.15rem] border border-white/10 bg-white/[0.04] p-4 text-sm text-slate-200">
+                  <div key={`${signal.category}-${signal.title}`} className="rounded-[1.15rem] border border-white/10 bg-white/[0.04] p-4 text-sm text-zinc-200">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold text-slate-50">{signal.title}</p>
+                      <p className="font-semibold text-zinc-50">{signal.title}</p>
                       <Badge
                         variant="secondary"
-                        className={signal.severity === "warning" ? "bg-[#b56a2c]/16 text-[#f0d5bc]" : "bg-white/[0.08] text-slate-100"}
+                        className={signal.severity === "warning" ? "bg-[#14b8a6]/16 text-[#99f6e4]" : "bg-white/[0.08] text-zinc-100"}
                       >
                         {signal.severity}
                       </Badge>
@@ -285,34 +285,34 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
               <div className="space-y-3">
                 {htmlSecurity.libraryRiskSignals.length ? (
                   htmlSecurity.libraryRiskSignals.map((signal) => (
-                    <div key={`${signal.packageName}-${signal.version}`} className="rounded-[1.15rem] border border-white/10 bg-white/[0.04] p-4 text-sm text-slate-200">
+                    <div key={`${signal.packageName}-${signal.version}`} className="rounded-[1.15rem] border border-white/10 bg-white/[0.04] p-4 text-sm text-zinc-200">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-semibold text-slate-50">
+                        <p className="font-semibold text-zinc-50">
                           {signal.packageName} {signal.version}
                         </p>
-                        <Badge variant="secondary" className="bg-white/[0.08] text-slate-100">{signal.confidence} confidence</Badge>
-                        <Badge variant="secondary" className="bg-[#b56a2c]/16 text-[#f0d5bc]">
+                        <Badge variant="secondary" className="bg-white/[0.08] text-zinc-100">{signal.confidence} confidence</Badge>
+                        <Badge variant="secondary" className="bg-[#14b8a6]/16 text-[#99f6e4]">
                           {signal.vulnerabilities.length} advisor{signal.vulnerabilities.length === 1 ? "y" : "ies"}
                         </Badge>
                       </div>
-                      <p className="mt-2 text-slate-300">{signal.evidence}</p>
-                      <p className="mt-1 break-all text-xs text-slate-400">{signal.sourceUrl}</p>
+                      <p className="mt-2 text-zinc-300">{signal.evidence}</p>
+                      <p className="mt-1 break-all text-xs text-zinc-400">{signal.sourceUrl}</p>
                       <div className="mt-3 space-y-2">
                         {signal.vulnerabilities.map((item) => (
-                          <div key={item.id} className="rounded-[1rem] border border-white/10 bg-slate-950/45 px-3 py-2">
-                            <p className="font-medium text-slate-50">
+                          <div key={item.id} className="rounded-[1rem] border border-white/10 bg-zinc-950/45 px-3 py-2">
+                            <p className="font-medium text-zinc-50">
                               {item.id}
                               {item.aliases.length ? ` • ${item.aliases.join(", ")}` : ""}
                             </p>
-                            <p className="mt-1 text-slate-300">{item.summary}</p>
-                            <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Severity: {item.severity}</p>
+                            <p className="mt-1 text-zinc-300">{item.summary}</p>
+                            <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">Severity: {item.severity}</p>
                           </div>
                         ))}
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="rounded-[1.15rem] border border-white/10 bg-white/[0.04] p-4 text-sm text-slate-300">
+                  <div className="rounded-[1.15rem] border border-white/10 bg-white/[0.04] p-4 text-sm text-zinc-300">
                     Explicitly versioned client libraries were detected, but no matching OSV advisories were returned.
                   </div>
                 )}

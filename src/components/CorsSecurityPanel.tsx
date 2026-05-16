@@ -19,10 +19,10 @@ export const CorsSecurityPanel = ({ corsSecurity }: CorsSecurityPanelProps) => {
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatBox label="Allowed origin" value={<p className="break-all text-sm text-slate-200">{corsSecurity.allowedOrigin ?? "None"}</p>} />
-          <StatBox label="Credentials" value={<p className="text-sm text-slate-200">{corsSecurity.allowCredentials ?? "Not set"}</p>} />
-          <StatBox label="OPTIONS status" value={<p className="text-sm text-slate-200">{corsSecurity.optionsStatus || "No response"}</p>} />
-          <StatBox label="Vary" value={<p className="break-all text-sm text-slate-200">{corsSecurity.vary ?? "Not set"}</p>} />
+          <StatBox label="Allowed origin" value={<p className="break-all text-sm text-zinc-200">{corsSecurity.allowedOrigin ?? "None"}</p>} />
+          <StatBox label="Credentials" value={<p className="text-sm text-zinc-200">{corsSecurity.allowCredentials ?? "Not set"}</p>} />
+          <StatBox label="OPTIONS status" value={<p className="text-sm text-zinc-200">{corsSecurity.optionsStatus || "No response"}</p>} />
+          <StatBox label="Vary" value={<p className="break-all text-sm text-zinc-200">{corsSecurity.vary ?? "Not set"}</p>} />
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -32,7 +32,7 @@ export const CorsSecurityPanel = ({ corsSecurity }: CorsSecurityPanelProps) => {
               <div className="flex flex-wrap gap-2">
                 {corsSecurity.allowMethods.length ? corsSecurity.allowMethods.map((method) => (
                   <Badge key={method} variant="outline">{method}</Badge>
-                )) : <span className="text-sm text-slate-400">None advertised</span>}
+                )) : <span className="text-sm text-zinc-400">None advertised</span>}
               </div>
             }
           />
@@ -42,7 +42,7 @@ export const CorsSecurityPanel = ({ corsSecurity }: CorsSecurityPanelProps) => {
               <div className="flex flex-wrap gap-2">
                 {corsSecurity.allowHeaders.length ? corsSecurity.allowHeaders.map((header) => (
                   <Badge key={header} variant="outline">{header}</Badge>
-                )) : <span className="text-sm text-slate-400">None advertised</span>}
+                )) : <span className="text-sm text-zinc-400">None advertised</span>}
               </div>
             }
           />

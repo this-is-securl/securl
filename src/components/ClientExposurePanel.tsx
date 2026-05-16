@@ -39,13 +39,13 @@ export const ClientExposurePanel = ({ htmlSecurity }: ClientExposurePanelProps) 
         {htmlSecurity.clientExposureSignals.map((signal) => (
           <div key={`${signal.category}-${signal.title}`} className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] p-4">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="font-semibold text-slate-50">{signal.title}</p>
+              <p className="font-semibold text-zinc-50">{signal.title}</p>
               <Badge variant={signal.severity === "warning" ? "destructive" : "secondary"}>
                 {signal.severity}
               </Badge>
               <Badge variant="outline">{signal.category.replace(/_/g, " ")}</Badge>
             </div>
-            <p className="mt-3 text-sm text-slate-300">{signal.detail}</p>
+            <p className="mt-3 text-sm text-zinc-300">{signal.detail}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {signal.evidence.map((item) => (
                 <TruncatedChip key={item} value={item} />

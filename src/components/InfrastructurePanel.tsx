@@ -16,11 +16,11 @@ const sourceLabel = {
 } as const;
 
 const categoryClass = {
-  cloud: "bg-white/[0.08] text-slate-100",
-  cdn: "bg-white/[0.08] text-slate-100",
-  edge: "bg-[#8e5c3b]/14 text-[#f0d5bc]",
-  paas: "bg-white/[0.08] text-slate-100",
-  hosting: "bg-[#b56a2c]/18 text-[#f0d5bc]",
+  cloud: "bg-white/[0.08] text-zinc-100",
+  cdn: "bg-white/[0.08] text-zinc-100",
+  edge: "bg-[#7f1d1d]/14 text-[#99f6e4]",
+  paas: "bg-white/[0.08] text-zinc-100",
+  hosting: "bg-[#14b8a6]/18 text-[#99f6e4]",
 } as const;
 
 export const InfrastructurePanel = ({ infrastructure }: InfrastructurePanelProps) => (
@@ -30,7 +30,7 @@ export const InfrastructurePanel = ({ infrastructure }: InfrastructurePanelProps
         <Network className="h-5 w-5 text-[#e0b286]" />
         Infrastructure Read
       </CardTitle>
-      <p className="text-sm text-slate-400">
+      <p className="text-sm text-zinc-400">
         Passive hosting and edge-provider inference from DNS, reverse DNS, headers, and detected stack signals.
       </p>
     </CardHeader>
@@ -46,23 +46,23 @@ export const InfrastructurePanel = ({ infrastructure }: InfrastructurePanelProps
           {infrastructure.providers.map((signal, index) => (
             <div
               key={`${signal.provider}-${signal.source}-${index}`}
-              className="rounded-[1.25rem] border border-white/10 bg-slate-950/45 px-4 py-3"
+              className="rounded-[1.25rem] border border-white/10 bg-zinc-950/45 px-4 py-3"
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2 font-semibold text-white">
-                  <Cloud className="h-4 w-4 text-slate-400" />
+                  <Cloud className="h-4 w-4 text-zinc-400" />
                   {signal.provider}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="secondary" className={categoryClass[signal.category]}>
                     {signal.category}
                   </Badge>
-                  <Badge variant="secondary" className="bg-white/10 text-slate-100">
+                  <Badge variant="secondary" className="bg-white/10 text-zinc-100">
                     {sourceLabel[signal.source]}
                   </Badge>
                 </div>
               </div>
-              <p className="mt-2 break-words text-sm text-slate-300">{signal.evidence}</p>
+              <p className="mt-2 break-words text-sm text-zinc-300">{signal.evidence}</p>
             </div>
           ))}
         </div>

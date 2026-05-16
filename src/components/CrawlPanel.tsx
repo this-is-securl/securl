@@ -10,13 +10,13 @@ interface CrawlPanelProps {
 }
 
 const gradeStyles: Record<string, string> = {
-  "A+": "bg-white/[0.08] text-slate-100",
-  A: "bg-white/[0.08] text-slate-100",
+  "A+": "bg-white/[0.08] text-zinc-100",
+  A: "bg-white/[0.08] text-zinc-100",
   B: "bg-[#4f6676]/18 text-[#d9e4ea]",
-  C: "bg-[#8e5c3b]/14 text-[#f0d5bc]",
-  D: "bg-[#b56a2c]/16 text-[#f0d5bc]",
-  F: "bg-[#b56a2c]/18 text-[#f0d5bc]",
-  Redirected: "bg-white/[0.08] text-slate-100",
+  C: "bg-[#7f1d1d]/14 text-[#99f6e4]",
+  D: "bg-[#14b8a6]/16 text-[#99f6e4]",
+  F: "bg-[#14b8a6]/18 text-[#99f6e4]",
+  Redirected: "bg-white/[0.08] text-zinc-100",
 };
 
 export const CrawlPanel = ({ crawl }: CrawlPanelProps) => {
@@ -66,14 +66,14 @@ export const CrawlPanel = ({ crawl }: CrawlPanelProps) => {
         )}
 
         {crawl.inconsistentHeaders.length > 0 && (
-          <div className="rounded-[1.25rem] border border-[#b56a2c]/30 bg-[#b56a2c]/10 p-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-[#f0d5bc]">
+          <div className="rounded-[1.25rem] border border-[#14b8a6]/30 bg-[#14b8a6]/10 p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-[#99f6e4]">
               <GitCompareArrows className="h-4 w-4" />
               Inconsistent across routes
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               {crawl.inconsistentHeaders.map((header) => (
-                <Badge key={header} variant="secondary" className="bg-[#8e5c3b]/14 text-[#f0d5bc]">
+                <Badge key={header} variant="secondary" className="bg-[#7f1d1d]/14 text-[#99f6e4]">
                   {header}
                 </Badge>
               ))}
@@ -89,33 +89,33 @@ export const CrawlPanel = ({ crawl }: CrawlPanelProps) => {
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div className="min-w-0">
                     <div className="flex min-w-0 items-center gap-2">
-                      <h3 className="shrink-0 font-semibold text-slate-50">{page.label}</h3>
-                      <code className="min-w-0 truncate rounded bg-slate-950/55 px-2 py-0.5 text-xs text-slate-300" title={page.path}>{page.path}</code>
+                      <h3 className="shrink-0 font-semibold text-zinc-50">{page.label}</h3>
+                      <code className="min-w-0 truncate rounded bg-zinc-950/55 px-2 py-0.5 text-xs text-zinc-300" title={page.path}>{page.path}</code>
                     </div>
-                    <p className="mt-2 truncate text-sm text-slate-400" title={page.finalUrl}>{page.finalUrl}</p>
+                    <p className="mt-2 truncate text-sm text-zinc-400" title={page.finalUrl}>{page.finalUrl}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary" className={gradeStyles[page.grade] ?? gradeStyles.F}>
                       {page.grade}
                     </Badge>
                     {page.sameOrigin ? (
-                      <span className="text-sm font-semibold text-slate-200">{page.score}/100</span>
+                      <span className="text-sm font-semibold text-zinc-200">{page.score}/100</span>
                     ) : (
-                      <span className="text-sm font-semibold text-slate-200">off-origin redirect</span>
+                      <span className="text-sm font-semibold text-zinc-200">off-origin redirect</span>
                     )}
                   </div>
                 </div>
                 <div className="mt-4 grid gap-3 text-sm md:grid-cols-3">
-                  <div className="rounded-[1rem] bg-slate-950/45 p-3 text-slate-300">
+                  <div className="rounded-[1rem] bg-zinc-950/45 p-3 text-zinc-300">
                     <div>Status {page.statusCode ? `${page.statusCode} ${status?.label}` : "unreachable"} · {page.responseTimeMs}ms</div>
                     {status ? (
-                      <div className="mt-1 text-xs leading-5 text-slate-400">{status.meaning}</div>
+                      <div className="mt-1 text-xs leading-5 text-zinc-400">{status.meaning}</div>
                     ) : null}
                   </div>
-                  <div className="rounded-[1rem] bg-slate-950/45 p-3 text-slate-300">
+                  <div className="rounded-[1rem] bg-zinc-950/45 p-3 text-zinc-300">
                     Missing: {!page.sameOrigin ? "not compared" : page.missingHeaders.length ? page.missingHeaders.join(", ") : "none"}
                   </div>
-                  <div className="rounded-[1rem] bg-slate-950/45 p-3 text-slate-300">
+                  <div className="rounded-[1rem] bg-zinc-950/45 p-3 text-zinc-300">
                     Warnings: {!page.sameOrigin ? "not compared" : page.warningHeaders.length ? page.warningHeaders.join(", ") : "none"}
                   </div>
                 </div>

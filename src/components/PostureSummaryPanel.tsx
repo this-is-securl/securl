@@ -14,10 +14,10 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
   const rankedAreaScores = [...areaScores].sort((left, right) => left.score - right.score);
 
   return (
-    <Card className="rounded-[2rem] border border-zinc-800/55 bg-[#0c1219] shadow-[0_24px_64px_-24px_rgba(0,0,0,0.65),0_1px_0_rgba(255,255,255,0.04)_inset]">
+    <Card className="rounded-[2rem] border border-zinc-800 bg-[#18181b] shadow-[0_24px_64px_-24px_rgba(0,0,0,0.65),0_1px_0_rgba(255,255,255,0.04)_inset]">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-xl font-bold tracking-[-0.03em] text-white">
-          <BarChart3 className="h-5 w-5 text-[#d89a63]" />
+          <BarChart3 className="h-5 w-5 text-[#2dd4bf]" />
           Posture Summary
         </CardTitle>
       </CardHeader>
@@ -28,23 +28,23 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
             variant="warning"
             label="Priority Warnings"
             value={<p className="text-[2.25rem] font-black leading-none tracking-[-0.04em]">{severityCounts.priorityWarnings}</p>}
-            note={<p className="text-xs text-slate-400">Actionable normalized findings only.</p>}
+            note={<p className="text-xs text-zinc-400">Actionable normalized findings only.</p>}
           />
           <StatBox
             variant="info"
             label="Supporting Watch Items"
             value={<p className="text-[2.25rem] font-black leading-none tracking-[-0.04em]">{severityCounts.supportingWatchItems}</p>}
-            note={<p className="text-xs text-slate-400">Panel-level evidence; not added to warnings.</p>}
+            note={<p className="text-xs text-zinc-400">Panel-level evidence; not added to warnings.</p>}
           />
           <StatBox
             variant="info"
             label="Observed Signals"
             value={<p className="text-[2.25rem] font-black leading-none tracking-[-0.04em]">{severityCounts.observedSignals}</p>}
-            note={<p className="text-xs text-slate-400">Informational findings plus interesting probes.</p>}
+            note={<p className="text-xs text-zinc-400">Informational findings plus interesting probes.</p>}
           />
         </div>
 
-        <div className="rounded-[1.5rem] border border-zinc-800/50 bg-[#090d18] p-5">
+        <div className="rounded-[1.5rem] border border-zinc-800 bg-[#111115] p-5">
           <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500 mb-4">Category scores</p>
           <div className="space-y-1">
             {rankedAreaScores.map((area, index) => {
@@ -62,7 +62,7 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
                   className={`py-3 ${index < rankedAreaScores.length - 1 ? "border-b border-white/[0.05]" : ""}`}
                 >
                   <div className="grid gap-2 md:grid-cols-[10rem_1fr_2.5rem] md:items-center">
-                    <p className="text-sm font-medium text-slate-300">{area.label}</p>
+                    <p className="text-sm font-medium text-zinc-300">{area.label}</p>
                     <div className="relative h-1.5 overflow-hidden rounded-full bg-white/[0.05]">
                       <div
                         className="absolute inset-y-0 left-0 rounded-full transition-all duration-700"

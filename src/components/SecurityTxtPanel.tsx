@@ -9,9 +9,9 @@ interface SecurityTxtPanelProps {
 }
 
 const statusStyles: Record<SecurityTxtInfo["status"], string> = {
-  present: "bg-white/[0.08] text-slate-100",
-  invalid: "bg-[#b56a2c]/14 text-[#f0d5bc]",
-  missing: "bg-[#8e5c3b]/14 text-[#f0d5bc]",
+  present: "bg-white/[0.08] text-zinc-100",
+  invalid: "bg-[#14b8a6]/14 text-[#99f6e4]",
+  missing: "bg-[#7f1d1d]/14 text-[#99f6e4]",
 };
 
 export const SecurityTxtPanel = ({ securityTxt }: SecurityTxtPanelProps) => {
@@ -33,7 +33,7 @@ export const SecurityTxtPanel = ({ securityTxt }: SecurityTxtPanelProps) => {
               {securityTxt.url}
             </a>
           ) : (
-            <span className="text-sm text-slate-400">No file discovered</span>
+            <span className="text-sm text-zinc-400">No file discovered</span>
           )}
         </div>
 
@@ -41,14 +41,14 @@ export const SecurityTxtPanel = ({ securityTxt }: SecurityTxtPanelProps) => {
           <StatBox
             label="Contact"
             value={
-              <div className="space-y-1 text-sm text-slate-200">
-                {securityTxt.contact.length ? securityTxt.contact.map((item) => <p key={item} className="break-words text-slate-200">{item}</p>) : <p className="text-slate-400">Not listed</p>}
+              <div className="space-y-1 text-sm text-zinc-200">
+                {securityTxt.contact.length ? securityTxt.contact.map((item) => <p key={item} className="break-words text-zinc-200">{item}</p>) : <p className="text-zinc-400">Not listed</p>}
               </div>
             }
           />
           <StatBox
             label="Expires"
-            value={<p className="text-sm text-slate-200">{securityTxt.expires ?? "Not listed"}</p>}
+            value={<p className="text-sm text-zinc-200">{securityTxt.expires ?? "Not listed"}</p>}
           />
         </div>
 
@@ -56,8 +56,8 @@ export const SecurityTxtPanel = ({ securityTxt }: SecurityTxtPanelProps) => {
           <StatBox
             label="Policy"
             value={
-              <div className="space-y-1 text-sm text-slate-200">
-                {securityTxt.policy.map((item) => <p key={item} className="break-words text-slate-200">{item}</p>)}
+              <div className="space-y-1 text-sm text-zinc-200">
+                {securityTxt.policy.map((item) => <p key={item} className="break-words text-zinc-200">{item}</p>)}
               </div>
             }
           />

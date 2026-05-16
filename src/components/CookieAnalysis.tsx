@@ -11,8 +11,8 @@ interface CookieAnalysisProps {
 
 const riskStyles: Record<CookieResult["risk"], string> = {
   low: "bg-[#4f6676]/18 text-[#d9e4ea]",
-  medium: "bg-[#8e5c3b]/14 text-[#f0d5bc]",
-  high: "bg-[#b56a2c]/16 text-[#f0d5bc]",
+  medium: "bg-[#7f1d1d]/14 text-[#99f6e4]",
+  high: "bg-[#14b8a6]/16 text-[#99f6e4]",
 };
 
 export const CookieAnalysis = ({ cookies }: CookieAnalysisProps) => {
@@ -41,7 +41,7 @@ export const CookieAnalysis = ({ cookies }: CookieAnalysisProps) => {
               <TableBody>
                 {cookies.map((cookie) => (
                 <TableRow key={cookie.name} className="align-top border-white/10 hover:bg-white/[0.02]">
-                    <TableCell className="font-medium text-slate-50">{cookie.name}</TableCell>
+                    <TableCell className="font-medium text-zinc-50">{cookie.name}</TableCell>
                     <TableCell className="space-y-2">
                       <div className="flex flex-wrap gap-2">
                         <Badge variant={cookie.secure ? "default" : "destructive"}>
@@ -55,7 +55,7 @@ export const CookieAnalysis = ({ cookies }: CookieAnalysisProps) => {
                         </Badge>
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-slate-300">
+                    <TableCell className="text-sm text-zinc-300">
                       <div>{cookie.domain ? `Domain ${cookie.domain}` : "Host-only"}</div>
                       <div>{cookie.path ? `Path ${cookie.path}` : "Default path"}</div>
                       <div>{cookie.expires ? `Expires ${cookie.expires}` : "Session cookie"}</div>

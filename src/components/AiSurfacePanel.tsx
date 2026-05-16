@@ -17,8 +17,8 @@ export const AiSurfacePanel = ({ aiSurface }: AiSurfacePanelProps) => {
   } as const;
 
   const confidenceStyles = {
-    high: "bg-white/[0.12] text-slate-100",
-    medium: "bg-[#b56a2c]/14 text-[#f0d5bc]",
+    high: "bg-white/[0.12] text-zinc-100",
+    medium: "bg-[#14b8a6]/14 text-[#99f6e4]",
     low: "bg-[#4f6676]/14 text-[#d6e5ec]",
   } as const;
 
@@ -54,13 +54,13 @@ export const AiSurfacePanel = ({ aiSurface }: AiSurfacePanelProps) => {
                 {aiSurface.vendors.map((vendor) => (
                   <div key={`${vendor.name}-${vendor.category}`} className="rounded-[1.2rem] border border-white/10 bg-white/[0.04] px-4 py-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-slate-50">{vendor.name}</span>
+                      <span className="font-medium text-zinc-50">{vendor.name}</span>
                       <Badge variant="outline">{categoryLabel[vendor.category]}</Badge>
                       <Badge variant="secondary" className={confidenceStyles[vendor.confidence]}>
                         {vendor.confidence} confidence
                       </Badge>
                     </div>
-                    <p className="mt-2 text-xs text-slate-400">{vendor.evidence}</p>
+                    <p className="mt-2 text-xs text-zinc-400">{vendor.evidence}</p>
                   </div>
                 ))}
               </div>
@@ -87,12 +87,12 @@ export const AiSurfacePanel = ({ aiSurface }: AiSurfacePanelProps) => {
                 <div className="space-y-2">
                   {aiSurface.privacySignals.length > 0 ? (
                     aiSurface.privacySignals.map((signal) => (
-                      <p key={signal} className="rounded-[1rem] border border-white/10 bg-white/[0.04] px-3 py-3 text-sm text-slate-300">
+                      <p key={signal} className="rounded-[1rem] border border-white/10 bg-white/[0.04] px-3 py-3 text-sm text-zinc-300">
                         {signal}
                       </p>
                     ))
                   ) : (
-                    <p className="text-sm text-slate-400">No AI-related privacy guidance was identified on the fetched page.</p>
+                    <p className="text-sm text-zinc-400">No AI-related privacy guidance was identified on the fetched page.</p>
                   )}
                 </div>
               }
@@ -103,12 +103,12 @@ export const AiSurfacePanel = ({ aiSurface }: AiSurfacePanelProps) => {
                 <div className="space-y-2">
                   {aiSurface.governanceSignals.length > 0 ? (
                     aiSurface.governanceSignals.map((signal) => (
-                      <p key={signal} className="rounded-[1rem] border border-white/10 bg-white/[0.04] px-3 py-3 text-sm text-slate-300">
+                      <p key={signal} className="rounded-[1rem] border border-white/10 bg-white/[0.04] px-3 py-3 text-sm text-zinc-300">
                         {signal}
                       </p>
                     ))
                   ) : (
-                    <p className="text-sm text-slate-400">No visible AI governance or human-review language was identified.</p>
+                    <p className="text-sm text-zinc-400">No visible AI governance or human-review language was identified.</p>
                   )}
                 </div>
               }

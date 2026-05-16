@@ -51,15 +51,15 @@ export const MonitoredTargetsPanel = ({
   busy,
 }: MonitoredTargetsPanelProps) => {
   const panelClass = embedded
-    ? "border-0 bg-transparent text-slate-100 shadow-none"
-    : "border-white/10 bg-white/[0.04] text-slate-100 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]";
+    ? "border-0 bg-transparent text-zinc-100 shadow-none"
+    : "border-white/10 bg-white/[0.04] text-zinc-100 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]";
   const metricTileClass = embedded
-    ? "rounded-[1.2rem] border border-white/10 bg-slate-950/45 px-4 py-3 shadow-sm"
+    ? "rounded-[1.2rem] border border-white/10 bg-zinc-950/45 px-4 py-3 shadow-sm"
     : "rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 shadow-sm";
-  const mutedTextClass = embedded ? "text-slate-400" : "text-slate-400";
-  const strongTextClass = embedded ? "text-slate-50" : "text-slate-50";
+  const mutedTextClass = embedded ? "text-zinc-400" : "text-zinc-400";
+  const strongTextClass = embedded ? "text-zinc-50" : "text-zinc-50";
   const buttonClass = embedded
-    ? "rounded-2xl border-white/10 bg-white/[0.06] text-slate-100 hover:bg-white/[0.1] hover:text-white"
+    ? "rounded-2xl border-white/10 bg-white/[0.06] text-zinc-100 hover:bg-white/[0.1] hover:text-white"
     : "rounded-2xl";
 
   if (embedded) {
@@ -67,19 +67,19 @@ export const MonitoredTargetsPanel = ({
       <div className="space-y-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-1.5">
-            <div className="flex items-center gap-2 text-lg font-semibold text-slate-50">
-              <BellDot className="h-5 w-5 text-[#d89a63]" />
+            <div className="flex items-center gap-2 text-lg font-semibold text-zinc-50">
+              <BellDot className="h-5 w-5 text-[#2dd4bf]" />
               Monitoring
             </div>
-            <p className="max-w-xl text-sm leading-5 text-slate-400">
+            <p className="max-w-xl text-sm leading-5 text-zinc-400">
               Server-backed watchlist with compact drift tracking.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-            <div className="inline-flex rounded-2xl border border-white/10 bg-slate-950/45 p-1">
+            <div className="inline-flex rounded-2xl border border-white/10 bg-zinc-950/45 p-1">
               <Button
                 variant="ghost"
-                className="h-8 rounded-[0.9rem] px-3 text-xs text-slate-200 hover:bg-white/[0.08] hover:text-white"
+                className="h-8 rounded-[0.9rem] px-3 text-xs text-zinc-200 hover:bg-white/[0.08] hover:text-white"
                 disabled={!currentUrl || busy}
                 onClick={onAddDaily}
               >
@@ -87,7 +87,7 @@ export const MonitoredTargetsPanel = ({
               </Button>
               <Button
                 variant="ghost"
-                className="h-8 rounded-[0.9rem] px-3 text-xs text-slate-200 hover:bg-white/[0.08] hover:text-white"
+                className="h-8 rounded-[0.9rem] px-3 text-xs text-zinc-200 hover:bg-white/[0.08] hover:text-white"
                 disabled={!currentUrl || busy}
                 onClick={onAddWeekly}
               >
@@ -95,7 +95,7 @@ export const MonitoredTargetsPanel = ({
               </Button>
             </div>
             <Button
-              className="h-8 rounded-2xl bg-[#b56a2c] px-3 text-xs text-[#f8efe7] hover:bg-[#c07a3f]"
+              className="h-8 rounded-2xl bg-[#14b8a6] px-3 text-xs text-[#f8efe7] hover:bg-[#c07a3f]"
               disabled={!targets.some((target) => target.due) || busy}
               onClick={onRunDue}
             >
@@ -105,24 +105,24 @@ export const MonitoredTargetsPanel = ({
         </div>
 
         <div className="grid gap-3 md:grid-cols-[repeat(3,minmax(0,1fr))]">
-          <div className="rounded-[1rem] border border-white/10 bg-slate-950/45 px-4 py-3">
-            <div className="flex items-center gap-2 text-sm font-medium text-slate-400">
+          <div className="rounded-[1rem] border border-white/10 bg-zinc-950/45 px-4 py-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-zinc-400">
               <BellDot className="h-4 w-4" />
               Monitored
             </div>
-            <div className="mt-2 text-2xl font-semibold text-slate-50">{monitoredCount}</div>
+            <div className="mt-2 text-2xl font-semibold text-zinc-50">{monitoredCount}</div>
           </div>
-          <div className="rounded-[1rem] border border-white/10 bg-slate-950/45 px-4 py-3">
-            <div className="flex items-center gap-2 text-sm font-medium text-slate-400">
+          <div className="rounded-[1rem] border border-white/10 bg-zinc-950/45 px-4 py-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-zinc-400">
               <Clock3 className="h-4 w-4" />
               Due now
             </div>
-            <div className="mt-2 text-2xl font-semibold text-slate-50">{dueCount}</div>
+            <div className="mt-2 text-2xl font-semibold text-zinc-50">{dueCount}</div>
           </div>
-          <div className="rounded-[1rem] border border-white/10 bg-slate-950/45 px-4 py-3">
-            <p className="text-sm font-medium text-slate-400">Current site</p>
-            <p className="mt-2 text-sm font-semibold text-slate-100">{currentUrl ? "Ready to add" : "No active site"}</p>
-            <p className="mt-1 text-xs text-slate-500">
+          <div className="rounded-[1rem] border border-white/10 bg-zinc-950/45 px-4 py-3">
+            <p className="text-sm font-medium text-zinc-400">Current site</p>
+            <p className="mt-2 text-sm font-semibold text-zinc-100">{currentUrl ? "Ready to add" : "No active site"}</p>
+            <p className="mt-1 text-xs text-zinc-500">
               {currentUrl ? "Save it to the shared monitoring list using the controls above." : "Run or reopen a scan first."}
             </p>
           </div>
@@ -131,20 +131,20 @@ export const MonitoredTargetsPanel = ({
         {targets.length ? (
           <div className="grid gap-3 xl:grid-cols-2">
             {targets.map((target) => (
-              <div key={target.id} className="rounded-[1rem] border border-white/10 bg-slate-950/45 p-3.5 shadow-sm">
+              <div key={target.id} className="rounded-[1rem] border border-white/10 bg-zinc-950/45 p-3.5 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="truncate text-sm font-semibold text-slate-50">{target.label}</p>
+                      <p className="truncate text-sm font-semibold text-zinc-50">{target.label}</p>
                       <Badge
                         variant="secondary"
-                        className={target.due ? "bg-[#b56a2c]/16 text-[#f0d5bc]" : "bg-white/[0.08] text-slate-100"}
+                        className={target.due ? "bg-[#14b8a6]/16 text-[#99f6e4]" : "bg-white/[0.08] text-zinc-100"}
                       >
                         {target.due ? "due" : "scheduled"}
                       </Badge>
                     </div>
-                    <p className="mt-2 truncate text-xs text-slate-400">{target.url}</p>
-                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                    <p className="mt-2 truncate text-xs text-zinc-400">{target.url}</p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-zinc-400">
                       <Badge variant="outline" className="rounded-full">
                         {target.cadence}
                       </Badge>
@@ -156,7 +156,7 @@ export const MonitoredTargetsPanel = ({
                       ) : null}
                     </div>
                     {target.scoreDelta !== null ? (
-                      <p className="mt-2 text-xs text-slate-400">
+                      <p className="mt-2 text-xs text-zinc-400">
                         Score delta: {target.scoreDelta > 0 ? "+" : ""}{target.scoreDelta}
                       </p>
                     ) : null}
@@ -185,7 +185,7 @@ export const MonitoredTargetsPanel = ({
             ))}
           </div>
         ) : (
-          <div className="rounded-[1rem] border border-dashed border-white/10 bg-slate-950/35 px-4 py-5 text-sm text-slate-400">
+          <div className="rounded-[1rem] border border-dashed border-white/10 bg-zinc-950/35 px-4 py-5 text-sm text-zinc-400">
             No monitored targets yet. Save the current site as a daily or weekly watch target to start server-backed drift tracking here.
           </div>
         )}
@@ -213,7 +213,7 @@ export const MonitoredTargetsPanel = ({
             Monitor Weekly
           </Button>
           <Button
-            className={embedded ? "rounded-2xl bg-[#b56a2c] text-[#f8efe7] hover:bg-[#c07a3f]" : "rounded-2xl"}
+            className={embedded ? "rounded-2xl bg-[#14b8a6] text-[#f8efe7] hover:bg-[#c07a3f]" : "rounded-2xl"}
             disabled={!targets.some((target) => target.due) || busy}
             onClick={onRunDue}
           >
@@ -266,14 +266,14 @@ export const MonitoredTargetsPanel = ({
         {targets.length ? (
           <div className={`grid gap-3 ${embedded ? "md:grid-cols-3" : ""}`}>
             {targets.map((target) => (
-              <div key={target.id} className={embedded ? "rounded-2xl border border-white/10 bg-slate-950/45 p-4 shadow-sm" : "rounded-2xl border border-white/10 bg-white/[0.04] p-4 shadow-sm"}>
+              <div key={target.id} className={embedded ? "rounded-2xl border border-white/10 bg-zinc-950/45 p-4 shadow-sm" : "rounded-2xl border border-white/10 bg-white/[0.04] p-4 shadow-sm"}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className={`truncate text-sm font-semibold ${strongTextClass}`}>{target.label}</p>
                       <Badge
                         variant="secondary"
-                        className={target.due ? "bg-[#b56a2c]/16 text-[#f0d5bc]" : "bg-white/[0.08] text-slate-100"}
+                        className={target.due ? "bg-[#14b8a6]/16 text-[#99f6e4]" : "bg-white/[0.08] text-zinc-100"}
                       >
                         {target.due ? "due" : "scheduled"}
                       </Badge>
