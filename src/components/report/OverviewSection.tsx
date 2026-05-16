@@ -21,8 +21,8 @@ import { sectionTitleClass } from "./ReportSectionHeader";
 
 type TrafficLightStatus = "strong" | "watch" | "weak";
 
-const DONUT_RADIUS = 110;
-const DONUT_SIZE   = 256;
+const DONUT_RADIUS = 122;
+const DONUT_SIZE   = 280;
 const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_RADIUS;
 
 interface OverviewSectionProps {
@@ -95,7 +95,7 @@ export const OverviewSection = ({
       : "text-slate-300";
 
   return (
-    <div id="overview" className="space-y-7">
+    <div id="overview" className="space-y-8">
       {analysisData.assessmentLimitation.limited ? (
         <div className="rounded-[1.75rem] border border-[#b56a2c]/35 bg-[#b56a2c]/12 px-6 py-5 text-[#f4dfcd]">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#d89a63]">
@@ -108,13 +108,13 @@ export const OverviewSection = ({
       ) : null}
 
       <div className="space-y-5">
-        <div className="rounded-[2rem] border border-zinc-800/60 bg-[#0d1420] px-7 py-7 shadow-[0_32px_64px_-24px_rgba(0,0,0,0.6),0_1px_0_rgba(255,255,255,0.04)_inset]">
+        <div className="rounded-[2rem] border border-zinc-800/70 bg-[#0d1420] p-8 shadow-[0_40px_80px_-24px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.05)_inset]">
           <div className="grid gap-10 xl:grid-cols-[240px_minmax(0,1fr)]">
 
             {/* ── LEFT: Ring gauge — first thing the eye hits ── */}
             {(() => {
               const gp = GRADE_PALETTE[analysisData.grade] ?? GRADE_PALETTE.U;
-              const gradeFontSize = analysisData.grade.length > 1 ? "text-7xl" : "text-8xl";
+              const gradeFontSize = analysisData.grade.length > 1 ? "text-[7rem]" : "text-[9rem]";
               return (
                 <div
                   className="flex flex-col items-center rounded-[1.7rem] px-5 py-7 shadow-[0_24px_56px_-32px_rgba(0,0,0,0.75)] text-center"
@@ -131,11 +131,11 @@ export const OverviewSection = ({
                   <div className="relative mt-5" style={{ width: DONUT_SIZE, height: DONUT_SIZE }}>
                     <div
                       className="pointer-events-none absolute inset-0 rounded-full"
-                      style={{ background: `radial-gradient(circle, ${gp.glow} 0%, transparent 68%)`, filter: "blur(28px) brightness(1.3)" }}
+                      style={{ background: `radial-gradient(circle, ${gp.glow} 0%, transparent 65%)`, filter: "blur(32px) brightness(1.4)" }}
                     />
                     <div
-                      className="pointer-events-none absolute -inset-4 rounded-full opacity-40"
-                      style={{ background: `radial-gradient(circle, ${gp.stroke}22 0%, transparent 60%)`, filter: "blur(40px)" }}
+                      className="pointer-events-none absolute -inset-6 rounded-full opacity-50"
+                      style={{ background: `radial-gradient(circle, ${gp.stroke}28 0%, transparent 55%)`, filter: "blur(48px)" }}
                     />
                     <svg
                       viewBox={`0 0 ${DONUT_SIZE} ${DONUT_SIZE}`}
@@ -144,29 +144,32 @@ export const OverviewSection = ({
                       className="relative -rotate-90"
                     >
                       <circle cx={DONUT_SIZE / 2} cy={DONUT_SIZE / 2} r={DONUT_RADIUS}
-                        fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="14"
+                        fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="18"
                       />
                       <circle cx={DONUT_SIZE / 2} cy={DONUT_SIZE / 2} r={DONUT_RADIUS}
-                        fill="none" stroke={gp.stroke} strokeWidth="14"
+                        fill="none" stroke={gp.stroke} strokeWidth="18"
                         strokeLinecap="round"
                         strokeDasharray={DONUT_CIRCUMFERENCE}
                         strokeDashoffset={donutOffset}
-                        filter={`drop-shadow(0 0 8px ${gp.stroke}88)`}
+                        filter={`drop-shadow(0 0 12px ${gp.stroke}aa)`}
                       />
                     </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
                       <span
                         className={`font-black leading-none tracking-[-0.05em] ${gradeFontSize}`}
                         style={{ color: gp.textColor }}
                       >
                         {analysisData.grade}
                       </span>
+                      <span className="text-sm font-semibold tracking-[-0.01em] text-slate-400">
+                        {overallPercent}/100
+                      </span>
                       <span
-                        className="mt-2 inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em]"
+                        className="mt-1 inline-flex rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em]"
                         style={{
                           color: gp.textColor,
-                          background: `${gp.stroke}18`,
-                          border: `1px solid ${gp.stroke}30`
+                          background: `${gp.stroke}20`,
+                          border: `1px solid ${gp.stroke}38`
                         }}
                       >
                         {overallPostureLabel}
@@ -197,7 +200,7 @@ export const OverviewSection = ({
                 <p className="break-all text-sm text-slate-400">{analysisData.finalUrl}</p>
               </div>
 
-              <div className="rounded-[1.6rem] border border-white/[0.1] bg-slate-950/50 p-6 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
+              <div className="rounded-[1.75rem] border border-white/[0.1] bg-slate-950/50 p-7 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.75)]">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline" className="border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-300">
                     Overall posture: {overallPostureLabel}
@@ -217,7 +220,7 @@ export const OverviewSection = ({
                   <p className={`mt-3 text-xl font-bold leading-8 tracking-[-0.03em] text-white sm:text-2xl ${compact ? "" : "max-w-2xl"}`}>
                     {analysisData.executiveSummary.mainRisk}
                   </p>
-                  <p className="mt-4 text-sm leading-7 text-slate-300">
+                  <p className="mt-4 text-sm leading-relaxed text-slate-200">
                     {analysisData.executiveSummary.overview}
                   </p>
                 </div>
@@ -240,7 +243,7 @@ export const OverviewSection = ({
             </div>
           </div>
 
-          <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {/* Critical */}
             <div className="rounded-[1.5rem] border border-red-500/25 bg-red-500/[0.08] px-5 py-6 transition-transform duration-200 hover:-translate-y-0.5">
               <div className="flex items-center justify-between gap-2">
@@ -281,9 +284,9 @@ export const OverviewSection = ({
             </div>
           </div>
 
-          <div className="mt-6 grid gap-5 xl:grid-cols-[1.08fr_0.92fr]">
+          <div className="mt-8 grid gap-5 xl:grid-cols-[1.08fr_0.92fr]">
             {isLimitedAssessment ? (
-              <div className="rounded-[1.5rem] border border-white/[0.08] bg-slate-950/60 px-6 py-6">
+              <div className="rounded-[1.75rem] border border-zinc-800/60 bg-slate-950/60 px-7 py-7 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)]">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-base font-semibold tracking-[-0.02em] text-white">Assessment constraints</p>
                   <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Directional read only</p>
@@ -303,24 +306,24 @@ export const OverviewSection = ({
                 </div>
               </div>
             ) : (
-              <div className="rounded-[1.5rem] border border-white/[0.08] bg-slate-950/60 px-6 py-6">
+              <div className="rounded-[1.75rem] border border-zinc-800/60 bg-slate-950/60 px-7 py-7 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)]">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Category scores</p>
-                    <p className="mt-2 text-xl font-semibold tracking-[-0.02em] text-white">Where risk is concentrated</p>
+                    <p className="mt-2 text-xl font-bold tracking-[-0.03em] text-white">Where risk is concentrated</p>
                   </div>
                 </div>
                 <div className="mt-5 space-y-3">
                   {sortedAreaScores.map((area) => {
                     const barColor = area.status === "strong" ? "#22c55e" : area.status === "watch" ? "#f59e0b" : "#ef4444";
-                    const scoreColor = area.status === "strong" ? "#86efac" : area.status === "watch" ? "#fcd34d" : "#fca5a5";
+                    const scoreColor = area.status === "strong" ? "#4ade80" : area.status === "watch" ? "#fbbf24" : "#f87171";
                     return (
                       <div key={area.key} className="grid gap-2 md:grid-cols-[12rem_1fr_4.5rem] md:items-center">
-                        <p className="text-sm font-medium text-slate-300">{area.label}</p>
-                        <div className="relative h-1.5 overflow-hidden rounded-full bg-white/[0.07]">
+                        <p className="text-sm font-semibold text-slate-200">{area.label}</p>
+                        <div className="relative h-2 overflow-hidden rounded-full bg-white/[0.06]">
                           <div
                             className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
-                            style={{ width: `${area.score}%`, background: barColor, opacity: 0.8 }}
+                            style={{ width: `${area.score}%`, background: barColor, opacity: 0.9, boxShadow: `0 0 8px ${barColor}55` }}
                           />
                         </div>
                         <p className="text-right text-sm font-semibold leading-none" style={{ color: scoreColor }}>
@@ -334,7 +337,7 @@ export const OverviewSection = ({
               </div>
             )}
 
-            <div className="rounded-[1.5rem] border border-white/[0.08] bg-slate-950/60 px-6 py-6">
+            <div className="rounded-[1.75rem] border border-zinc-800/60 bg-slate-950/60 px-7 py-7 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)]">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">What to do next</p>
@@ -345,9 +348,9 @@ export const OverviewSection = ({
               {priorityActions.length ? (
                 <div className="mt-5 space-y-3">
                   {priorityActions.map((action, index) => {
-                    const accentColor = action.severity === "critical" ? "#ef4444" : action.severity === "warning" ? "#f59e0b" : "#64748b";
-                    const accentBg    = action.severity === "critical" ? "rgba(239,68,68,0.07)"  : action.severity === "warning" ? "rgba(245,158,11,0.07)" : "rgba(100,116,139,0.07)";
-                    const accentBorder= action.severity === "critical" ? "rgba(239,68,68,0.18)"  : action.severity === "warning" ? "rgba(245,158,11,0.18)" : "rgba(100,116,139,0.13)";
+                    const accentColor = action.severity === "critical" ? "#f87171" : action.severity === "warning" ? "#fbbf24" : "#94a3b8";
+                    const accentBg    = action.severity === "critical" ? "rgba(239,68,68,0.10)"  : action.severity === "warning" ? "rgba(245,158,11,0.10)" : "rgba(100,116,139,0.08)";
+                    const accentBorder= action.severity === "critical" ? "rgba(239,68,68,0.25)"  : action.severity === "warning" ? "rgba(245,158,11,0.25)" : "rgba(100,116,139,0.18)";
                     return (
                       <div
                         key={`${action.area}-${action.title}`}
@@ -382,8 +385,8 @@ export const OverviewSection = ({
             </div>
           </div>
 
-          <div className="mt-6 grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
-            <div className="rounded-[1.5rem] border border-white/[0.08] bg-slate-950/60 px-6 py-6">
+          <div className="mt-8 grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
+            <div className="rounded-[1.75rem] border border-zinc-800/60 bg-slate-950/60 px-7 py-7 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)]">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Scan facts</p>
@@ -407,7 +410,7 @@ export const OverviewSection = ({
               </div>
             </div>
 
-            <div className="rounded-[1.5rem] border border-white/[0.08] bg-slate-950/60 px-6 py-6">
+            <div className="rounded-[1.75rem] border border-zinc-800/60 bg-slate-950/60 px-7 py-7 shadow-[0_12px_32px_-16px_rgba(0,0,0,0.5)]">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Report outputs</p>

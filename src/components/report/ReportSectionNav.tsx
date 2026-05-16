@@ -24,14 +24,14 @@ export const ReportSectionNav = ({ sections, activeKey, onChange }: ReportSectio
           value={activeKey}
           onValueChange={(v) => onChange(v as ReportWorkspaceSectionKey)}
         >
-          <SelectTrigger className="h-auto rounded-2xl border-white/[0.1] bg-slate-950/60 px-4 py-3.5 text-left ring-offset-0 focus:ring-1 focus:ring-[#b56a2c]/40 focus:ring-offset-0 backdrop-blur">
+          <SelectTrigger className="h-auto w-full rounded-[1.5rem] border-zinc-800/70 bg-[#0c1219] px-5 py-4 text-left ring-offset-0 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)] focus:ring-1 focus:ring-[#b56a2c]/50 focus:ring-offset-0 backdrop-blur">
             {activeSection ? (
               <div className="flex min-w-0 items-center gap-3">
-                <activeSection.icon className="h-4 w-4 shrink-0 text-[#d89a63]" />
+                <activeSection.icon className="h-5 w-5 shrink-0 text-[#d89a63]" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-white">{activeSection.title}</p>
+                  <p className="text-base font-bold text-white">{activeSection.title}</p>
                   {(activeSection.badge ?? activeSection.context) ? (
-                    <p className="mt-0.5 truncate text-[11px] font-medium text-slate-400">
+                    <p className="mt-0.5 truncate text-[11px] font-medium text-[#d89a63]/70">
                       {activeSection.badge ?? activeSection.context}
                     </p>
                   ) : null}
@@ -84,7 +84,7 @@ export const ReportSectionNav = ({ sections, activeKey, onChange }: ReportSectio
                   type="button"
                   onClick={() => onChange(section.key)}
                   className={cn(
-                    "group flex min-w-0 flex-col items-start gap-1 rounded-[1.35rem] px-4 py-3 text-left transition-all duration-200",
+                    "group flex min-w-0 flex-col items-start gap-1 rounded-[1.35rem] px-5 py-3.5 text-left transition-all duration-200",
                     active
                       ? "bg-[#b56a2c]/20 shadow-[0_0_0_1px_rgba(181,106,44,0.4)_inset,0_8px_32px_-6px_rgba(181,106,44,0.35)]"
                       : "hover:bg-white/[0.05]",
@@ -99,8 +99,8 @@ export const ReportSectionNav = ({ sections, activeKey, onChange }: ReportSectio
                     />
                     <span
                       className={cn(
-                        "whitespace-nowrap text-sm font-semibold transition-colors",
-                        active ? "text-white" : "text-slate-400 group-hover:text-slate-200",
+                        "whitespace-nowrap text-sm transition-colors",
+                        active ? "font-bold text-white" : "font-semibold text-slate-400 group-hover:text-slate-200",
                       )}
                     >
                       {section.title}

@@ -28,7 +28,7 @@ export const PriorityActionsPanel = ({ analysis }: PriorityActionsPanelProps) =>
 
   if (!actions.length) {
     return (
-      <Card className="rounded-[1.75rem] border border-zinc-800/60 bg-[#0d1420] shadow-[0_32px_64px_-24px_rgba(0,0,0,0.6),0_1px_0_rgba(255,255,255,0.04)_inset]">
+      <Card className="rounded-[2rem] border border-zinc-800/70 bg-[#0d1420] shadow-[0_40px_80px_-24px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.05)_inset]">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-xl font-bold tracking-[-0.03em] text-white">
             <ListTodo className="h-5 w-5 text-[#d89a63]" />
@@ -45,7 +45,7 @@ export const PriorityActionsPanel = ({ analysis }: PriorityActionsPanelProps) =>
   }
 
   return (
-    <Card className="rounded-[1.75rem] border border-white/[0.08] bg-[#0d1420] shadow-[0_32px_64px_-24px_rgba(0,0,0,0.6),0_1px_0_rgba(255,255,255,0.04)_inset]">
+    <Card className="rounded-[2rem] border border-zinc-800/70 bg-[#0d1420] shadow-[0_40px_80px_-24px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.05)_inset]">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-xl font-bold tracking-[-0.03em] text-white">
           <ListTodo className="h-5 w-5 text-[#d89a63]" />

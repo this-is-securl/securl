@@ -14,12 +14,12 @@ import { OutputPreview } from "@/components/landing/OutputPreview";
 import { CapabilityStrip } from "@/components/landing/CapabilityStrip";
 
 // ── Mini ring preview (hero right column, pre-scan) ──────────────────────────
-const MINI_R    = 60;
-const MINI_SIZE = 144;
+const MINI_R    = 74;
+const MINI_SIZE = 174;
 const MINI_CIRC = parseFloat((2 * Math.PI * MINI_R).toFixed(2));
 const MINI_SCORE = 81;
 const MINI_OFF  = parseFloat((MINI_CIRC * (1 - MINI_SCORE / 100)).toFixed(2));
-const MINI_COLOR = "#2563eb"; // grade B
+const MINI_COLOR = "#3b82f6"; // grade B — vivid blue
 
 const HeroPreviewCard = () => (
   <div className="relative h-full overflow-hidden rounded-[1.8rem] border border-white/10 bg-slate-950/35 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
@@ -55,28 +55,29 @@ const HeroPreviewCard = () => (
         >
           <circle
             cx={MINI_SIZE / 2} cy={MINI_SIZE / 2} r={MINI_R}
-            fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="10"
+            fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="14"
           />
           <circle
             cx={MINI_SIZE / 2} cy={MINI_SIZE / 2} r={MINI_R}
-            fill="none" stroke={MINI_COLOR} strokeWidth="10"
+            fill="none" stroke={MINI_COLOR} strokeWidth="14"
             strokeLinecap="round"
             strokeDasharray={MINI_CIRC}
             strokeDashoffset={MINI_OFF}
             transform={`rotate(-90 ${MINI_SIZE / 2} ${MINI_SIZE / 2})`}
+            filter={`drop-shadow(0 0 10px ${MINI_COLOR}99)`}
           />
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
           <span
-            className="font-black leading-none tracking-[-0.04em]"
-            style={{ fontSize: 48, color: MINI_COLOR }}
+            className="font-black leading-none tracking-[-0.05em]"
+            style={{ fontSize: 62, color: MINI_COLOR }}
           >
             B
           </span>
-          <span className="text-xs font-semibold text-slate-400">81/100</span>
+          <span className="text-sm font-semibold tracking-[-0.01em] text-slate-400">81/100</span>
           <span
-            className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.18em]"
-            style={{ color: MINI_COLOR }}
+            className="mt-0.5 inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em]"
+            style={{ color: MINI_COLOR, background: `${MINI_COLOR}18`, border: `1px solid ${MINI_COLOR}30` }}
           >
             Good Posture
           </span>
@@ -197,11 +198,11 @@ const Index = () => {
     <div className="min-h-screen overflow-hidden bg-[#070b14] text-slate-100">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(ellipse_60%_40%_at_18%_0%,rgba(181,106,44,0.18),transparent_50%),radial-gradient(ellipse_50%_50%_at_85%_8%,rgba(99,149,175,0.14),transparent_50%),radial-gradient(ellipse_40%_30%_at_5%_95%,rgba(99,100,175,0.06),transparent_50%),linear-gradient(180deg,#060a13_0%,#0b1220_50%,#101827_100%)]" />
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
 
         {/* ── Hero card ─────────────────────────────────────────────────── */}
-        <section className="rounded-[2.25rem] border border-white/[0.12] bg-[#0b1221]/80 p-5 shadow-[0_40px_100px_-40px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.06)_inset] backdrop-blur-xl sm:p-7 lg:p-8">
-          <div className="grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-start">
+        <section className="rounded-[2.5rem] border border-white/[0.14] bg-[#0b1221]/90 p-6 shadow-[0_48px_120px_-40px_rgba(0,0,0,0.8),0_1px_0_rgba(255,255,255,0.07)_inset] backdrop-blur-xl sm:p-8 lg:p-10">
+          <div className="grid gap-10 lg:grid-cols-[1.3fr_0.7fr] lg:items-start">
 
             {/* Left: headline + form */}
             <div className="space-y-6">
@@ -228,12 +229,12 @@ const Index = () => {
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <h1 className="max-w-3xl text-4xl font-bold tracking-[-0.055em] text-white sm:text-5xl lg:text-6xl">
-                    See what attackers see.
+                <div className="space-y-5">
+                  <h1 className="max-w-3xl text-5xl font-black tracking-[-0.06em] text-white sm:text-6xl lg:text-7xl">
+                    See what<br className="hidden sm:block" /> attackers see.
                   </h1>
-                  <p className="max-w-xl text-base leading-7 text-slate-400">
-                    SecURL runs the same checks an attacker would. You get a letter grade, ranked findings, and the context to act — in under 30 seconds.
+                  <p className="max-w-lg text-lg font-medium leading-8 text-slate-300">
+                    A letter grade, ranked findings, and context to act — in under 30 seconds.
                   </p>
                 </div>
               </div>
@@ -292,7 +293,7 @@ const Index = () => {
 
         {/* ── Report workspace (post-scan) ──────────────────────────────── */}
         {analysisData && (
-          <section className="mt-8 space-y-5">
+          <section className="mt-10 space-y-6">
             <div className="flex items-center gap-2.5 px-1">
               <Layers3 className="h-4 w-4 text-[#d89a63]" />
               <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
@@ -300,7 +301,7 @@ const Index = () => {
               </span>
               <span className="h-px flex-1 bg-white/[0.06]" />
             </div>
-            <div className="space-y-8">
+            <div className="space-y-10">
               <ReportSectionNav
                 sections={reportSections}
                 activeKey={activeSection?.key}
@@ -310,9 +311,9 @@ const Index = () => {
               {activeSection ? (
                 <div
                   key={activeSection.key}
-                  className="min-w-0 overflow-hidden rounded-[1.75rem] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(255,255,255,0.025)_100%)] shadow-[0_32px_80px_-32px_rgba(0,0,0,0.6)] ring-1 ring-white/[0.04] backdrop-blur animate-in fade-in-50 slide-in-from-bottom-2 duration-500"
+                  className="min-w-0 overflow-hidden rounded-[2rem] border border-zinc-800/60 bg-[#0c1219] shadow-[0_40px_80px_-24px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.04)_inset] animate-in fade-in-50 slide-in-from-bottom-2 duration-500"
                 >
-                  <div className="border-b border-white/[0.08] px-6 py-5 sm:px-7">
+                  <div className="border-b border-zinc-800/60 px-7 py-6 sm:px-8">
                     <div className="flex items-center gap-2.5">
                       {activeSection.icon && (
                         <activeSection.icon className="h-4 w-4 text-[#d89a63]" />
@@ -323,14 +324,14 @@ const Index = () => {
                         </p>
                       ) : null}
                     </div>
-                    <h2 className="mt-2 text-2xl font-bold tracking-[-0.04em] text-white sm:text-3xl">
+                    <h2 className="mt-2 text-2xl font-black tracking-[-0.04em] text-white sm:text-3xl">
                       {activeSection.title}
                     </h2>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+                    <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">
                       {activeSection.summary}
                     </p>
                   </div>
-                  <div className="px-5 py-7 text-slate-100 sm:px-7 lg:px-8">
+                  <div className="px-7 py-8 text-slate-100 sm:px-8 lg:px-9">
                     {activeSection.content}
                   </div>
                 </div>
