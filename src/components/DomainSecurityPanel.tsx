@@ -10,9 +10,9 @@ interface DomainSecurityPanelProps {
 
 const policyBadgeClass = {
   strong: "border-[#4f6676]/35 bg-[#4f6676]/12 text-[#edf3f6]",
-  watch: "border-[#8e5c3b]/30 bg-[#8e5c3b]/12 text-[#f0dfcf]",
-  weak: "border-[#b56a2c]/35 bg-[#3a2a20] text-[#f4dfcd]",
-  missing: "border-white/10 bg-white/[0.06] text-slate-200",
+  watch: "border-[#7f1d1d]/30 bg-[#7f1d1d]/12 text-[#f0dfcf]",
+  weak: "border-[#14b8a6]/35 bg-[#3a2a20] text-[#ccfbf1]",
+  missing: "border-white/10 bg-white/[0.06] text-zinc-200",
 } as const;
 
 const policyLabel = {
@@ -47,24 +47,24 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
           <StatBox
             label="SPF"
             value={
-              <div className="space-y-3 text-sm leading-6 text-slate-200">
+              <div className="space-y-3 text-sm leading-6 text-zinc-200">
                 <Badge variant="outline" className={policyBadgeClass[emailPolicy.spf.status]}>
                   {policyLabel[emailPolicy.spf.status]}
                 </Badge>
                 <p>{emailPolicy.spf.summary}</p>
-                <p className="overflow-hidden break-words text-xs text-slate-400">{domainSecurity.spf ?? "Not found"}</p>
+                <p className="overflow-hidden break-words text-xs text-zinc-400">{domainSecurity.spf ?? "Not found"}</p>
               </div>
             }
           />
           <StatBox
             label="DMARC"
             value={
-              <div className="space-y-3 text-sm leading-6 text-slate-200">
+              <div className="space-y-3 text-sm leading-6 text-zinc-200">
                 <Badge variant="outline" className={policyBadgeClass[emailPolicy.dmarc.status]}>
                   {policyLabel[emailPolicy.dmarc.status]}
                 </Badge>
                 <p>{emailPolicy.dmarc.summary}</p>
-                <p className="overflow-hidden break-words text-xs text-slate-400">{domainSecurity.dmarc ?? "Not found"}</p>
+                <p className="overflow-hidden break-words text-xs text-zinc-400">{domainSecurity.dmarc ?? "Not found"}</p>
               </div>
             }
           />
@@ -74,7 +74,7 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
           <StatBox
             label="MX records"
             value={
-              <div className="space-y-2 text-sm leading-6 text-slate-200">
+              <div className="space-y-2 text-sm leading-6 text-zinc-200">
                 {domainSecurity.mxRecords.length ? domainSecurity.mxRecords.map((record) => <p key={record} className="overflow-hidden break-words">{record}</p>) : <p>None</p>}
               </div>
             }
@@ -82,7 +82,7 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
           <StatBox
             label="CAA records"
             value={
-              <div className="space-y-2 text-sm leading-6 text-slate-200">
+              <div className="space-y-2 text-sm leading-6 text-zinc-200">
                 {domainSecurity.caaRecords.length ? domainSecurity.caaRecords.map((record) => <p key={record} className="overflow-hidden break-words">{record}</p>) : <p>None</p>}
               </div>
             }
@@ -92,7 +92,7 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
         <StatBox
           label="DNSSEC"
           value={
-            <div className="space-y-2 text-sm leading-6 text-slate-200">
+            <div className="space-y-2 text-sm leading-6 text-zinc-200">
               <p>Status: {domainSecurity.dnssec.status === "signed" ? "Signed" : domainSecurity.dnssec.status === "not_signed" ? "Not signed" : "Unknown"}</p>
               {domainSecurity.dnssec.dsRecords.length ? (
                 domainSecurity.dnssec.dsRecords.map((record) => (
@@ -108,7 +108,7 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
         <StatBox
           label="MTA-STS"
           value={
-            <div className="space-y-2 text-sm leading-6 text-slate-200">
+            <div className="space-y-2 text-sm leading-6 text-zinc-200">
               <p className="overflow-hidden break-words">DNS: {domainSecurity.mtaSts.dns ?? "Not found"}</p>
               {domainSecurity.mtaSts.policyUrl && <p className="overflow-hidden break-words">Policy URL: {domainSecurity.mtaSts.policyUrl}</p>}
               {domainSecurity.mtaSts.policy && (

@@ -11,19 +11,19 @@ interface TechnologyStackProps {
 const categoryConfig = {
   server: {
     icon: <Server className="h-4 w-4" />,
-    color: "bg-white/[0.08] text-slate-100",
+    color: "bg-white/[0.08] text-zinc-100",
   },
   frontend: {
     icon: <Code2 className="h-4 w-4" />,
-    color: "bg-white/[0.08] text-slate-100",
+    color: "bg-white/[0.08] text-zinc-100",
   },
   security: {
     icon: <Shield className="h-4 w-4" />,
-    color: "bg-[#b56a2c]/16 text-[#f0d5bc]",
+    color: "bg-[#14b8a6]/16 text-[#99f6e4]",
   },
   hosting: {
     icon: <Cloud className="h-4 w-4" />,
-    color: "bg-[#8e5c3b]/14 text-[#f0d5bc]",
+    color: "bg-[#7f1d1d]/14 text-[#99f6e4]",
   },
   network: {
     icon: <Network className="h-4 w-4" />,
@@ -34,8 +34,8 @@ const categoryConfig = {
 const categoryOrder: Array<keyof typeof categoryConfig> = ["network", "hosting", "server", "frontend", "security"];
 
 const confidenceStyles = {
-  high: "bg-white/[0.08] text-slate-100",
-  medium: "bg-[#b56a2c]/16 text-[#f0d5bc]",
+  high: "bg-white/[0.08] text-zinc-100",
+  medium: "bg-[#14b8a6]/16 text-[#99f6e4]",
   low: "bg-[#4f6676]/18 text-[#d9e4ea]",
 } as const;
 
@@ -44,7 +44,7 @@ export const TechnologyStack = ({ technologies }: TechnologyStackProps) => {
     return (
       <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-slate-50">
+          <CardTitle className="flex items-center gap-2 text-zinc-50">
             <Globe className="h-5 w-5" />
             Detected Stack
           </CardTitle>
@@ -66,7 +66,7 @@ export const TechnologyStack = ({ technologies }: TechnologyStackProps) => {
   return (
     <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-slate-50">
+        <CardTitle className="flex items-center gap-2 text-zinc-50">
           <Globe className="h-5 w-5" />
           Detected Stack
         </CardTitle>
@@ -77,7 +77,7 @@ export const TechnologyStack = ({ technologies }: TechnologyStackProps) => {
           const config = categoryConfig[category as keyof typeof categoryConfig];
           return (
             <div key={category} className="space-y-3">
-              <div className="flex items-center gap-2 text-sm font-semibold capitalize text-slate-300">
+              <div className="flex items-center gap-2 text-sm font-semibold capitalize text-zinc-300">
                 {config.icon}
                 {category}
               </div>
@@ -88,7 +88,7 @@ export const TechnologyStack = ({ technologies }: TechnologyStackProps) => {
                     className="rounded-[1.25rem] border border-white/10 bg-white/[0.04] px-4 py-3"
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <div className="font-medium text-slate-50">{tech.name}</div>
+                      <div className="font-medium text-zinc-50">{tech.name}</div>
                       <div className="flex flex-wrap items-center justify-end gap-2">
                         <Badge variant="secondary" className={config.color}>
                           {tech.version ?? tech.detection}
@@ -98,7 +98,7 @@ export const TechnologyStack = ({ technologies }: TechnologyStackProps) => {
                         </Badge>
                       </div>
                     </div>
-                    <p className="mt-2 text-xs text-slate-400">{tech.evidence}</p>
+                    <p className="mt-2 text-xs text-zinc-400">{tech.evidence}</p>
                   </div>
                 ))}
               </div>

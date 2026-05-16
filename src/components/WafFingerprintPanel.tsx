@@ -27,49 +27,49 @@ export const WafFingerprintPanel = ({ wafFingerprint }: WafFingerprintPanelProps
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <CardTitle>WAF & Edge Fingerprint</CardTitle>
-          <div className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-100">
+          <div className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-100">
             {wafFingerprint.detected ? "Detected" : "No strong match"}
           </div>
         </div>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-zinc-400">
           Passive edge and protection-provider inference from response headers, block-page markers, and redirect behavior.
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
-        <p className="text-sm leading-6 text-slate-300">{wafFingerprint.summary}</p>
+        <p className="text-sm leading-6 text-zinc-300">{wafFingerprint.summary}</p>
 
         <div className="grid gap-6 xl:grid-cols-2">
-          <div className="rounded-[1.25rem] border border-white/10 bg-slate-950/45 p-4">
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Providers</p>
+          <div className="rounded-[1.25rem] border border-white/10 bg-zinc-950/45 p-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">Providers</p>
             {wafFingerprint.providers.length ? (
-              <ul className="mt-3 space-y-3 text-sm text-slate-300">
+              <ul className="mt-3 space-y-3 text-sm text-zinc-300">
                 {wafFingerprint.providers.map((provider) => (
                   <li key={`${provider.name}-${provider.evidence}`} className="rounded-[1.1rem] border border-white/10 bg-white/[0.04] p-3">
                     <div className="flex items-center justify-between gap-3">
                       <span className="font-semibold text-white">{provider.name}</span>
-                      <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                      <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">
                         {provider.detection} · {provider.confidence}
                       </span>
                     </div>
-                    <p className="mt-2 text-xs text-slate-400">{provider.evidence}</p>
+                    <p className="mt-2 text-xs text-zinc-400">{provider.evidence}</p>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="mt-3 text-sm text-slate-400">No branded WAF or edge-protection provider was conclusively identified.</p>
+              <p className="mt-3 text-sm text-zinc-400">No branded WAF or edge-protection provider was conclusively identified.</p>
             )}
           </div>
 
-          <div className="rounded-[1.25rem] border border-white/10 bg-slate-950/45 p-4">
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Edge evidence</p>
+          <div className="rounded-[1.25rem] border border-white/10 bg-zinc-950/45 p-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">Edge evidence</p>
             {wafFingerprint.edgeSignals.length ? (
-              <ul className="mt-3 space-y-2 text-sm text-slate-300">
+              <ul className="mt-3 space-y-2 text-sm text-zinc-300">
                 {wafFingerprint.edgeSignals.map((signal) => (
                   <li key={signal}>{signal}</li>
                 ))}
               </ul>
             ) : (
-              <p className="mt-3 text-sm text-slate-400">No additional edge-network clues were recorded.</p>
+              <p className="mt-3 text-sm text-zinc-400">No additional edge-network clues were recorded.</p>
             )}
           </div>
         </div>

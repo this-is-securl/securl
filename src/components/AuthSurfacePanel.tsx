@@ -21,7 +21,7 @@ export const AuthSurfacePanel = ({ htmlSecurity }: AuthSurfacePanelProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm leading-6 text-slate-300">
+          <p className="text-sm leading-6 text-zinc-300">
             No obvious auth-adjacent paths or password form signals were detected from the fetched page.
           </p>
           <div className="grid gap-4 md:grid-cols-4">
@@ -44,7 +44,7 @@ export const AuthSurfacePanel = ({ htmlSecurity }: AuthSurfacePanelProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
-        <p className="text-sm leading-6 text-slate-300">{summary.summary}</p>
+        <p className="text-sm leading-6 text-zinc-300">{summary.summary}</p>
 
         <div className="grid gap-4 md:grid-cols-4">
           <StatBox label="Auth paths" value={<p className="text-2xl font-semibold">{summary.authPaths.length}</p>} />

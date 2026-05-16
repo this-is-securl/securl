@@ -9,9 +9,9 @@ interface ThirdPartyTrustPanelProps {
 }
 
 const riskStyles = {
-  low: "bg-white/[0.08] text-slate-100",
-  medium: "bg-[#8e5c3b]/14 text-[#f0d5bc]",
-  high: "bg-[#b56a2c]/18 text-[#f0d5bc]",
+  low: "bg-white/[0.08] text-zinc-100",
+  medium: "bg-[#7f1d1d]/14 text-[#99f6e4]",
+  high: "bg-[#14b8a6]/18 text-[#99f6e4]",
 } as const;
 
 const categoryLabel = {
@@ -67,18 +67,18 @@ export const ThirdPartyTrustPanel = ({ thirdPartyTrust }: ThirdPartyTrustPanelPr
                 {highlightedProviders.map((provider) => (
                   <div key={provider.domain} className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] px-4 py-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-slate-50">{provider.name}</span>
+                      <span className="font-medium text-zinc-50">{provider.name}</span>
                       <Badge variant="outline">{categoryLabel[provider.category]}</Badge>
                       <Badge variant="secondary" className={riskStyles[provider.risk]}>
                         {provider.risk} risk
                       </Badge>
                     </div>
-                    <p className="mt-2 truncate text-sm text-slate-300" title={provider.domain}>{provider.domain}</p>
-                    <p className="mt-1 text-xs text-slate-400">{provider.evidence}</p>
+                    <p className="mt-2 truncate text-sm text-zinc-300" title={provider.domain}>{provider.domain}</p>
+                    <p className="mt-1 text-xs text-zinc-400">{provider.evidence}</p>
                   </div>
                 ))}
                 {thirdPartyTrust.providers.length > highlightedProviders.length && (
-                  <p className="text-sm text-slate-400">
+                  <p className="text-sm text-zinc-400">
                     Showing the most important {highlightedProviders.length} providers from a total of {thirdPartyTrust.providers.length}.
                   </p>
                 )}

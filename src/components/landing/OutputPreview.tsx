@@ -62,11 +62,11 @@ export const OutputPreview = () => (
           <div className="h-2.5 w-2.5 rounded-full" style={{ background: GRADE_COLOR }} />
         </div>
         <div>
-          <p className="text-[13px] font-semibold text-slate-200">portswigger.net</p>
-          <p className="text-[11px] text-slate-500">Example scan result</p>
+          <p className="text-[13px] font-semibold text-zinc-200">portswigger.net</p>
+          <p className="text-[11px] text-zinc-500">Example scan result</p>
         </div>
       </div>
-      <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+      <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-500">
         Sample output
       </span>
     </div>
@@ -106,7 +106,7 @@ export const OutputPreview = () => (
           >
             B
           </span>
-          <span className="text-sm font-semibold text-slate-400">{SCORE}/100</span>
+          <span className="text-sm font-semibold text-zinc-400">{SCORE}/100</span>
           <span
             className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em]"
             style={{ color: GRADE_COLOR }}
@@ -121,8 +121,8 @@ export const OutputPreview = () => (
         {POSTURE_AREAS.map((area) => (
           <div key={area.label}>
             <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-[13px] font-semibold text-slate-300">{area.label}</span>
-              <span className="text-[13px] font-bold tabular-nums text-slate-400">{area.score}</span>
+              <span className="text-[13px] font-semibold text-zinc-300">{area.label}</span>
+              <span className="text-[13px] font-bold tabular-nums text-zinc-400">{area.score}</span>
             </div>
             <div className="h-[5px] overflow-hidden rounded-full" style={{ background: "rgba(255,255,255,0.06)" }}>
               <div
@@ -153,11 +153,11 @@ export const OutputPreview = () => (
                 {finding.severity}
               </span>
             </div>
-            <h4 className="mb-2 text-[13px] font-semibold leading-snug text-slate-100">
+            <h4 className="mb-2 text-[13px] font-semibold leading-snug text-zinc-100">
               {finding.title}
             </h4>
-            <p className="text-[12px] leading-[1.55] text-slate-400">{finding.consequence}</p>
-            <p className="mt-2 text-[11px] leading-[1.5] text-slate-500 italic">{finding.detail}</p>
+            <p className="text-[12px] leading-[1.55] text-zinc-400">{finding.consequence}</p>
+            <p className="mt-2 text-[11px] leading-[1.5] text-zinc-500 italic">{finding.detail}</p>
           </div>
         );
       })}

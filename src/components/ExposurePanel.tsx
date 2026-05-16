@@ -10,11 +10,11 @@ interface ExposurePanelProps {
 }
 
 const findingStyles = {
-  safe: "bg-white/[0.08] text-slate-100",
-  interesting: "bg-[#8e5c3b]/14 text-[#f0d5bc]",
-  blocked: "bg-white/[0.08] text-slate-100",
-  exposed: "bg-[#b56a2c]/16 text-[#f0d5bc]",
-  error: "bg-[#b56a2c]/18 text-[#f0d5bc]",
+  safe: "bg-white/[0.08] text-zinc-100",
+  interesting: "bg-[#7f1d1d]/14 text-[#99f6e4]",
+  blocked: "bg-white/[0.08] text-zinc-100",
+  exposed: "bg-[#14b8a6]/16 text-[#99f6e4]",
+  error: "bg-[#14b8a6]/18 text-[#99f6e4]",
 } as const;
 
 export const ExposurePanel = ({ exposure }: ExposurePanelProps) => {
@@ -34,21 +34,21 @@ export const ExposurePanel = ({ exposure }: ExposurePanelProps) => {
               <div key={probe.path} className="rounded-[1.25rem] border border-white/10 bg-white/[0.04] p-4">
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div className="min-w-0">
-                    <p className="font-semibold text-slate-50">{probe.label}</p>
-                    <p className="truncate text-sm text-slate-400" title={probe.path}>{probe.path}</p>
+                    <p className="font-semibold text-zinc-50">{probe.label}</p>
+                    <p className="truncate text-sm text-zinc-400" title={probe.path}>{probe.path}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary" className={findingStyles[probe.finding]}>
                       {probe.finding}
                     </Badge>
-                    <span className="text-sm font-semibold text-slate-200">
+                    <span className="text-sm font-semibold text-zinc-200">
                       {probe.statusCode ? `${probe.statusCode} ${status?.label}` : "n/a"}
                     </span>
                   </div>
                 </div>
-                <p className="mt-3 text-sm text-slate-300">{probe.detail}</p>
+                <p className="mt-3 text-sm text-zinc-300">{probe.detail}</p>
                 {status ? (
-                  <p className="mt-1 text-xs leading-5 text-slate-400">
+                  <p className="mt-1 text-xs leading-5 text-zinc-400">
                     {status.meaning}
                   </p>
                 ) : null}

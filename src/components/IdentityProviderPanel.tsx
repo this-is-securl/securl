@@ -27,11 +27,11 @@ export const IdentityProviderPanel = ({ identityProvider }: IdentityProviderPane
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <CardTitle>Identity Provider</CardTitle>
-          <div className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-100">
+          <div className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-100">
             {identityProvider.detected ? "Detected" : "Not detected"}
           </div>
         </div>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-zinc-400">
           Passive OAuth and OIDC exposure signals from redirects, login paths, and public well-known endpoints.
         </p>
       </CardHeader>
@@ -45,8 +45,8 @@ export const IdentityProviderPanel = ({ identityProvider }: IdentityProviderPane
 
         <div className="grid gap-6 xl:grid-cols-2">
           <div className="space-y-3">
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Observed endpoints</p>
-            <div className="space-y-2 rounded-[1.25rem] border border-white/10 bg-slate-950/45 p-4 text-sm text-slate-300">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">Observed endpoints</p>
+            <div className="space-y-2 rounded-[1.25rem] border border-white/10 bg-zinc-950/45 p-4 text-sm text-zinc-300">
               <p className="break-words"><span className="font-semibold text-white">Issuer:</span> {identityProvider.issuer ?? "Not discovered"}</p>
               <p className="break-words"><span className="font-semibold text-white">Authorization:</span> {identityProvider.authorizationEndpoint ?? "Not discovered"}</p>
               <p className="break-words"><span className="font-semibold text-white">Token:</span> {identityProvider.tokenEndpoint ?? "Not discovered"}</p>
@@ -57,8 +57,8 @@ export const IdentityProviderPanel = ({ identityProvider }: IdentityProviderPane
           </div>
 
           <div className="space-y-3">
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Discovery</p>
-            <div className="rounded-[1.25rem] border border-white/10 bg-slate-950/45 p-4 text-sm text-slate-300">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">Discovery</p>
+            <div className="rounded-[1.25rem] border border-white/10 bg-zinc-950/45 p-4 text-sm text-zinc-300">
               {identityProvider.redirectOrigins.length > 0 && (
                 <div className="mb-3">
                   <p className="font-semibold text-white">Redirect origins</p>

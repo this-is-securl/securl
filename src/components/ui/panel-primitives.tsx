@@ -10,22 +10,22 @@ type StatBoxVariant = "default" | "critical" | "warning" | "info";
 
 const statBoxVariants: Record<StatBoxVariant, { container: string; label: string; value: string }> = {
   default: {
-    container: "border-zinc-800/50 bg-[#0c1219]",
+    container: "border-zinc-800 bg-[#18181b]",
     label: "text-zinc-500",
     value: "text-white",
   },
   critical: {
-    container: "border-zinc-800/50 bg-[#0c1219]",
+    container: "border-zinc-800 bg-[#18181b]",
     label: "text-rose-500/80",
     value: "text-white",
   },
   warning: {
-    container: "border-zinc-800/50 bg-[#0c1219]",
+    container: "border-zinc-800 bg-[#18181b]",
     label: "text-amber-400/80",
     value: "text-white",
   },
   info: {
-    container: "border-zinc-800/50 bg-[#0c1219]",
+    container: "border-zinc-800 bg-[#18181b]",
     label: "text-zinc-500",
     value: "text-white",
   },
@@ -51,7 +51,7 @@ export const StatBox = ({ label, value, note, variant = "default", className }: 
     >
       <p className={cn("text-[10px] font-bold uppercase tracking-[0.24em]", v.label)}>{label}</p>
       <div className={cn("mt-2", v.value)}>{value}</div>
-      {note && <div className="mt-1 text-slate-400">{note}</div>}
+      {note && <div className="mt-1 text-zinc-400">{note}</div>}
     </div>
   );
 };
@@ -64,10 +64,10 @@ export const StatBox = ({ label, value, note, variant = "default", className }: 
 type StatusAlertVariant = "success" | "warning" | "critical" | "info";
 
 const statusAlertVariants: Record<StatusAlertVariant, string> = {
-  success: "border-white/10 bg-white/[0.04] text-slate-100",
-  warning: "border-[#b56a2c]/35 bg-[#b56a2c]/12 text-[#f4dfcd]",
-  critical: "border-red-500/30 bg-red-500/[0.08] text-red-100",
-  info: "border-white/10 bg-white/[0.04] text-slate-100",
+  success: "border-white/10 bg-white/[0.04] text-zinc-100",
+  warning: "border-amber-500/35 bg-amber-500/[0.08] text-amber-100",
+  critical: "border-rose-500/30 bg-rose-500/[0.08] text-rose-100",
+  info: "border-white/10 bg-white/[0.04] text-zinc-100",
 };
 
 interface StatusAlertProps {
@@ -101,15 +101,15 @@ type SignalListVariant = "success" | "neutral";
 const signalListVariants: Record<SignalListVariant, { container: string; title: string; body: string; icon: string }> = {
   success: {
     container: "border-white/10 bg-white/[0.04]",
-    title: "text-slate-400",
-    body: "text-slate-200",
-    icon: "text-slate-300",
+    title: "text-zinc-400",
+    body: "text-zinc-200",
+    icon: "text-zinc-300",
   },
   neutral: {
     container: "border-white/10 bg-white/[0.04]",
-    title: "text-slate-400",
-    body: "text-slate-200",
-    icon: "text-slate-400",
+    title: "text-zinc-400",
+    body: "text-zinc-200",
+    icon: "text-zinc-400",
   },
 };
 
@@ -151,7 +151,7 @@ interface EmptyStateProps {
 export const EmptyState = ({ children, className }: EmptyStateProps) => (
   <div
     className={cn(
-      "rounded-[1.35rem] border border-dashed border-white/10 bg-white/[0.03] px-4 py-6 text-sm text-slate-400",
+      "rounded-[1.35rem] border border-dashed border-white/10 bg-white/[0.03] px-4 py-6 text-sm text-zinc-400",
       className,
     )}
   >
@@ -170,7 +170,7 @@ interface CodeBlockProps {
 }
 
 export const CodeBlock = ({ children, className }: CodeBlockProps) => (
-  <pre className={cn("overflow-x-auto rounded-2xl border border-white/10 bg-slate-950/85 p-4 text-xs text-slate-100", className)}>
+  <pre className={cn("overflow-x-auto rounded-2xl border border-white/10 bg-zinc-950/85 p-4 text-xs text-zinc-100", className)}>
     <code>{children}</code>
   </pre>
 );

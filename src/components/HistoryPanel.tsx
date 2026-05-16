@@ -34,8 +34,8 @@ const getTrendState = (delta: number) => {
     return {
       label: "Improving",
       icon: TrendingUp,
-      iconClassName: "text-[#d89a63]",
-      stroke: "#d89a63",
+      iconClassName: "text-[#2dd4bf]",
+      stroke: "#2dd4bf",
       detail: "Scores have moved upward across saved scans.",
     };
   }
@@ -44,7 +44,7 @@ const getTrendState = (delta: number) => {
     return {
       label: "Degrading",
       icon: TrendingDown,
-      iconClassName: "text-[#d89a63]",
+      iconClassName: "text-[#2dd4bf]",
       stroke: "#c78455",
       detail: "Recent saved scans have trended weaker.",
     };
@@ -53,7 +53,7 @@ const getTrendState = (delta: number) => {
   return {
     label: "Stable",
     icon: Minus,
-    iconClassName: "text-slate-400",
+    iconClassName: "text-zinc-400",
     stroke: "#94a3b8",
     detail: "Recent saved scans are broadly flat.",
   };
@@ -111,7 +111,7 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
       <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <History className="h-5 w-5 text-[#d89a63]" />
+            <History className="h-5 w-5 text-[#2dd4bf]" />
             Scan History
           </CardTitle>
         </CardHeader>
@@ -222,7 +222,7 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
     <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <History className="h-5 w-5 text-[#d89a63]" />
+          <History className="h-5 w-5 text-[#2dd4bf]" />
           Scan History
         </CardTitle>
       </CardHeader>
@@ -230,24 +230,24 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
         <div className="rounded-[1.35rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(15,23,42,0.35))] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="max-w-2xl">
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#d89a63]">{lead.eyebrow}</p>
-              <p className="mt-2 text-lg font-semibold text-slate-50">{lead.title}</p>
-              <p className="mt-2 text-sm leading-6 text-slate-300">{lead.detail}</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#2dd4bf]">{lead.eyebrow}</p>
+              <p className="mt-2 text-lg font-semibold text-zinc-50">{lead.title}</p>
+              <p className="mt-2 text-sm leading-6 text-zinc-300">{lead.detail}</p>
             </div>
-            <div className="rounded-[1.15rem] border border-white/10 bg-slate-950/45 px-4 py-3">
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-100">
+            <div className="rounded-[1.15rem] border border-white/10 bg-zinc-950/45 px-4 py-3">
+              <div className="flex items-center gap-2 text-sm font-semibold text-zinc-100">
                 <TrendIcon className={`h-4 w-4 ${trendState.iconClassName}`} />
                 {trendState.label}
               </div>
-              <p className="mt-2 text-xs leading-5 text-slate-400">{trendState.detail}</p>
+              <p className="mt-2 text-xs leading-5 text-zinc-400">{trendState.detail}</p>
             </div>
           </div>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-[1.15rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Score change</p>
+            <div className="rounded-[1.15rem] border border-white/10 bg-zinc-950/45 px-4 py-4">
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">Score change</p>
               <p className="mt-3 text-3xl font-semibold text-white">{diff ? formatSignedDelta(diff.scoreDelta) : "—"}</p>
-              <p className="mt-2 text-xs text-slate-400">
+              <p className="mt-2 text-xs text-zinc-400">
                 {diff?.previousScore !== null && diff?.previousScore !== undefined
                   ? `From ${diff.previousGrade} / ${diff.previousScore}`
                   : `Across ${trendPoints.length} saved scan${trendPoints.length === 1 ? "" : "s"}`}
@@ -255,10 +255,10 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
             </div>
 
             {supportingChanges.map((item) => (
-              <div key={item.label} className="rounded-[1.15rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">{item.label}</p>
+              <div key={item.label} className="rounded-[1.15rem] border border-white/10 bg-zinc-950/45 px-4 py-4">
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">{item.label}</p>
                 <p className="mt-3 text-3xl font-semibold text-white">{diff ? item.value : "—"}</p>
-                <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">{item.detail}</p>
+                <p className="mt-2 line-clamp-2 text-xs leading-5 text-zinc-400">{item.detail}</p>
               </div>
             ))}
           </div>
@@ -267,22 +267,22 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
         <div className="rounded-[1.35rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(15,23,42,0.35))] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Trend window</p>
-              <p className="mt-2 text-sm text-slate-300">
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">Trend window</p>
+              <p className="mt-2 text-sm text-zinc-300">
                 {trendPoints.length > 1
                   ? `${trendState.label} over ${trendPoints.length} saved scans.`
                   : "Only one saved scan is available so far."}
               </p>
             </div>
             {trendPoints.length > 1 ? (
-              <div className="flex items-center gap-2 text-sm font-semibold text-slate-200">
+              <div className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
                 <TrendIcon className={`h-4 w-4 ${trendState.iconClassName}`} />
                 <span>{formatSignedDelta(trendDelta)}</span>
               </div>
             ) : null}
           </div>
           {trendPoints.length > 1 ? (
-            <div className="mt-4 rounded-[1.15rem] border border-white/10 bg-slate-950/35 px-4 py-4">
+            <div className="mt-4 rounded-[1.15rem] border border-white/10 bg-zinc-950/35 px-4 py-4">
               <svg viewBox="0 0 100 40" className="h-12 w-full overflow-visible">
                 <polyline
                   fill="none"
@@ -302,9 +302,9 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
               <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-8">
                 {timelineBadges.map((point) => (
                   <div key={point.id} className="rounded-xl border border-white/10 bg-white/[0.03] px-2 py-2 text-center">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">{point.label}</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-100">{point.score}</p>
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-[#d89a63]">{point.grade}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">{point.label}</p>
+                    <p className="mt-1 text-sm font-semibold text-zinc-100">{point.score}</p>
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-[#2dd4bf]">{point.grade}</p>
                   </div>
                 ))}
               </div>
@@ -314,8 +314,8 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
 
         {diff?.summary.length ? (
           <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Change summary</p>
-            <div className="mt-3 space-y-2 text-sm text-slate-300">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">Change summary</p>
+            <div className="mt-3 space-y-2 text-sm text-zinc-300">
               {diff.summary.map((item) => (
                 <p key={item}>{item}</p>
               ))}
@@ -325,34 +325,34 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
 
         <div className="grid gap-3 xl:grid-cols-2">
           {movementSummary.map((item) => (
-            <div key={item.label} className="rounded-[1.15rem] border border-white/10 bg-slate-950/35 px-4 py-4">
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">{item.label}</p>
-              <p className="mt-3 text-sm leading-6 text-slate-300">{item.detail}</p>
+            <div key={item.label} className="rounded-[1.15rem] border border-white/10 bg-zinc-950/35 px-4 py-4">
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">{item.label}</p>
+              <p className="mt-3 text-sm leading-6 text-zinc-300">{item.detail}</p>
             </div>
           ))}
         </div>
 
         <div className="grid gap-3">
           {history.map((snapshot) => (
-            <div key={`${snapshot.scannedAt}-${snapshot.finalUrl}`} className="rounded-[1.15rem] border border-white/10 bg-slate-950/35 px-4 py-4">
+            <div key={`${snapshot.scannedAt}-${snapshot.finalUrl}`} className="rounded-[1.15rem] border border-white/10 bg-zinc-950/35 px-4 py-4">
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-slate-50" title={snapshot.finalUrl}>
+                  <p className="truncate text-sm font-semibold text-zinc-50" title={snapshot.finalUrl}>
                     {snapshot.finalUrl}
                   </p>
-                  <p className="text-xs text-slate-400">{new Date(snapshot.scannedAt).toLocaleString()}</p>
+                  <p className="text-xs text-zinc-400">{new Date(snapshot.scannedAt).toLocaleString()}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="bg-white/[0.1] text-slate-100">
+                  <Badge variant="secondary" className="bg-white/[0.1] text-zinc-100">
                     {snapshot.grade}
                   </Badge>
-                  <span className="text-sm font-semibold text-slate-200">{snapshot.score}/100</span>
+                  <span className="text-sm font-semibold text-zinc-200">{snapshot.score}/100</span>
                 </div>
               </div>
               <div className="mt-3">
                 <div className="h-2 overflow-hidden rounded-full bg-white/10">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-[#8e5c3b] via-[#b56a2c] to-[#d89a63] transition-all duration-700"
+                    className="h-full rounded-full bg-gradient-to-r from-[#7f1d1d] via-[#14b8a6] to-[#2dd4bf] transition-all duration-700"
                     style={{ width: `${Math.max(6, Math.min(snapshot.score, 100))}%` }}
                   />
                 </div>

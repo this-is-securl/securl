@@ -82,16 +82,16 @@ export const SecurityGrade = ({ grade, score, summary, context, actions, pulse }
             >
               {grade}
             </span>
-            <span className="text-[13px] font-semibold text-slate-300">{clamped}/100</span>
+            <span className="text-[13px] font-semibold text-zinc-300">{clamped}/100</span>
           </div>
         </div>
 
         {/* ── Copy ── */}
         <div className="flex min-w-0 flex-1 flex-col gap-2.5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
             Security posture
           </p>
-          <p className="text-sm leading-7 text-slate-300">{summary}</p>
+          <p className="text-sm leading-7 text-zinc-300">{summary}</p>
         </div>
       </div>
 
@@ -101,7 +101,7 @@ export const SecurityGrade = ({ grade, score, summary, context, actions, pulse }
 
       {actions ? (
         <div className="mt-5 border-t border-white/10 pt-5">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-slate-500">Export report</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-zinc-500">Export report</p>
           <div className="mt-3 flex flex-wrap gap-3">{actions}</div>
         </div>
       ) : null}

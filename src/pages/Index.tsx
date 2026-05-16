@@ -22,7 +22,7 @@ const MINI_OFF  = parseFloat((MINI_CIRC * (1 - MINI_SCORE / 100)).toFixed(2));
 const MINI_COLOR = "#3b82f6"; // grade B — vivid blue
 
 const HeroPreviewCard = () => (
-  <div className="relative h-full overflow-hidden rounded-[1.8rem] border border-white/10 bg-slate-950/35 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
+  <div className="relative h-full overflow-hidden rounded-[1.8rem] border border-white/10 bg-zinc-950/35 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
     {/* Grade glow */}
     <div
       className="pointer-events-none absolute inset-0"
@@ -34,7 +34,7 @@ const HeroPreviewCard = () => (
 
     {/* Label */}
     <div className="relative mb-4 flex items-center justify-between">
-      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Sample result</p>
+      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Sample result</p>
       <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2563eb]/20 bg-[#2563eb]/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#93c5fd]">
         Grade B
       </span>
@@ -74,7 +74,7 @@ const HeroPreviewCard = () => (
           >
             B
           </span>
-          <span className="text-sm font-semibold tracking-[-0.01em] text-slate-400">81/100</span>
+          <span className="text-sm font-semibold tracking-[-0.01em] text-zinc-400">81/100</span>
           <span
             className="mt-0.5 inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em]"
             style={{ color: MINI_COLOR, background: `${MINI_COLOR}18`, border: `1px solid ${MINI_COLOR}30` }}
@@ -85,7 +85,7 @@ const HeroPreviewCard = () => (
       </div>
 
       {/* Domain */}
-      <p className="mt-3 font-mono text-xs text-slate-400">portswigger.net</p>
+      <p className="mt-3 font-mono text-xs text-zinc-400">portswigger.net</p>
     </div>
 
     {/* Finding badges */}
@@ -110,7 +110,7 @@ const HeroPreviewCard = () => (
     </div>
 
     {/* Caption */}
-    <p className="relative mt-4 text-center text-[11px] text-slate-600">
+    <p className="relative mt-4 text-center text-[11px] text-zinc-600">
       This is what your scan produces
     </p>
   </div>
@@ -195,34 +195,34 @@ const Index = () => {
   const hasHistory = recentScans.length > 0 || monitoredTargets.length > 0;
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[#070b14] text-slate-100">
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(ellipse_60%_40%_at_18%_0%,rgba(181,106,44,0.18),transparent_50%),radial-gradient(ellipse_50%_50%_at_85%_8%,rgba(99,149,175,0.14),transparent_50%),radial-gradient(ellipse_40%_30%_at_5%_95%,rgba(99,100,175,0.06),transparent_50%),linear-gradient(180deg,#060a13_0%,#0b1220_50%,#101827_100%)]" />
+    <div className="min-h-screen overflow-hidden bg-[#09090b] text-zinc-100">
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(ellipse_60%_40%_at_18%_0%,rgba(20,184,166,0.18),transparent_50%),radial-gradient(ellipse_50%_50%_at_85%_8%,rgba(99,149,175,0.14),transparent_50%),radial-gradient(ellipse_40%_30%_at_5%_95%,rgba(99,100,175,0.06),transparent_50%),linear-gradient(180deg,#09090b_0%,#09090b_100%)]" />
 
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
 
         {/* ── Hero card ─────────────────────────────────────────────────── */}
-        <section className="rounded-[2.5rem] border border-white/[0.14] bg-[#0b1221]/90 p-6 shadow-[0_48px_120px_-40px_rgba(0,0,0,0.8),0_1px_0_rgba(255,255,255,0.07)_inset] backdrop-blur-xl sm:p-8 lg:p-10">
+        <section className="rounded-[2.5rem] border border-white/[0.14] bg-[#09090b]/90 p-6 shadow-[0_48px_120px_-40px_rgba(0,0,0,0.8),0_1px_0_rgba(255,255,255,0.07)_inset] backdrop-blur-xl sm:p-8 lg:p-10">
           <div className="grid gap-10 lg:grid-cols-[1.3fr_0.7fr] lg:items-start">
 
             {/* Left: headline + form */}
             <div className="space-y-6">
               <div className="space-y-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-[#b56a2c]/25 bg-[#b56a2c]/12 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[#f0d5bc]">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-[#14b8a6]/25 bg-[#14b8a6]/12 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[#99f6e4]">
                     <Sparkles className="h-3.5 w-3.5" />
                     SecURL
                   </div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-slate-950/35 px-3 py-1 text-[11px] font-medium tracking-[0.16em] text-slate-400">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-3 py-1 text-[11px] font-medium tracking-[0.16em] text-zinc-400">
                     <span>{coreLabel}</span>
                     {buildLabel ? (
                       <>
-                        <span className="text-slate-600">/</span>
+                        <span className="text-zinc-600">/</span>
                         <span>{buildLabel}</span>
                       </>
                     ) : null}
                     {appVersionLabel ? (
                       <>
-                        <span className="text-slate-600">/</span>
+                        <span className="text-zinc-600">/</span>
                         <span>{appVersionLabel}</span>
                       </>
                     ) : null}
@@ -233,7 +233,7 @@ const Index = () => {
                   <h1 className="max-w-3xl text-5xl font-black tracking-[-0.06em] text-white sm:text-6xl lg:text-7xl">
                     See what<br className="hidden sm:block" /> attackers see.
                   </h1>
-                  <p className="max-w-lg text-lg font-medium leading-8 text-slate-300">
+                  <p className="max-w-lg text-lg font-medium leading-8 text-zinc-300">
                     A letter grade, ranked findings, and context to act — in under 30 seconds.
                   </p>
                 </div>
@@ -249,9 +249,9 @@ const Index = () => {
 
             {/* Right: preview card (pre-scan) or recent scan nav (post-scan) */}
             {analysisData ? (
-              <div className="h-full rounded-[1.8rem] border border-white/10 bg-slate-950/35 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
-                <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-200">
-                  <Clock3 className="h-4 w-4 text-[#d89a63]" />
+              <div className="h-full rounded-[1.8rem] border border-white/10 bg-zinc-950/35 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
+                <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-zinc-200">
+                  <Clock3 className="h-4 w-4 text-[#2dd4bf]" />
                   Recent scans
                 </div>
                 <div className="flex flex-col gap-3">
@@ -263,25 +263,25 @@ const Index = () => {
                       disabled={isLoading}
                       className={`rounded-[1.2rem] border px-4 py-3 text-left shadow-sm transition duration-300 ${
                         activeRecentScanUrl === (scan.id ?? scan.url)
-                          ? "border-[#b56a2c]/45 bg-[#b56a2c]/12 shadow-[0_18px_36px_-28px_rgba(181,106,44,0.5)]"
-                          : "border-white/10 bg-slate-950/45 hover:-translate-y-0.5 hover:border-[#b56a2c]/25 hover:bg-white/[0.08]"
+                          ? "border-[#14b8a6]/45 bg-[#14b8a6]/12 shadow-[0_18px_36px_-28px_rgba(20,184,166,0.5)]"
+                          : "border-white/10 bg-zinc-950/45 hover:-translate-y-0.5 hover:border-[#14b8a6]/25 hover:bg-white/[0.08]"
                       } ${isLoading ? "cursor-wait" : ""}`}
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <span className="truncate text-sm font-medium text-slate-100">{scan.url}</span>
-                        <span className="text-sm font-semibold uppercase tracking-[0.14em] text-[#f0d5bc]">
+                        <span className="truncate text-sm font-medium text-zinc-100">{scan.url}</span>
+                        <span className="text-sm font-semibold uppercase tracking-[0.14em] text-[#99f6e4]">
                           {activeRecentScanUrl === (scan.id ?? scan.url)
                             ? scanStage?.label ?? "Opening"
                             : scan.grade}
                         </span>
                       </div>
-                      <p className="mt-1 text-xs text-slate-500">
+                      <p className="mt-1 text-xs text-zinc-500">
                         {new Date(scan.scannedAt).toLocaleString()}
                       </p>
                     </button>
                   ))}
                   {recentScans.length === 0 && (
-                    <p className="text-sm text-slate-500">No recent scans yet.</p>
+                    <p className="text-sm text-zinc-500">No recent scans yet.</p>
                   )}
                 </div>
               </div>
@@ -295,8 +295,8 @@ const Index = () => {
         {analysisData && (
           <section className="mt-10 space-y-6">
             <div className="flex items-center gap-2.5 px-1">
-              <Layers3 className="h-4 w-4 text-[#d89a63]" />
-              <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
+              <Layers3 className="h-4 w-4 text-[#2dd4bf]" />
+              <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">
                 Report workspace
               </span>
               <span className="h-px flex-1 bg-white/[0.06]" />
@@ -311,12 +311,12 @@ const Index = () => {
               {activeSection ? (
                 <div
                   key={activeSection.key}
-                  className="min-w-0 overflow-hidden rounded-[2rem] border border-zinc-800/55 bg-[#0c1219] shadow-[0_24px_64px_-24px_rgba(0,0,0,0.65),0_1px_0_rgba(255,255,255,0.04)_inset] animate-in fade-in-50 slide-in-from-bottom-2 duration-500"
+                  className="min-w-0 overflow-hidden rounded-[2rem] border border-zinc-800 bg-[#18181b] shadow-[0_24px_64px_-24px_rgba(0,0,0,0.65),0_1px_0_rgba(255,255,255,0.04)_inset] animate-in fade-in-50 slide-in-from-bottom-2 duration-500"
                 >
-                  <div className="border-b border-zinc-800/50 px-8 py-6 sm:px-9">
+                  <div className="border-b border-zinc-800 px-8 py-6 sm:px-9">
                     <div className="flex items-center gap-2.5">
                       {activeSection.icon && (
-                        <activeSection.icon className="h-3.5 w-3.5 text-[#d89a63]" />
+                        <activeSection.icon className="h-3.5 w-3.5 text-[#2dd4bf]" />
                       )}
                       {(activeSection.badge ?? activeSection.context) ? (
                         <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500">
@@ -331,7 +331,7 @@ const Index = () => {
                       {activeSection.summary}
                     </p>
                   </div>
-                  <div className="px-8 py-8 text-slate-100 sm:px-9">
+                  <div className="px-8 py-8 text-zinc-100 sm:px-9">
                     {activeSection.content}
                   </div>
                 </div>
@@ -347,13 +347,13 @@ const Index = () => {
             {/* 1 — Output preview */}
             <section>
               <div className="mb-6 text-center">
-                <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.22em] text-[#d89a63]/70">
+                <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.22em] text-[#2dd4bf]/70">
                   Sample output
                 </p>
                 <h2 className="text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl">
                   Grade, findings, and context — in under 30 seconds
                 </h2>
-                <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-400">
+                <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-zinc-400">
                   Every scan produces a graded posture assessment with specific findings, consequence
                   context, and remediation steps — not a raw list of headers.
                 </p>
@@ -363,15 +363,15 @@ const Index = () => {
 
             {/* 2 — Differentiation band */}
             <section className="rounded-[1.75rem] border border-white/[0.06] bg-white/[0.025] px-8 py-12 text-center sm:px-12">
-              <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.22em] text-slate-500">
+              <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-500">
                 Why SecURL
               </p>
               <h2 className="text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl lg:text-5xl">
                 Security tools give you data.
                 <br />
-                <span className="text-[#d89a63]">SecURL gives you a read.</span>
+                <span className="text-[#2dd4bf]">SecURL gives you a read.</span>
               </h2>
-              <p className="mx-auto mt-5 max-w-lg text-base leading-7 text-slate-400">
+              <p className="mx-auto mt-5 max-w-lg text-base leading-7 text-zinc-400">
                 Passive. No agents. No configuration. No credentials required. Just a clear external
                 view of how a target looks to an informed observer — with findings you can act on
                 immediately.
@@ -384,7 +384,7 @@ const Index = () => {
                 ].map(({ value, label }) => (
                   <div key={label} className="text-center">
                     <p className="text-3xl font-black tracking-[-0.04em] text-white">{value}</p>
-                    <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
                       {label}
                     </p>
                   </div>
@@ -395,7 +395,7 @@ const Index = () => {
             {/* 3 — Capability strip */}
             <section>
               <div className="mb-6">
-                <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#d89a63]/70">
+                <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#2dd4bf]/70">
                   What it checks
                 </p>
                 <h2 className="text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl">
@@ -408,13 +408,13 @@ const Index = () => {
             {/* 4 — Account + history section */}
             <section>
               <div className="mb-6">
-                <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">
+                <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">
                   Save your work
                 </p>
                 <h2 className="text-xl font-bold tracking-[-0.03em] text-white">
                   Keep scans, history, and monitoring targets across sessions
                 </h2>
-                <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">
+                <p className="mt-2 max-w-xl text-sm leading-6 text-zinc-400">
                   Account mode makes everything portable — scan history, monitored targets, and
                   future mobile access all follow your account instead of being tied to one browser.
                 </p>
@@ -424,7 +424,7 @@ const Index = () => {
                 {/* Left: recent scans + monitoring */}
                 <div className="rounded-[1.7rem] border border-white/10 bg-white/[0.04] p-4 sm:p-5">
                   {!isAuthenticated ? (
-                    <div className="mb-4 rounded-[1.25rem] border border-[#b56a2c]/25 bg-[#b56a2c]/10 px-4 py-3 text-sm leading-6 text-[#f0d5bc]">
+                    <div className="mb-4 rounded-[1.25rem] border border-[#14b8a6]/25 bg-[#14b8a6]/10 px-4 py-3 text-sm leading-6 text-[#99f6e4]">
                       Signed-out mode keeps recent scans and monitoring in this browser only.
                     </div>
                   ) : (
@@ -438,8 +438,8 @@ const Index = () => {
                     <div className="space-y-5">
                       {recentScans.length > 0 && (
                         <div className="space-y-3">
-                          <div className="flex items-center gap-2 text-sm font-semibold text-slate-200">
-                            <Clock3 className="h-4 w-4 text-[#d89a63]" />
+                          <div className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
+                            <Clock3 className="h-4 w-4 text-[#2dd4bf]" />
                             Recent scans
                           </div>
                           <div className="flex flex-col gap-2">
@@ -451,19 +451,19 @@ const Index = () => {
                                 disabled={isLoading}
                                 className={`rounded-[1.2rem] border px-4 py-3 text-left shadow-sm transition duration-300 ${
                                   activeRecentScanUrl === (scan.id ?? scan.url)
-                                    ? "border-[#b56a2c]/45 bg-[#b56a2c]/12"
-                                    : "border-white/10 bg-slate-950/45 hover:border-[#b56a2c]/25 hover:bg-white/[0.08]"
+                                    ? "border-[#14b8a6]/45 bg-[#14b8a6]/12"
+                                    : "border-white/10 bg-zinc-950/45 hover:border-[#14b8a6]/25 hover:bg-white/[0.08]"
                                 } ${isLoading ? "cursor-wait" : ""}`}
                               >
                                 <div className="flex items-center justify-between gap-3">
-                                  <span className="truncate text-sm font-medium text-slate-100">
+                                  <span className="truncate text-sm font-medium text-zinc-100">
                                     {scan.url}
                                   </span>
-                                  <span className="text-sm font-semibold uppercase tracking-[0.14em] text-[#f0d5bc]">
+                                  <span className="text-sm font-semibold uppercase tracking-[0.14em] text-[#99f6e4]">
                                     {scan.grade}
                                   </span>
                                 </div>
-                                <p className="mt-1 text-xs text-slate-500">
+                                <p className="mt-1 text-xs text-zinc-500">
                                   {new Date(scan.scannedAt).toLocaleString()}
                                 </p>
                               </button>
@@ -489,10 +489,10 @@ const Index = () => {
                     </div>
                   ) : (
                     <div className="flex items-start gap-3">
-                      <Activity className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#d89a63]" />
+                      <Activity className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#2dd4bf]" />
                       <div>
-                        <p className="text-sm font-semibold text-slate-200">Monitoring & drift tracking</p>
-                        <p className="mt-1 text-xs leading-5 text-slate-400">
+                        <p className="text-sm font-semibold text-zinc-200">Monitoring & drift tracking</p>
+                        <p className="mt-1 text-xs leading-5 text-zinc-400">
                           Scan a target above, then pin it here. SecURL will track grade changes,
                           new findings, and resolved issues between scans — so regressions don't go unnoticed.
                         </p>

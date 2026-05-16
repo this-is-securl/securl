@@ -66,8 +66,8 @@ export const RemediationPanel = ({ remediation }: RemediationPanelProps) => {
               onClick={() => setSelected(item.platform)}
               className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                 item.platform === active.platform
-                  ? "bg-[#b56a2c] text-[#f8efe7]"
-                  : "bg-white/[0.06] text-slate-200 hover:bg-white/[0.1]"
+                  ? "bg-[#14b8a6] text-[#f8efe7]"
+                  : "bg-white/[0.06] text-zinc-200 hover:bg-white/[0.1]"
               }`}
             >
               {labels[item.platform]}
@@ -78,11 +78,11 @@ export const RemediationPanel = ({ remediation }: RemediationPanelProps) => {
         <div className="flex flex-col gap-3 rounded-[1.35rem] border border-white/10 bg-white/[0.04] p-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-slate-50">{active.title}</h3>
-              <p className="mt-1 text-sm text-slate-300">{active.description}</p>
-              <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">{active.filename}</p>
+              <h3 className="text-lg font-semibold text-zinc-50">{active.title}</h3>
+              <p className="mt-1 text-sm text-zinc-300">{active.description}</p>
+              <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">{active.filename}</p>
             </div>
-            <Button variant="outline" className="rounded-2xl border-white/10 bg-white/[0.04] text-slate-100 hover:bg-white/[0.08]" onClick={copySnippet}>
+            <Button variant="outline" className="rounded-2xl border-white/10 bg-white/[0.04] text-zinc-100 hover:bg-white/[0.08]" onClick={copySnippet}>
               <Copy className="mr-2 h-4 w-4" />
               Copy
             </Button>

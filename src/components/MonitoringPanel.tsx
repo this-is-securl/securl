@@ -154,7 +154,7 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
       <Card className="rounded-[1.75rem] border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
-            <BellRing className="h-5 w-5 text-[#d89a63]" />
+            <BellRing className="h-5 w-5 text-[#2dd4bf]" />
             Monitoring
           </CardTitle>
         </CardHeader>
@@ -171,7 +171,7 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
     <Card className="rounded-[1.75rem] border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2">
-          <BellRing className="h-5 w-5 text-[#d89a63]" />
+          <BellRing className="h-5 w-5 text-[#2dd4bf]" />
           Monitoring
         </CardTitle>
       </CardHeader>
@@ -182,62 +182,62 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
               <p
                 className={`text-[11px] font-bold uppercase tracking-[0.2em] ${
                   changeLead.tone === "warning"
-                    ? "text-[#d89a63]"
+                    ? "text-[#2dd4bf]"
                     : changeLead.tone === "info"
                       ? "text-[#cdd7e6]"
-                      : "text-slate-400"
+                      : "text-zinc-400"
                 }`}
               >
                 {changeLead.eyebrow}
               </p>
-              <p className="mt-2 text-lg font-semibold text-slate-50">{changeLead.title}</p>
-              <p className="mt-2 text-sm leading-6 text-slate-300">{changeLead.detail}</p>
+              <p className="mt-2 text-lg font-semibold text-zinc-50">{changeLead.title}</p>
+              <p className="mt-2 text-sm leading-6 text-zinc-300">{changeLead.detail}</p>
             </div>
             {diff ? (
-              <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Since last scan</p>
+              <p className="text-xs uppercase tracking-[0.16em] text-zinc-500">Since last scan</p>
             ) : null}
           </div>
 
           {diff ? (
             <>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-[1.15rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Score</p>
+                <div className="rounded-[1.15rem] border border-white/10 bg-zinc-950/45 px-4 py-4">
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">Score</p>
                 <p className="mt-3 text-3xl font-semibold text-white">
                   {formatSignedDelta(diff.scoreDelta)}
                 </p>
-                <p className="mt-2 text-xs text-slate-400">
+                <p className="mt-2 text-xs text-zinc-400">
                   {diff.previousScore !== null ? `From ${diff.previousScore}` : "No prior score"}
                 </p>
                 </div>
-                <div className="rounded-[1.15rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">New findings</p>
+                <div className="rounded-[1.15rem] border border-white/10 bg-zinc-950/45 px-4 py-4">
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">New findings</p>
                 <p className="mt-3 text-3xl font-semibold text-white">{diff.newIssues.length}</p>
-                <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">
+                <p className="mt-2 line-clamp-2 text-xs leading-5 text-zinc-400">
                   {diff.newIssues[0] ?? "No new findings"}
                 </p>
                 </div>
-                <div className="rounded-[1.15rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Resolved</p>
+                <div className="rounded-[1.15rem] border border-white/10 bg-zinc-950/45 px-4 py-4">
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">Resolved</p>
                 <p className="mt-3 text-3xl font-semibold text-white">{diff.resolvedIssues.length}</p>
-                <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">
+                <p className="mt-2 line-clamp-2 text-xs leading-5 text-zinc-400">
                   {diff.resolvedIssues[0] ?? "No resolved findings"}
                 </p>
                 </div>
-                <div className="rounded-[1.15rem] border border-white/10 bg-slate-950/45 px-4 py-4">
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Header changes</p>
+                <div className="rounded-[1.15rem] border border-white/10 bg-zinc-950/45 px-4 py-4">
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">Header changes</p>
                 <p className="mt-3 text-3xl font-semibold text-white">{diff.headerChanges.length}</p>
-                <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">
+                <p className="mt-2 line-clamp-2 text-xs leading-5 text-zinc-400">
                   {diff.headerChanges[0]?.label ?? "No header movement"}
                 </p>
                 </div>
               </div>
               {areaDeltas.length ? (
-                <div className="mt-4 rounded-[1.15rem] border border-white/10 bg-slate-950/35 px-4 py-3">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Most moved areas</p>
+                <div className="mt-4 rounded-[1.15rem] border border-white/10 bg-zinc-950/35 px-4 py-3">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">Most moved areas</p>
                   <div className="mt-3 grid gap-2 md:grid-cols-2">
                     {areaDeltas.map((item) => (
-                      <div key={item.label} className="text-sm text-slate-300">
+                      <div key={item.label} className="text-sm text-zinc-300">
                         <span className="font-medium text-white">{item.label}</span>: {formatSignedDelta(item.delta)}
                       </div>
                     ))}
@@ -251,8 +251,8 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
         <div className="rounded-[1.35rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(15,23,42,0.35))] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Score trend</p>
-              <p className="mt-2 text-sm text-slate-300">
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">Score trend</p>
+              <p className="mt-2 text-sm text-zinc-300">
                 {scoreSeries.length >= 2
                   ? "Short-window movement across recent saved scans."
                   : scoreSeries.length === 1
@@ -261,10 +261,10 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
               </p>
             </div>
             {scoreSeries.length >= 2 ? (
-              <div className="flex items-center gap-1 text-sm font-semibold text-slate-200">
-                {trendDirection === "up" ? <TrendingUp className="h-4 w-4 text-[#d89a63]" /> : null}
+              <div className="flex items-center gap-1 text-sm font-semibold text-zinc-200">
+                {trendDirection === "up" ? <TrendingUp className="h-4 w-4 text-[#2dd4bf]" /> : null}
                 {trendDirection === "down" ? <TrendingDown className="h-4 w-4 text-[#c78455]" /> : null}
-                {trendDirection === "flat" ? <Minus className="h-4 w-4 text-slate-400" /> : null}
+                {trendDirection === "flat" ? <Minus className="h-4 w-4 text-zinc-400" /> : null}
                 <span>
                   {trendDirection === "up" ? "Improving" : trendDirection === "down" ? "Degrading" : "Stable"}
                 </span>
@@ -273,7 +273,7 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
           </div>
 
           {scoreSeries.length >= 2 ? (
-            <div className="mt-4 rounded-[1.15rem] border border-white/10 bg-slate-950/35 px-4 py-4">
+            <div className="mt-4 rounded-[1.15rem] border border-white/10 bg-zinc-950/35 px-4 py-4">
               <div className="flex items-center justify-between gap-4">
                 <svg
                   viewBox="0 0 180 44"
@@ -283,14 +283,14 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
                 >
                   <polyline
                     fill="none"
-                    stroke={trendDirection === "down" ? "#c78455" : trendDirection === "up" ? "#d89a63" : "#64748b"}
+                    stroke={trendDirection === "down" ? "#c78455" : trendDirection === "up" ? "#2dd4bf" : "#64748b"}
                     strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     points={sparklinePoints}
                   />
                 </svg>
-                <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-slate-200">
+                <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-zinc-200">
                   {trendDelta > 0 ? "+" : ""}
                   {trendDelta} over window
                 </div>
@@ -298,10 +298,10 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
               <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-7">
                 {sparklineAxis.map((point, index) => (
                   <div key={point.id} className="rounded-xl border border-white/10 bg-white/[0.03] px-2 py-2 text-center">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
                       {index === 0 ? "Start" : point.label}
                     </p>
-                    <p className="mt-1 text-sm font-semibold text-slate-100">{point.score}</p>
+                    <p className="mt-1 text-sm font-semibold text-zinc-100">{point.score}</p>
                   </div>
                 ))}
               </div>
