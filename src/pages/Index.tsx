@@ -233,8 +233,9 @@ const Index = () => {
                   <h1 className="max-w-3xl text-5xl font-black tracking-[-0.06em] text-white sm:text-6xl lg:text-7xl">
                     See what<br className="hidden sm:block" /> attackers see.
                   </h1>
-                  <p className="max-w-lg text-lg font-medium leading-8 text-zinc-300">
-                    A letter grade, ranked findings, and context to act — in under 30 seconds.
+                  <p className="max-w-lg text-lg font-semibold leading-8 text-zinc-200">
+                    Paste a URL. Get a letter grade, ranked findings, and a clear path to fix —
+                    <span className="text-[#2dd4bf]"> in under 30 seconds.</span>
                   </p>
                 </div>
               </div>
@@ -311,9 +312,9 @@ const Index = () => {
               {activeSection ? (
                 <div
                   key={activeSection.key}
-                  className="min-w-0 overflow-hidden rounded-[2rem] border border-zinc-800 bg-[#18181b] shadow-[0_24px_64px_-24px_rgba(0,0,0,0.65),0_1px_0_rgba(255,255,255,0.04)_inset] animate-in fade-in-50 slide-in-from-bottom-2 duration-500"
+                  className="min-w-0 overflow-hidden rounded-[2rem] border border-zinc-800 bg-[#18181b] shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset] animate-in fade-in-50 slide-in-from-bottom-2 duration-500"
                 >
-                  <div className="border-b border-zinc-800 px-8 py-6 sm:px-9">
+                  <div className="border-b border-zinc-800 px-10 py-8 sm:px-11">
                     <div className="flex items-center gap-2.5">
                       {activeSection.icon && (
                         <activeSection.icon className="h-3.5 w-3.5 text-[#2dd4bf]" />
@@ -324,14 +325,14 @@ const Index = () => {
                         </p>
                       ) : null}
                     </div>
-                    <h2 className="mt-2.5 text-2xl font-black tracking-[-0.04em] text-white sm:text-[1.75rem]">
+                    <h2 className="mt-2.5 text-[1.85rem] font-black tracking-[-0.04em] text-white sm:text-[2rem]">
                       {activeSection.title}
                     </h2>
-                    <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-400">
+                    <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-300">
                       {activeSection.summary}
                     </p>
                   </div>
-                  <div className="px-8 py-8 text-zinc-100 sm:px-9">
+                  <div className="px-10 py-10 text-zinc-100 sm:px-11">
                     {activeSection.content}
                   </div>
                 </div>
@@ -348,33 +349,32 @@ const Index = () => {
             <section>
               <div className="mb-6 text-center">
                 <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.22em] text-[#2dd4bf]/70">
-                  Sample output
+                  What you get
                 </p>
-                <h2 className="text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl">
-                  Grade, findings, and context — in under 30 seconds
+                <h2 className="text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl">
+                  Not a list of headers. A verdict.
                 </h2>
-                <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-zinc-400">
-                  Every scan produces a graded posture assessment with specific findings, consequence
-                  context, and remediation steps — not a raw list of headers.
+                <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-zinc-300">
+                  Every scan returns a graded posture assessment with ranked findings, consequence
+                  context, and specific remediation steps — structured for action, not auditing.
                 </p>
               </div>
               <OutputPreview />
             </section>
 
             {/* 2 — Differentiation band */}
-            <section className="rounded-[1.75rem] border border-white/[0.06] bg-white/[0.025] px-8 py-12 text-center sm:px-12">
+            <section className="rounded-[1.75rem] border border-white/[0.08] bg-white/[0.03] px-8 py-14 text-center shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] sm:px-12">
               <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-500">
                 Why SecURL
               </p>
-              <h2 className="text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl lg:text-5xl">
+              <h2 className="text-3xl font-black tracking-[-0.05em] text-white sm:text-4xl lg:text-[3.25rem] lg:leading-[1.1]">
                 Security tools give you data.
                 <br />
                 <span className="text-[#2dd4bf]">SecURL gives you a read.</span>
               </h2>
-              <p className="mx-auto mt-5 max-w-lg text-base leading-7 text-zinc-400">
-                Passive. No agents. No configuration. No credentials required. Just a clear external
-                view of how a target looks to an informed observer — with findings you can act on
-                immediately.
+              <p className="mx-auto mt-5 max-w-lg text-base font-medium leading-7 text-zinc-300">
+                No agents. No configuration. No credentials. Just how your site looks to an informed
+                external observer — graded, ranked, and ready to act on.
               </p>
               <div className="mx-auto mt-9 grid max-w-md grid-cols-3 gap-6">
                 {[
@@ -398,7 +398,7 @@ const Index = () => {
                 <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#2dd4bf]/70">
                   What it checks
                 </p>
-                <h2 className="text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl">
+                <h2 className="text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl">
                   Coverage across seven posture areas
                 </h2>
               </div>
@@ -411,10 +411,10 @@ const Index = () => {
                 <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">
                   Save your work
                 </p>
-                <h2 className="text-xl font-bold tracking-[-0.03em] text-white">
+                <h2 className="text-xl font-black tracking-[-0.03em] text-white">
                   Keep scans, history, and monitoring targets across sessions
                 </h2>
-                <p className="mt-2 max-w-xl text-sm leading-6 text-zinc-400">
+                <p className="mt-2 max-w-xl text-sm leading-6 text-zinc-300">
                   Account mode makes everything portable — scan history, monitored targets, and
                   future mobile access all follow your account instead of being tied to one browser.
                 </p>

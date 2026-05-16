@@ -44,7 +44,7 @@ export const StatBox = ({ label, value, note, variant = "default", className }: 
   return (
     <div
       className={cn(
-        "rounded-[1.5rem] border p-5 shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition-all duration-200 hover:-translate-y-px hover:shadow-[0_8px_24px_rgba(0,0,0,0.4)]",
+        "rounded-[1.5rem] border p-6 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),0_1px_0_rgba(255,255,255,0.04)_inset] transition-all duration-200 hover:-translate-y-px hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.6)]",
         v.container,
         className,
       )}
