@@ -37,6 +37,21 @@ export const buildApiUrl = (path: string) => {
   return baseUrl ? `${baseUrl}${normalizedPath}` : normalizedPath;
 };
 
+export const recordPageLoad = () => {
+  const url = buildApiUrl("/api/telemetry/page-load");
+  if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
+    navigator.sendBeacon(url);
+    return;
+  }
+
+  void fetch(url, {
+    method: "POST",
+    keepalive: true,
+  }).catch(() => {
+    // Telemetry must never interrupt the user journey.
+  });
+};
+
 export class ApiClientError extends Error {
   status: number;
   payload: unknown;
