@@ -158,6 +158,7 @@ const Index = () => {
     monitoredTargets,
     activeRecentScanUrl,
     activeReportSection,
+    currentScanWasCached,
     areaScores,
     monitoredViews,
     setActiveReportSection,
@@ -175,6 +176,7 @@ const Index = () => {
   const reportSections = analysisData
     ? buildReportWorkspaceSections({
         analysisData,
+        currentScanWasCached,
         historyDiff,
         history,
         areaScores,

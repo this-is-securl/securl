@@ -310,6 +310,7 @@ export const createScan = async (url: string, mode: "standard" | "quiet" = "stan
   return {
     scanOwnerToken,
     scan: payload.scan,
+    fromCache: Boolean(payload.fromCache),
   };
 };
 
@@ -356,8 +357,16 @@ export const waitForScanCompletion = async (
   throw new ApiClientError("Scan is still running. Please try again shortly.", 408, null);
 };
 
-export const analyzeTarget = async (url: string, setMode: "standard" | "quiet" = "standard"): Promise<AnalysisResult> => {
-  const { scan, scanOwnerToken } = await createScan(url, setMode);
+export interface AnalyzeTargetResult {
+  result: AnalysisResult;
+  fromCache: boolean;
+}
+
+export const analyzeTargetWithMetadata = async (
+  url: string,
+  setMode: "standard" | "quiet" = "standard",
+): Promise<AnalyzeTargetResult> => {
+  const { scan, scanOwnerToken, fromCache } = await createScan(url, setMode);
   const completedScan = await waitForScanCompletion(scan.id, scanOwnerToken);
   if (!completedScan.result) {
     throw new ApiClientError("Completed scan did not include a result payload.", 500, completedScan);
@@ -365,8 +374,14 @@ export const analyzeTarget = async (url: string, setMode: "standard" | "quiet" =
   if (!isAnalysisResult(completedScan.result)) {
     throw new ApiClientError("Unexpected scan result shape received from server.", 500, completedScan);
   }
-  return completedScan.result;
+  return {
+    result: completedScan.result,
+    fromCache,
+  };
 };
+
+export const analyzeTarget = async (url: string, setMode: "standard" | "quiet" = "standard"): Promise<AnalysisResult> =>
+  (await analyzeTargetWithMetadata(url, setMode)).result;
 
 export const getRecentScanSummaries = async (limit = 10): Promise<ApiScanSummary[]> => {
   const response = await fetch(buildApiUrl(`/api/scans?limit=${encodeURIComponent(String(limit))}`), {

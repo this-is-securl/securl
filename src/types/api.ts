@@ -58,6 +58,7 @@ export interface ApiScanEvent {
 
 export interface CreateScanResponse extends VersionedApiResponse {
   scan: ApiScanSummary;
+  fromCache?: boolean;
 }
 
 export interface GetScanResponse extends VersionedApiResponse {
