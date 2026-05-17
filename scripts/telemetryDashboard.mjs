@@ -229,6 +229,16 @@ const server = http.createServer(async (request, response) => {
   send(response, 404, "Not found", { "Content-Type": "text/plain; charset=utf-8" });
 });
 
+server.on("error", (error) => {
+  if (error?.code === "EADDRINUSE") {
+    console.error(`Port ${port} is already in use. Stop the existing dashboard, or run PORT=8791 npm run telemetry:web`);
+    process.exit(1);
+  }
+
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(1);
+});
+
 server.listen(port, "127.0.0.1", () => {
   const url = `http://127.0.0.1:${port}/`;
   console.log(`SecURL telemetry dashboard: ${url}`);
