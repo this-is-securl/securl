@@ -43,6 +43,7 @@ import {
   requestWithHeaders,
 } from "./network.js";
 import { normalizeDiscoveredPath, rankDiscoveredPaths } from "./path-discovery.js";
+import { buildPassiveIntelligence, emptyPassiveIntelligence } from "./passive-intelligence.js";
 import { scoreAnalysis, scorePostureAnalysis, summarizePostureGrade } from "./scoring.js";
 import { fetchSecurityTxt } from "./security-txt.js";
 import { detectTechnologies } from "./technology-detection.js";
@@ -520,6 +521,7 @@ async function buildLimitedResult(
       strengths: [],
       summary: "Infrastructure attribution was not completed because the primary response could not be fetched cleanly.",
     },
+    passiveIntelligence: emptyPassiveIntelligence("Passive intelligence was limited because the primary response could not be fetched cleanly."),
     executiveSummary: {
       overview:
         failure.kind === "service_unavailable"
@@ -661,6 +663,20 @@ async function enrichCoreResult(
     result.rawHeaders,
     htmlDocument?.html || null,
   );
+  const passiveIntelligence = buildPassiveIntelligence({
+    technologies,
+    infrastructure,
+    thirdPartyTrust,
+    htmlSecurity,
+    aiSurface: htmlSecurity.aiSurface,
+    domainSecurity,
+    securityTxt,
+    publicSignals,
+    identityProvider,
+    wafFingerprint,
+    apiSurface,
+    assessmentLimitation,
+  });
   return {
     ...result,
     issues: [...result.issues, ...buildLibraryRiskIssues(htmlSecurity.libraryRiskSignals).map(classifyIssueTaxonomy)],
@@ -674,6 +690,7 @@ async function enrichCoreResult(
     aiSurface: htmlSecurity.aiSurface,
     thirdPartyTrust,
     infrastructure,
+    passiveIntelligence,
     wafFingerprint,
     exposure,
     corsSecurity,
@@ -991,6 +1008,7 @@ function buildTimedOutEnrichmentResult(
       strengths: [],
       summary: "Infrastructure attribution did not complete before the scan timeout.",
     },
+    passiveIntelligence: emptyPassiveIntelligence("Passive intelligence did not complete before the scan timeout."),
     exposure: emptyExposure(),
     corsSecurity: emptyCorsSecurity(),
     apiSurface: emptyApiSurface(),
