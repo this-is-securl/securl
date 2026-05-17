@@ -6,6 +6,16 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-05-17
+
+### Added
+- Added `passiveIntelligence` to the public analysis result model, summarizing passive stack, infrastructure, telemetry, third-party, AI, trust, email, and exposure signals.
+- Added a strict passive-collection boundary statement so downstream consumers can distinguish public-response intelligence from aggressive reconnaissance.
+- Added deterministic core coverage for passive intelligence summaries and boundary wording.
+
+### Changed
+- Exposed passive intelligence through hosted scan evidence payloads for API clients and future report/export consumers.
+
 ## [0.8.2] - 2026-05-14
 
 ### Added
