@@ -203,10 +203,15 @@ const Index = () => {
             <div className="space-y-6">
               <div className="space-y-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-[#14b8a6]/25 bg-[#14b8a6]/12 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[#99f6e4]">
+                  <a
+                    href="https://securl.online"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full border border-[#14b8a6]/25 bg-[#14b8a6]/12 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[#99f6e4] transition-colors hover:bg-[#14b8a6]/20"
+                  >
                     <Sparkles className="h-3.5 w-3.5" />
                     SecURL
-                  </div>
+                  </a>
                   <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-3 py-1 text-[11px] font-medium tracking-[0.16em] text-zinc-400">
                     <span>{coreLabel}</span>
                     {buildLabel ? (
