@@ -434,6 +434,36 @@ export interface InfrastructureInfo {
   summary: string;
 }
 
+export interface PassiveIntelligenceSignal {
+  category:
+    | "technology"
+    | "infrastructure"
+    | "telemetry"
+    | "third_party"
+    | "trust"
+    | "email"
+    | "exposure"
+    | "ai";
+  title: string;
+  summary: string;
+  confidence: IssueConfidence;
+  source: "headers" | "dns" | "html" | "asset" | "public_record" | "derived";
+  risk: "positive" | "neutral" | "watch" | "attention";
+  evidence: string[];
+  action: string | null;
+}
+
+export interface PassiveIntelligenceInfo {
+  postureRead: string;
+  stackSummary: string;
+  telemetrySummary: string;
+  trustSummary: string;
+  collectionBoundary: string;
+  signals: PassiveIntelligenceSignal[];
+  issues: string[];
+  strengths: string[];
+}
+
 export interface ExecutiveSummaryInfo {
   overview: string;
   mainRisk: string;
@@ -538,6 +568,7 @@ export interface AnalysisResult {
   aiSurface: AiSurfaceInfo;
   thirdPartyTrust: ThirdPartyTrustInfo;
   infrastructure: InfrastructureInfo;
+  passiveIntelligence: PassiveIntelligenceInfo;
   executiveSummary: ExecutiveSummaryInfo;
   assessmentLimitation: AssessmentLimitation;
   exposure: ExposureSummary;

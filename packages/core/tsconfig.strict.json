@@ -21,6 +21,7 @@
     "src/network-validation.ts",
     "src/network.ts",
     "src/path-discovery.ts",
+    "src/passive-intelligence.ts",
     "src/scoring.ts",
     "src/security-txt.ts",
     "src/technology-detection.ts",
