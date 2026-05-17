@@ -96,7 +96,7 @@ export const StatusAlert = ({ variant, icon, children, className }: StatusAlertP
 // Grouped evidence list for positive strengths or neutral observational reads.
 // ---------------------------------------------------------------------------
 
-type SignalListVariant = "success" | "neutral";
+type SignalListVariant = "success" | "neutral" | "warning";
 
 const signalListVariants: Record<SignalListVariant, { container: string; title: string; body: string; icon: string }> = {
   success: {
@@ -110,6 +110,12 @@ const signalListVariants: Record<SignalListVariant, { container: string; title: 
     title: "text-zinc-400",
     body: "text-zinc-200",
     icon: "text-zinc-400",
+  },
+  warning: {
+    container: "border-amber-500/30 bg-amber-500/[0.06]",
+    title: "text-amber-400/80",
+    body: "text-amber-100",
+    icon: "text-amber-400/70",
   },
 };
 

@@ -1,6 +1,8 @@
 import {
   Activity,
+  AlertTriangle,
   BrainCircuit,
+  CheckCircle2,
   Cloud,
   Eye,
   Fingerprint,
@@ -44,6 +46,15 @@ const riskLabel: Record<PassiveIntelligenceSignal["risk"], string> = {
   watch: "Watch",
   neutral: "Context",
   positive: "Positive",
+};
+
+const sourceLabel: Record<PassiveIntelligenceSignal["source"], string> = {
+  headers: "Headers",
+  dns: "DNS",
+  html: "HTML",
+  asset: "Asset",
+  public_record: "Public record",
+  derived: "Derived",
 };
 
 export const PassiveIntelligencePanel = ({ passiveIntelligence }: PassiveIntelligencePanelProps) => {
@@ -97,6 +108,24 @@ export const PassiveIntelligencePanel = ({ passiveIntelligence }: PassiveIntelli
           />
         </div>
 
+        {passiveIntelligence.issues.length > 0 && (
+          <SignalList
+            title="Issues to review"
+            items={passiveIntelligence.issues}
+            icon={<AlertTriangle />}
+            variant="warning"
+          />
+        )}
+
+        {passiveIntelligence.strengths.length > 0 && (
+          <SignalList
+            title="Strengths"
+            items={passiveIntelligence.strengths}
+            icon={<CheckCircle2 />}
+            variant="success"
+          />
+        )}
+
         <div className="rounded-[1.5rem] border border-white/10 bg-zinc-950/45 p-5">
           <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#e0b286]">Readout</p>
           <p className="mt-2 text-lg font-semibold leading-7 text-white">{passiveIntelligence.postureRead}</p>
@@ -133,6 +162,9 @@ export const PassiveIntelligencePanel = ({ passiveIntelligence }: PassiveIntelli
                       </Badge>
                       <Badge variant="outline" className="border-white/10 bg-white/[0.06] text-zinc-300">
                         {signal.confidence}
+                      </Badge>
+                      <Badge variant="outline" className="border-white/[0.08] bg-white/[0.04] text-zinc-500">
+                        {sourceLabel[signal.source]}
                       </Badge>
                     </div>
                   </div>
