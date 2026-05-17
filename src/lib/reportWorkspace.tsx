@@ -58,6 +58,7 @@ export interface ReportWorkspaceSection {
 
 interface BuildReportWorkspaceSectionsOptions {
   analysisData: AnalysisResult;
+  currentScanWasCached?: boolean;
   historyDiff: HistoryDiff | null;
   history: StoredHistorySnapshot[];
   areaScores: AreaScore[];
@@ -68,6 +69,7 @@ interface BuildReportWorkspaceSectionsOptions {
 
 export const buildReportWorkspaceSections = ({
   analysisData,
+  currentScanWasCached = false,
   historyDiff,
   history,
   areaScores,
@@ -107,6 +109,7 @@ export const buildReportWorkspaceSections = ({
     content: (
       <OverviewSection
         analysisData={analysisData}
+        scanWasCached={currentScanWasCached}
         historyDiff={historyDiff}
         history={history}
         areaScores={areaScores}

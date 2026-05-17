@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import type { AnalysisResult } from "@/types/analysis";
 import { getAreaScores } from "@/lib/posture";
 import type { ReportWorkspaceSectionKey } from "@/lib/reportWorkspace";
-import { analyzeTarget, ApiClientError, getSavedScan } from "@/lib/apiClient";
+import { analyzeTargetWithMetadata, ApiClientError, getSavedScan } from "@/lib/apiClient";
 import type { RecentScan } from "@/lib/scanWorkspace";
 
 import { useRecentScans } from "./useRecentScans";
@@ -40,6 +40,7 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
   const [isLoading, setIsLoading] = useState(false);
   const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null);
   const [activeReportSection, setActiveReportSection] = useState<ReportWorkspaceSectionKey>("overview");
+  const [currentScanWasCached, setCurrentScanWasCached] = useState(false);
   const [scanStage, setScanStage] = useState<ScanLifecycleStage | null>(null);
   const autoScanRanRef = useRef(false);
   const analyzeUrlRef = useRef<(url: string, setAsCurrent?: boolean) => Promise<AnalysisResult>>();
@@ -79,6 +80,7 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
     let cancelled = false;
 
     setAnalysisData(null);
+    setCurrentScanWasCached(false);
     setActiveRecentScanUrl(null);
     setActiveReportSection("overview");
     clearRecentScans();
@@ -142,10 +144,11 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
     };
   }, [isLoading]);
 
-  const persistAnalysis = (payload: AnalysisResult, setAsCurrent = true) => {
+  const persistAnalysis = (payload: AnalysisResult, setAsCurrent = true, fromCache = false) => {
     startTransition(() => {
       if (setAsCurrent) {
         setAnalysisData(payload);
+        setCurrentScanWasCached(fromCache);
       }
       addRecentScan(payload);
       addHistorySnapshot(payload, setAsCurrent);
@@ -154,9 +157,9 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
   };
 
   const analyzeUrl = async (url: string, setAsCurrent = true) => {
-    const payload = await analyzeTarget(url);
-    persistAnalysis(payload, setAsCurrent);
-    return payload;
+    const payload = await analyzeTargetWithMetadata(url);
+    persistAnalysis(payload.result, setAsCurrent, payload.fromCache);
+    return payload.result;
   };
 
   analyzeUrlRef.current = analyzeUrl;
@@ -196,6 +199,7 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
       }
       startTransition(() => {
         setAnalysisData(payload.scan.result);
+        setCurrentScanWasCached(false);
         addHistorySnapshot(payload.scan.result, true);
       });
       toast.success(`Reopened ${payload.scan.result.host}.`);
@@ -284,6 +288,7 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
     monitoredTargets,
     activeRecentScanUrl,
     activeReportSection,
+    currentScanWasCached,
     areaScores,
     monitoredViews,
     setActiveReportSection,

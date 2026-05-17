@@ -32,10 +32,6 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-function isCachedResult(iso: string): boolean {
-  return Date.now() - new Date(iso).getTime() > 90_000; // older than 90s → almost certainly from cache
-}
-
 // ── Ring constants ────────────────────────────────────────────────────────────
 // The numeric score drives the arc, but the letter grade is the product verdict.
 const DONUT_RADIUS = 96;
@@ -45,6 +41,7 @@ const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_RADIUS;
 
 interface OverviewSectionProps {
   analysisData: AnalysisResult;
+  scanWasCached?: boolean;
   historyDiff: HistoryDiff | null;
   history: Array<HistorySnapshot & {
     areaScores?: Array<{
@@ -73,6 +70,7 @@ const cardTitle = "mt-2 text-xl font-black tracking-[-0.03em] text-white";
 
 export const OverviewSection = ({
   analysisData,
+  scanWasCached = false,
   historyDiff,
   history,
   areaScores,
@@ -208,7 +206,7 @@ export const OverviewSection = ({
 
                 {/* Scan freshness */}
                 <div className="mt-3 flex items-center justify-center gap-2">
-                  {isCachedResult(analysisData.scannedAt) ? (
+                  {scanWasCached ? (
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-[#14b8a6]/20 bg-[#14b8a6]/08 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#5eead4]">
                       <span className="h-1.5 w-1.5 rounded-full bg-[#14b8a6]" />
                       Cached · {relativeTime(analysisData.scannedAt)}
