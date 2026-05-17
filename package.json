@@ -20,6 +20,7 @@
     "verify:hostinger": "node scripts/verifyHostingerBuild.mjs",
     "package:hostinger": "npm run build:hostinger && npm run verify:hostinger && node scripts/packageHostingerBuild.mjs",
     "telemetry": "node scripts/fetchTelemetry.mjs",
+    "telemetry:web": "node scripts/telemetryDashboard.mjs",
     "check:deploy": "node server/checkDeployReadiness.mjs",
     "pack:core": "npm pack --dry-run ./packages/core",
     "release:core:check": "npm run build:core && npm run typecheck:core:strict && npm run test:core && npm run lint && npm run pack:core",
