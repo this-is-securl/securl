@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { classifyScanFailure, createTelemetryTracker } from "../telemetry.mjs";
+import { classifyScanFailure, classifyTrafficSource, createTelemetryTracker } from "../telemetry.mjs";
 
 test("telemetry tracker records aggregate counts", () => {
   const telemetry = createTelemetryTracker();
 
-  telemetry.recordPageLoad({ visitorKey: "visitor-one", now: new Date("2026-05-15T08:00:00Z") });
-  telemetry.recordPageLoad({ visitorKey: "visitor-one", now: new Date("2026-05-15T09:00:00Z") });
-  telemetry.recordPageLoad({ visitorKey: "visitor-two", now: new Date("2026-05-15T10:00:00Z") });
+  telemetry.recordPageLoad({ visitorKey: "visitor-one", now: new Date("2026-05-15T08:00:00Z"), source: "hacker_news" });
+  telemetry.recordPageLoad({ visitorKey: "visitor-one", now: new Date("2026-05-15T09:00:00Z"), source: "reddit" });
+  telemetry.recordPageLoad({ visitorKey: "visitor-two", now: new Date("2026-05-15T10:00:00Z"), source: "hacker_news" });
   telemetry.recordScanRequested({ mode: "standard" });
   telemetry.recordScanRequested({ mode: "quiet" });
   telemetry.recordScanCompleted({
@@ -30,6 +30,8 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.visitors.recentDays.at(-1).date, "2026-05-15");
   assert.equal(snapshot.visitors.recentDays.at(-1).pageLoads, 3);
   assert.equal(snapshot.visitors.recentDays.at(-1).uniqueVisitors, 2);
+  assert.equal(snapshot.trafficSources.pageLoads.hacker_news, 2);
+  assert.equal(snapshot.trafficSources.pageLoads.reddit, 1);
   assert.equal(snapshot.scans.requested, 2);
   assert.equal(snapshot.scans.completed, 2);
   assert.equal(snapshot.scans.fullReads, 1);
@@ -44,6 +46,18 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.failures.authRejected, 1);
   assert.equal(snapshot.failures.requesterRateLimited, 1);
   assert.equal(snapshot.failures.targetRateLimited, 1);
+});
+
+test("traffic source classification groups common public launch channels", () => {
+  assert.equal(classifyTrafficSource({ referrer: "" }), "direct");
+  assert.equal(classifyTrafficSource({ referrer: "https://news.ycombinator.com/item?id=123" }), "hacker_news");
+  assert.equal(classifyTrafficSource({ referrer: "https://www.reddit.com/r/netsec/comments/example" }), "reddit");
+  assert.equal(classifyTrafficSource({ referrer: "https://github.com/ktbatterham/external-posture-insight" }), "github");
+  assert.equal(classifyTrafficSource({ referrer: "https://app.securl.online/" }), "internal");
+  assert.equal(
+    classifyTrafficSource({ currentUrl: "https://app.securl.online/?utm_source=show_hn" }),
+    "utm:show_hn",
+  );
 });
 
 test("scan failure classification groups the common invalid-target cases", () => {

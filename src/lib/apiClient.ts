@@ -39,13 +39,21 @@ export const buildApiUrl = (path: string) => {
 
 export const recordPageLoad = () => {
   const url = buildApiUrl("/api/telemetry/page-load");
+  const payload = JSON.stringify({
+    referrer: typeof document !== "undefined" ? document.referrer : "",
+    currentUrl: typeof window !== "undefined" ? window.location.href : "",
+  });
   if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
-    navigator.sendBeacon(url);
+    navigator.sendBeacon(url, new Blob([payload], { type: "application/json" }));
     return;
   }
 
   void fetch(url, {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: payload,
     keepalive: true,
   }).catch(() => {
     // Telemetry must never interrupt the user journey.

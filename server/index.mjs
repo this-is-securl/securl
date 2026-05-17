@@ -30,7 +30,7 @@ import { handleAuthRequest, resolveAuthenticatedSession } from "./authHandlers.m
 import { handleScanCollectionRequest, handleScanResourceRequest, runQueuedScan } from "./scanResourceHandlers.mjs";
 import { createStaticHandler } from "./staticServer.mjs";
 import { enforceStartupConfiguration, initializeScanRepository } from "./startupValidation.mjs";
-import { classifyScanFailure, createTelemetryTracker } from "./telemetry.mjs";
+import { classifyTrafficSource, classifyScanFailure, createTelemetryTracker } from "./telemetry.mjs";
 import {
   analyzeUrl,
   formatErrorMessage,
@@ -354,8 +354,13 @@ const server = http.createServer(async (request, response) => {
       return;
     }
 
+    const body = await readJsonBody(request, { maxBytes: 2 * 1024 }).catch(() => ({}));
     telemetry.recordPageLoad({
       visitorKey: buildVisitorKey(request),
+      source: classifyTrafficSource({
+        referrer: typeof body.referrer === "string" ? body.referrer : String(request.headers.referer || ""),
+        currentUrl: typeof body.currentUrl === "string" ? body.currentUrl : "",
+      }),
     });
     sendApiJson(response, 202, { ok: true });
     return;

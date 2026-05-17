@@ -88,6 +88,7 @@ export function createStaticHandler({
     if (method === "GET" && path.basename(preferredPath) === "index.html") {
       telemetry.recordPageLoad({
         visitorKey: getVisitorKey(request),
+        source: "direct",
       });
     }
 
