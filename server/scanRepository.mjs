@@ -541,6 +541,21 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       const scan = scans.get(id);
       return matchesScope(scan, scope) ? enrichScan(scan) : null;
     },
+    async getRecentSuccessfulScan({ url, maxAgeMs = 10 * 60 * 1000 } = {}) {
+      const cutoff = Date.now() - maxAgeMs;
+      for (const id of order) {
+        const scan = scans.get(id);
+        if (!scan) continue;
+        if (scan.url !== url) continue;
+        if (scan.status !== "completed") continue;
+        if (!scan.result) continue;
+        if (scan.result.assessmentLimitation?.limited) continue;
+        const completedAt = scan.completedAt ? new Date(scan.completedAt).getTime() : 0;
+        if (completedAt < cutoff) break; // order is newest-first; older entries won't qualify
+        return enrichScan(scan);
+      }
+      return null;
+    },
     async listScans({ limit = 20, requesterScope = null, ownerId = null, url = null } = {}) {
       const scopedOrder = ownerId
         ? order.filter((id) => scans.get(id)?.ownerId === ownerId)
@@ -992,6 +1007,21 @@ export function createPostgresScanRepository({
         filters.push(`requester_scope = $${params.length}`);
       }
       const { rows } = await pool.query(`select * from ${table} where ${filters.join(" and ")} limit 1`, params);
+      return hydrateScanFromRow(rows[0]);
+    },
+    async getRecentSuccessfulScan({ url, maxAgeMs = 10 * 60 * 1000 } = {}) {
+      const cutoffAt = new Date(Date.now() - maxAgeMs).toISOString();
+      const { rows } = await pool.query(
+        `select * from ${table}
+         where url = $1
+           and status = 'completed'
+           and result is not null
+           and (summary->>'limited')::boolean is not true
+           and completed_at >= $2::timestamptz
+         order by completed_at desc
+         limit 1`,
+        [url, cutoffAt],
+      );
       return hydrateScanFromRow(rows[0]);
     },
     async listScans({ limit = 20, requesterScope = null, ownerId = null, url = null } = {}) {

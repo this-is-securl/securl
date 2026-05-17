@@ -196,6 +196,40 @@ export async function handleScanCollectionRequest({
     }
 
     const validatedTarget = await assertPublicHttpUrl(target);
+
+    // Result TTL cache — serve a recent successful scan rather than re-hitting a target
+    // that may block repeated scanner requests (CDN/WAF bot protection).
+    const RESULT_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+    const cachedScan = await scanRepository
+      .getRecentSuccessfulScan({ url: validatedTarget.toString(), maxAgeMs: RESULT_CACHE_TTL_MS })
+      .catch(() => null); // cache miss on error — fall through to live scan
+    if (cachedScan?.result) {
+      try {
+        const scan = await scanRepository.createScan({
+          url: validatedTarget.toString(),
+          mode,
+          requesterScope: authState.requesterScope,
+          ownerId: authState.ownerId,
+          clientIp: authState.clientIp,
+        });
+        const completedScan = await scanRepository.markCompleted(scan.id, cachedScan.result);
+        log("info", "scan_result_cache_hit", {
+          target: validatedTarget.toString(),
+          cachedScanId: cachedScan.id,
+          newScanId: scan.id,
+          clientIp: authState.clientIp,
+        });
+        sendJson(response, 202, {
+          apiVersion: API_VERSION,
+          fromCache: true,
+          scan: completedScan.summary,
+        });
+      } catch (error) {
+        sendRepositoryUnavailable(response, error, "create_cached_scan");
+      }
+      return true;
+    }
+
     let scan;
     try {
       scan = await scanRepository.createScan({
