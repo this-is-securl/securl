@@ -6,6 +6,7 @@ export function createTelemetryTracker() {
     pageLoads: 0,
     visitorKeys: new Set(),
     visitorDays: {},
+    sourceBuckets: {},
     scansRequested: 0,
     scansCompleted: 0,
     fullReads: 0,
@@ -64,11 +65,17 @@ export function createTelemetryTracker() {
   };
 
   return {
-    recordPageLoad({ visitorKey = null, now = new Date() } = {}) {
+    recordPageLoad({ visitorKey = null, now = new Date(), source = "unknown" } = {}) {
+      const normalizedSource = normalizeTrafficSource(source);
       state.pageLoads += 1;
+      incrementBucket(state.sourceBuckets, normalizedSource);
       const dateKey = now.toISOString().slice(0, 10);
       const dayBucket = getDayBucket(dateKey);
       dayBucket.pageLoads += 1;
+      if (!dayBucket.sourceBuckets) {
+        dayBucket.sourceBuckets = {};
+      }
+      incrementBucket(dayBucket.sourceBuckets, normalizedSource);
       if (visitorKey) {
         state.visitorKeys.add(visitorKey);
         dayBucket.visitorKeys.add(visitorKey);
@@ -129,6 +136,10 @@ export function createTelemetryTracker() {
           }),
           recentDays,
         },
+        trafficSources: {
+          pageLoads: { ...state.sourceBuckets },
+          today: { ...(getDayBucket(todayKey).sourceBuckets || {}) },
+        },
         scans: {
           requested: state.scansRequested,
           completed: state.scansCompleted,
@@ -152,6 +163,71 @@ export function createTelemetryTracker() {
       };
     },
   };
+}
+
+export function normalizeTrafficSource(source) {
+  const value = String(source || "unknown").trim().toLowerCase();
+  return /^[a-z0-9_:-]{1,40}$/.test(value) ? value : "unknown";
+}
+
+export function classifyTrafficSource({ referrer = "", currentUrl = "" } = {}) {
+  const explicitSource = readUtmSource(currentUrl);
+  if (explicitSource) {
+    return explicitSource;
+  }
+
+  if (!referrer) {
+    return "direct";
+  }
+
+  let host = "";
+  try {
+    host = new URL(referrer).hostname.replace(/^www\./, "").toLowerCase();
+  } catch {
+    return "unknown";
+  }
+
+  if (!host || host === "app.securl.online" || host.endsWith(".securl.online")) {
+    return "internal";
+  }
+  if (host === "news.ycombinator.com" || host === "ycombinator.com") {
+    return "hacker_news";
+  }
+  if (host === "reddit.com" || host.endsWith(".reddit.com")) {
+    return "reddit";
+  }
+  if (host === "github.com" || host.endsWith(".github.com")) {
+    return "github";
+  }
+  if (host === "google.com" || host.endsWith(".google.com")) {
+    return "google";
+  }
+  if (host === "linkedin.com" || host.endsWith(".linkedin.com")) {
+    return "linkedin";
+  }
+  if (host === "x.com" || host === "twitter.com" || host.endsWith(".twitter.com")) {
+    return "social";
+  }
+
+  return "other_referrer";
+}
+
+function readUtmSource(currentUrl) {
+  if (!currentUrl) {
+    return null;
+  }
+
+  try {
+    const url = new URL(currentUrl);
+    const source = url.searchParams.get("utm_source");
+    if (!source) {
+      return null;
+    }
+    const normalized = normalizeTrafficSource(source.replace(/[^a-z0-9_-]/gi, "_"));
+    return normalized === "unknown" ? null : `utm:${normalized}`;
+  } catch {
+    return null;
+  }
 }
 
 export function classifyScanFailure(error) {

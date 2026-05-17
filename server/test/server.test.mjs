@@ -411,6 +411,7 @@ test("telemetry endpoint returns aggregate page-load and failure counters", asyn
     assert.equal(payload.visitors.totalPageLoads, 2);
     assert.equal(payload.visitors.today.pageLoads >= 2, true);
     assert.equal(payload.visitors.today.uniqueVisitors >= 1, true);
+    assert.equal(payload.trafficSources.pageLoads.direct, 2);
     assert.equal(payload.scans.requested, 0);
     assert.equal(payload.scans.completed, 0);
     assert.equal(payload.failures.classes.invalid_target_credentials, 1);
@@ -453,10 +454,15 @@ test("telemetry page-load beacon records Hostinger frontend visits", async () =>
     const beaconResponse = await fetch(`${server.baseUrl}/api/telemetry/page-load`, {
       method: "POST",
       headers: {
+        "Content-Type": "application/json",
         Origin: "https://app.securl.online",
         "User-Agent": "TelemetryBeaconTest/1.0",
         "X-Forwarded-For": "203.0.113.20",
       },
+      body: JSON.stringify({
+        referrer: "https://news.ycombinator.com/item?id=123",
+        currentUrl: "https://app.securl.online/",
+      }),
     });
     assert.equal(beaconResponse.status, 202);
     assert.equal(beaconResponse.headers.get("access-control-allow-origin"), "https://app.securl.online");
@@ -466,6 +472,7 @@ test("telemetry page-load beacon records Hostinger frontend visits", async () =>
 
     assert.equal(payload.visitors.totalPageLoads, 1);
     assert.equal(payload.visitors.unique, 1);
+    assert.equal(payload.trafficSources.pageLoads.hacker_news, 1);
   } finally {
     await server.stop();
   }
