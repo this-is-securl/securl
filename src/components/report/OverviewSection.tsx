@@ -21,6 +21,21 @@ import { sectionTitleClass } from "./ReportSectionHeader";
 
 type TrafficLightStatus = "strong" | "watch" | "weak";
 
+function relativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const s = Math.floor(diffMs / 1000);
+  if (s < 90) return "just now";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m} min ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+function isCachedResult(iso: string): boolean {
+  return Date.now() - new Date(iso).getTime() > 90_000; // older than 90s → almost certainly from cache
+}
+
 // ── Ring constants ────────────────────────────────────────────────────────────
 // The numeric score drives the arc, but the letter grade is the product verdict.
 const DONUT_RADIUS = 96;
@@ -190,6 +205,20 @@ export const OverviewSection = ({
                 <p className="mt-1 text-[11px] font-medium text-zinc-600">
                   Weighted signal: {overallPercent}
                 </p>
+
+                {/* Scan freshness */}
+                <div className="mt-3 flex items-center justify-center gap-2">
+                  {isCachedResult(analysisData.scannedAt) ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#14b8a6]/20 bg-[#14b8a6]/08 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#5eead4]">
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#14b8a6]" />
+                      Cached · {relativeTime(analysisData.scannedAt)}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-medium text-zinc-700">
+                      Scanned {relativeTime(analysisData.scannedAt)}
+                    </span>
+                  )}
+                </div>
 
                 {/* Monitoring — clean, no inner card, just a divider section */}
                 <div className="mt-6 w-full border-t border-white/[0.06] pt-5 text-left">
