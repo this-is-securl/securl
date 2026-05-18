@@ -100,7 +100,12 @@ export function enforceStartupConfiguration({
     process.exit(1);
   }
 
-  if (isProduction && scanRepositoryBackend === "postgres" && process.env.PGSSL_REJECT_UNAUTHORIZED !== "true") {
+  if (
+    isProduction
+    && scanRepositoryBackend === "postgres"
+    && process.env.PGSSLMODE !== "disable"
+    && process.env.PGSSL_REJECT_UNAUTHORIZED !== "true"
+  ) {
     log("warn", "postgres_tls_verification_not_enforced", {
       message: "Postgres TLS is enabled without certificate verification. Set PGSSL_REJECT_UNAUTHORIZED=true when your provider chain is trusted.",
     });

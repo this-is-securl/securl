@@ -118,6 +118,10 @@ const html = String.raw`<!doctype html>
     .kicker { color: var(--muted); text-transform: uppercase; letter-spacing: .22em; font-size: 11px; font-weight: 900; }
     .value { margin-top: 18px; font-size: 42px; line-height: 1; letter-spacing: -.06em; font-weight: 950; }
     .detail { margin-top: 10px; color: #9aaaa2; line-height: 1.55; font-size: 14px; }
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px; }
+    .split-box { border: 1px solid var(--line); background: rgba(0,0,0,.18); border-radius: 18px; padding: 14px; }
+    .split-label { color: var(--muted); text-transform: uppercase; letter-spacing: .18em; font-size: 10px; font-weight: 900; }
+    .split-value { margin-top: 8px; font-size: 34px; line-height: 1; letter-spacing: -.055em; font-weight: 950; }
     h2 { margin: 8px 0 0; font-size: 26px; line-height: 1.05; letter-spacing: -.04em; }
     .row { display: flex; justify-content: space-between; gap: 16px; align-items: center; border: 1px solid var(--line); background: rgba(0,0,0,.2); border-radius: 18px; padding: 14px; margin-top: 10px; }
     .bar { height: 8px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.1); margin-top: 12px; }
@@ -151,6 +155,7 @@ const html = String.raw`<!doctype html>
     const entries = (o) => Object.entries(o || {}).sort((a, b) => b[1] - a[1]);
     const sourceLabel = (s) => s.replaceAll("_", " ");
     const card = (label, value, detail, cls = "") => '<div class="card"><div class="kicker">' + label + '</div><div class="value ' + cls + '">' + value + '</div><div class="detail">' + detail + '</div></div>';
+    const splitCard = (label, total, today, detail, cls = "") => '<div class="card"><div class="kicker">' + label + '</div><div class="split"><div class="split-box"><div class="split-label">Total</div><div class="split-value ' + cls + '">' + total + '</div></div><div class="split-box"><div class="split-label">Today</div><div class="split-value ' + cls + '">' + today + '</div></div></div><div class="detail">' + detail + '</div></div>';
     const row = (label, value) => '<div class="row"><span>' + label + '</span><strong>' + value + '</strong></div>';
 
     async function load() {
@@ -170,8 +175,8 @@ const html = String.raw`<!doctype html>
         const failureClasses = entries(data.failures?.classes);
         content.innerHTML =
           '<div class="grid">' +
-            card("Page loads", fmt(data.pageLoads), fmt(data.visitors?.today?.pageLoads) + " today since backend start.") +
-            card("Unique visitors", fmt(data.visitors?.unique), fmt(data.visitors?.today?.uniqueVisitors) + " unique today.", "good") +
+            splitCard("Page loads", fmt(data.pageLoads), fmt(data.visitors?.today?.pageLoads), "Total is all persisted page-load telemetry; today is the current UTC day.") +
+            splitCard("Unique visitors", fmt(data.visitors?.unique), fmt(data.visitors?.today?.uniqueVisitors), "Unique count is based on the hashed IP and user-agent visitor key.", "good") +
             card("Scans completed", fmt(data.scans?.completed) + "/" + fmt(data.scans?.requested), fmt(data.scans?.fullReads) + " full reads, " + fmt(data.scans?.limitedReads) + " limited reads.", "good") +
             card("Failures", fmt(failureTotal), fmt(data.failures?.requesterRateLimited) + " requester limits, " + fmt(data.failures?.targetRateLimited) + " target limits.", failureTotal ? "bad" : "warn") +
           '</div>' +
@@ -181,7 +186,7 @@ const html = String.raw`<!doctype html>
             '</div>' +
             '<div class="card"><div class="kicker">Scan timings</div><h2>How the engine is behaving</h2>' +
               row("Average total", ms(data.scans?.timing?.total?.averageMs)) +
-              row("Total p95", ms(data.scans?.timing?.total?.p95Ms)) +
+              row("95% finished under", ms(data.scans?.timing?.total?.p95Ms)) +
               row("Core average", ms(data.scans?.timing?.core?.averageMs)) +
               row("Enrichment average", ms(data.scans?.timing?.enrichment?.averageMs)) +
             '</div>' +
