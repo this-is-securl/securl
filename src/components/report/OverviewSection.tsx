@@ -131,7 +131,7 @@ export const OverviewSection = ({
       <div className="rounded-[2rem] border border-zinc-800 bg-[#111a14] p-8 shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset]">
 
         {/* ── TOP: Ring gauge + executive verdict ── */}
-        <div className="grid gap-10 xl:grid-cols-[260px_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 gap-8 lg:gap-10 xl:grid-cols-[260px_minmax(0,1fr)]">
 
           {/* LEFT: Score gauge */}
           {(() => {
@@ -239,7 +239,7 @@ export const OverviewSection = ({
           <div className="space-y-6">
             <div className="space-y-1.5">
               <p className={sectionTitleClass}>Target</p>
-              <p className="text-[2.5rem] font-black tracking-[-0.04em] text-white leading-none">{analysisData.host}</p>
+              <p className="text-2xl font-black tracking-[-0.04em] text-white leading-none sm:text-[2.5rem]">{analysisData.host}</p>
               <p className="break-all text-sm text-zinc-500 mt-1">{analysisData.finalUrl}</p>
             </div>
 
@@ -288,7 +288,7 @@ export const OverviewSection = ({
         </div>
 
         {/* ── STAT TILES: left-accent rail style ── */}
-        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {/* Critical */}
           <div className="group relative overflow-hidden rounded-2xl bg-[#111a14] px-5 py-6 ring-1 ring-white/[0.06] transition-all duration-200 hover:ring-white/[0.10] hover:-translate-y-px">
             <div className="absolute inset-y-0 left-0 w-[3px] rounded-r-[2px] bg-rose-500/70" />
@@ -345,7 +345,7 @@ export const OverviewSection = ({
         </div>
 
         {/* ── BOTTOM ROW 1: Category scores + Priority actions ── */}
-        <div className="mt-6 grid gap-5 xl:grid-cols-[1.08fr_0.92fr]">
+        <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-[1.08fr_0.92fr]">
           {isLimitedAssessment ? (
             <div className={subCard}>
               <div className="flex items-center justify-between gap-3 mb-5">
@@ -456,7 +456,7 @@ export const OverviewSection = ({
           <div className={subCard}>
             <p className={eyebrow}>Scan facts</p>
             <p className={cardTitle}>Capture details</p>
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <div className="rounded-[1.25rem] border border-zinc-800 bg-[#0c1410] px-4 py-4">
                 <p className={eyebrow + " mb-2"}>Scanned</p>
                 <p className="text-sm font-semibold leading-6 text-white">{new Date(analysisData.scannedAt).toLocaleString()}</p>
@@ -484,7 +484,7 @@ export const OverviewSection = ({
             <p className="mt-2 mb-5 text-sm leading-relaxed text-zinc-500">
               Export as PDF for executives, Markdown for engineering, or raw JSON for integrations.
             </p>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <Button
                 variant="outline"
                 className="h-11 w-full justify-center rounded-xl border-zinc-800 bg-white/[0.03] font-semibold text-zinc-200 hover:bg-white/[0.07] hover:border-zinc-700 transition-all duration-150"

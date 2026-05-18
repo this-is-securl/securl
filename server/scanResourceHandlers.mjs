@@ -302,6 +302,28 @@ export async function handleScanResourceRequest({
     return true;
   }
 
+  // Public share endpoint — no auth required
+  if (parsed.resource === "share") {
+    try {
+      const scan = await scanRepository.getScanById(parsed.scanId);
+      if (!scan || scan.status !== "completed" || !scan.result) {
+        sendJson(response, 404, { error: "not_found" });
+        return true;
+      }
+      sendJson(response, 200, {
+        scan: {
+          id: scan.id,
+          url: scan.url,
+          completedAt: scan.completedAt,
+          result: scan.result,
+        },
+      });
+    } catch (error) {
+      sendRepositoryUnavailable(response, error, "get_shared_scan");
+    }
+    return true;
+  }
+
   try {
     const { scanId, resource } = parsed;
     const authState = await authorizeAnalysisRequest({

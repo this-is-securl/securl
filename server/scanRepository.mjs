@@ -541,6 +541,10 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       const scan = scans.get(id);
       return matchesScope(scan, scope) ? enrichScan(scan) : null;
     },
+    async getScanById(id) {
+      const scan = scans.get(id);
+      return scan ? enrichScan(scan) : null;
+    },
     async getRecentSuccessfulScan({ url, maxAgeMs = 10 * 60 * 1000 } = {}) {
       const cutoff = Date.now() - maxAgeMs;
       for (const id of order) {
@@ -1007,6 +1011,10 @@ export function createPostgresScanRepository({
         filters.push(`requester_scope = $${params.length}`);
       }
       const { rows } = await pool.query(`select * from ${table} where ${filters.join(" and ")} limit 1`, params);
+      return hydrateScanFromRow(rows[0]);
+    },
+    async getScanById(id) {
+      const { rows } = await pool.query(`select * from ${table} where id = $1 limit 1`, [id]);
       return hydrateScanFromRow(rows[0]);
     },
     async getRecentSuccessfulScan({ url, maxAgeMs = 10 * 60 * 1000 } = {}) {
