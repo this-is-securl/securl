@@ -117,4 +117,10 @@ export function enforceStartupConfiguration({
       message: "Set API_KEY_FINGERPRINT_SALT to a deployment-specific secret before handling production API keys.",
     });
   }
+
+  if (isProduction && !process.env.TELEMETRY_STORAGE_PATH) {
+    log("warn", "telemetry_memory_only", {
+      message: "Set TELEMETRY_STORAGE_PATH on a persistent volume if telemetry should survive deploys and restarts.",
+    });
+  }
 }

@@ -69,6 +69,7 @@ const SCAN_OWNER_HEADER = "x-scan-owner";
 const AUTH_TOKEN_FINGERPRINT_SALT = process.env.AUTH_TOKEN_FINGERPRINT_SALT || "epi-auth-token-fingerprint-v1";
 const TELEMETRY_TOKEN = (process.env.TELEMETRY_TOKEN || process.env.ADMIN_TELEMETRY_TOKEN || "").trim();
 const TELEMETRY_VISITOR_SALT = process.env.TELEMETRY_VISITOR_SALT || "epi-visitor-count-v1";
+const TELEMETRY_STORAGE_PATH = (process.env.TELEMETRY_STORAGE_PATH || "").trim();
 const RATE_LIMIT_WINDOW_MS = (() => {
   const raw = Number(process.env.RATE_LIMIT_WINDOW_MS || DEFAULT_RATE_LIMIT_WINDOW_MS);
   if (!Number.isFinite(raw) || raw < 1000) {
@@ -137,7 +138,7 @@ const upstashRestToken = (process.env.UPSTASH_REDIS_REST_TOKEN || "").trim();
 const abuseSignalBuckets = new Map();
 const exposeDetailedHealth = !isProduction;
 const exposeTelemetry = process.env.EXPOSE_TELEMETRY === "true" || !isProduction;
-const telemetry = createTelemetryTracker();
+const telemetry = createTelemetryTracker({ storagePath: TELEMETRY_STORAGE_PATH });
 let scanRepository;
 
 function buildVisitorKey(request) {
