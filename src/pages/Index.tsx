@@ -1,4 +1,5 @@
 import { Activity, Clock3, Layers3, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 import { AuthCard } from "@/components/AuthCard";
 import { MonitoredTargetsPanel } from "@/components/MonitoredTargetsPanel";
 import { UrlForm } from "@/components/UrlForm";
@@ -152,6 +153,7 @@ const Index = () => {
     isLoading,
     scanStage,
     analysisData,
+    currentScanId,
     recentScans,
     history,
     historyDiff,
@@ -305,11 +307,31 @@ const Index = () => {
               <span className="h-px flex-1 bg-white/[0.06]" />
             </div>
             <div className="space-y-10">
-              <ReportSectionNav
-                sections={reportSections}
-                activeKey={activeSection?.key}
-                onChange={(key) => setActiveReportSection(key)}
-              />
+              <div className="flex items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <ReportSectionNav
+                    sections={reportSections}
+                    activeKey={activeSection?.key}
+                    onChange={(key) => setActiveReportSection(key)}
+                  />
+                </div>
+                {currentScanId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/report/${currentScanId}`);
+                      toast.success("Link copied to clipboard");
+                    }}
+                    className="mt-0 flex shrink-0 items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-semibold text-zinc-400 transition hover:border-[#14b8a6]/30 hover:bg-[#14b8a6]/10 hover:text-[#2dd4bf]"
+                    title="Copy shareable link"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                    </svg>
+                    Share
+                  </button>
+                )}
+              </div>
 
               {activeSection ? (
                 <div

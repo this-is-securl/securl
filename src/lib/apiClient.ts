@@ -360,6 +360,7 @@ export const waitForScanCompletion = async (
 export interface AnalyzeTargetResult {
   result: AnalysisResult;
   fromCache: boolean;
+  scanId: string;
 }
 
 export const analyzeTargetWithMetadata = async (
@@ -367,7 +368,8 @@ export const analyzeTargetWithMetadata = async (
   setMode: "standard" | "quiet" = "standard",
 ): Promise<AnalyzeTargetResult> => {
   const { scan, scanOwnerToken, fromCache } = await createScan(url, setMode);
-  const completedScan = await waitForScanCompletion(scan.id, scanOwnerToken);
+  const scanId = scan.id;
+  const completedScan = await waitForScanCompletion(scanId, scanOwnerToken);
   if (!completedScan.result) {
     throw new ApiClientError("Completed scan did not include a result payload.", 500, completedScan);
   }
@@ -377,7 +379,17 @@ export const analyzeTargetWithMetadata = async (
   return {
     result: completedScan.result,
     fromCache,
+    scanId,
   };
+};
+
+export const getSharedScan = async (scanId: string): Promise<AnalysisResult | null> => {
+  const response = await fetch(buildApiUrl(`/api/scans/${encodeURIComponent(scanId)}/share`));
+  if (!response.ok) return null;
+  const payload = await response.json().catch(() => null) as { scan?: { result?: unknown } } | null;
+  const result = payload?.scan?.result;
+  if (!isAnalysisResult(result)) return null;
+  return result;
 };
 
 export const analyzeTarget = async (url: string, setMode: "standard" | "quiet" = "standard"): Promise<AnalysisResult> =>

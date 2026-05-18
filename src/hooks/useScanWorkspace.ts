@@ -42,6 +42,7 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
   const [activeReportSection, setActiveReportSection] = useState<ReportWorkspaceSectionKey>("overview");
   const [currentScanWasCached, setCurrentScanWasCached] = useState(false);
   const [scanStage, setScanStage] = useState<ScanLifecycleStage | null>(null);
+  const [currentScanId, setCurrentScanId] = useState<string | null>(null);
   const autoScanRanRef = useRef(false);
   const analyzeUrlRef = useRef<(url: string, setAsCurrent?: boolean) => Promise<AnalysisResult>>();
   const stageTimeoutsRef = useRef<number[]>([]);
@@ -157,7 +158,9 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
   };
 
   const analyzeUrl = async (url: string, setAsCurrent = true) => {
+    setCurrentScanId(null);
     const payload = await analyzeTargetWithMetadata(url);
+    setCurrentScanId(payload.scanId);
     persistAnalysis(payload.result, setAsCurrent, payload.fromCache);
     return payload.result;
   };
@@ -282,6 +285,7 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
     isLoading,
     scanStage,
     analysisData,
+    currentScanId,
     recentScans,
     history,
     historyDiff,
