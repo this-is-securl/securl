@@ -199,7 +199,7 @@ const Index = () => {
 
         {/* ── Hero card ─────────────────────────────────────────────────── */}
         <section className="rounded-[2.5rem] border border-emerald-700/20 bg-[#040c08]/60 p-6 shadow-[0_48px_120px_-40px_rgba(0,0,0,0.7),0_0_0_1px_rgba(16,185,129,0.10)_inset,0_1px_0_rgba(255,255,255,0.05)_inset] backdrop-blur-md sm:p-8 lg:p-10">
-          <div className="grid gap-10 lg:grid-cols-[1.3fr_0.7fr] lg:items-start">
+          <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1.3fr_0.7fr] lg:items-start">
 
             {/* Left: headline + form */}
             <div className="space-y-6">
@@ -232,7 +232,7 @@ const Index = () => {
                 </div>
 
                 <div className="space-y-5">
-                  <h1 className="max-w-3xl text-5xl font-black tracking-[-0.06em] text-white sm:text-6xl lg:text-7xl">
+                  <h1 className="max-w-3xl text-3xl font-black tracking-[-0.06em] text-white sm:text-5xl lg:text-6xl">
                     See what<br className="hidden sm:block" /> attackers see.
                   </h1>
                   <p className="max-w-lg text-lg font-semibold leading-8 text-zinc-200">
@@ -245,7 +245,7 @@ const Index = () => {
               <UrlForm
                 onSubmit={handleAnalyze}
                 isLoading={isLoading}
-                initialValue="example.com"
+                initialValue=""
                 scanStage={scanStage}
               />
             </div>
@@ -270,7 +270,7 @@ const Index = () => {
                           : "border-white/10 bg-zinc-950/45 hover:-translate-y-0.5 hover:border-[#14b8a6]/25 hover:bg-white/[0.08]"
                       } ${isLoading ? "cursor-wait" : ""}`}
                     >
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                         <span className="truncate text-sm font-medium text-zinc-100">{scan.url}</span>
                         <span className="text-sm font-semibold uppercase tracking-[0.14em] text-[#99f6e4]">
                           {activeRecentScanUrl === (scan.id ?? scan.url)
@@ -316,7 +316,7 @@ const Index = () => {
                   key={activeSection.key}
                   className="min-w-0 overflow-hidden rounded-[2rem] border border-zinc-800 bg-[#111a14] shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset] animate-in fade-in-50 slide-in-from-bottom-2 duration-500"
                 >
-                  <div className="border-b border-zinc-800 px-10 py-8 sm:px-11">
+                  <div className="border-b border-zinc-800 px-4 py-6 sm:px-10 sm:py-8">
                     <div className="flex items-center gap-2.5">
                       {activeSection.icon && (
                         <activeSection.icon className="h-3.5 w-3.5 text-[#2dd4bf]" />
@@ -327,14 +327,14 @@ const Index = () => {
                         </p>
                       ) : null}
                     </div>
-                    <h2 className="mt-2.5 text-[1.85rem] font-black tracking-[-0.04em] text-white sm:text-[2rem]">
+                    <h2 className="mt-2.5 text-xl font-black tracking-[-0.04em] text-white sm:text-[1.85rem]">
                       {activeSection.title}
                     </h2>
                     <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-300">
                       {activeSection.summary}
                     </p>
                   </div>
-                  <div className="px-10 py-10 text-zinc-100 sm:px-11">
+                  <div className="px-4 py-6 text-zinc-100 sm:px-10 sm:py-10">
                     {activeSection.content}
                   </div>
                 </div>
@@ -365,7 +365,7 @@ const Index = () => {
             </section>
 
             {/* 2 — Differentiation band */}
-            <section className="rounded-[1.75rem] border border-white/[0.08] bg-white/[0.03] px-8 py-14 text-center shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] sm:px-12">
+            <section className="rounded-[1.75rem] border border-white/[0.08] bg-white/[0.03] px-4 py-8 text-center shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] sm:px-8 sm:py-14">
               <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-500">
                 Why SecURL
               </p>
@@ -378,7 +378,7 @@ const Index = () => {
                 No agents. No configuration. No credentials. Just how your site looks to an informed
                 external observer — graded, ranked, and ready to act on.
               </p>
-              <div className="mx-auto mt-9 grid max-w-md grid-cols-3 gap-6">
+              <div className="mx-auto mt-9 grid max-w-md grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-6">
                 {[
                   { value: "7",    label: "Posture areas"      },
                   { value: "~20s", label: "To a graded result" },

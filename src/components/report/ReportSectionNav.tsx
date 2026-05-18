@@ -24,12 +24,12 @@ export const ReportSectionNav = ({ sections, activeKey, onChange }: ReportSectio
           value={activeKey}
           onValueChange={(v) => onChange(v as ReportWorkspaceSectionKey)}
         >
-          <SelectTrigger className="h-auto w-full rounded-[1.5rem] border-zinc-800 bg-[#111a14] px-5 py-4 text-left ring-offset-0 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)] focus:ring-1 focus:ring-[#14b8a6]/50 focus:ring-offset-0 backdrop-blur">
+          <SelectTrigger className="h-auto w-full rounded-[1.5rem] border-zinc-800 bg-[#111a14] px-4 py-3 text-left ring-offset-0 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)] focus:ring-1 focus:ring-[#14b8a6]/50 focus:ring-offset-0 backdrop-blur sm:px-5 sm:py-4">
             {activeSection ? (
               <div className="flex min-w-0 items-center gap-3">
                 <activeSection.icon className="h-5 w-5 shrink-0 text-[#2dd4bf]" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-base font-bold text-white">{activeSection.title}</p>
+                  <p className="line-clamp-1 text-base font-bold text-white">{activeSection.title}</p>
                   {(activeSection.badge ?? activeSection.context) ? (
                     <p className="mt-0.5 truncate text-[11px] font-medium text-[#2dd4bf]/70">
                       {activeSection.badge ?? activeSection.context}
@@ -50,7 +50,7 @@ export const ReportSectionNav = ({ sections, activeKey, onChange }: ReportSectio
                   value={section.key}
                   className="rounded-xl py-3 pl-3 pr-3 focus:bg-white/[0.08] focus:text-white"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <Icon
                       className={cn(
                         "h-4 w-4 shrink-0",

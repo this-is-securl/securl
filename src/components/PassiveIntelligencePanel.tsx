@@ -91,7 +91,7 @@ export const PassiveIntelligencePanel = ({ passiveIntelligence }: PassiveIntelli
         </p>
       </CardHeader>
       <CardContent className="space-y-5">
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <StatBox
             label="Passive signals"
             value={<p className="text-3xl font-bold">{passiveIntelligence.signals.length}</p>}
@@ -129,7 +129,7 @@ export const PassiveIntelligencePanel = ({ passiveIntelligence }: PassiveIntelli
         <div className="rounded-[1.5rem] border border-white/10 bg-zinc-950/45 p-5">
           <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#e0b286]">Readout</p>
           <p className="mt-2 text-lg font-semibold leading-7 text-white">{passiveIntelligence.postureRead}</p>
-          <div className="mt-4 grid gap-3 text-sm leading-6 text-zinc-300 md:grid-cols-3">
+          <div className="mt-4 grid grid-cols-1 gap-3 text-sm leading-6 text-zinc-300 md:grid-cols-3">
             <p>{passiveIntelligence.stackSummary}</p>
             <p>{passiveIntelligence.telemetrySummary}</p>
             <p>{passiveIntelligence.trustSummary}</p>
@@ -145,7 +145,7 @@ export const PassiveIntelligencePanel = ({ passiveIntelligence }: PassiveIntelli
                   key={`${signal.category}-${signal.title}-${index}`}
                   className="rounded-[1.35rem] border border-white/10 bg-[#111a14] px-4 py-4"
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 text-sm font-semibold text-white">
                         <span className="text-zinc-400">{config.icon}</span>
@@ -153,7 +153,7 @@ export const PassiveIntelligencePanel = ({ passiveIntelligence }: PassiveIntelli
                       </div>
                       <p className="mt-2 text-sm leading-6 text-zinc-300">{signal.summary}</p>
                     </div>
-                    <div className="flex flex-wrap justify-end gap-2">
+                    <div className="flex flex-wrap justify-start gap-2 sm:justify-end">
                       <Badge variant="outline" className="border-white/10 bg-white/[0.06] text-zinc-100">
                         {config.label}
                       </Badge>
