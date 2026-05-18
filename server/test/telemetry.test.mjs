@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import test from "node:test";
 import { classifyScanFailure, classifyTrafficSource, createTelemetryTracker } from "../telemetry.mjs";
 
@@ -46,6 +49,32 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.failures.authRejected, 1);
   assert.equal(snapshot.failures.requesterRateLimited, 1);
   assert.equal(snapshot.failures.targetRateLimited, 1);
+});
+
+test("telemetry tracker can persist counters to disk", () => {
+  const dir = mkdtempSync(join(tmpdir(), "securl-telemetry-"));
+  const storagePath = join(dir, "telemetry.json");
+
+  try {
+    const first = createTelemetryTracker({ storagePath });
+    first.recordPageLoad({ visitorKey: "visitor-one", now: new Date("2026-05-15T08:00:00Z"), source: "reddit" });
+    first.recordScanRequested({ mode: "quiet" });
+    first.recordFailure("requester_rate_limited");
+
+    const second = createTelemetryTracker({ storagePath });
+    const snapshot = second.snapshot();
+
+    assert.equal(snapshot.persistence, "file");
+    assert.equal(snapshot.pageLoads, 1);
+    assert.equal(snapshot.visitors.unique, 1);
+    assert.equal(snapshot.visitors.recentDays.at(-1).date, "2026-05-15");
+    assert.equal(snapshot.trafficSources.pageLoads.reddit, 1);
+    assert.equal(snapshot.scans.requested, 1);
+    assert.equal(snapshot.scans.quietMode, 1);
+    assert.equal(snapshot.failures.classes.requester_rate_limited, 1);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test("traffic source classification groups common public launch channels", () => {

@@ -1,8 +1,11 @@
-export function createTelemetryTracker() {
-  const startedAt = new Date().toISOString();
-  const startedDate = startedAt.slice(0, 10);
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
+
+export function createTelemetryTracker({ storagePath = "" } = {}) {
+  const persistence = storagePath ? "file" : "memory";
 
   const state = {
+    startedAt: new Date().toISOString(),
     pageLoads: 0,
     visitorKeys: new Set(),
     visitorDays: {},
@@ -22,6 +25,75 @@ export function createTelemetryTracker() {
     requesterRateLimited: 0,
     targetRateLimited: 0,
   };
+
+  const serializeState = () => ({
+    ...state,
+    visitorKeys: [...state.visitorKeys],
+    visitorDays: Object.fromEntries(
+      Object.entries(state.visitorDays).map(([date, bucket]) => [
+        date,
+        {
+          pageLoads: bucket.pageLoads,
+          visitorKeys: [...bucket.visitorKeys],
+          sourceBuckets: { ...(bucket.sourceBuckets || {}) },
+        },
+      ]),
+    ),
+  });
+
+  const hydrateState = (value) => {
+    if (!value || typeof value !== "object") {
+      return;
+    }
+
+    state.startedAt = typeof value.startedAt === "string" ? value.startedAt : state.startedAt;
+    state.pageLoads = Number.isFinite(value.pageLoads) ? value.pageLoads : state.pageLoads;
+    state.visitorKeys = new Set(Array.isArray(value.visitorKeys) ? value.visitorKeys : []);
+    state.visitorDays = Object.fromEntries(
+      Object.entries(value.visitorDays || {}).map(([date, bucket]) => [
+        date,
+        {
+          pageLoads: Number.isFinite(bucket?.pageLoads) ? bucket.pageLoads : 0,
+          visitorKeys: new Set(Array.isArray(bucket?.visitorKeys) ? bucket.visitorKeys : []),
+          sourceBuckets: { ...(bucket?.sourceBuckets || {}) },
+        },
+      ]),
+    );
+    state.sourceBuckets = { ...(value.sourceBuckets || {}) };
+    state.scansRequested = Number.isFinite(value.scansRequested) ? value.scansRequested : state.scansRequested;
+    state.scansCompleted = Number.isFinite(value.scansCompleted) ? value.scansCompleted : state.scansCompleted;
+    state.fullReads = Number.isFinite(value.fullReads) ? value.fullReads : state.fullReads;
+    state.limitedReads = Number.isFinite(value.limitedReads) ? value.limitedReads : state.limitedReads;
+    state.quietModeScans = Number.isFinite(value.quietModeScans) ? value.quietModeScans : state.quietModeScans;
+    state.timedOutScans = Number.isFinite(value.timedOutScans) ? value.timedOutScans : state.timedOutScans;
+    state.scanDurationsMs = Array.isArray(value.scanDurationsMs) ? value.scanDurationsMs.filter(Number.isFinite).slice(-200) : state.scanDurationsMs;
+    state.coreDurationsMs = Array.isArray(value.coreDurationsMs) ? value.coreDurationsMs.filter(Number.isFinite).slice(-200) : state.coreDurationsMs;
+    state.enrichmentDurationsMs = Array.isArray(value.enrichmentDurationsMs) ? value.enrichmentDurationsMs.filter(Number.isFinite).slice(-200) : state.enrichmentDurationsMs;
+    state.limitedReadKinds = { ...(value.limitedReadKinds || {}) };
+    state.failureClasses = { ...(value.failureClasses || {}) };
+    state.authRejected = Number.isFinite(value.authRejected) ? value.authRejected : state.authRejected;
+    state.requesterRateLimited = Number.isFinite(value.requesterRateLimited) ? value.requesterRateLimited : state.requesterRateLimited;
+    state.targetRateLimited = Number.isFinite(value.targetRateLimited) ? value.targetRateLimited : state.targetRateLimited;
+  };
+
+  const persist = () => {
+    if (!storagePath) {
+      return;
+    }
+
+    mkdirSync(dirname(storagePath), { recursive: true });
+    const temporaryPath = `${storagePath}.${process.pid}.tmp`;
+    writeFileSync(temporaryPath, `${JSON.stringify(serializeState())}\n`, "utf8");
+    renameSync(temporaryPath, storagePath);
+  };
+
+  if (storagePath && existsSync(storagePath)) {
+    try {
+      hydrateState(JSON.parse(readFileSync(storagePath, "utf8")));
+    } catch {
+      // A corrupt telemetry file should not prevent the app starting.
+    }
+  }
 
   const incrementBucket = (bucket, key) => {
     bucket[key] = (bucket[key] ?? 0) + 1;
@@ -80,12 +152,14 @@ export function createTelemetryTracker() {
         state.visitorKeys.add(visitorKey);
         dayBucket.visitorKeys.add(visitorKey);
       }
+      persist();
     },
     recordScanRequested({ mode }) {
       state.scansRequested += 1;
       if (mode === "quiet") {
         state.quietModeScans += 1;
       }
+      persist();
     },
     recordScanCompleted(result) {
       state.scansCompleted += 1;
@@ -103,28 +177,34 @@ export function createTelemetryTracker() {
       } else {
         state.fullReads += 1;
       }
+      persist();
     },
     recordFailure(failureClass) {
       incrementBucket(state.failureClasses, failureClass);
+      persist();
     },
     recordAuthRejected() {
       state.authRejected += 1;
+      persist();
     },
     recordRequesterRateLimited() {
       state.requesterRateLimited += 1;
+      persist();
     },
     recordTargetRateLimited() {
       state.targetRateLimited += 1;
+      persist();
     },
     snapshot() {
       const todayKey = new Date().toISOString().slice(0, 10);
+      const startedDate = state.startedAt.slice(0, 10);
       const recentDays = Object.entries(state.visitorDays)
         .sort(([left], [right]) => left.localeCompare(right))
         .slice(-14)
         .map(([date, bucket]) => serializeDayBucket(date, bucket));
       return {
-        startedAt,
-        persistence: "memory",
+        startedAt: state.startedAt,
+        persistence,
         pageLoads: state.pageLoads,
         visitors: {
           unique: state.visitorKeys.size,

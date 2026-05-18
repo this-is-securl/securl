@@ -104,6 +104,10 @@ if (!env.API_KEY_FINGERPRINT_SALT) {
   warnings.push("API_KEY_FINGERPRINT_SALT is not set. Use a deployment-specific secret before relying on API-key fingerprinting in production.");
 }
 
+if (!env.TELEMETRY_STORAGE_PATH) {
+  warnings.push("TELEMETRY_STORAGE_PATH is not set. Telemetry counters will reset on deploy/restart unless a persistent volume path is configured.");
+}
+
 const summary = {
   nodeEnv,
   deploymentMode,
