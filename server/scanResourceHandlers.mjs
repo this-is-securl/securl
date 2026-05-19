@@ -38,7 +38,11 @@ export async function runQueuedScan({
   try {
     await scanRepository.markRunning(scan.id);
   } catch (error) {
-    telemetry.recordFailure("scan_repository_failure");
+    telemetry.recordFailure("scan_repository_failure", {
+      target: validatedTarget.toString(),
+      message: formatErrorMessage(error),
+      source: "scan_state_mark_running",
+    });
     log("error", "scan_resource_state_failed", {
       stage: "mark_running",
       message: formatErrorMessage(error),
@@ -59,11 +63,19 @@ export async function runQueuedScan({
     });
   } catch (error) {
     const failureClass = classifyScanFailure(error);
-    telemetry.recordFailure(failureClass);
+    telemetry.recordFailure(failureClass, {
+      target: validatedTarget.toString(),
+      message: normalizeScanErrorMessage(error),
+      source: "scan_analysis",
+    });
     try {
       await scanRepository.markFailed(scan.id, failureClass, normalizeScanErrorMessage(error));
     } catch (repositoryError) {
-      telemetry.recordFailure("scan_repository_failure");
+      telemetry.recordFailure("scan_repository_failure", {
+        target: validatedTarget.toString(),
+        message: formatErrorMessage(repositoryError),
+        source: "scan_state_mark_failed",
+      });
       log("error", "scan_resource_state_failed", {
         stage: "mark_failed",
         message: formatErrorMessage(repositoryError),
@@ -84,7 +96,11 @@ export async function runQueuedScan({
   try {
     await scanRepository.markCompleted(scan.id, result);
   } catch (error) {
-    telemetry.recordFailure("scan_repository_failure");
+    telemetry.recordFailure("scan_repository_failure", {
+      target: validatedTarget.toString(),
+      message: formatErrorMessage(error),
+      source: "scan_state_mark_completed",
+    });
     log("error", "scan_resource_state_failed", {
       stage: "mark_completed",
       message: formatErrorMessage(error),

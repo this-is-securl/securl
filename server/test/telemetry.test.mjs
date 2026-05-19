@@ -21,7 +21,11 @@ test("telemetry tracker records aggregate counts", () => {
     assessmentLimitation: { limited: true, kind: "blocked_edge_response" },
     scanTiming: { totalMs: 45000, coreMs: 1000, enrichmentMs: 44000, timedOut: true },
   });
-  telemetry.recordFailure("invalid_target_private");
+  telemetry.recordFailure("invalid_target_private", {
+    target: "https://example.com/",
+    message: "Localhost and private network targets are not allowed.\n",
+    source: "scan_analysis",
+  });
   telemetry.recordAuthRejected();
   telemetry.recordRequesterRateLimited();
   telemetry.recordTargetRateLimited();
@@ -46,6 +50,11 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.scans.timing.total.maxMs, 45000);
   assert.equal(snapshot.scans.timing.enrichment.p95Ms, 750);
   assert.equal(snapshot.failures.classes.invalid_target_private, 1);
+  assert.equal(snapshot.failures.recent.length, 1);
+  assert.equal(snapshot.failures.recent[0].class, "invalid_target_private");
+  assert.equal(snapshot.failures.recent[0].target, "https://example.com/");
+  assert.equal(snapshot.failures.recent[0].message, "Localhost and private network targets are not allowed.");
+  assert.equal(snapshot.failures.recent[0].source, "scan_analysis");
   assert.equal(snapshot.failures.authRejected, 1);
   assert.equal(snapshot.failures.requesterRateLimited, 1);
   assert.equal(snapshot.failures.targetRateLimited, 1);
@@ -59,7 +68,11 @@ test("telemetry tracker can persist counters to disk", () => {
     const first = createTelemetryTracker({ storagePath });
     first.recordPageLoad({ visitorKey: "visitor-one", now: new Date("2026-05-15T08:00:00Z"), source: "reddit" });
     first.recordScanRequested({ mode: "quiet" });
-    first.recordFailure("requester_rate_limited");
+    first.recordFailure("requester_rate_limited", {
+      target: "https://example.com/path",
+      message: "Too many requests\tfrom this client.",
+      source: "request_guard",
+    });
 
     const second = createTelemetryTracker({ storagePath });
     const snapshot = second.snapshot();
@@ -72,6 +85,9 @@ test("telemetry tracker can persist counters to disk", () => {
     assert.equal(snapshot.scans.requested, 1);
     assert.equal(snapshot.scans.quietMode, 1);
     assert.equal(snapshot.failures.classes.requester_rate_limited, 1);
+    assert.equal(snapshot.failures.recent.length, 1);
+    assert.equal(snapshot.failures.recent[0].class, "requester_rate_limited");
+    assert.equal(snapshot.failures.recent[0].message, "Too many requests from this client.");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
