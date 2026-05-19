@@ -21,6 +21,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     enrichmentDurationsMs: [],
     limitedReadKinds: {},
     failureClasses: {},
+    recentFailures: [],
     authRejected: 0,
     requesterRateLimited: 0,
     targetRateLimited: 0,
@@ -71,6 +72,12 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     state.enrichmentDurationsMs = Array.isArray(value.enrichmentDurationsMs) ? value.enrichmentDurationsMs.filter(Number.isFinite).slice(-200) : state.enrichmentDurationsMs;
     state.limitedReadKinds = { ...(value.limitedReadKinds || {}) };
     state.failureClasses = { ...(value.failureClasses || {}) };
+    state.recentFailures = Array.isArray(value.recentFailures)
+      ? value.recentFailures
+        .map(sanitizeRecentFailure)
+        .filter(Boolean)
+        .slice(-20)
+      : state.recentFailures;
     state.authRejected = Number.isFinite(value.authRejected) ? value.authRejected : state.authRejected;
     state.requesterRateLimited = Number.isFinite(value.requesterRateLimited) ? value.requesterRateLimited : state.requesterRateLimited;
     state.targetRateLimited = Number.isFinite(value.targetRateLimited) ? value.targetRateLimited : state.targetRateLimited;
@@ -135,6 +142,22 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       maxMs: sorted[sorted.length - 1],
     };
   };
+  const pushRecentFailure = (failureClass, details = {}) => {
+    const failure = sanitizeRecentFailure({
+      occurredAt: details.occurredAt || new Date().toISOString(),
+      class: failureClass,
+      target: details.target,
+      message: details.message,
+      source: details.source,
+    });
+    if (!failure) {
+      return;
+    }
+    state.recentFailures.push(failure);
+    if (state.recentFailures.length > 20) {
+      state.recentFailures.splice(0, state.recentFailures.length - 20);
+    }
+  };
 
   return {
     recordPageLoad({ visitorKey = null, now = new Date(), source = "unknown" } = {}) {
@@ -179,8 +202,9 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       }
       persist();
     },
-    recordFailure(failureClass) {
+    recordFailure(failureClass, details = {}) {
       incrementBucket(state.failureClasses, failureClass);
+      pushRecentFailure(failureClass, details);
       persist();
     },
     recordAuthRejected() {
@@ -236,12 +260,44 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         },
         failures: {
           classes: { ...state.failureClasses },
+          recent: [...state.recentFailures].reverse(),
           authRejected: state.authRejected,
           requesterRateLimited: state.requesterRateLimited,
           targetRateLimited: state.targetRateLimited,
         },
       };
     },
+  };
+}
+
+function sanitizeTelemetryText(value, maxLength = 240) {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!normalized) {
+    return null;
+  }
+  return normalized.slice(0, maxLength);
+}
+
+function sanitizeRecentFailure(value) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  const failureClass = sanitizeTelemetryText(value.class || value.failureClass, 80);
+  if (!failureClass) {
+    return null;
+  }
+  return {
+    occurredAt: sanitizeTelemetryText(value.occurredAt, 40) || new Date().toISOString(),
+    class: failureClass,
+    target: sanitizeTelemetryText(value.target, 240),
+    message: sanitizeTelemetryText(value.message, 240),
+    source: sanitizeTelemetryText(value.source, 80),
   };
 }
 

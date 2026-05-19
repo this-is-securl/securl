@@ -124,6 +124,9 @@ const html = String.raw`<!doctype html>
     .split-value { margin-top: 8px; font-size: 34px; line-height: 1; letter-spacing: -.055em; font-weight: 950; }
     h2 { margin: 8px 0 0; font-size: 26px; line-height: 1.05; letter-spacing: -.04em; }
     .row { display: flex; justify-content: space-between; gap: 16px; align-items: center; border: 1px solid var(--line); background: rgba(0,0,0,.2); border-radius: 18px; padding: 14px; margin-top: 10px; }
+    .event { border: 1px solid var(--line); background: rgba(0,0,0,.2); border-radius: 18px; padding: 14px; margin-top: 10px; }
+    .event strong { display: block; color: var(--paper); }
+    .event small { display: block; margin-top: 8px; color: var(--muted); line-height: 1.45; }
     .bar { height: 8px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.1); margin-top: 12px; }
     .fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--teal), var(--blue)); }
     .warn { color: var(--amber); }
@@ -154,9 +157,11 @@ const html = String.raw`<!doctype html>
     const date = (s) => s ? new Date(s).toLocaleString() : "Unknown";
     const entries = (o) => Object.entries(o || {}).sort((a, b) => b[1] - a[1]);
     const sourceLabel = (s) => s.replaceAll("_", " ");
+    const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
     const card = (label, value, detail, cls = "") => '<div class="card"><div class="kicker">' + label + '</div><div class="value ' + cls + '">' + value + '</div><div class="detail">' + detail + '</div></div>';
     const splitCard = (label, total, today, detail, cls = "") => '<div class="card"><div class="kicker">' + label + '</div><div class="split"><div class="split-box"><div class="split-label">Total</div><div class="split-value ' + cls + '">' + total + '</div></div><div class="split-box"><div class="split-label">Today</div><div class="split-value ' + cls + '">' + today + '</div></div></div><div class="detail">' + detail + '</div></div>';
     const row = (label, value) => '<div class="row"><span>' + label + '</span><strong>' + value + '</strong></div>';
+    const event = (item) => '<div class="event"><strong>' + esc(item.class || "failure") + '</strong><small>' + esc(item.target || "Unknown target") + '</small><small>' + esc(item.message || "No message recorded.") + '</small><small>' + date(item.occurredAt) + (item.source ? " · " + esc(item.source) : "") + '</small></div>';
 
     async function load() {
       const button = document.getElementById("refresh");
@@ -173,6 +178,7 @@ const html = String.raw`<!doctype html>
         const todaySources = entries(data.trafficSources?.today);
         const limitedKinds = entries(data.scans?.limitedReadKinds);
         const failureClasses = entries(data.failures?.classes);
+        const recentFailures = Array.isArray(data.failures?.recent) ? data.failures.recent.slice(0, 8) : [];
         content.innerHTML =
           '<div class="grid">' +
             splitCard("Page loads", fmt(data.pageLoads), fmt(data.visitors?.today?.pageLoads), "Total is all persisted page-load telemetry; today is the current UTC day.") +
@@ -195,6 +201,9 @@ const html = String.raw`<!doctype html>
             '<div class="card"><div class="kicker">Today</div><h2>' + (data.visitors?.today?.date || "Today") + '</h2>' + (todaySources.length ? todaySources.map(([k, v]) => row(sourceLabel(k), fmt(v))).join("") : '<p class="detail">No visits today.</p>') + '</div>' +
             '<div class="card"><div class="kicker">Limited reads</div><h2>' + fmt(data.scans?.limitedReads) + ' total</h2>' + (limitedKinds.length ? limitedKinds.map(([k, v]) => row(k, fmt(v))).join("") : '<p class="detail">No limited-read buckets recorded.</p>') + '</div>' +
             '<div class="card"><div class="kicker">Failure classes</div><h2>' + fmt(failureClasses.reduce((s, e) => s + e[1], 0)) + ' classified</h2>' + (failureClasses.length ? failureClasses.map(([k, v]) => row(k, fmt(v))).join("") : '<p class="detail">No classified failures recorded.</p>') + '</div>' +
+          '</div>' +
+          '<div class="card" style="margin-top:22px"><div class="kicker">Recent failures</div><h2>What needs explaining</h2>' +
+            (recentFailures.length ? recentFailures.map(event).join("") : '<p class="detail">No recent failure details recorded yet. New failures will include target, class, and a sanitized reason.</p>') +
           '</div>';
       } catch (err) {
         content.innerHTML = '<div class="card" style="margin-top:24px"><div class="kicker bad">Error</div><pre>' + (err?.message || String(err)) + '</pre></div>';
