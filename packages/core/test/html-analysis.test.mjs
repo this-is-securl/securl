@@ -99,3 +99,19 @@ test("flags explicit vulnerable training or challenge page markers from title an
   );
   assert.equal(htmlSecurity.strengths.some((item) => item.includes("Challenge-style page markers were visible")), false);
 });
+
+test("detects common client telemetry and session analytics vendors", () => {
+  const htmlSecurity = analyzeHtmlDocument(
+    "https://example.com/",
+    `<!doctype html><html><head>
+      <script src="https://cdn.segment.com/analytics.js/v1/write-key/analytics.min.js"></script>
+      <script src="https://www.clarity.ms/tag/example"></script>
+      <script src="https://www.datadoghq-browser-agent.com/us1/v5/datadog-rum.js"></script>
+    </head><body></body></html>`,
+  );
+
+  const names = htmlSecurity.detectedTechnologies.map((item) => item.name);
+  assert.ok(names.includes("Segment"));
+  assert.ok(names.includes("Microsoft Clarity"));
+  assert.ok(names.includes("Datadog RUM"));
+});

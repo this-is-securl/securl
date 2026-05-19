@@ -116,6 +116,39 @@ export const detectHtmlTechnologies = (
   if (hasDomain("google-analytics.com") || hasPath("gtag/js")) {
     addDetectedTechnology(technologies, seen, "Google Analytics", "network", "Detected from analytics asset references");
   }
+  if (hasDomain("plausible.io")) {
+    addDetectedTechnology(technologies, seen, "Plausible Analytics", "network", "Detected from analytics asset references");
+  }
+  if (hasDomain("matomo.cloud") || hasDomain("matomo.org") || hasPath("matomo.js")) {
+    addDetectedTechnology(technologies, seen, "Matomo", "network", "Detected from analytics asset references");
+  }
+  if (hasDomain("segment.io") || hasDomain("segment.com") || hasDomain("segmentcdn.com")) {
+    addDetectedTechnology(technologies, seen, "Segment", "network", "Detected from customer-data platform assets");
+  }
+  if (hasDomain("mixpanel.com")) {
+    addDetectedTechnology(technologies, seen, "Mixpanel", "network", "Detected from product analytics assets");
+  }
+  if (hasDomain("amplitude.com")) {
+    addDetectedTechnology(technologies, seen, "Amplitude", "network", "Detected from product analytics assets");
+  }
+  if (hasDomain("heapanalytics.com")) {
+    addDetectedTechnology(technologies, seen, "Heap", "network", "Detected from product analytics assets");
+  }
+  if (hasDomain("clarity.ms")) {
+    addDetectedTechnology(technologies, seen, "Microsoft Clarity", "network", "Detected from session analytics assets");
+  }
+  if (hasDomain("logrocket.com")) {
+    addDetectedTechnology(technologies, seen, "LogRocket", "network", "Detected from session replay assets");
+  }
+  if (hasDomain("pendo.io")) {
+    addDetectedTechnology(technologies, seen, "Pendo", "network", "Detected from product analytics assets");
+  }
+  if (hasDomain("newrelic.com") || hasDomain("nr-data.net")) {
+    addDetectedTechnology(technologies, seen, "New Relic Browser", "network", "Detected from client telemetry assets");
+  }
+  if (hasDomain("datadoghq-browser-agent.com") || hasDomain("browser-intake-datadoghq.com")) {
+    addDetectedTechnology(technologies, seen, "Datadog RUM", "network", "Detected from client telemetry assets");
+  }
   if (hasDomain("app.usercentrics.eu")) {
     addDetectedTechnology(technologies, seen, "Usercentrics", "security", "Detected from consent-management script");
   }
@@ -293,11 +326,11 @@ const classifyThirdPartyProvider = (domain: string): Omit<ThirdPartyProvider, "d
     risk: ThirdPartyProvider["risk"];
     evidence: string;
   }> = [
-    { pattern: /(google-analytics|googletagmanager|doubleclick|omtrdc|adobedtm|adobedc|analytics)/, name: "Analytics / Tagging", category: "analytics", risk: "medium", evidence: "Detected from third-party analytics or tag-management assets" },
+    { pattern: /(google-analytics|googletagmanager|doubleclick|omtrdc|adobedtm|adobedc|analytics|plausible|matomo|segment|mixpanel|amplitude|heapanalytics|pendo|clarity\.ms|newrelic|nr-data|datadog)/, name: "Analytics / Telemetry", category: "analytics", risk: "medium", evidence: "Detected from third-party analytics, telemetry, or tag-management assets" },
     { pattern: /(onetrust|cookiebot|usercentrics)/, name: "Consent Management", category: "consent", risk: "low", evidence: "Detected from consent-management assets" },
     { pattern: /(intercom|drift|zendesk|zopim|hubspot|freshchat|crisp|sprinklr)/, name: "Support / Chat", category: "support", risk: "medium", evidence: "Detected from public support or chat tooling" },
     { pattern: /(openai|anthropic|gemini|vertex|copilot|wizdom\.ai)/, name: "AI / Assistant Vendor", category: "ai", risk: "high", evidence: "Detected from AI-related scripts, assets, or public assistant tooling" },
-    { pattern: /(contentsquare|decibelinsight|hotjar|fullstory|medallia)/, name: "Session Replay / Experience Analytics", category: "session_replay", risk: "high", evidence: "Detected from session-replay or detailed experience-analytics assets" },
+    { pattern: /(contentsquare|decibelinsight|hotjar|fullstory|medallia|logrocket|clarity\.ms)/, name: "Session Replay / Experience Analytics", category: "session_replay", risk: "high", evidence: "Detected from session-replay or detailed experience-analytics assets" },
     { pattern: /(braintree|paypal|cardinalcommerce|arcot|3dsecure|tsys|payment|payments)/, name: "Payments / Verification", category: "payments", risk: "medium", evidence: "Detected from payments or challenge-flow assets" },
     { pattern: /(facebook|twitter|linkedin|tiktok|pinterest|reddit|youtube|snapchat|instagram)/, name: "Social / Advertising", category: "social", risk: "medium", evidence: "Detected from social, embedded media, or advertising assets" },
     { pattern: /(ads|adservice|amazon-adsystem|smartadserver|pubmatic|gumgum|teads|casalemedia|openx|lijit|bidswitch)/, name: "Advertising", category: "ads", risk: "high", evidence: "Detected from advertising or programmatic asset domains" },

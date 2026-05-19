@@ -161,6 +161,8 @@ export async function analyzeDomainSecurity(host: string, requestText: RequestTe
     txtDmarcByHost,
     caaByHost,
     txtMtaStsByHost,
+    txtTlsRptByHost,
+    txtBimiByHost,
     dsByHost,
   ] = await Promise.all([
     Promise.all(candidateHosts.map((candidate) => resolveDns(() => dns.resolveMx(candidate)))),
@@ -169,6 +171,8 @@ export async function analyzeDomainSecurity(host: string, requestText: RequestTe
     Promise.all(candidateHosts.map((candidate) => resolveDns(() => dns.resolveTxt(`_dmarc.${candidate}`)))),
     Promise.all(candidateHosts.map((candidate) => resolveDns(() => dns.resolveCaa(candidate)))),
     Promise.all(candidateHosts.map((candidate) => resolveDns(() => dns.resolveTxt(`_mta-sts.${candidate}`)))),
+    Promise.all(candidateHosts.map((candidate) => resolveDns(() => dns.resolveTxt(`_smtp._tls.${candidate}`)))),
+    Promise.all(candidateHosts.map((candidate) => resolveDns(() => dns.resolveTxt(`default._bimi.${candidate}`)))),
     Promise.all(candidateHosts.map((candidate) => resolveDns<unknown[]>(() => dns.resolve(candidate, "DS") as Promise<unknown[]>))),
   ]);
 
@@ -179,6 +183,8 @@ export async function analyzeDomainSecurity(host: string, requestText: RequestTe
   const txtDmarc = pickFirst(txtDmarcByHost) || [];
   const caaRaw = pickFirst(caaByHost) || [];
   const txtMtaSts = pickFirst(txtMtaStsByHost) || [];
+  const txtTlsRpt = pickFirst(txtTlsRptByHost) || [];
+  const txtBimi = pickFirst(txtBimiByHost) || [];
   const dsRaw = pickFirst(dsByHost) || [];
 
   type DsRecord = { keyTag: number; algorithm: number; digestType: number; digest: string };
@@ -189,6 +195,8 @@ export async function analyzeDomainSecurity(host: string, requestText: RequestTe
   const txtValues = (txtRoot as string[][]).map((entry) => entry.join(""));
   const dmarcValues = (txtDmarc as string[][]).map((entry) => entry.join(""));
   const mtaStsValues = (txtMtaSts as string[][]).map((entry) => entry.join(""));
+  const tlsRptValues = (txtTlsRpt as string[][]).map((entry) => entry.join(""));
+  const bimiValues = (txtBimi as string[][]).map((entry) => entry.join(""));
   const caaRecords = (caaRaw as CaaRecord[]).flatMap((record) =>
     Object.entries(record)
       .filter(([key]) => key !== "critical")
@@ -198,6 +206,8 @@ export async function analyzeDomainSecurity(host: string, requestText: RequestTe
   const spf = txtValues.find((value) => value.toLowerCase().startsWith("v=spf1")) || null;
   const dmarc = dmarcValues.find((value) => value.toLowerCase().startsWith("v=dmarc1")) || null;
   const mtaStsDns = mtaStsValues.find((value) => value.toLowerCase().startsWith("v=stsv1")) || null;
+  const tlsRptDns = tlsRptValues.find((value) => value.toLowerCase().startsWith("v=tlsrptv1")) || null;
+  const bimiDns = bimiValues.find((value) => value.toLowerCase().startsWith("v=bimi1")) || null;
   const mtaStsTargetHost = txtMtaStsByHost[0]?.length ? candidateHosts[0] : candidateHosts[1] || candidateHosts[0];
   const mtaStsPolicy = mtaStsDns ? await fetchMtaStsPolicy(mtaStsTargetHost, requestText) : { policyUrl: null, policy: null };
   const emailPolicy = {
@@ -254,6 +264,18 @@ export async function analyzeDomainSecurity(host: string, requestText: RequestTe
     strengths.push("MTA-STS is published.");
   }
 
+  if (!tlsRptDns) {
+    if (mtaStsDns) {
+      issues.push("MTA-STS is present, but no TLS-RPT reporting record was detected.");
+    }
+  } else {
+    strengths.push("TLS-RPT reporting is published for SMTP transport issues.");
+  }
+
+  if (bimiDns) {
+    strengths.push("BIMI is published, which can support brand trust when paired with enforcing DMARC.");
+  }
+
   return {
     host: apexHost,
     mxRecords,
@@ -271,6 +293,21 @@ export async function analyzeDomainSecurity(host: string, requestText: RequestTe
       dns: mtaStsDns,
       policyUrl: mtaStsPolicy.policyUrl,
       policy: mtaStsPolicy.policy,
+    },
+    tlsRpt: {
+      dns: tlsRptDns,
+      reporting: Boolean(tlsRptDns),
+      summary: tlsRptDns
+        ? "TLS-RPT is published for SMTP transport reporting."
+        : "No TLS-RPT reporting record was detected.",
+    },
+    bimi: {
+      dns: bimiDns,
+      selector: "default",
+      status: bimiDns ? "present" : "missing",
+      summary: bimiDns
+        ? "BIMI is published at the default selector."
+        : "No BIMI record was detected at the default selector.",
     },
     issues,
     strengths,
