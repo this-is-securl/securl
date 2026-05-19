@@ -118,6 +118,31 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
           }
         />
 
+        <div className="grid gap-4 md:grid-cols-2">
+          <StatBox
+            label="TLS-RPT"
+            value={
+              <div className="space-y-2 text-sm leading-6 text-zinc-200">
+                <p>{domainSecurity.tlsRpt?.summary ?? "No TLS-RPT reporting record was detected."}</p>
+                <p className="overflow-hidden break-words text-xs text-zinc-400">
+                  {domainSecurity.tlsRpt?.dns ?? "Not found"}
+                </p>
+              </div>
+            }
+          />
+          <StatBox
+            label="BIMI"
+            value={
+              <div className="space-y-2 text-sm leading-6 text-zinc-200">
+                <p>{domainSecurity.bimi?.summary ?? "No BIMI record was detected at the default selector."}</p>
+                <p className="overflow-hidden break-words text-xs text-zinc-400">
+                  {domainSecurity.bimi?.dns ?? "Not found"}
+                </p>
+              </div>
+            }
+          />
+        </div>
+
         <div className="flex min-w-0 flex-wrap gap-2">
           {domainSecurity.nsRecords.slice(0, 6).map((record) => (
             <Badge key={record} variant="outline" className="max-w-full overflow-hidden break-all text-left">
