@@ -41,6 +41,38 @@ describe("api client URL helpers", () => {
     expect(buildApiUrl("api/scans")).toBe("/api/scans");
   });
 
+  it("buildApiUrl returns absolute URL when base URL is set", async () => {
+    vi.stubGlobal("__API_BASE_URL__", "https://securl-app-production.up.railway.app");
+    const { buildApiUrl } = await import("./apiClient");
+    expect(buildApiUrl("/api/scans")).toBe("https://securl-app-production.up.railway.app/api/scans");
+    expect(buildApiUrl("api/scans")).toBe("https://securl-app-production.up.railway.app/api/scans");
+    vi.stubGlobal("__API_BASE_URL__", "");
+  });
+
+  it("readJsonResponse throws ApiClientError on non-ok response", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ error: "Not found" }), { status: 404 }),
+    ));
+
+    const { getScanFindings, ApiClientError } = await import("./apiClient");
+    await expect(getScanFindings("scan-1", "token")).rejects.toThrow(ApiClientError);
+    await expect(getScanFindings("scan-1", "token")).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+
+  it("readJsonResponse throws ApiClientError when payload is null on an ok response", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response("not-json", { status: 200 }),
+    ));
+
+    const { getScanFindings, ApiClientError } = await import("./apiClient");
+    await expect(getScanFindings("scan-1", "token")).rejects.toThrow(ApiClientError);
+    await expect(getScanFindings("scan-1", "token")).rejects.toMatchObject({
+      status: 200,
+    });
+  });
+
   it("falls back to crypto.getRandomValues when randomUUID is unavailable", async () => {
     const browserStorage = await import("@/lib/browserStorage");
     vi.mocked(browserStorage.readBrowserStorage).mockResolvedValue(null);

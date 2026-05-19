@@ -17,6 +17,8 @@
     "build:hostinger": "rm -rf dist && VITE_API_BASE_URL=https://securl-app-production.up.railway.app npm run build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
+    "verify": "node scripts/verify-build.mjs",
+    "ship": "npm run build:hostinger && npm run verify",
     "verify:hostinger": "node scripts/verifyHostingerBuild.mjs",
     "package:hostinger": "npm run build:hostinger && npm run verify:hostinger && node scripts/packageHostingerBuild.mjs",
     "telemetry": "node scripts/fetchTelemetry.mjs",
