@@ -37,6 +37,6 @@ test("package surface includes a working CLI help entrypoint", async () => {
 test("package surface exposes both long and short CLI binary names", async () => {
   const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 
-  assert.equal(packageJson.bin.epi, "./dist/cli.js");
-  assert.equal(packageJson.bin["external-posture-insight"], "./dist/cli.js");
+  assert.equal(packageJson.bin.epi, "dist/cli.js");
+  assert.equal(packageJson.bin["external-posture-insight"], "dist/cli.js");
 });
