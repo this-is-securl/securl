@@ -81,6 +81,13 @@ const readJsonResponse = async <T,>(response: Response): Promise<T> => {
         : "Request failed.";
     throw new ApiClientError(message, response.status, payload);
   }
+  if (payload === null) {
+    throw new ApiClientError(
+      "The server returned an unexpected response. Check that the API URL is configured correctly.",
+      response.status,
+      null,
+    );
+  }
   return payload as T;
 };
 
