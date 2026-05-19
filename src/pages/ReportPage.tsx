@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getSharedScan } from "@/lib/apiClient";
 import { buildReportWorkspaceSections } from "@/lib/reportWorkspace";
+import { getAreaScores } from "@/lib/posture";
 import { ReportSectionNav } from "@/components/report/ReportSectionNav";
 import type { ReportWorkspaceSectionKey } from "@/lib/reportWorkspace";
 import type { AnalysisResult } from "@/types/analysis";
@@ -56,7 +57,7 @@ export function ReportPage() {
     currentScanWasCached: false,
     historyDiff: null,
     history: [],
-    areaScores: [],
+    areaScores: getAreaScores(result),
     exportPdf: () => {},
     exportMarkdown: () => {},
     exportReport: () => {},
