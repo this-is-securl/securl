@@ -218,6 +218,17 @@ export interface DomainSecurityInfo {
     policyUrl: string | null;
     policy: string | null;
   };
+  tlsRpt?: {
+    dns: string | null;
+    reporting: boolean;
+    summary: string;
+  };
+  bimi?: {
+    dns: string | null;
+    selector: string;
+    status: "present" | "missing";
+    summary: string;
+  };
   issues: string[];
   strengths: string[];
 }

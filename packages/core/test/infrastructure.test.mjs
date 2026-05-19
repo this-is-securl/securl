@@ -64,3 +64,27 @@ test("analyzeInfrastructure bounds slow passive DNS lookups", async () => {
   assert.deepEqual(result.reverseDns, []);
   assert.equal(result.providers.length, 0);
 });
+
+test("analyzeInfrastructure recognises newer PaaS and hosting fingerprints", async () => {
+  const result = await analyzeInfrastructure(
+    new URL("https://app.example.com/"),
+    {
+      "x-railway-edge": "railway/eu-west4",
+      "x-render-origin-server": "render",
+      panel: "Hostinger",
+    },
+    [],
+    {
+      resolveCname: async () => ["app.up.railway.app", "example.onrender.com", "cdn.b-cdn.net"],
+      resolve4: async () => [],
+      resolve6: async () => [],
+      reverse: async () => ["srv.hostinger.com"],
+    },
+  );
+
+  const providers = result.providers.map((signal) => signal.provider);
+  assert.ok(providers.includes("Railway"));
+  assert.ok(providers.includes("Render"));
+  assert.ok(providers.includes("Bunny.net"));
+  assert.ok(providers.includes("Hostinger"));
+});
