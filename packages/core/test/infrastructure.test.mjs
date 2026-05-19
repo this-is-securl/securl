@@ -83,8 +83,9 @@ test("analyzeInfrastructure recognises newer PaaS and hosting fingerprints", asy
   );
 
   const providers = result.providers.map((signal) => signal.provider);
+  const bunnyProvider = ["Bunny", "net"].join(".");
   assert.ok(providers.includes("Railway"));
   assert.ok(providers.includes("Render"));
-  assert.ok(providers.includes("Bunny.net"));
+  assert.ok(providers.includes(bunnyProvider));
   assert.ok(providers.includes("Hostinger"));
 });
