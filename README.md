@@ -44,9 +44,11 @@ The short version:
 - Redirect chains, TLS certificate posture, protocol and cipher details
 - Cookie flags including `Secure`, `HttpOnly`, and `SameSite`
 - Public trust and disclosure signals including `security.txt`, HSTS preload, and policy-page discovery
-- Domain and email posture such as MX, SPF, DMARC, CAA, and MTA-STS
+- Domain and email posture such as MX, SPF, DMARC, CAA, MTA-STS, TLS-RPT, and BIMI (DNS)
 - Passive HTML signals including forms, third-party assets, missing SRI, inline scripts/styles, and light exposure clues
 - Technology, provider, and AI-surface hints with conservative scoring
+- Infrastructure inference for cloud, CDN, edge, PaaS, and hosting providers (Cloudflare, Railway, Render, Fly.io, Hostinger, Bunny.net, OVH, Hetzner, and others)
+- Analytics and session-replay vendor detection (Google Analytics, Plausible, Matomo, Segment, Mixpanel, Amplitude, Heap, New Relic, Datadog, Hotjar, LogRocket, and others)
 
 ## Quick start
 
@@ -80,6 +82,18 @@ That starts:
 
 - frontend on `http://localhost:8080`
 - API on `http://127.0.0.1:8787`
+
+### Production build
+
+```sh
+npm run ship
+```
+
+`npm run ship` runs `build:hostinger` (sets `VITE_API_BASE_URL` to the production API, then builds) followed by `verify` (`scripts/verify-build.mjs`). Use this for every production deployment — `npm run build` alone does not set the production API URL.
+
+### Shareable report links
+
+Completed scans are available at `/report/:scanId` via the public `GET /api/scans/:id/share` endpoint. No auth token is required to view a shared link.
 
 ## Architecture
 
@@ -117,7 +131,7 @@ That makes it much easier to:
 
 ## Package status
 
-- Latest published core package: `@ktbatterham/external-posture-core@0.8.1`
+- Latest published core package: `@ktbatterham/external-posture-core@0.10.0`
 - npm tag: `latest`
 
 ## Docs

@@ -97,7 +97,7 @@ flowchart LR
 
 Primary location:
 
-- [src](/Users/keith/Documents/Playground/secure-header-insight/src)
+- [src](../src)
 
 Main responsibilities:
 
@@ -117,7 +117,7 @@ Important notes:
 
 Primary location:
 
-- [server](/Users/keith/Documents/Playground/secure-header-insight/server)
+- [server](../server)
 
 Main responsibilities:
 
@@ -137,6 +137,7 @@ Current important resources:
 - `GET /api/scans/:id/findings`
 - `GET /api/scans/:id/evidence`
 - `GET /api/scans/:id/history`
+- `GET /api/scans/:id/share` (public — no auth required)
 - `POST /api/monitoring-targets`
 - `GET /api/monitoring-targets`
 - `GET /api/monitoring-targets/:id`
@@ -147,7 +148,7 @@ Current important resources:
 
 Primary location:
 
-- [packages/core](/Users/keith/Documents/Playground/secure-header-insight/packages/core)
+- [packages/core](../packages/core)
 
 Main responsibilities:
 
@@ -168,7 +169,7 @@ This is the part that prevents the product from drifting into:
 
 Primary location:
 
-- [server/scanRepository.mjs](/Users/keith/Documents/Playground/secure-header-insight/server/scanRepository.mjs)
+- [server/scanRepository.mjs](../server/scanRepository.mjs)
 
 Main responsibilities:
 
@@ -287,6 +288,6 @@ From here, the most sensible architecture moves are:
 
 ## Related Docs
 
-- [Backend API split-hosting notes](/Users/keith/Documents/Playground/secure-header-insight/docs/BACKEND-API.md)
-- [iOS-capable backend notes](/Users/keith/Documents/Playground/secure-header-insight/docs/IOS-CAPABLE-BACKEND.md)
-- [Public deploy checklist](/Users/keith/Documents/Playground/secure-header-insight/docs/PUBLIC-DEPLOY-CHECKLIST.md)
+- [Backend API split-hosting notes](BACKEND-API.md)
+- [iOS-capable backend notes](IOS-CAPABLE-BACKEND.md)
+- [Public deploy checklist](PUBLIC-DEPLOY-CHECKLIST.md)

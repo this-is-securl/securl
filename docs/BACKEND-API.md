@@ -12,6 +12,7 @@ This project now treats the backend as a real scan service boundary rather than 
 - `GET /api/scans/:id/findings`
 - `GET /api/scans/:id/evidence`
 - `GET /api/scans/:id/history`
+- `GET /api/scans/:id/share` (public — no auth required)
 
 ## Current monitoring resources
 

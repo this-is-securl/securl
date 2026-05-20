@@ -6,6 +6,15 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-05-19
+
+### Added
+- Added TLS-RPT DNS record detection to domain security analysis. Reports `_smtp._tls` records, flags missing TLS-RPT when MTA-STS is present, and exposes `tlsRpt` on the public `DomainSecurityInfo` type.
+- Added BIMI DNS record detection (`default._bimi`) to domain security analysis, including detection of the BIMI `v=BIMI1` indicator and `bimi` on the public `DomainSecurityInfo` type.
+- Added infrastructure provider detection for Bunny.net (CDN), Cloudflare Pages, Railway, Render, Fly.io, Hostinger, OVHcloud, and Hetzner.
+- Added analytics and session-replay vendor detection for Plausible, Matomo, Segment, Mixpanel, Amplitude, Heap, Microsoft Clarity, LogRocket, Pendo, New Relic Browser, and Datadog RUM.
+- Promoted analytics/telemetry and session-replay/experience-analytics to explicit third-party risk categories in HTML passive analysis.
+
 ## [0.9.0] - 2026-05-17
 
 ### Added
