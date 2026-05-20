@@ -124,8 +124,8 @@ const detectFrameworkVersionLeaks = (
   if (/ng\.version\.full|@angular\/core/i.test(signals)) {
     addLeak("Angular", extractVersionNear(signals, "@angular/core"), "Angular version marker is visible in page source.");
   }
-  if (/Vue\.version|__VUE_VERSION__/i.test(signals)) {
-    addLeak("Vue", extractVersionNear(signals, "Vue.version") || extractVersionNear(signals, "__VUE_VERSION__"), "Vue version marker is visible in page source.");
+  if (/Vue\.version|__VUE_VERSION__|\/vue@\d/i.test(signals)) {
+    addLeak("Vue", extractVersionNear(signals, "Vue.version") || extractVersionNear(signals, "__VUE_VERSION__") || extractVersionNear(signals, "/vue@"), "Vue version marker is visible in page source or asset references.");
   }
   if (lower.includes("__next_data__") || lower.includes("/_next/static")) {
     addLeak("Next.js", null, "Next.js runtime markers are visible in the fetched HTML.");
