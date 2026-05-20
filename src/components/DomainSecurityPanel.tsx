@@ -8,6 +8,12 @@ interface DomainSecurityPanelProps {
   domainSecurity: DomainSecurityInfo;
 }
 
+const extractBimiLogoUrl = (dns: string | null | undefined): string | null => {
+  if (!dns) return null;
+  const match = dns.match(/(?:^|;)\s*l=(https:\/\/[^\s;]+)/i);
+  return match?.[1] ?? null;
+};
+
 const policyBadgeClass = {
   strong: "border-[#4f6676]/35 bg-[#4f6676]/12 text-[#edf3f6]",
   watch: "border-[#7f1d1d]/30 bg-[#7f1d1d]/12 text-[#f0dfcf]",
@@ -134,6 +140,18 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
             label="BIMI"
             value={
               <div className="space-y-2 text-sm leading-6 text-zinc-200">
+                {(() => {
+                  const logoUrl = extractBimiLogoUrl(domainSecurity.bimi?.dns);
+                  if (!logoUrl) return null;
+                  return (
+                    <img
+                      src={logoUrl}
+                      alt="BIMI brand logo"
+                      className="mb-2 h-12 w-12 rounded-lg border border-white/10 bg-white/[0.04] object-contain p-1"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                  );
+                })()}
                 <p>{domainSecurity.bimi?.summary ?? "No BIMI record was detected at the default selector."}</p>
                 <p className="overflow-hidden break-words text-xs text-zinc-400">
                   {domainSecurity.bimi?.dns ?? "Not found"}

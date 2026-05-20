@@ -186,6 +186,12 @@ export const PassiveIntelligencePanel = ({ passiveIntelligence }: PassiveIntelli
                       {signal.action}
                     </p>
                   ) : null}
+                  {signal.title.toLowerCase().includes("session replay") && (
+                    <p className="mt-3 rounded-2xl border border-rose-500/20 bg-rose-500/[0.06] px-4 py-3 text-sm leading-6 text-rose-200">
+                      <span className="font-semibold text-rose-100">What this means: </span>
+                      Session replay tools capture full mouse movement, clicks, scrolls, and keystrokes on your pages. Users are typically unaware. Verify consent coverage, check whether sensitive forms are masked, and confirm the vendor&apos;s data retention policy.
+                    </p>
+                  )}
                 </div>
               );
             })}
