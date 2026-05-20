@@ -44,8 +44,8 @@ In `multi-instance`, startup is blocked unless the rate-limit backend is distrib
 - Configure abuse alert thresholds:
   - `ABUSE_ALERT_THRESHOLD` (default `25`)
   - `ABUSE_ALERT_WINDOW_MS` (default `600000`, 10 minutes)
-- Review abuse telemetry baseline in [`docs/ABUSE-ALERTING.md`](/Users/keith/Documents/Playground/secure-header-insight/docs/ABUSE-ALERTING.md).
-- Run reverse-proxy checks from [`docs/REVERSE-PROXY-VERIFICATION.md`](/Users/keith/Documents/Playground/secure-header-insight/docs/REVERSE-PROXY-VERIFICATION.md).
+- Review abuse telemetry baseline in [`docs/ABUSE-ALERTING.md`](ABUSE-ALERTING.md).
+- Run reverse-proxy checks from [`docs/REVERSE-PROXY-VERIFICATION.md`](REVERSE-PROXY-VERIFICATION.md).
 
 ## 4) Security headers and static serving
 
