@@ -1,6 +1,7 @@
 import { URL } from "node:url";
 import { scanTls } from "./certificate.js";
 import { parseSetCookie } from "./cookie-analysis.js";
+import { analyzeCookieHeaders } from "./cookieAnalysis.js";
 import { fetchCtDiscovery } from "./ctDiscovery.js";
 import { analyzeDomainSecurity } from "./domain-security.js";
 import {
@@ -44,6 +45,7 @@ import {
 } from "./network.js";
 import { normalizeDiscoveredPath, rankDiscoveredPaths } from "./path-discovery.js";
 import { buildPassiveIntelligence, emptyPassiveIntelligence } from "./passive-intelligence.js";
+import { analyzeRedirectChain } from "./redirectChain.js";
 import { scoreAnalysis, scorePostureAnalysis, summarizePostureGrade } from "./scoring.js";
 import { fetchSecurityTxt } from "./security-txt.js";
 import { detectTechnologies } from "./technology-detection.js";
@@ -267,6 +269,8 @@ async function analyzeUrlCore(input: string | URL, options: AnalyzeTargetOptions
     requestData.finalUrl.protocol === "https:",
   );
   const cookies = parseSetCookie(requestData.response.headers["set-cookie"]);
+  const cookieAnalysis = analyzeCookieHeaders(requestData.response.headers["set-cookie"]);
+  const redirectChain = analyzeRedirectChain(normalizedUrl, requestData.finalUrl, requestData.redirects);
   const technologies = detectTechnologies(requestData.response.headers, requestData.finalUrl);
   const { score, grade } = scoreAnalysis({
     isHttps: requestData.finalUrl.protocol === "https:",
@@ -346,9 +350,11 @@ async function analyzeUrlCore(input: string | URL, options: AnalyzeTargetOptions
     headers: headerResults,
     rawHeaders,
     cookies,
+    cookieAnalysis,
     technologies,
     certificate,
     redirects: requestData.redirects,
+    redirectChain,
     issues: normalizedIssues,
     strengths,
     remediation: buildRemediation(headerResults),
@@ -475,6 +481,7 @@ async function buildLimitedResult(
     headers: [],
     rawHeaders: {},
     cookies: [],
+    cookieAnalysis: null,
     technologies: [],
     certificate: {
       ...emptyCertificate(),
@@ -483,6 +490,7 @@ async function buildLimitedResult(
       issues: [failure.detail],
     },
     redirects: [],
+    redirectChain: analyzeRedirectChain(normalizedInput, normalizedInput, []),
     issues: [fallbackIssue],
     strengths: [],
     remediation: [],
@@ -860,14 +868,16 @@ const emptySecurityTxt = () => ({
   url: null,
   contact: [],
   expires: null,
-  policy: [],
-  acknowledgments: [],
+  isExpired: false,
+  policy: null,
+  acknowledgments: null,
   encryption: [],
   hiring: [],
-  preferredLanguages: [],
+  preferredLanguages: null,
   canonical: [],
   raw: null,
   issues: [],
+  strengths: [],
 });
 
 const emptyIdentityProvider = () => ({

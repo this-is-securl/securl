@@ -6,6 +6,17 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-05-20
+
+### Added
+- Added redirect-chain analysis from the existing fetch flow, including mixed HTTP hops, long chains, and cross-domain final destination flags.
+- Added aggregate cookie attribute analysis for `Secure`, `HttpOnly`, `SameSite`, session-cookie, `__Host-`, and `__Secure-` signals.
+- Added DKIM common-selector discovery, deeper SPF mechanism analysis, and an email deliverability composite score.
+- Added RFC 9116-oriented `security.txt` validation with valid, expired, incomplete, and missing states.
+- Added Subresource Integrity coverage scoring for externally hosted scripts and stylesheets.
+- Added passive framework/version leakage signals for common frontend frameworks and CMS markers found in fetched HTML.
+- Added protocol and WAF summary fields to passive infrastructure analysis using response headers such as `Alt-Svc`, `cf-ray`, `x-iinfo`, and related edge signatures.
+
 ## [0.10.0] - 2026-05-19
 
 ### Added

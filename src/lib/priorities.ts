@@ -128,7 +128,7 @@ export const getPriorityActions = (analysis: AnalysisResult): PrioritizedAction[
     });
   }
 
-  if (analysis.securityTxt.status !== "present") {
+  if (analysis.securityTxt.status !== "present_valid") {
     addAction({
       title: "Publish a security.txt file",
       detail: "A valid security.txt gives researchers and partners a clear disclosure route.",

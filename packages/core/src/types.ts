@@ -40,6 +40,26 @@ export interface CookieResult {
   risk: "low" | "medium" | "high";
 }
 
+export interface CookieRecord {
+  name: string;
+  hasSecure: boolean;
+  hasHttpOnly: boolean;
+  sameSite: "Strict" | "Lax" | "None" | "missing";
+  hasHostPrefix: boolean;
+  hasSecurePrefix: boolean;
+  isSessionCookie: boolean;
+}
+
+export interface CookieAnalysisInfo {
+  cookies: CookieRecord[];
+  cookiesWithoutSecure: number;
+  cookiesWithoutHttpOnly: number;
+  cookiesWithSameSiteNone: number;
+  cookiesWithoutSameSite: number;
+  issues: string[];
+  strengths: string[];
+}
+
 export interface TechnologyResult {
   name: string;
   category: "server" | "frontend" | "security" | "hosting" | "network";
@@ -67,9 +87,22 @@ export interface CertificateResult {
 
 export interface RedirectHop {
   url: string;
+  status: number;
   statusCode: number;
   location: string | null;
+  isHttps: boolean;
   secure: boolean;
+}
+
+export interface RedirectChainInfo {
+  hops: RedirectHop[];
+  finalUrl: string;
+  totalHops: number;
+  hasMixedRedirect: boolean;
+  isLongChain: boolean;
+  crossesDomain: boolean;
+  issues: string[];
+  strengths: string[];
 }
 
 export interface ScanIssue {
@@ -170,19 +203,23 @@ export interface HistoryDiff {
   summary: string[];
 }
 
+export type SecurityTxtStatus = "present_valid" | "present_expired" | "present_incomplete" | "missing";
+
 export interface SecurityTxtInfo {
-  status: "present" | "missing" | "invalid";
+  status: SecurityTxtStatus;
   url: string | null;
   contact: string[];
   expires: string | null;
-  policy: string[];
-  acknowledgments: string[];
+  isExpired: boolean;
+  policy: string | null;
+  acknowledgments: string | null;
   encryption: string[];
   hiring: string[];
-  preferredLanguages: string[];
+  preferredLanguages: string | null;
   canonical: string[];
   raw: string | null;
   issues: string[];
+  strengths: string[];
 }
 
 export interface DomainSecurityInfo {
@@ -218,6 +255,21 @@ export interface DomainSecurityInfo {
     policyUrl: string | null;
     policy: string | null;
   };
+  spfDetail?: {
+    hasPlusAll: boolean;
+    hasTildeAll: boolean;
+    hasMinusAll: boolean;
+    hasQuestionAll: boolean;
+    includeCount: number;
+    exceedsLookupLimit: boolean;
+    isOverlyPermissive: boolean;
+  };
+  dkim?: {
+    discovered: Array<{ selector: string; record: string }>;
+    selectors: string[];
+    count: number;
+    summary: string;
+  };
   tlsRpt?: {
     dns: string | null;
     reporting: boolean;
@@ -228,6 +280,11 @@ export interface DomainSecurityInfo {
     selector: string;
     status: "present" | "missing";
     summary: string;
+  };
+  emailDeliverabilityScore?: {
+    score: number;
+    grade: "A" | "B" | "C" | "D" | "F";
+    breakdown: Record<string, number>;
   };
   issues: string[];
   strengths: string[];
@@ -356,6 +413,23 @@ export interface LibraryRiskSignal {
   vulnerabilities: LibraryVulnerability[];
 }
 
+export interface SriCoverageInfo {
+  externalScripts: number;
+  externalStylesheets: number;
+  scriptsWithSri: number;
+  stylesheetsWithSri: number;
+  coveragePercent: number;
+  issues: string[];
+  strengths: string[];
+}
+
+export interface FrameworkVersionLeak {
+  framework: string;
+  versionHint: string | null;
+  evidence: string;
+  risk: "low" | "medium" | "high";
+}
+
 export interface HtmlSecurityInfo {
   fetched: boolean;
   pageUrl: string | null;
@@ -369,11 +443,13 @@ export interface HtmlSecurityInfo {
   inlineScriptCount: number;
   inlineStyleCount: number;
   missingSriScriptUrls: string[];
+  sriCoverage: SriCoverageInfo;
   firstPartyPaths: string[];
   passiveLeakSignals: PassiveLeakSignal[];
   clientExposureSignals: ClientExposureSignal[];
   libraryFingerprints: LibraryFingerprint[];
   libraryRiskSignals: LibraryRiskSignal[];
+  frameworkVersionLeaks: FrameworkVersionLeak[];
   detectedTechnologies: TechnologyResult[];
   aiSurface: AiSurfaceInfo;
   issues: string[];
@@ -440,6 +516,17 @@ export interface InfrastructureInfo {
   cnameTargets: string[];
   reverseDns: string[];
   providers: InfrastructureSignal[];
+  protocol?: {
+    http: "HTTP/1.1" | "HTTP/2" | "HTTP/3" | "unknown";
+    http3Advertised: boolean;
+    altSvc: string | null;
+  };
+  waf?: {
+    detected: boolean;
+    provider: string | null;
+    confidence: IssueConfidence;
+    evidence: string;
+  };
   issues: string[];
   strengths: string[];
   summary: string;
@@ -564,9 +651,11 @@ export interface AnalysisResult {
   headers: SecurityHeaderResult[];
   rawHeaders: Record<string, string>;
   cookies: CookieResult[];
+  cookieAnalysis: CookieAnalysisInfo | null;
   technologies: TechnologyResult[];
   certificate: CertificateResult;
   redirects: RedirectHop[];
+  redirectChain: RedirectChainInfo;
   issues: ScanIssue[];
   strengths: string[];
   remediation: RemediationSnippet[];

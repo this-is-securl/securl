@@ -7,6 +7,27 @@ import type { RequestTextFn } from "./network.js";
 
 type SpfPolicyEvaluation = DomainSecurityInfo["emailPolicy"]["spf"];
 type DmarcPolicyEvaluation = DomainSecurityInfo["emailPolicy"]["dmarc"];
+type SpfDetail = NonNullable<DomainSecurityInfo["spfDetail"]>;
+type DkimInfo = NonNullable<DomainSecurityInfo["dkim"]>;
+type EmailDeliverabilityScore = NonNullable<DomainSecurityInfo["emailDeliverabilityScore"]>;
+
+const DKIM_COMMON_SELECTORS = [
+  "google",
+  "mail",
+  "dkim",
+  "selector1",
+  "selector2",
+  "k1",
+  "k2",
+  "default",
+  "smtp",
+  "mailgun",
+  "sendgrid",
+  "proofpoint",
+  "mimecast",
+  "amazonses",
+  "mandrill",
+] as const;
 
 async function fetchMtaStsPolicy(host: string, requestText: RequestTextFn) {
   const policyHost = `mta-sts.${host}`;
@@ -89,6 +110,26 @@ export const evaluateSpfPolicy = (spf: string | null): SpfPolicyEvaluation => {
   };
 };
 
+export const evaluateSpfDetail = (spf: string | null): SpfDetail => {
+  const mechanisms = spf?.split(/\s+/).filter(Boolean) || [];
+  const normalizedMechanisms = mechanisms.map((mechanism) => mechanism.toLowerCase());
+  const hasPlusAll = normalizedMechanisms.some((mechanism) => mechanism === "+all" || mechanism === "all");
+  const hasTildeAll = normalizedMechanisms.includes("~all");
+  const hasMinusAll = normalizedMechanisms.includes("-all");
+  const hasQuestionAll = normalizedMechanisms.includes("?all");
+  const includeCount = normalizedMechanisms.filter((mechanism) => /^(?:[~?+-])?include:/i.test(mechanism)).length;
+
+  return {
+    hasPlusAll,
+    hasTildeAll,
+    hasMinusAll,
+    hasQuestionAll,
+    includeCount,
+    exceedsLookupLimit: includeCount > 10,
+    isOverlyPermissive: hasPlusAll || hasQuestionAll,
+  };
+};
+
 const normalizeDmarcPolicy = (value: string | undefined): DmarcPolicyEvaluation["policy"] => {
   const normalized = value?.toLowerCase();
   return normalized === "reject" || normalized === "quarantine" || normalized === "none" ? normalized : null;
@@ -148,6 +189,76 @@ export const evaluateDmarcPolicy = (dmarc: string | null): DmarcPolicyEvaluation
   };
 };
 
+const buildDkimInfo = (recordsBySelector: Array<{ selector: string; records: string[] }>): DkimInfo => {
+  const discovered = recordsBySelector
+    .flatMap(({ selector, records }) =>
+      records
+        .filter((record) => record.toLowerCase().startsWith("v=dkim1"))
+        .map((record) => ({ selector, record })),
+    );
+  const selectors = discovered.map((record) => record.selector);
+
+  return {
+    discovered,
+    selectors,
+    count: discovered.length,
+    summary: discovered.length
+      ? `DKIM records were found at common selector${discovered.length === 1 ? "" : "s"}: ${selectors.join(", ")}.`
+      : "No DKIM records found at common selectors.",
+  };
+};
+
+const gradeEmailScore = (score: number): EmailDeliverabilityScore["grade"] => {
+  if (score >= 80) return "A";
+  if (score >= 60) return "B";
+  if (score >= 40) return "C";
+  if (score >= 20) return "D";
+  return "F";
+};
+
+const buildEmailDeliverabilityScore = ({
+  spf,
+  spfDetail,
+  dmarc,
+  dmarcPolicy,
+  dkim,
+  mtaStsDns,
+  tlsRptDns,
+  bimiDns,
+  dnssecSigned,
+}: {
+  spf: string | null;
+  spfDetail: SpfDetail;
+  dmarc: string | null;
+  dmarcPolicy: DmarcPolicyEvaluation;
+  dkim: DkimInfo;
+  mtaStsDns: string | null;
+  tlsRptDns: string | null;
+  bimiDns: string | null;
+  dnssecSigned: boolean;
+}): EmailDeliverabilityScore => {
+  const breakdown: Record<string, number> = {};
+  if (spf) breakdown["SPF present"] = 10;
+  if (spfDetail.hasMinusAll) breakdown["SPF hardfail"] = 10;
+  else if (spfDetail.hasTildeAll) breakdown["SPF softfail"] = 5;
+  if (dmarc) breakdown["DMARC present"] = 15;
+  if (dmarcPolicy.policy === "reject") breakdown["DMARC reject"] = 20;
+  else if (dmarcPolicy.policy === "quarantine") breakdown["DMARC quarantine"] = 10;
+  if (dmarcPolicy.reporting) breakdown["DMARC reporting"] = 5;
+  if (dkim.count > 0) breakdown["DKIM discovered"] = 15;
+  if (mtaStsDns) breakdown["MTA-STS present"] = 10;
+  if (tlsRptDns) breakdown["TLS-RPT present"] = 5;
+  if (bimiDns) breakdown["BIMI present"] = 5;
+  if (dnssecSigned) breakdown["DNSSEC signed"] = 5;
+
+  const score = Math.min(100, Math.round(Object.values(breakdown).reduce((total, value) => total + value, 0)));
+  return {
+    score,
+    grade: gradeEmailScore(score),
+    breakdown,
+  };
+};
+
 export async function analyzeDomainSecurity(host: string, requestText: RequestTextFn): Promise<DomainSecurityInfo> {
   const apexHost = host.startsWith("www.") ? host.slice(4) : host;
   const candidateHosts = [...new Set([host, apexHost])];
@@ -163,6 +274,7 @@ export async function analyzeDomainSecurity(host: string, requestText: RequestTe
     txtMtaStsByHost,
     txtTlsRptByHost,
     txtBimiByHost,
+    txtDkimByHost,
     dsByHost,
   ] = await Promise.all([
     Promise.all(candidateHosts.map((candidate) => resolveDns(() => dns.resolveMx(candidate)))),
@@ -173,6 +285,13 @@ export async function analyzeDomainSecurity(host: string, requestText: RequestTe
     Promise.all(candidateHosts.map((candidate) => resolveDns(() => dns.resolveTxt(`_mta-sts.${candidate}`)))),
     Promise.all(candidateHosts.map((candidate) => resolveDns(() => dns.resolveTxt(`_smtp._tls.${candidate}`)))),
     Promise.all(candidateHosts.map((candidate) => resolveDns(() => dns.resolveTxt(`default._bimi.${candidate}`)))),
+    Promise.all(candidateHosts.map((candidate) =>
+      Promise.all(DKIM_COMMON_SELECTORS.map(async (selector) => ({
+        selector,
+        records: ((await resolveDns(() => dns.resolveTxt(`${selector}._domainkey.${candidate}`))) || [])
+          .map((entry) => entry.join("")),
+      }))),
+    )),
     Promise.all(candidateHosts.map((candidate) => resolveDns<unknown[]>(() => dns.resolve(candidate, "DS") as Promise<unknown[]>))),
   ]);
 
@@ -208,12 +327,27 @@ export async function analyzeDomainSecurity(host: string, requestText: RequestTe
   const mtaStsDns = mtaStsValues.find((value) => value.toLowerCase().startsWith("v=stsv1")) || null;
   const tlsRptDns = tlsRptValues.find((value) => value.toLowerCase().startsWith("v=tlsrptv1")) || null;
   const bimiDns = bimiValues.find((value) => value.toLowerCase().startsWith("v=bimi1")) || null;
+  const txtDkim = txtDkimByHost.flat() as Array<{ selector: string; records: string[] }>;
+  const dkim = buildDkimInfo(txtDkim);
   const mtaStsTargetHost = txtMtaStsByHost[0]?.length ? candidateHosts[0] : candidateHosts[1] || candidateHosts[0];
   const mtaStsPolicy = mtaStsDns ? await fetchMtaStsPolicy(mtaStsTargetHost, requestText) : { policyUrl: null, policy: null };
+  const spfDetail = evaluateSpfDetail(spf);
   const emailPolicy = {
     spf: evaluateSpfPolicy(spf),
     dmarc: evaluateDmarcPolicy(dmarc),
   };
+  const dnssecSigned = dsRecords.length > 0;
+  const emailDeliverabilityScore = buildEmailDeliverabilityScore({
+    spf,
+    spfDetail,
+    dmarc,
+    dmarcPolicy: emailPolicy.dmarc,
+    dkim,
+    mtaStsDns,
+    tlsRptDns,
+    bimiDns,
+    dnssecSigned,
+  });
 
   const issues: string[] = [];
   const strengths: string[] = [];
@@ -232,6 +366,18 @@ export async function analyzeDomainSecurity(host: string, requestText: RequestTe
     issues.push(emailPolicy.spf.summary);
   } else {
     strengths.push(emailPolicy.spf.summary);
+  }
+  if (spfDetail.hasPlusAll) {
+    issues.push("Critical: SPF uses +all, which permits any sender to claim the domain.");
+  }
+  if (spfDetail.hasQuestionAll) {
+    issues.push("SPF uses ?all, leaving sender authorization neutral.");
+  }
+  if (spfDetail.exceedsLookupLimit) {
+    issues.push("SPF includes more than 10 include mechanisms and may hit the DNS lookup limit.");
+  }
+  if (spfDetail.hasMinusAll) {
+    strengths.push("SPF uses -all hardfail.");
   }
 
   if (!dmarc) {
@@ -275,6 +421,13 @@ export async function analyzeDomainSecurity(host: string, requestText: RequestTe
   if (bimiDns) {
     strengths.push("BIMI is published, which can support brand trust when paired with enforcing DMARC.");
   }
+  if (dkim.count === 0) {
+    if (dmarc) {
+      issues.push("DMARC is published but no DKIM record was found at common selectors.");
+    }
+  } else {
+    strengths.push(dkim.summary);
+  }
 
   return {
     host: apexHost,
@@ -294,6 +447,8 @@ export async function analyzeDomainSecurity(host: string, requestText: RequestTe
       policyUrl: mtaStsPolicy.policyUrl,
       policy: mtaStsPolicy.policy,
     },
+    spfDetail,
+    dkim,
     tlsRpt: {
       dns: tlsRptDns,
       reporting: Boolean(tlsRptDns),
@@ -309,6 +464,7 @@ export async function analyzeDomainSecurity(host: string, requestText: RequestTe
         ? "BIMI is published at the default selector."
         : "No BIMI record was detected at the default selector.",
     },
+    emailDeliverabilityScore,
     issues,
     strengths,
   };

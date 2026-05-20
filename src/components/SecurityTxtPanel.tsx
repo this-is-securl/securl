@@ -9,8 +9,9 @@ interface SecurityTxtPanelProps {
 }
 
 const statusStyles: Record<SecurityTxtInfo["status"], string> = {
-  present: "bg-white/[0.08] text-zinc-100",
-  invalid: "bg-[#14b8a6]/14 text-[#99f6e4]",
+  present_valid: "bg-[#14b8a6]/14 text-[#99f6e4]",
+  present_expired: "bg-[#f97316]/14 text-[#fed7aa]",
+  present_incomplete: "bg-[#eab308]/14 text-[#fde68a]",
   missing: "bg-[#7f1d1d]/14 text-[#99f6e4]",
 };
 
@@ -52,12 +53,12 @@ export const SecurityTxtPanel = ({ securityTxt }: SecurityTxtPanelProps) => {
           />
         </div>
 
-        {securityTxt.policy.length > 0 && (
+        {securityTxt.policy && (
           <StatBox
             label="Policy"
             value={
               <div className="space-y-1 text-sm text-zinc-200">
-                {securityTxt.policy.map((item) => <p key={item} className="break-words text-zinc-200">{item}</p>)}
+                <p className="break-words text-zinc-200">{securityTxt.policy}</p>
               </div>
             }
           />
@@ -67,13 +68,13 @@ export const SecurityTxtPanel = ({ securityTxt }: SecurityTxtPanelProps) => {
           {securityTxt.issues.map((issue) => (
             <StatusAlert
               key={issue}
-              variant={securityTxt.status === "present" ? "warning" : "critical"}
+              variant={securityTxt.status === "present_valid" ? "warning" : "critical"}
               icon={<ShieldAlert />}
             >
               {issue}
             </StatusAlert>
           ))}
-          {securityTxt.status === "present" && securityTxt.issues.length === 0 && (
+          {securityTxt.status === "present_valid" && securityTxt.issues.length === 0 && (
             <StatusAlert variant="success" icon={<ShieldCheck />}>
               Valid security.txt discovered with contact information.
             </StatusAlert>
