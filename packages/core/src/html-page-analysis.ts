@@ -92,6 +92,14 @@ const calculateSriCoverage = (
 const extractVersion = (value: string, pattern: RegExp): string | null =>
   value.match(pattern)?.slice(1).find(Boolean) || null;
 
+const extractVersionNear = (value: string, marker: string): string | null => {
+  const index = value.toLowerCase().indexOf(marker.toLowerCase());
+  if (index === -1) {
+    return null;
+  }
+  return value.slice(index, index + marker.length + 80).match(/\d+\.\d+\.\d+|\d+\.\d+/)?.[0] || null;
+};
+
 const detectFrameworkVersionLeaks = (
   html: string,
   metaGenerator: string | null,
@@ -100,6 +108,7 @@ const detectFrameworkVersionLeaks = (
 ): HtmlSecurityInfo["frameworkVersionLeaks"] => {
   const signals = `${html}\n${metaGenerator || ""}\n${externalScriptUrls.join("\n")}\n${externalStylesheetUrls.join("\n")}`;
   const lower = signals.toLowerCase();
+  const generator = (metaGenerator || "").toLowerCase();
   const leaks: HtmlSecurityInfo["frameworkVersionLeaks"] = [];
   const seen = new Set<string>();
   const addLeak = (framework: string, versionHint: string | null, evidence: string, risk: "low" | "medium" | "high" = "medium") => {
@@ -113,10 +122,10 @@ const detectFrameworkVersionLeaks = (
     addLeak("React", extractVersion(signals, /react(?:-dom)?@(\d+\.\d+\.\d+)/i), "React version marker is visible in page source or asset references.");
   }
   if (/ng\.version\.full|@angular\/core/i.test(signals)) {
-    addLeak("Angular", extractVersion(signals, /@angular\/core[^\d]*(\d+\.\d+\.\d+)/i), "Angular version marker is visible in page source.");
+    addLeak("Angular", extractVersionNear(signals, "@angular/core"), "Angular version marker is visible in page source.");
   }
   if (/Vue\.version|__VUE_VERSION__/i.test(signals)) {
-    addLeak("Vue", extractVersion(signals, /(?:Vue\.version|__VUE_VERSION__)[^\d]*(\d+\.\d+\.\d+)/i), "Vue version marker is visible in page source.");
+    addLeak("Vue", extractVersionNear(signals, "Vue.version") || extractVersionNear(signals, "__VUE_VERSION__"), "Vue version marker is visible in page source.");
   }
   if (lower.includes("__next_data__") || lower.includes("/_next/static")) {
     addLeak("Next.js", null, "Next.js runtime markers are visible in the fetched HTML.");
@@ -127,13 +136,13 @@ const detectFrameworkVersionLeaks = (
   if (/bootstrap@|Bootstrap v/i.test(signals)) {
     addLeak("Bootstrap", extractVersion(signals, /(?:bootstrap@|Bootstrap v)(\d+\.\d+\.\d+)/i), "Bootstrap version marker is visible.");
   }
-  if (lower.includes("wp-content/") || lower.includes("wp-includes/") || /generator["'][^>]+wordpress/i.test(signals)) {
+  if (lower.includes("wp-content/") || lower.includes("wp-includes/") || generator.includes("wordpress")) {
     addLeak("WordPress", extractVersion(signals, /WordPress\s+(\d+\.\d+(?:\.\d+)?)/i), "WordPress public page markers are visible.", "low");
   }
-  if (lower.includes("sites/default/files/") || lower.includes("drupal.js") || /generator["'][^>]+drupal/i.test(signals)) {
+  if (lower.includes("sites/default/files/") || lower.includes("drupal.js") || generator.includes("drupal")) {
     addLeak("Drupal", extractVersion(signals, /Drupal\s+(\d+\.\d+(?:\.\d+)?)/i), "Drupal public page markers are visible.", "low");
   }
-  if (lower.includes("/media/joomla_version.xml") || /generator["'][^>]+joomla/i.test(signals)) {
+  if (lower.includes("/media/joomla_version.xml") || generator.includes("joomla")) {
     addLeak("Joomla", extractVersion(signals, /Joomla!?\s+(\d+\.\d+(?:\.\d+)?)/i), "Joomla public page markers are visible.", "low");
   }
 
