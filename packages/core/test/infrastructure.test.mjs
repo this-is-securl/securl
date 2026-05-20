@@ -37,6 +37,8 @@ test("analyzeInfrastructure infers providers from passive DNS, reverse DNS, head
   assert.ok(providers.includes("AWS / CloudFront"));
   assert.ok(providers.includes("Microsoft Azure"));
   assert.ok(providers.includes("Vercel"));
+  assert.equal(result.waf.detected, true);
+  assert.equal(result.waf.provider, "Cloudflare");
   assert.match(result.summary, /Passive infrastructure evidence points to/);
 });
 
@@ -88,4 +90,56 @@ test("analyzeInfrastructure recognises newer PaaS and hosting fingerprints", asy
   assert.ok(providers.includes("Render"));
   assert.ok(providers.includes(bunnyProvider));
   assert.ok(providers.includes("Hostinger"));
+});
+
+test("analyzeInfrastructure detects HTTP/3 Alt-Svc advertisement", async () => {
+  const result = await analyzeInfrastructure(
+    new URL("https://www.example.com/"),
+    {
+      "alt-svc": 'h3=":443"; ma=86400',
+    },
+    [],
+    {
+      resolveCname: async () => [],
+      resolve4: async () => [],
+      resolve6: async () => [],
+      reverse: async () => [],
+    },
+  );
+
+  assert.equal(result.protocol.http3Advertised, true);
+  assert.equal(result.protocol.altSvc, 'h3=":443"; ma=86400');
+  assert.equal(result.strengths.includes("HTTP/3 support is advertised via Alt-Svc."), true);
+});
+
+test("analyzeInfrastructure detects passive WAF header signatures", async () => {
+  const imperva = await analyzeInfrastructure(
+    new URL("https://www.example.com/"),
+    {
+      "x-iinfo": "1-123-456 NNNN RT(1)",
+    },
+    [],
+    {
+      resolveCname: async () => [],
+      resolve4: async () => [],
+      resolve6: async () => [],
+      reverse: async () => [],
+    },
+  );
+
+  const absent = await analyzeInfrastructure(
+    new URL("https://www.example.com/"),
+    {},
+    [],
+    {
+      resolveCname: async () => [],
+      resolve4: async () => [],
+      resolve6: async () => [],
+      reverse: async () => [],
+    },
+  );
+
+  assert.equal(imperva.waf.detected, true);
+  assert.equal(imperva.waf.provider, "Imperva");
+  assert.equal(absent.waf.detected, false);
 });

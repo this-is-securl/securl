@@ -24,6 +24,131 @@ function loadCheerio() {
   return cheerioModule;
 }
 
+const emptySriCoverage = (): HtmlSecurityInfo["sriCoverage"] => ({
+  externalScripts: 0,
+  externalStylesheets: 0,
+  scriptsWithSri: 0,
+  stylesheetsWithSri: 0,
+  coveragePercent: 100,
+  issues: [],
+  strengths: [],
+});
+
+const hasValidSriPrefix = (integrity: string | undefined): boolean =>
+  Boolean(integrity && /\bsha(?:256|384|512)-[A-Za-z0-9+/=]+/.test(integrity));
+
+const isAbsoluteExternalResource = (value: string | undefined, finalUrl: URL): boolean => {
+  if (!value || !/^(?:https?:)?\/\//i.test(value)) {
+    return false;
+  }
+  try {
+    return new URL(value, finalUrl).hostname !== finalUrl.hostname;
+  } catch {
+    return false;
+  }
+};
+
+type CheerioSelector = (element: unknown) => { attr(name: string): string | undefined };
+
+const calculateSriCoverage = (
+  scriptElements: unknown[],
+  stylesheetElements: unknown[],
+  finalUrl: URL,
+  $: CheerioSelector,
+): HtmlSecurityInfo["sriCoverage"] => {
+  const externalScripts = scriptElements.filter((script) =>
+    isAbsoluteExternalResource($(script).attr("src"), finalUrl),
+  );
+  const externalStylesheets = stylesheetElements.filter((link) =>
+    isAbsoluteExternalResource($(link).attr("href"), finalUrl),
+  );
+  const scriptsWithSri = externalScripts.filter((script) => hasValidSriPrefix($(script).attr("integrity"))).length;
+  const stylesheetsWithSri = externalStylesheets.filter((link) => hasValidSriPrefix($(link).attr("integrity"))).length;
+  const total = externalScripts.length + externalStylesheets.length;
+  const protectedTotal = scriptsWithSri + stylesheetsWithSri;
+  const coveragePercent = total ? Math.round((protectedTotal / total) * 100) : 100;
+  const issues: string[] = [];
+  const strengths: string[] = [];
+
+  if (total > 0 && coveragePercent === 0) {
+    issues.push("External scripts or stylesheets are loaded without Subresource Integrity coverage.");
+  } else if (total > 0 && coveragePercent < 100) {
+    issues.push(`Subresource Integrity coverage is partial (${coveragePercent}%).`);
+  } else if (total > 0) {
+    strengths.push("All externally hosted scripts and stylesheets include Subresource Integrity hashes.");
+  }
+
+  return {
+    externalScripts: externalScripts.length,
+    externalStylesheets: externalStylesheets.length,
+    scriptsWithSri,
+    stylesheetsWithSri,
+    coveragePercent,
+    issues,
+    strengths,
+  };
+};
+
+const extractVersion = (value: string, pattern: RegExp): string | null =>
+  value.match(pattern)?.slice(1).find(Boolean) || null;
+
+const extractVersionNear = (value: string, marker: string): string | null => {
+  const index = value.toLowerCase().indexOf(marker.toLowerCase());
+  if (index === -1) {
+    return null;
+  }
+  return value.slice(index, index + marker.length + 80).match(/\d+\.\d+\.\d+|\d+\.\d+/)?.[0] || null;
+};
+
+const detectFrameworkVersionLeaks = (
+  html: string,
+  metaGenerator: string | null,
+  externalScriptUrls: string[],
+  externalStylesheetUrls: string[],
+): HtmlSecurityInfo["frameworkVersionLeaks"] => {
+  const signals = `${html}\n${metaGenerator || ""}\n${externalScriptUrls.join("\n")}\n${externalStylesheetUrls.join("\n")}`;
+  const lower = signals.toLowerCase();
+  const generator = (metaGenerator || "").toLowerCase();
+  const leaks: HtmlSecurityInfo["frameworkVersionLeaks"] = [];
+  const seen = new Set<string>();
+  const addLeak = (framework: string, versionHint: string | null, evidence: string, risk: "low" | "medium" | "high" = "medium") => {
+    const key = `${framework}:${versionHint || evidence}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    leaks.push({ framework, versionHint, evidence, risk });
+  };
+
+  if (/__REACT_VERSION__|react@|react-dom@/i.test(signals)) {
+    addLeak("React", extractVersion(signals, /react(?:-dom)?@(\d+\.\d+\.\d+)/i), "React version marker is visible in page source or asset references.");
+  }
+  if (/ng\.version\.full|@angular\/core/i.test(signals)) {
+    addLeak("Angular", extractVersionNear(signals, "@angular/core"), "Angular version marker is visible in page source.");
+  }
+  if (/Vue\.version|__VUE_VERSION__/i.test(signals)) {
+    addLeak("Vue", extractVersionNear(signals, "Vue.version") || extractVersionNear(signals, "__VUE_VERSION__"), "Vue version marker is visible in page source.");
+  }
+  if (lower.includes("__next_data__") || lower.includes("/_next/static")) {
+    addLeak("Next.js", null, "Next.js runtime markers are visible in the fetched HTML.");
+  }
+  if (/jQuery v/i.test(signals) || /jquery[-.@/](\d+\.\d+\.\d+)/i.test(signals)) {
+    addLeak("jQuery", extractVersion(signals, /jQuery v(\d+\.\d+\.\d+)|jquery[-.@/](\d+\.\d+\.\d+)/i), "jQuery version marker or asset path is visible.");
+  }
+  if (/bootstrap@|Bootstrap v/i.test(signals)) {
+    addLeak("Bootstrap", extractVersion(signals, /(?:bootstrap@|Bootstrap v)(\d+\.\d+\.\d+)/i), "Bootstrap version marker is visible.");
+  }
+  if (lower.includes("wp-content/") || lower.includes("wp-includes/") || generator.includes("wordpress")) {
+    addLeak("WordPress", extractVersion(signals, /WordPress\s+(\d+\.\d+(?:\.\d+)?)/i), "WordPress public page markers are visible.", "low");
+  }
+  if (lower.includes("sites/default/files/") || lower.includes("drupal.js") || generator.includes("drupal")) {
+    addLeak("Drupal", extractVersion(signals, /Drupal\s+(\d+\.\d+(?:\.\d+)?)/i), "Drupal public page markers are visible.", "low");
+  }
+  if (lower.includes("/media/joomla_version.xml") || generator.includes("joomla")) {
+    addLeak("Joomla", extractVersion(signals, /Joomla!?\s+(\d+\.\d+(?:\.\d+)?)/i), "Joomla public page markers are visible.", "low");
+  }
+
+  return leaks;
+};
+
 export async function fetchHtmlDocument(finalUrl: URL) {
   const response = await requestText(finalUrl);
   const contentType = headerValue(response.headers, "content-type") || "";
@@ -55,11 +180,13 @@ export function analyzeHtmlSecurity(finalUrl: URL, document: { html: string; pag
         inlineScriptCount: 0,
         inlineStyleCount: 0,
         missingSriScriptUrls: [],
+        sriCoverage: emptySriCoverage(),
         firstPartyPaths: [],
         passiveLeakSignals: [],
         clientExposureSignals: [],
         libraryFingerprints: [],
         libraryRiskSignals: [],
+        frameworkVersionLeaks: [],
         detectedTechnologies: [],
         aiSurface: {
           detected: false,
@@ -111,6 +238,7 @@ export function analyzeHtmlSecurity(finalUrl: URL, document: { html: string; pag
       .map((link) => $(link).attr("href"))
       .filter(Boolean)
       .map((href) => new URL(href as string, finalUrl).toString());
+    const stylesheetElements = $('link[rel~="stylesheet"]').toArray();
     const sameSiteHosts = collectSameSiteHosts(finalUrl, [
       ...$("a[href]").toArray().map((anchor) => $(anchor).attr("href")),
       ...scriptElements.map((script) => $(script).attr("src")),
@@ -154,6 +282,7 @@ export function analyzeHtmlSecurity(finalUrl: URL, document: { html: string; pag
         return resolved.toString();
       })
       .filter(Boolean) as string[];
+    const sriCoverage = calculateSriCoverage(scriptElements, stylesheetElements, finalUrl, $ as CheerioSelector);
     const passiveLeakSignals = collectPassiveLeakSignals(
       html,
       finalUrl,
@@ -186,6 +315,8 @@ export function analyzeHtmlSecurity(finalUrl: URL, document: { html: string; pag
     if (missingSriScriptUrls.length) {
       issues.push("Some third-party scripts are missing Subresource Integrity attributes.");
     }
+    issues.push(...sriCoverage.issues);
+    strengths.push(...sriCoverage.strengths);
     for (const signal of passiveLeakSignals) {
       if (signal.severity === "warning") {
         issues.push(signal.title);
@@ -225,11 +356,18 @@ export function analyzeHtmlSecurity(finalUrl: URL, document: { html: string; pag
       inlineScriptCount,
       inlineStyleCount,
       missingSriScriptUrls,
+      sriCoverage,
       firstPartyPaths,
       passiveLeakSignals,
       clientExposureSignals,
       libraryFingerprints: collectLibraryFingerprints(externalScriptUrls),
       libraryRiskSignals: [],
+      frameworkVersionLeaks: detectFrameworkVersionLeaks(
+        html,
+        metaGenerator || null,
+        externalScriptUrls,
+        externalStylesheetUrls,
+      ),
       detectedTechnologies: detectHtmlTechnologies(
         html,
         finalUrl,
@@ -255,11 +393,13 @@ export function analyzeHtmlSecurity(finalUrl: URL, document: { html: string; pag
       inlineScriptCount: 0,
       inlineStyleCount: 0,
       missingSriScriptUrls: [],
+      sriCoverage: emptySriCoverage(),
       firstPartyPaths: [],
       passiveLeakSignals: [],
       clientExposureSignals: [],
       libraryFingerprints: [],
       libraryRiskSignals: [],
+      frameworkVersionLeaks: [],
       detectedTechnologies: [],
       aiSurface: {
         detected: false,

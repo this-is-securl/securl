@@ -170,7 +170,7 @@ export const getDisclosurePosture = (analysis: AnalysisResult): DisclosurePostur
   const strengths: string[] = [];
   const issues: string[] = [];
 
-  if (analysis.securityTxt.status === "present") {
+  if (analysis.securityTxt.status === "present_valid") {
     strengths.push("A valid security.txt disclosure route is published.");
   } else {
     issues.push("No valid security.txt disclosure route was detected.");

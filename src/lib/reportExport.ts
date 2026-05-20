@@ -165,7 +165,7 @@ const buildStakeholderQuestions = (analysis: AnalysisResult) => {
     questions.push("Do the observed forms collect personal, credential, or regulated data, and are their submission paths documented?");
   }
 
-  if (analysis.domainSecurity.issues.length > 0 || analysis.securityTxt.status !== "present") {
+  if (analysis.domainSecurity.issues.length > 0 || analysis.securityTxt.status !== "present_valid") {
     questions.push("Does domain ownership include mail/disclosure controls, or is this target purely web-facing?");
   }
 

@@ -75,6 +75,37 @@ const addSignals = (
   }
 };
 
+const detectProtocol = (headers: Record<string, string | string[] | undefined>): InfrastructureInfo["protocol"] => {
+  const altSvc = headerValue(headers, "alt-svc");
+  const http3Advertised = Boolean(altSvc && /\bh3(?:-|=|")/i.test(altSvc));
+  return {
+    http: "HTTP/1.1",
+    http3Advertised,
+    altSvc,
+  };
+};
+
+const detectWaf = (headers: Record<string, string | string[] | undefined>): NonNullable<InfrastructureInfo["waf"]> => {
+  const server = headerValue(headers, "server") || "";
+  const xCdn = headerValue(headers, "x-cdn") || "";
+  const setCookie = headerValue(headers, "set-cookie") || "";
+  const detectors: Array<{ provider: string; confidence: NonNullable<InfrastructureInfo["waf"]>["confidence"]; evidence: string; matched: boolean }> = [
+    { provider: "Cloudflare", confidence: "high", evidence: "Observed Cloudflare edge headers.", matched: Boolean(headerValue(headers, "cf-ray") || headerValue(headers, "cf-cache-status") || /cloudflare/i.test(server)) },
+    { provider: "Akamai", confidence: "high", evidence: "Observed Akamai cache/request headers.", matched: Boolean(headerValue(headers, "x-check-cacheable") || headerValue(headers, "x-akamai-request-id") || headerValue(headers, "akamai-cache-status")) },
+    { provider: "AWS WAF / CloudFront", confidence: "medium", evidence: "Observed AWS CloudFront edge headers.", matched: Boolean(headerValue(headers, "x-amz-cf-id") || headerValue(headers, "x-amz-cf-pop")) },
+    { provider: "Imperva", confidence: "high", evidence: "Observed Imperva / Incapsula headers.", matched: Boolean(headerValue(headers, "x-iinfo") || /imperva/i.test(xCdn)) },
+    { provider: "Fastly", confidence: "medium", evidence: "Observed Fastly request/cache headers.", matched: Boolean(headerValue(headers, "x-fastly-request-id") || headerValue(headers, "fastly-restarts")) },
+    { provider: "Vercel Edge", confidence: "high", evidence: "Observed Vercel edge headers.", matched: Boolean(headerValue(headers, "x-vercel-cache") || headerValue(headers, "x-vercel-id")) },
+    { provider: "Sucuri", confidence: "high", evidence: "Observed Sucuri edge headers.", matched: Boolean(headerValue(headers, "x-sucuri-id") || headerValue(headers, "x-sucuri-cache")) },
+    { provider: "Azure Front Door", confidence: "high", evidence: "Observed Azure Front Door headers.", matched: Boolean(headerValue(headers, "x-azure-ref") || headerValue(headers, "x-fd-healthprobe")) },
+    { provider: "F5 / BIG-IP", confidence: "medium", evidence: "Observed F5 / BIG-IP headers or cookie markers.", matched: Boolean(headerValue(headers, "x-wa-info") || /bigipserver/i.test(setCookie)) },
+  ];
+  const match = detectors.find((detector) => detector.matched);
+  return match
+    ? { detected: true, provider: match.provider, confidence: match.confidence, evidence: match.evidence }
+    : { detected: false, provider: null, confidence: "low", evidence: "No passive WAF signature headers were observed." };
+};
+
 export async function analyzeInfrastructure(
   finalUrl: URL,
   headers: Record<string, string | string[] | undefined>,
@@ -131,6 +162,19 @@ export async function analyzeInfrastructure(
     .filter((signal): signal is InfrastructureSignal => Boolean(signal));
 
   const providerNames = unique(providers.map((signal) => signal.provider));
+  const protocol = detectProtocol(headers);
+  const waf = detectWaf(headers);
+  const issues: string[] = [];
+  const strengths: string[] = [];
+
+  if (protocol.http3Advertised) {
+    strengths.push("HTTP/3 support is advertised via Alt-Svc.");
+  } else {
+    issues.push("No HTTP/3 Alt-Svc advertisement was visible on the main response.");
+  }
+  if (waf.detected && waf.provider) {
+    strengths.push(`Passive WAF or edge-protection headers indicate ${waf.provider}.`);
+  }
 
   return {
     host,
@@ -138,10 +182,15 @@ export async function analyzeInfrastructure(
     cnameTargets,
     reverseDns,
     providers,
-    issues: [],
-    strengths: providerNames.length
-      ? [`Passive DNS, header, or stack evidence identified ${providerNames.join(", ")}.`]
-      : [],
+    protocol,
+    waf,
+    issues,
+    strengths: [
+      ...strengths,
+      ...(providerNames.length
+        ? [`Passive DNS, header, or stack evidence identified ${providerNames.join(", ")}.`]
+        : []),
+    ],
     summary: providerNames.length
       ? `Passive infrastructure evidence points to ${providerNames.join(", ")}.`
       : "No obvious cloud, CDN, or hosting provider was inferred from passive evidence.",

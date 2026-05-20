@@ -221,21 +221,21 @@ export function buildPassiveIntelligence(input: PassiveIntelligenceInput): Passi
   });
 
   const trustEvidence = unique([
-    input.securityTxt.status === "present" ? "security.txt present" : "security.txt missing",
+    input.securityTxt.status === "present_valid" ? "security.txt valid" : "security.txt missing or incomplete",
     `HSTS preload: ${titleCase(input.publicSignals.hstsPreload.status)}`,
     ...input.htmlSecurity.firstPartyPaths.filter((path) => /privacy|contact|security|support|legal/i.test(path)).slice(0, 5),
   ]);
   addSignal(signals, {
     category: "trust",
     title: "Public trust and disclosure signals",
-    summary: input.securityTxt.status === "present"
+    summary: input.securityTxt.status === "present_valid"
       ? "A vulnerability disclosure route was visible through security.txt."
       : "No valid security.txt disclosure route was visible from the standard location.",
     confidence: "high",
     source: "public_record",
-    risk: input.securityTxt.status === "present" ? "positive" : "watch",
+    risk: input.securityTxt.status === "present_valid" ? "positive" : "watch",
     evidence: trustEvidence,
-    action: input.securityTxt.status === "present"
+    action: input.securityTxt.status === "present_valid"
       ? "Keep disclosure contacts, expiry, and policy links current."
       : "Publish /.well-known/security.txt with a monitored contact and policy URL.",
   });

@@ -63,6 +63,66 @@ test("extracts explicit versioned client library fingerprints from script URLs",
   assert.equal(htmlSecurity.libraryRiskSignals.length, 0);
 });
 
+test("scores SRI coverage for external resources", () => {
+  const htmlSecurity = analyzeHtmlDocument(
+    "https://example.com/",
+    `<!doctype html><html><head>
+      <script src="https://cdn.example.net/a.js"></script>
+      <script src="https://cdn.example.net/b.js"></script>
+      <script src="/local.js"></script>
+      <link rel="stylesheet" href="https://fonts.example.net/font.css">
+    </head><body></body></html>`,
+  );
+
+  assert.equal(htmlSecurity.sriCoverage.externalScripts, 2);
+  assert.equal(htmlSecurity.sriCoverage.externalStylesheets, 1);
+  assert.equal(htmlSecurity.sriCoverage.coveragePercent, 0);
+  assert.equal(
+    htmlSecurity.sriCoverage.issues.includes("External scripts or stylesheets are loaded without Subresource Integrity coverage."),
+    true,
+  );
+});
+
+test("recognises full SRI coverage on external resources", () => {
+  const htmlSecurity = analyzeHtmlDocument(
+    "https://example.com/",
+    `<!doctype html><html><head>
+      <script src="https://cdn.example.net/a.js" integrity="sha384-abc123"></script>
+      <script src="https://cdn.example.net/b.js" integrity="sha512-def456"></script>
+    </head><body></body></html>`,
+  );
+
+  assert.equal(htmlSecurity.sriCoverage.coveragePercent, 100);
+  assert.equal(htmlSecurity.sriCoverage.scriptsWithSri, 2);
+  assert.equal(htmlSecurity.sriCoverage.strengths.length, 1);
+});
+
+test("detects framework and version leakage from fetched HTML only", () => {
+  const htmlSecurity = analyzeHtmlDocument(
+    "https://example.com/",
+    `<!doctype html><html><head>
+      <script id="__NEXT_DATA__" type="application/json">{"buildId":"abc"}</script>
+      <script>/* jQuery v3.6.0 */</script>
+      <link rel="stylesheet" href="https://cdn.example.net/wp-content/themes/site/style.css">
+    </head><body></body></html>`,
+  );
+
+  const leaks = htmlSecurity.frameworkVersionLeaks;
+  assert.equal(leaks.some((item) => item.framework === "Next.js"), true);
+  assert.equal(leaks.some((item) => item.framework === "WordPress"), true);
+  assert.equal(leaks.some((item) => item.framework === "jQuery" && item.versionHint === "3.6.0"), true);
+});
+
+test("keeps clean HTML free of framework version leaks", () => {
+  const htmlSecurity = analyzeHtmlDocument(
+    "https://example.com/",
+    "<!doctype html><html><head></head><body><main>Hello</main></body></html>",
+  );
+
+  assert.deepEqual(htmlSecurity.frameworkVersionLeaks, []);
+  assert.equal(htmlSecurity.sriCoverage.issues.length, 0);
+});
+
 test("extracts sibling same-site hosts from page content without treating third parties as internal", () => {
   const htmlSecurity = analyzeHtmlDocument(
     "https://www.bbc.co.uk/",

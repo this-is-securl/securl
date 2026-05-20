@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import dns from "node:dns/promises";
 import test from "node:test";
-import { analyzeDomainSecurity, evaluateDmarcPolicy, evaluateSpfPolicy } from "../dist/domain-security.js";
+import { analyzeDomainSecurity, evaluateDmarcPolicy, evaluateSpfDetail, evaluateSpfPolicy } from "../dist/domain-security.js";
 
 test("evaluateSpfPolicy classifies hardfail, softfail, and permissive SPF records", () => {
   assert.deepEqual(evaluateSpfPolicy(null), {
@@ -23,6 +23,26 @@ test("evaluateSpfPolicy classifies hardfail, softfail, and permissive SPF record
   const permissive = evaluateSpfPolicy("v=spf1 +all");
   assert.equal(permissive.status, "weak");
   assert.equal(permissive.allMechanism, "+all");
+});
+
+test("evaluateSpfDetail exposes SPF depth and permissive mechanisms", () => {
+  const plusAll = evaluateSpfDetail("v=spf1 +all");
+  assert.equal(plusAll.hasPlusAll, true);
+  assert.equal(plusAll.isOverlyPermissive, true);
+
+  const questionAll = evaluateSpfDetail("v=spf1 ?all");
+  assert.equal(questionAll.hasQuestionAll, true);
+  assert.equal(questionAll.isOverlyPermissive, true);
+
+  const includes = Array.from({ length: 11 }, (_, index) => `include:${index}.example.com`).join(" ");
+  const deepRecord = evaluateSpfDetail(`v=spf1 ${includes} -all`);
+  assert.equal(deepRecord.includeCount, 11);
+  assert.equal(deepRecord.exceedsLookupLimit, true);
+  assert.equal(deepRecord.hasMinusAll, true);
+
+  const softfail = evaluateSpfDetail("v=spf1 include:_spf.example.com ~all");
+  assert.equal(softfail.hasTildeAll, true);
+  assert.equal(softfail.isOverlyPermissive, false);
 });
 
 test("evaluateDmarcPolicy classifies enforcing, partial rollout, and monitor-only records", () => {
@@ -92,6 +112,12 @@ test("analyzeDomainSecurity includes passive SMTP reporting and BIMI trust signa
     if (host === "default._bimi.example.com") {
       return [["v=BIMI1; l=https://example.com/bimi.svg"]];
     }
+    if (host === "google._domainkey.example.com") {
+      return [["v=DKIM1; k=rsa; p=abc123"]];
+    }
+    if (host === "selector1._domainkey.example.com") {
+      return [["v=DKIM1; k=rsa; p=def456"]];
+    }
     return [];
   };
 
@@ -106,6 +132,10 @@ test("analyzeDomainSecurity includes passive SMTP reporting and BIMI trust signa
   assert.match(result.tlsRpt.dns, /^v=TLSRPTv1/);
   assert.equal(result.bimi.status, "present");
   assert.match(result.bimi.dns, /^v=BIMI1/);
+  assert.equal(result.dkim.count, 2);
+  assert.deepEqual(result.dkim.selectors, ["google", "selector1"]);
+  assert.equal(result.emailDeliverabilityScore.score, 100);
+  assert.equal(result.emailDeliverabilityScore.grade, "A");
   assert.equal(
     result.issues.includes("MTA-STS is present, but no TLS-RPT reporting record was detected."),
     false,
@@ -118,6 +148,7 @@ test("analyzeDomainSecurity includes passive SMTP reporting and BIMI trust signa
     result.strengths.includes("BIMI is published, which can support brand trust when paired with enforcing DMARC."),
     true,
   );
+  assert.equal(result.strengths.some((strength) => strength.includes("DKIM records were found")), true);
 });
 
 test("analyzeDomainSecurity flags missing TLS-RPT only when MTA-STS is present", async (t) => {
@@ -163,4 +194,113 @@ test("analyzeDomainSecurity flags missing TLS-RPT only when MTA-STS is present",
     result.issues.includes("MTA-STS is present, but no TLS-RPT reporting record was detected."),
     true,
   );
+});
+
+test("analyzeDomainSecurity flags DMARC with no DKIM at common selectors", async (t) => {
+  const original = {
+    resolveMx: dns.resolveMx,
+    resolveNs: dns.resolveNs,
+    resolveTxt: dns.resolveTxt,
+    resolveCaa: dns.resolveCaa,
+    resolve: dns.resolve,
+  };
+
+  t.after(() => {
+    dns.resolveMx = original.resolveMx;
+    dns.resolveNs = original.resolveNs;
+    dns.resolveTxt = original.resolveTxt;
+    dns.resolveCaa = original.resolveCaa;
+    dns.resolve = original.resolve;
+  });
+
+  dns.resolveMx = async () => [{ priority: 10, exchange: "mail.example.com" }];
+  dns.resolveNs = async () => ["ns1.example.com"];
+  dns.resolveCaa = async () => [];
+  dns.resolve = async () => [];
+  dns.resolveTxt = async (host) => {
+    if (host === "example.com") return [["v=spf1 -all"]];
+    if (host === "_dmarc.example.com") return [["v=DMARC1; p=reject"]];
+    return [];
+  };
+
+  const result = await analyzeDomainSecurity("example.com", async () => {
+    throw new Error("not fetched");
+  });
+
+  assert.equal(result.dkim.count, 0);
+  assert.equal(
+    result.issues.includes("DMARC is published but no DKIM record was found at common selectors."),
+    true,
+  );
+});
+
+test("analyzeDomainSecurity does not double-penalise missing DKIM when DMARC is absent", async (t) => {
+  const original = {
+    resolveMx: dns.resolveMx,
+    resolveNs: dns.resolveNs,
+    resolveTxt: dns.resolveTxt,
+    resolveCaa: dns.resolveCaa,
+    resolve: dns.resolve,
+  };
+
+  t.after(() => {
+    dns.resolveMx = original.resolveMx;
+    dns.resolveNs = original.resolveNs;
+    dns.resolveTxt = original.resolveTxt;
+    dns.resolveCaa = original.resolveCaa;
+    dns.resolve = original.resolve;
+  });
+
+  dns.resolveMx = async () => [];
+  dns.resolveNs = async () => [];
+  dns.resolveCaa = async () => [];
+  dns.resolve = async () => [];
+  dns.resolveTxt = async () => [];
+
+  const result = await analyzeDomainSecurity("example.com", async () => {
+    throw new Error("not fetched");
+  });
+
+  assert.equal(result.dkim.count, 0);
+  assert.equal(
+    result.issues.includes("DMARC is published but no DKIM record was found at common selectors."),
+    false,
+  );
+  assert.equal(result.emailDeliverabilityScore.score, 0);
+  assert.equal(result.emailDeliverabilityScore.grade, "F");
+});
+
+test("analyzeDomainSecurity scores SPF-only email posture", async (t) => {
+  const original = {
+    resolveMx: dns.resolveMx,
+    resolveNs: dns.resolveNs,
+    resolveTxt: dns.resolveTxt,
+    resolveCaa: dns.resolveCaa,
+    resolve: dns.resolve,
+  };
+
+  t.after(() => {
+    dns.resolveMx = original.resolveMx;
+    dns.resolveNs = original.resolveNs;
+    dns.resolveTxt = original.resolveTxt;
+    dns.resolveCaa = original.resolveCaa;
+    dns.resolve = original.resolve;
+  });
+
+  dns.resolveMx = async () => [];
+  dns.resolveNs = async () => [];
+  dns.resolveCaa = async () => [];
+  dns.resolve = async () => [];
+  dns.resolveTxt = async (host) => {
+    if (host === "example.com") return [["v=spf1 -all"]];
+    return [];
+  };
+
+  const result = await analyzeDomainSecurity("example.com", async () => {
+    throw new Error("not fetched");
+  });
+
+  assert.equal(result.emailDeliverabilityScore.score, 20);
+  assert.equal(result.emailDeliverabilityScore.grade, "D");
+  assert.equal(result.spfDetail.hasMinusAll, true);
 });

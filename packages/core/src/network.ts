@@ -4,6 +4,7 @@ import { OBSERVATIONAL_TLS_OPTIONS } from "./certificate.js";
 import { REDIRECT_LIMIT, REQUEST_TIMEOUT_MS, TEXT_BODY_LIMIT } from "./scannerConfig.js";
 import { headerValue } from "./utils.js";
 import { assertPublicRedirectTarget, assertPublicRequestTarget } from "./network-validation.js";
+import type { RedirectHop } from "./types.js";
 
 export const SCANNER_USER_AGENT = "ExternalPostureInsight/1.0";
 
@@ -151,7 +152,7 @@ export async function requestJson(
 }
 
 export async function fetchWithRedirects(initialUrl: URL, redirectLimit = REDIRECT_LIMIT, options: RequestOptions = {}) {
-  const redirects: Array<{ url: string; statusCode: number; location: string | null; secure: boolean }> = [];
+  const redirects: RedirectHop[] = [];
   let currentUrl = initialUrl;
   let response = await requestOnce(currentUrl, "HEAD", options);
 
@@ -167,8 +168,10 @@ export async function fetchWithRedirects(initialUrl: URL, redirectLimit = REDIRE
     const location = headerValue(response.headers, "location");
     redirects.push({
       url: currentUrl.toString(),
+      status: response.statusCode,
       statusCode: response.statusCode,
       location,
+      isHttps: currentUrl.protocol === "https:",
       secure: currentUrl.protocol === "https:",
     });
     currentUrl = new URL(location!, currentUrl);
@@ -181,8 +184,10 @@ export async function fetchWithRedirects(initialUrl: URL, redirectLimit = REDIRE
 
   redirects.push({
     url: currentUrl.toString(),
+    status: response.statusCode,
     statusCode: response.statusCode,
     location: null,
+    isHttps: currentUrl.protocol === "https:",
     secure: currentUrl.protocol === "https:",
   });
 
