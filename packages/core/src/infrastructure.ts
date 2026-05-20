@@ -78,8 +78,10 @@ const addSignals = (
 const detectProtocol = (headers: Record<string, string | string[] | undefined>): InfrastructureInfo["protocol"] => {
   const altSvc = headerValue(headers, "alt-svc");
   const http3Advertised = Boolean(altSvc && /\bh3(?:-|=|")/i.test(altSvc));
+  // Node's fetch API does not expose the protocol version directly from response headers alone.
+  // Default to "unknown" rather than asserting HTTP/1.1 incorrectly for HTTP/2+ sites.
   return {
-    http: "HTTP/1.1",
+    http: "unknown",
     http3Advertised,
     altSvc,
   };

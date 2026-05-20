@@ -175,3 +175,25 @@ test("detects common client telemetry and session analytics vendors", () => {
   assert.ok(names.includes("Microsoft Clarity"));
   assert.ok(names.includes("Datadog RUM"));
 });
+
+// Regression test for adcb3de — extractVersionNear must find versions in CDN URLs
+// e.g. https://cdn.jsdelivr.net/@angular/core@17.3.0/bundles/core.umd.js
+test("extracts framework versions from CDN URL paths (regression: adcb3de)", () => {
+  const htmlSecurity = analyzeHtmlDocument(
+    "https://example.com/",
+    `<!doctype html><html><head>
+      <script src="https://cdn.jsdelivr.net/npm/@angular/core@17.3.0/bundles/core.umd.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.js"></script>
+    </head><body></body></html>`,
+  );
+
+  const leaks = htmlSecurity.frameworkVersionLeaks;
+  const angular = leaks.find((item) => item.framework === "Angular");
+  const vue = leaks.find((item) => item.framework === "Vue");
+
+  assert.ok(angular, "Angular should be detected from CDN URL");
+  assert.equal(angular?.versionHint, "17.3.0", "Angular version should be extracted from CDN URL");
+
+  assert.ok(vue, "Vue should be detected from CDN URL");
+  assert.equal(vue?.versionHint, "3.4.21", "Vue version should be extracted from CDN URL");
+});

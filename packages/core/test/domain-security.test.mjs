@@ -40,6 +40,13 @@ test("evaluateSpfDetail exposes SPF depth and permissive mechanisms", () => {
   assert.equal(deepRecord.exceedsLookupLimit, true);
   assert.equal(deepRecord.hasMinusAll, true);
 
+  // a/mx/ptr/exists also count toward the 10-lookup limit (RFC 7208 §4.6.4)
+  // 6 includes + 3 a: + 2 mx: = 11 DNS-querying mechanisms → should exceed limit
+  const mixedMechanisms = "v=spf1 include:a.example.com include:b.example.com include:c.example.com include:d.example.com include:e.example.com include:f.example.com a:host1.example.com a:host2.example.com a:host3.example.com mx:mail1.example.com mx:mail2.example.com -all";
+  const mixed = evaluateSpfDetail(mixedMechanisms);
+  assert.equal(mixed.includeCount, 6, "includeCount only tracks include: mechanisms");
+  assert.equal(mixed.exceedsLookupLimit, true, "exceedsLookupLimit must account for a/mx/ptr/exists, not just include:");
+
   const softfail = evaluateSpfDetail("v=spf1 include:_spf.example.com ~all");
   assert.equal(softfail.hasTildeAll, true);
   assert.equal(softfail.isOverlyPermissive, false);

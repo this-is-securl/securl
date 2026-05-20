@@ -118,6 +118,11 @@ export const evaluateSpfDetail = (spf: string | null): SpfDetail => {
   const hasMinusAll = normalizedMechanisms.includes("-all");
   const hasQuestionAll = normalizedMechanisms.includes("?all");
   const includeCount = normalizedMechanisms.filter((mechanism) => /^(?:[~?+-])?include:/i.test(mechanism)).length;
+  // Per RFC 7208 §4.6.4 the 10-lookup limit covers include, a, mx, ptr, and exists mechanisms.
+  // Counting only `include:` under-flags records with many a/mx/ptr/exists terms.
+  const dnsLookupCount = normalizedMechanisms.filter((m) =>
+    /^(?:[~?+-])?(?:include:|a(?:[:/\s]|$)|mx(?:[:/\s]|$)|ptr(?:[:/]|$)|exists:)/i.test(m),
+  ).length;
 
   return {
     hasPlusAll,
@@ -125,7 +130,7 @@ export const evaluateSpfDetail = (spf: string | null): SpfDetail => {
     hasMinusAll,
     hasQuestionAll,
     includeCount,
-    exceedsLookupLimit: includeCount > 10,
+    exceedsLookupLimit: dnsLookupCount > 10,
     isOverlyPermissive: hasPlusAll || hasQuestionAll,
   };
 };
