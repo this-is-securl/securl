@@ -4,12 +4,33 @@
 [![npm package](https://img.shields.io/badge/npm-package-red)](https://www.npmjs.com/package/@ktbatterham/external-posture-core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-SecURL is a posture-first external security review tool for public web targets.
+**Public security posture, quietly interpreted.**
 
-It gives you a quiet, evidence-led read of headers, TLS, cookies, redirects, trust signals, passive page risk, and public disclosure posture, then turns that into a client-ready report instead of raw scanner noise.
+SecURL is a passive external security posture tool for public web targets. It reads what a browser, customer, auditor, or researcher can already see, then turns that evidence into clear findings, priority actions, and exportable reports.
 
-Live app: [app.securl.online](https://app.securl.online)  
-Core package: [`@ktbatterham/external-posture-core`](https://www.npmjs.com/package/@ktbatterham/external-posture-core)
+It is built for low-noise review of headers, TLS, cookies, redirects, DNS/email posture, trust signals, third-party exposure, and public disclosure readiness.
+
+<p>
+  <a href="https://securl.online"><strong>Visit the SecURL site</strong></a>
+  ·
+  <a href="https://app.securl.online"><strong>Run a live scan</strong></a>
+  ·
+  <a href="https://www.npmjs.com/package/@ktbatterham/external-posture-core"><strong>Use the npm package</strong></a>
+</p>
+
+## Try It
+
+Use the hosted scanner if you want the quickest feel for the product:
+
+- [securl.online](https://securl.online) — product and landing page
+- [app.securl.online](https://app.securl.online) — live scanner and report workspace
+- [`@ktbatterham/external-posture-core`](https://www.npmjs.com/package/@ktbatterham/external-posture-core) — reusable CLI and Node engine
+
+Or run the engine directly:
+
+```sh
+npx @ktbatterham/external-posture-core scan example.com
+```
 
 ## Why SecURL
 
@@ -54,7 +75,7 @@ The short version:
 
 ### Live app
 
-Open [app.securl.online](https://app.securl.online) and scan a public target.
+Open [app.securl.online](https://app.securl.online) and scan a public target. For the product overview first, start at [securl.online](https://securl.online).
 
 ### CLI
 
@@ -131,7 +152,7 @@ That makes it much easier to:
 
 ## Package status
 
-- Latest published core package: `@ktbatterham/external-posture-core@0.10.0`
+- Latest published core package: `@ktbatterham/external-posture-core@0.11.0`
 - npm tag: `latest`
 
 ## Docs
