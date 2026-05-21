@@ -5,9 +5,36 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Core package checks](https://github.com/ktbatterham/external-posture-insight/actions/workflows/core-package-checks.yml/badge.svg)](https://github.com/ktbatterham/external-posture-insight/actions/workflows/core-package-checks.yml)
 
-Low-noise external posture analysis for public web targets.
+**The passive security posture engine behind SecURL.**
 
-This package is the reusable scanner engine extracted from the External Posture Insight app. It is designed for passive or near-passive posture assessment rather than active exploitation or noisy recon.
+`@ktbatterham/external-posture-core` is the reusable scanner engine behind [SecURL](https://securl.online), a posture-first external security review tool for public web targets.
+
+It is designed for passive, low-noise assessment rather than active exploitation or broad reconnaissance. The engine turns public web signals into structured JSON, Markdown, SARIF, and CI-friendly output.
+
+<p>
+  <a href="https://securl.online"><strong>Visit the SecURL site</strong></a>
+  ·
+  <a href="https://app.securl.online"><strong>Try the live scanner</strong></a>
+  ·
+  <a href="https://github.com/ktbatterham/external-posture-insight"><strong>View the source</strong></a>
+</p>
+
+## Quick Start
+
+Run a scan without installing:
+
+```bash
+npx @ktbatterham/external-posture-core scan example.com
+```
+
+Install globally for the short `epi` command:
+
+```bash
+npm install -g @ktbatterham/external-posture-core
+epi scan example.com
+```
+
+Prefer the hosted report workspace? Use [app.securl.online](https://app.securl.online).
 
 ## Package trust and release signals
 
@@ -44,6 +71,8 @@ Use it only against systems you own or are authorized to assess. Results are heu
 This package is published and consumable from npm:
 
 - [`@ktbatterham/external-posture-core`](https://www.npmjs.com/package/@ktbatterham/external-posture-core)
+- Product site: [securl.online](https://securl.online)
+- Live scanner: [app.securl.online](https://app.securl.online)
 
 It is also used by the External Posture Insight app from the local workspace during development.
 
@@ -72,18 +101,7 @@ See also:
 
 ## CLI
 
-The package now includes a pipe-friendly CLI:
-
-```bash
-npx @ktbatterham/external-posture-core scan example.com
-```
-
-Install globally if you want the short command:
-
-```bash
-npm install -g @ktbatterham/external-posture-core
-epi scan example.com
-```
+The package includes a pipe-friendly CLI:
 
 Scan multiple targets in one run:
 

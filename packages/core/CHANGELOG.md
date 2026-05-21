@@ -6,6 +6,11 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-05-21
+
+### Changed
+- Refreshed the npm package README and package metadata with clearer SecURL product positioning, hosted scanner links, and marketing site links.
+
 ## [0.11.0] - 2026-05-20
 
 ### Added

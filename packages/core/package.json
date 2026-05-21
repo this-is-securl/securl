@@ -1,13 +1,13 @@
 {
   "name": "@ktbatterham/external-posture-core",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "type": "module",
-  "description": "Low-noise external posture analysis core for web targets.",
+  "description": "Passive external security posture analysis engine for SecURL.",
   "author": {
     "name": "Keith Batterham",
     "url": "https://github.com/ktbatterham"
   },
-  "homepage": "https://github.com/ktbatterham/external-posture-insight/tree/main/packages/core",
+  "homepage": "https://securl.online",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ktbatterham/external-posture-insight.git",
