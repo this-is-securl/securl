@@ -1,7 +1,7 @@
 import { Mail, ShieldAlert, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CodeBlock, StatBox, StatusAlert } from "@/components/ui/panel-primitives";
+import { CodeBlock, StatBox, StatusAlert, TruncatedChip } from "@/components/ui/panel-primitives";
 import { DomainSecurityInfo } from "@/types/analysis";
 
 interface DomainSecurityPanelProps {
@@ -160,6 +160,79 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
             }
           />
         </div>
+
+        {domainSecurity.emailDeliverabilityScore && (
+          <div className="rounded-[1.5rem] border border-white/10 bg-zinc-950/45 p-5">
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#e0b286]">Email deliverability score</p>
+            <div className="mt-3 flex items-end gap-4">
+              <p className="text-5xl font-black tracking-[-0.05em] text-white">{domainSecurity.emailDeliverabilityScore.score}</p>
+              <p className="mb-1 text-lg font-black text-zinc-400">/100</p>
+              <span className="mb-1 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-1 text-sm font-bold text-zinc-100">
+                {domainSecurity.emailDeliverabilityScore.grade}
+              </span>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {Object.entries(domainSecurity.emailDeliverabilityScore.breakdown)
+                .filter(([, pts]) => pts > 0)
+                .map(([label, pts]) => (
+                  <span key={label} className="rounded-full border border-emerald-400/20 bg-emerald-400/[0.08] px-3 py-1 text-xs text-emerald-200">
+                    {label} +{pts}
+                  </span>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {domainSecurity.dkim && (
+          <StatBox
+            label="DKIM"
+            value={
+              <div className="space-y-3 text-sm leading-6 text-zinc-200">
+                <p>{domainSecurity.dkim.summary}</p>
+                {domainSecurity.dkim.selectors.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {domainSecurity.dkim.selectors.map((selector) => (
+                      <TruncatedChip key={selector} value={selector} />
+                    ))}
+                  </div>
+                ) : domainSecurity.dkim.count === 0 ? (
+                  <p className="text-zinc-400">No DKIM records found at common selectors.</p>
+                ) : null}
+              </div>
+            }
+          />
+        )}
+
+        {domainSecurity.spfDetail && (
+          <StatBox
+            label="SPF depth"
+            value={
+              <div className="space-y-3 text-sm leading-6 text-zinc-200">
+                <div className="flex flex-wrap gap-2">
+                  {domainSecurity.spfDetail.hasPlusAll && (
+                    <Badge variant="outline" className="border-rose-500/30 bg-rose-500/[0.08] text-rose-200">⚠ +all (open relay risk)</Badge>
+                  )}
+                  {domainSecurity.spfDetail.hasTildeAll && (
+                    <Badge variant="outline" className="border-amber-500/30 bg-amber-500/[0.08] text-amber-200">~all (softfail)</Badge>
+                  )}
+                  {domainSecurity.spfDetail.hasMinusAll && (
+                    <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/[0.08] text-emerald-200">-all (reject)</Badge>
+                  )}
+                  {domainSecurity.spfDetail.hasQuestionAll && (
+                    <Badge variant="outline" className="border-amber-500/30 bg-amber-500/[0.08] text-amber-200">?all (neutral — weak)</Badge>
+                  )}
+                  {domainSecurity.spfDetail.exceedsLookupLimit && (
+                    <Badge variant="outline" className="border-rose-500/30 bg-rose-500/[0.08] text-rose-200">Exceeds 10-lookup limit</Badge>
+                  )}
+                  {domainSecurity.spfDetail.isOverlyPermissive && (
+                    <Badge variant="outline" className="border-rose-500/30 bg-rose-500/[0.08] text-rose-200">Overly permissive</Badge>
+                  )}
+                </div>
+                <p className="text-zinc-400">include: mechanisms: {domainSecurity.spfDetail.includeCount}</p>
+              </div>
+            }
+          />
+        )}
 
         <div className="flex min-w-0 flex-wrap gap-2">
           {domainSecurity.nsRecords.slice(0, 6).map((record) => (

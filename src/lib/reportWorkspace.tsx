@@ -10,6 +10,8 @@ import {
   ShieldCheck,
   Server,
 } from "lucide-react";
+import { CookieAnalysisPanel } from "@/components/CookieAnalysisPanel";
+import { RedirectChain } from "@/components/RedirectChain";
 import { FindingsPanel } from "@/components/FindingsPanel";
 import { PostureSummaryPanel } from "@/components/PostureSummaryPanel";
 import { TaxonomySummaryPanel } from "@/components/TaxonomySummaryPanel";
@@ -208,6 +210,12 @@ export const buildReportWorkspaceSections = ({
         <ThirdPartyTrustPanel thirdPartyTrust={analysisData.thirdPartyTrust} />
         <AuthSurfacePanel htmlSecurity={analysisData.htmlSecurity} />
         <DataCollectionPanel htmlSecurity={analysisData.htmlSecurity} />
+        {analysisData.redirects.length > 0 && (
+          <RedirectChain redirects={analysisData.redirects} chainAnalysis={analysisData.redirectChain} />
+        )}
+        {analysisData.cookieAnalysis !== null && (
+          <CookieAnalysisPanel cookieAnalysis={analysisData.cookieAnalysis} />
+        )}
         <ExposurePanel exposure={analysisData.exposure} />
         <CorsSecurityPanel corsSecurity={analysisData.corsSecurity} />
         <ApiSurfacePanel apiSurface={analysisData.apiSurface} />

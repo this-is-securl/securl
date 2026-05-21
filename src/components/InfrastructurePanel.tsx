@@ -70,6 +70,40 @@ export const InfrastructurePanel = ({ infrastructure }: InfrastructurePanelProps
         <EmptyState>No obvious cloud, CDN, edge, or hosting provider was inferred from passive evidence.</EmptyState>
       )}
 
+      {infrastructure.waf && (
+        <div className="rounded-[1.25rem] border border-white/10 bg-zinc-950/45 px-4 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500">WAF / Edge Protection</p>
+            <span className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.15em] ${infrastructure.waf.detected ? "bg-emerald-400/10 text-emerald-300" : "bg-white/[0.06] text-zinc-400"}`}>
+              {infrastructure.waf.detected ? `Detected · ${infrastructure.waf.provider ?? "Unknown provider"}` : "No match"}
+            </span>
+          </div>
+          <p className="mt-2 text-sm text-zinc-300">{infrastructure.waf.evidence}</p>
+          <p className="mt-1 text-xs text-zinc-500">Confidence: {infrastructure.waf.confidence}</p>
+        </div>
+      )}
+
+      {infrastructure.protocol && (
+        <div className="rounded-[1.25rem] border border-white/10 bg-zinc-950/45 px-4 py-4">
+          <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500">Protocol</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs text-zinc-200">
+              {infrastructure.protocol.http === "unknown" ? "HTTP version unknown" : infrastructure.protocol.http}
+            </span>
+            {infrastructure.protocol.http3Advertised && (
+              <span className="rounded-full border border-emerald-400/25 bg-emerald-400/[0.10] px-3 py-1 text-xs text-emerald-200">
+                HTTP/3 advertised
+              </span>
+            )}
+            {infrastructure.protocol.altSvc && (
+              <span className="max-w-full overflow-hidden break-all rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-xs text-zinc-400">
+                {infrastructure.protocol.altSvc}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       <SignalList
         title="Infrastructure read"
         items={[infrastructure.summary]}
