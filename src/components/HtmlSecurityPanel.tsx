@@ -321,6 +321,42 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
           />
         )}
 
+        {htmlSecurity.frameworkVersionLeaks.length > 0 && (
+          <StatBox
+            label="Framework version exposure"
+            value={
+              <div className="grid gap-3 md:grid-cols-2">
+                {htmlSecurity.frameworkVersionLeaks.map((leak) => (
+                  <div key={leak.framework} className="rounded-[1.15rem] border border-white/10 bg-zinc-950/45 px-4 py-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-semibold text-zinc-50">{leak.framework}</p>
+                      <Badge variant="secondary" className={leak.risk === "high" ? "bg-rose-500/10 text-rose-200" : "bg-amber-500/10 text-amber-200"}>
+                        {leak.risk === "high" ? "Attention" : "Watch"}
+                      </Badge>
+                    </div>
+                    {leak.versionHint && <p className="mt-1 font-mono text-sm text-[#2dd4bf]">{leak.versionHint}</p>}
+                    <p className="mt-1 text-xs text-zinc-400">{leak.evidence}</p>
+                  </div>
+                ))}
+              </div>
+            }
+          />
+        )}
+
+        <StatBox
+          label="SRI coverage"
+          value={
+            <div className="space-y-2">
+              <p className={`text-3xl font-bold ${htmlSecurity.sriCoverage.coveragePercent === 100 ? "text-emerald-400" : htmlSecurity.sriCoverage.coveragePercent === 0 && (htmlSecurity.sriCoverage.externalScripts + htmlSecurity.sriCoverage.externalStylesheets) > 0 ? "text-rose-400" : "text-amber-400"}`}>
+                {htmlSecurity.sriCoverage.coveragePercent}%
+              </p>
+              <p className="text-sm text-zinc-400">
+                {htmlSecurity.sriCoverage.scriptsWithSri}/{htmlSecurity.sriCoverage.externalScripts} scripts · {htmlSecurity.sriCoverage.stylesheetsWithSri}/{htmlSecurity.sriCoverage.externalStylesheets} stylesheets
+              </p>
+            </div>
+          }
+        />
+
         <div className="space-y-2">
           {htmlSecurity.strengths.map((strength) => (
             <StatusAlert key={strength} variant="success" icon={<ShieldCheck />}>{strength}</StatusAlert>

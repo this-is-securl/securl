@@ -1,13 +1,15 @@
-import { ArrowRight, Route } from "lucide-react";
+import { ArrowRight, Route, ShieldAlert, ShieldCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatusAlert } from "@/components/ui/panel-primitives";
 import { getHttpStatusDetails } from "@/lib/httpStatus";
-import { RedirectHop } from "@/types/analysis";
+import { RedirectChainInfo, RedirectHop } from "@/types/analysis";
 
 interface RedirectChainProps {
   redirects: RedirectHop[];
+  chainAnalysis?: RedirectChainInfo;
 }
 
-export const RedirectChain = ({ redirects }: RedirectChainProps) => {
+export const RedirectChain = ({ redirects, chainAnalysis }: RedirectChainProps) => {
   return (
     <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
@@ -17,6 +19,17 @@ export const RedirectChain = ({ redirects }: RedirectChainProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        {chainAnalysis && (chainAnalysis.issues.length > 0 || chainAnalysis.strengths.length > 0) && (
+          <div className="space-y-2">
+            {chainAnalysis.strengths.map((strength) => (
+              <StatusAlert key={strength} variant="success" icon={<ShieldCheck />}>{strength}</StatusAlert>
+            ))}
+            {chainAnalysis.issues.map((issue) => (
+              <StatusAlert key={issue} variant="warning" icon={<ShieldAlert />}>{issue}</StatusAlert>
+            ))}
+          </div>
+        )}
+
         {redirects.map((hop, index) => {
           const status = getHttpStatusDetails(hop.statusCode);
           return (
