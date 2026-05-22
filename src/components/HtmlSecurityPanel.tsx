@@ -321,7 +321,7 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
           />
         )}
 
-        {htmlSecurity.frameworkVersionLeaks.length > 0 && (
+        {(htmlSecurity.frameworkVersionLeaks?.length ?? 0) > 0 && (
           <StatBox
             label="Framework version exposure"
             value={
@@ -343,19 +343,21 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
           />
         )}
 
-        <StatBox
-          label="SRI coverage"
-          value={
-            <div className="space-y-2">
-              <p className={`text-3xl font-bold ${htmlSecurity.sriCoverage.coveragePercent === 100 ? "text-emerald-400" : htmlSecurity.sriCoverage.coveragePercent === 0 && (htmlSecurity.sriCoverage.externalScripts + htmlSecurity.sriCoverage.externalStylesheets) > 0 ? "text-rose-400" : "text-amber-400"}`}>
-                {htmlSecurity.sriCoverage.coveragePercent}%
-              </p>
-              <p className="text-sm text-zinc-400">
-                {htmlSecurity.sriCoverage.scriptsWithSri}/{htmlSecurity.sriCoverage.externalScripts} scripts · {htmlSecurity.sriCoverage.stylesheetsWithSri}/{htmlSecurity.sriCoverage.externalStylesheets} stylesheets
-              </p>
-            </div>
-          }
-        />
+        {htmlSecurity.sriCoverage && (
+          <StatBox
+            label="SRI coverage"
+            value={
+              <div className="space-y-2">
+                <p className={`text-3xl font-bold ${htmlSecurity.sriCoverage.coveragePercent === 100 ? "text-emerald-400" : htmlSecurity.sriCoverage.coveragePercent === 0 && (htmlSecurity.sriCoverage.externalScripts + htmlSecurity.sriCoverage.externalStylesheets) > 0 ? "text-rose-400" : "text-amber-400"}`}>
+                  {htmlSecurity.sriCoverage.coveragePercent}%
+                </p>
+                <p className="text-sm text-zinc-400">
+                  {htmlSecurity.sriCoverage.scriptsWithSri}/{htmlSecurity.sriCoverage.externalScripts} scripts · {htmlSecurity.sriCoverage.stylesheetsWithSri}/{htmlSecurity.sriCoverage.externalStylesheets} stylesheets
+                </p>
+              </div>
+            }
+          />
+        )}
 
         <div className="space-y-2">
           {htmlSecurity.strengths.map((strength) => (

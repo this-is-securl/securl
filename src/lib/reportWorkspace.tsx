@@ -213,7 +213,7 @@ export const buildReportWorkspaceSections = ({
         {analysisData.redirects.length > 0 && (
           <RedirectChain redirects={analysisData.redirects} chainAnalysis={analysisData.redirectChain} />
         )}
-        {analysisData.cookieAnalysis !== null && (
+        {analysisData.cookieAnalysis != null && (
           <CookieAnalysisPanel cookieAnalysis={analysisData.cookieAnalysis} />
         )}
         <ExposurePanel exposure={analysisData.exposure} />
