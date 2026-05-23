@@ -5,6 +5,8 @@ const scryptAsync = promisify(crypto.scrypt);
 const DEFAULT_SESSION_TTL_DAYS = 30;
 const MAX_EMAIL_LENGTH = 254;
 const MAX_PASSWORD_LENGTH = 256;
+const API_KEY_PREFIX = "securl_";
+const MAX_API_KEY_NAME_LENGTH = 80;
 
 const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
 const normalizeDisplayName = (value) => {
@@ -17,6 +19,14 @@ const buildPublicUser = (user) => ({
   email: user.email,
   displayName: user.displayName ?? null,
   createdAt: user.createdAt,
+});
+
+const buildPublicApiKey = (apiKey) => ({
+  id: apiKey.id,
+  name: apiKey.name,
+  tokenPrefix: apiKey.tokenPrefix,
+  createdAt: apiKey.createdAt,
+  lastUsedAt: apiKey.lastUsedAt ?? null,
 });
 
 const getPresentedBearerToken = (request) => {
@@ -38,6 +48,24 @@ const getPresentedBearerToken = (request) => {
 async function fingerprintToken(token, salt) {
   const digest = await scryptAsync(token, salt, 32);
   return `${salt}:${digest.toString("hex")}`;
+}
+
+function createApiKeyToken() {
+  return `${API_KEY_PREFIX}${crypto.randomBytes(32).toString("base64url")}`;
+}
+
+function isPresentedApiKey(token) {
+  return String(token || "").startsWith(API_KEY_PREFIX);
+}
+
+function getTokenPrefix(token) {
+  const normalized = String(token || "");
+  return normalized.length <= 18 ? normalized : `${normalized.slice(0, 12)}...${normalized.slice(-4)}`;
+}
+
+function normalizeApiKeyName(value) {
+  const normalized = String(value || "").trim().replace(/\s+/g, " ");
+  return normalized ? normalized.slice(0, MAX_API_KEY_NAME_LENGTH) : "API key";
 }
 
 async function hashPassword(password) {
@@ -159,6 +187,34 @@ export async function resolveAuthenticatedSession({
   };
 }
 
+export async function resolveAuthenticatedApiKey({
+  token,
+  scanRepository,
+  authTokenFingerprintSalt,
+}) {
+  if (!isPresentedApiKey(token)) {
+    return null;
+  }
+
+  const tokenHash = await fingerprintToken(token, authTokenFingerprintSalt);
+  const apiKey = await scanRepository.getApiKeyByTokenHash(tokenHash);
+  if (!apiKey) {
+    return null;
+  }
+
+  const user = await scanRepository.getUserById(apiKey.userId);
+  if (!user) {
+    return null;
+  }
+
+  const touchedApiKey = await scanRepository.touchApiKey(apiKey.id);
+
+  return {
+    user: buildPublicUser(user),
+    apiKey: buildPublicApiKey(touchedApiKey ?? apiKey),
+  };
+}
+
 export async function handleAuthRequest({
   request,
   response,
@@ -176,6 +232,92 @@ export async function handleAuthRequest({
   isLocalHostname,
   isPrivateAddress,
 }) {
+  if (requestUrl.pathname === "/api/auth/api-keys") {
+    const presentedToken = getPresentedBearerToken(request);
+    const authState = presentedToken
+      ? await resolveAuthenticatedSession({
+          token: presentedToken,
+          scanRepository,
+          authTokenFingerprintSalt,
+        })
+      : null;
+
+    if (!authState) {
+      sendJson(response, 401, { error: "A valid session token is required for this request." });
+      return;
+    }
+
+    if (request.method === "GET") {
+      try {
+        const apiKeys = await scanRepository.listApiKeysByUser(authState.user.id);
+        sendJson(response, 200, {
+          apiKeys: apiKeys.map(buildPublicApiKey),
+        });
+      } catch (error) {
+        sendRepositoryUnavailable(response, error, "api_keys_list");
+      }
+      return;
+    }
+
+    if (request.method === "POST") {
+      try {
+        const body = await readJsonBody(request, { maxBytes: 4 * 1024 });
+        const token = createApiKeyToken();
+        const apiKey = await scanRepository.createApiKey({
+          userId: authState.user.id,
+          name: normalizeApiKeyName(body.name),
+          tokenHash: await fingerprintToken(token, authTokenFingerprintSalt),
+          tokenPrefix: getTokenPrefix(token),
+        });
+
+        sendJson(response, 201, {
+          apiKey: buildPublicApiKey(apiKey),
+          token,
+        });
+      } catch (error) {
+        sendRepositoryUnavailable(response, error, "api_keys_create");
+      }
+      return;
+    }
+
+    sendMethodNotAllowed(response, ["GET", "POST"]);
+    return;
+  }
+
+  if (requestUrl.pathname.startsWith("/api/auth/api-keys/")) {
+    if (request.method !== "DELETE") {
+      sendMethodNotAllowed(response, ["DELETE"]);
+      return;
+    }
+
+    const apiKeyId = decodeURIComponent(requestUrl.pathname.slice("/api/auth/api-keys/".length));
+    const presentedToken = getPresentedBearerToken(request);
+    const authState = presentedToken
+      ? await resolveAuthenticatedSession({
+          token: presentedToken,
+          scanRepository,
+          authTokenFingerprintSalt,
+        })
+      : null;
+
+    if (!authState) {
+      sendJson(response, 401, { error: "A valid session token is required for this request." });
+      return;
+    }
+
+    try {
+      const revoked = await scanRepository.revokeApiKey(apiKeyId, { userId: authState.user.id });
+      if (!revoked) {
+        sendJson(response, 404, { error: "API key not found." });
+        return;
+      }
+      sendJson(response, 200, { ok: true });
+    } catch (error) {
+      sendRepositoryUnavailable(response, error, "api_keys_revoke");
+    }
+    return;
+  }
+
   if (requestUrl.pathname === "/api/auth/register") {
     if (request.method !== "POST") {
       sendMethodNotAllowed(response, ["POST"]);

@@ -691,6 +691,75 @@ test("authenticated sessions can own scan and monitoring resources without scan-
   }
 });
 
+test("authenticated users can create, use, list, and revoke API keys", async () => {
+  const server = await startServer();
+
+  try {
+    const registerResponse = await registerUser(server.baseUrl, {
+      email: "apikey@example.com",
+      password: "very strong password",
+    });
+    const registerPayload = await registerResponse.json();
+    const sessionToken = registerPayload.session.token;
+
+    const createKeyResponse = await fetch(`${server.baseUrl}/api/auth/api-keys`, {
+      method: "POST",
+      headers: bearerJsonHeaders(sessionToken),
+      body: JSON.stringify({ name: "Local CLI" }),
+    });
+    const createKeyPayload = await createKeyResponse.json();
+    assert.equal(createKeyResponse.status, 201);
+    assert.equal(createKeyPayload.apiKey.name, "Local CLI");
+    assert.match(createKeyPayload.token, /^securl_/);
+    assert.ok(!createKeyPayload.apiKey.tokenHash);
+
+    const listKeysResponse = await fetch(`${server.baseUrl}/api/auth/api-keys`, {
+      headers: bearerHeaders(sessionToken),
+    });
+    const listKeysPayload = await listKeysResponse.json();
+    assert.equal(listKeysResponse.status, 200);
+    assert.equal(listKeysPayload.apiKeys.length, 1);
+    assert.equal(listKeysPayload.apiKeys[0].id, createKeyPayload.apiKey.id);
+    assert.ok(!("token" in listKeysPayload.apiKeys[0]));
+
+    const scanResponse = await fetch(`${server.baseUrl}/api/scans`, {
+      method: "POST",
+      headers: bearerJsonHeaders(createKeyPayload.token),
+      body: JSON.stringify({
+        url: "https://example.com",
+      }),
+    });
+    const scanPayload = await scanResponse.json();
+    assert.equal(scanResponse.status, 202);
+    assert.match(scanPayload.scan.id, /[a-f0-9-]{36}/i);
+
+    const listScansResponse = await fetch(`${server.baseUrl}/api/scans`, {
+      headers: bearerHeaders(createKeyPayload.token),
+    });
+    const listScansPayload = await listScansResponse.json();
+    assert.equal(listScansResponse.status, 200);
+    assert.equal(listScansPayload.scans.length, 1);
+    assert.equal(listScansPayload.scans[0].id, scanPayload.scan.id);
+
+    const revokeResponse = await fetch(`${server.baseUrl}/api/auth/api-keys/${createKeyPayload.apiKey.id}`, {
+      method: "DELETE",
+      headers: bearerHeaders(sessionToken),
+    });
+    const revokePayload = await revokeResponse.json();
+    assert.equal(revokeResponse.status, 200);
+    assert.equal(revokePayload.ok, true);
+
+    const revokedListResponse = await fetch(`${server.baseUrl}/api/scans`, {
+      headers: bearerHeaders(createKeyPayload.token),
+    });
+    const revokedListPayload = await revokedListResponse.json();
+    assert.equal(revokedListResponse.status, 401);
+    assert.match(revokedListPayload.error, /valid/i);
+  } finally {
+    await server.stop();
+  }
+});
+
 test("api responses include cors headers for the Hostinger frontend origin", async () => {
   const server = await startServer();
 
