@@ -19,6 +19,25 @@ export const RedirectChain = ({ redirects, chainAnalysis }: RedirectChainProps) 
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        {chainAnalysis && (
+          <div className="flex flex-wrap gap-2 text-xs">
+            <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-zinc-300">
+              {chainAnalysis.totalHops} hop{chainAnalysis.totalHops !== 1 ? "s" : ""}
+            </span>
+            {chainAnalysis.crossesDomain && (
+              <span className="rounded-full border border-amber-500/30 bg-amber-500/[0.08] px-3 py-1 text-amber-200">Cross-domain</span>
+            )}
+            {chainAnalysis.hasMixedRedirect && (
+              <span className="rounded-full border border-rose-500/30 bg-rose-500/[0.08] px-3 py-1 text-rose-200">HTTPS→HTTP hop</span>
+            )}
+            {chainAnalysis.finalUrl && (
+              <span className="max-w-full overflow-hidden break-all rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-zinc-400">
+                Final: {chainAnalysis.finalUrl}
+              </span>
+            )}
+          </div>
+        )}
+
         {chainAnalysis && (chainAnalysis.issues.length > 0 || chainAnalysis.strengths.length > 0) && (
           <div className="space-y-2">
             {chainAnalysis.strengths.map((strength) => (

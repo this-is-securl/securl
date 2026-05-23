@@ -37,9 +37,48 @@ export const InfrastructurePanel = ({ infrastructure }: InfrastructurePanelProps
     <CardContent className="space-y-5">
       <div className="grid gap-3 md:grid-cols-3">
         <StatBox label="Providers" value={<p className="text-3xl font-bold">{infrastructure.providers.length}</p>} />
-        <StatBox label="Addresses" value={<p className="text-3xl font-bold">{infrastructure.addresses.length}</p>} />
-        <StatBox label="CNAMEs" value={<p className="text-3xl font-bold">{infrastructure.cnameTargets.length}</p>} />
+        <StatBox
+          label="IP addresses"
+          value={
+            infrastructure.addresses.length ? (
+              <div className="flex flex-wrap gap-1.5">
+                {infrastructure.addresses.map((addr) => (
+                  <span key={addr} className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-0.5 font-mono text-xs text-zinc-200">{addr}</span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-zinc-400">None resolved</p>
+            )
+          }
+        />
+        <StatBox
+          label="CNAME targets"
+          value={
+            infrastructure.cnameTargets.length ? (
+              <div className="flex flex-wrap gap-1.5">
+                {infrastructure.cnameTargets.map((cname) => (
+                  <span key={cname} className="max-w-full overflow-hidden break-all rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-0.5 font-mono text-xs text-zinc-200">{cname}</span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-zinc-400">None</p>
+            )
+          }
+        />
       </div>
+
+      {infrastructure.reverseDns && infrastructure.reverseDns.length > 0 && (
+        <StatBox
+          label="Reverse DNS"
+          value={
+            <div className="flex flex-wrap gap-1.5">
+              {infrastructure.reverseDns.map((ptr) => (
+                <span key={ptr} className="max-w-full overflow-hidden break-all rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-0.5 font-mono text-xs text-zinc-300">{ptr}</span>
+              ))}
+            </div>
+          }
+        />
+      )}
 
       {infrastructure.providers.length ? (
         <div className="grid gap-3">

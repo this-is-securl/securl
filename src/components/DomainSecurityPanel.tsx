@@ -54,9 +54,25 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
             label="SPF"
             value={
               <div className="space-y-3 text-sm leading-6 text-zinc-200">
-                <Badge variant="outline" className={policyBadgeClass[emailPolicy.spf.status]}>
-                  {policyLabel[emailPolicy.spf.status]}
-                </Badge>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline" className={policyBadgeClass[emailPolicy.spf.status]}>
+                    {policyLabel[emailPolicy.spf.status]}
+                  </Badge>
+                  {emailPolicy.spf.allMechanism && (
+                    <Badge
+                      variant="outline"
+                      className={
+                        emailPolicy.spf.allMechanism === "-all"
+                          ? "border-emerald-400/25 bg-emerald-400/[0.08] text-emerald-200"
+                          : emailPolicy.spf.allMechanism === "+all"
+                          ? "border-rose-500/30 bg-rose-500/[0.08] text-rose-200"
+                          : "border-amber-500/30 bg-amber-500/[0.08] text-amber-200"
+                      }
+                    >
+                      {emailPolicy.spf.allMechanism}
+                    </Badge>
+                  )}
+                </div>
                 <p>{emailPolicy.spf.summary}</p>
                 <p className="overflow-hidden break-words text-xs text-zinc-400">{domainSecurity.spf ?? "Not found"}</p>
               </div>
@@ -66,9 +82,31 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
             label="DMARC"
             value={
               <div className="space-y-3 text-sm leading-6 text-zinc-200">
-                <Badge variant="outline" className={policyBadgeClass[emailPolicy.dmarc.status]}>
-                  {policyLabel[emailPolicy.dmarc.status]}
-                </Badge>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline" className={policyBadgeClass[emailPolicy.dmarc.status]}>
+                    {policyLabel[emailPolicy.dmarc.status]}
+                  </Badge>
+                  {emailPolicy.dmarc.policy && (
+                    <Badge variant="outline" className="border-white/10 bg-white/[0.06] text-zinc-200">
+                      p={emailPolicy.dmarc.policy}
+                    </Badge>
+                  )}
+                  {emailPolicy.dmarc.subdomainPolicy && (
+                    <Badge variant="outline" className="border-white/10 bg-white/[0.06] text-zinc-200">
+                      sp={emailPolicy.dmarc.subdomainPolicy}
+                    </Badge>
+                  )}
+                  {emailPolicy.dmarc.pct !== null && emailPolicy.dmarc.pct !== undefined && emailPolicy.dmarc.pct < 100 && (
+                    <Badge variant="outline" className="border-amber-500/30 bg-amber-500/[0.08] text-amber-200">
+                      pct={emailPolicy.dmarc.pct}%
+                    </Badge>
+                  )}
+                  {emailPolicy.dmarc.reporting ? (
+                    <Badge variant="outline" className="border-emerald-400/25 bg-emerald-400/[0.08] text-emerald-200">Reporting on</Badge>
+                  ) : emailPolicy.dmarc.policy && (
+                    <Badge variant="outline" className="border-amber-500/30 bg-amber-500/[0.08] text-amber-200">No rua reporting</Badge>
+                  )}
+                </div>
                 <p>{emailPolicy.dmarc.summary}</p>
                 <p className="overflow-hidden break-words text-xs text-zinc-400">{domainSecurity.dmarc ?? "Not found"}</p>
               </div>
@@ -228,7 +266,12 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
                     <Badge variant="outline" className="border-rose-500/30 bg-rose-500/[0.08] text-rose-200">Overly permissive</Badge>
                   )}
                 </div>
-                <p className="text-zinc-400">include: mechanisms: {domainSecurity.spfDetail.includeCount}</p>
+                <p className="text-zinc-400">
+                  include: mechanisms: {domainSecurity.spfDetail.includeCount}
+                  {domainSecurity.emailPolicy && (
+                    <> · DNS-querying: {domainSecurity.emailPolicy.spf.dnsLookupMechanisms}/10</>
+                  )}
+                </p>
               </div>
             }
           />

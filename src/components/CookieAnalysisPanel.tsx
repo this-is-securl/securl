@@ -31,7 +31,7 @@ export const CookieAnalysisPanel = ({ cookieAnalysis }: CookieAnalysisPanelProps
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
           <StatBox label="Cookies" value={<p className="text-3xl font-bold">{cookieAnalysis.cookies.length}</p>} />
           <StatBox
             label="Missing Secure"
@@ -42,6 +42,11 @@ export const CookieAnalysisPanel = ({ cookieAnalysis }: CookieAnalysisPanelProps
             label="Missing HttpOnly"
             value={<p className="text-3xl font-bold">{cookieAnalysis.cookiesWithoutHttpOnly}</p>}
             variant={cookieAnalysis.cookiesWithoutHttpOnly > 0 ? "warning" : "default"}
+          />
+          <StatBox
+            label="No SameSite"
+            value={<p className="text-3xl font-bold">{cookieAnalysis.cookiesWithoutSameSite}</p>}
+            variant={cookieAnalysis.cookiesWithoutSameSite > 0 ? "warning" : "default"}
           />
           <StatBox
             label="SameSite=None"
@@ -88,6 +93,11 @@ export const CookieAnalysisPanel = ({ cookieAnalysis }: CookieAnalysisPanelProps
                       >
                         SameSite={cookie.sameSite}
                       </Badge>
+                      {cookie.isSessionCookie && (
+                        <Badge variant="outline" className="border-zinc-500/30 bg-zinc-500/[0.08] text-zinc-300">
+                          Session
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 ))}
