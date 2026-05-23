@@ -99,8 +99,14 @@
     scroll-behavior: smooth;
   }
 
+  html {
+    background: #040c08;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
+    min-height: 100vh;
+    background: #040c08;
     font-family:
       Geist,
       Inter,

@@ -1,4 +1,5 @@
 import { Activity, Clock3, Layers3, Sparkles } from "lucide-react";
+import { GRADE_PALETTE } from "@/components/SecurityGrade";
 import { toast } from "sonner";
 import { AuthCard } from "@/components/AuthCard";
 import { MonitoredTargetsPanel } from "@/components/MonitoredTargetsPanel";
@@ -216,20 +217,11 @@ const Index = () => {
                     <Sparkles className="h-3.5 w-3.5" />
                     SecURL
                   </a>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-3 py-1 text-[11px] font-medium tracking-[0.16em] text-zinc-400">
-                    <span>{coreLabel}</span>
-                    {buildLabel ? (
-                      <>
-                        <span className="text-zinc-600">/</span>
-                        <span>{buildLabel}</span>
-                      </>
-                    ) : null}
-                    {appVersionLabel ? (
-                      <>
-                        <span className="text-zinc-600">/</span>
-                        <span>{appVersionLabel}</span>
-                      </>
-                    ) : null}
+                  <div
+                    title={[coreLabel, buildLabel, appVersionLabel].filter(Boolean).join(" / ")}
+                    className="inline-flex cursor-default items-center gap-1.5 rounded-full border border-white/[0.07] bg-zinc-950/25 px-2.5 py-0.5 text-[10px] font-medium tracking-[0.12em] text-zinc-600 opacity-50 hover:opacity-100 transition-opacity"
+                  >
+                    <span>v{__CORE_VERSION__}</span>
                   </div>
                 </div>
 
@@ -274,7 +266,14 @@ const Index = () => {
                     >
                       <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                         <span className="truncate text-sm font-medium text-zinc-100">{scan.url}</span>
-                        <span className="text-sm font-semibold uppercase tracking-[0.14em] text-[#99f6e4]">
+                        <span
+                          className="text-sm font-bold uppercase tracking-[0.14em]"
+                          style={{
+                            color: activeRecentScanUrl === (scan.id ?? scan.url)
+                              ? "#99f6e4"
+                              : (GRADE_PALETTE[scan.grade ?? "U"] ?? GRADE_PALETTE.U).textColor,
+                          }}
+                        >
                           {activeRecentScanUrl === (scan.id ?? scan.url)
                             ? scanStage?.label ?? "Opening"
                             : scan.grade}
@@ -307,30 +306,30 @@ const Index = () => {
               <span className="h-px flex-1 bg-white/[0.06]" />
             </div>
             <div className="space-y-10">
-              <div className="flex items-start gap-3">
-                <div className="min-w-0 flex-1">
-                  <ReportSectionNav
-                    sections={reportSections}
-                    activeKey={activeSection?.key}
-                    onChange={(key) => setActiveReportSection(key)}
-                  />
-                </div>
+              <div className="space-y-2">
                 {currentScanId && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/report/${currentScanId}`);
-                      toast.success("Link copied to clipboard");
-                    }}
-                    className="mt-0 flex shrink-0 items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-semibold text-zinc-400 transition hover:border-[#14b8a6]/30 hover:bg-[#14b8a6]/10 hover:text-[#2dd4bf]"
-                    title="Copy shareable link"
-                  >
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                    </svg>
-                    Share
-                  </button>
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/report/${currentScanId}`);
+                        toast.success("Link copied to clipboard");
+                      }}
+                      className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-semibold text-zinc-400 transition hover:border-[#14b8a6]/30 hover:bg-[#14b8a6]/10 hover:text-[#2dd4bf]"
+                      title="Copy shareable link"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                      </svg>
+                      Share
+                    </button>
+                  </div>
                 )}
+                <ReportSectionNav
+                  sections={reportSections}
+                  activeKey={activeSection?.key}
+                  onChange={(key) => setActiveReportSection(key)}
+                />
               </div>
 
               {activeSection ? (
@@ -483,7 +482,10 @@ const Index = () => {
                                   <span className="truncate text-sm font-medium text-zinc-100">
                                     {scan.url}
                                   </span>
-                                  <span className="text-sm font-semibold uppercase tracking-[0.14em] text-[#99f6e4]">
+                                  <span
+                                    className="text-sm font-bold uppercase tracking-[0.14em]"
+                                    style={{ color: (GRADE_PALETTE[scan.grade ?? "U"] ?? GRADE_PALETTE.U).textColor }}
+                                  >
                                     {scan.grade}
                                   </span>
                                 </div>
