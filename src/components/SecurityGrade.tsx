@@ -20,15 +20,15 @@ export const GRADE_PALETTE: Record<string, { stroke: string; glow: string; textC
   U:    { stroke: "#94a3b8", glow: "rgba(148,163,184,0.14)",textColor: "#cbd5e1", borderColor: "rgba(148,163,184,0.12)"},
 };
 
-const RING_R    = 72;
-const RING_SIZE = 168;
+const RING_R    = 96;
+const RING_SIZE = 220;
 const RING_CIRC = parseFloat((2 * Math.PI * RING_R).toFixed(2));
 
 export const SecurityGrade = ({ grade, score, summary, context, actions, pulse }: SecurityGradeProps) => {
   const palette    = GRADE_PALETTE[grade] ?? GRADE_PALETTE.U;
   const clamped    = Math.max(0, Math.min(100, score));
   const ringOffset = parseFloat((RING_CIRC * (1 - clamped / 100)).toFixed(2));
-  const gradeSize  = grade.length > 1 ? "text-5xl" : "text-6xl";
+  const gradeSize  = grade.length > 1 ? "text-[5.5rem]" : "text-[7.5rem]";
 
   return (
     <div
@@ -58,8 +58,8 @@ export const SecurityGrade = ({ grade, score, summary, context, actions, pulse }
               cy={RING_SIZE / 2}
               r={RING_R}
               fill="none"
-              stroke="rgba(255,255,255,0.07)"
-              strokeWidth="10"
+              stroke="rgba(255,255,255,0.05)"
+              strokeWidth="14"
             />
             {/* Progress */}
             <circle
@@ -68,10 +68,11 @@ export const SecurityGrade = ({ grade, score, summary, context, actions, pulse }
               r={RING_R}
               fill="none"
               stroke={palette.stroke}
-              strokeWidth="10"
+              strokeWidth="14"
               strokeLinecap="round"
               strokeDasharray={RING_CIRC}
               strokeDashoffset={ringOffset}
+              filter={`drop-shadow(0 0 6px ${palette.stroke}88)`}
             />
           </svg>
           {/* Inner labels: grade is the verdict; the number is supporting context. */}
@@ -87,7 +88,7 @@ export const SecurityGrade = ({ grade, score, summary, context, actions, pulse }
 
         {/* ── Copy ── */}
         <div className="flex min-w-0 flex-1 flex-col gap-2.5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
+          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-500">
             Security posture
           </p>
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">

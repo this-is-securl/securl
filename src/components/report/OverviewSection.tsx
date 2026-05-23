@@ -290,7 +290,7 @@ export const OverviewSection = ({
         {/* ── STAT TILES: left-accent rail style ── */}
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {/* Critical */}
-          <div className="group relative overflow-hidden rounded-2xl bg-[#111a14] px-5 py-6 ring-1 ring-white/[0.06] transition-all duration-200 hover:ring-white/[0.10] hover:-translate-y-px">
+          <div className="group relative overflow-hidden rounded-3xl bg-[#111a14] px-5 py-6 ring-1 ring-white/[0.06] transition-all duration-200 hover:ring-white/[0.10] hover:-translate-y-px">
             <div className="absolute inset-y-0 left-0 w-[3px] rounded-r-[2px] bg-rose-500/70" />
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -303,7 +303,7 @@ export const OverviewSection = ({
           </div>
 
           {/* Warning */}
-          <div className="group relative overflow-hidden rounded-2xl bg-[#111a14] px-5 py-6 ring-1 ring-white/[0.06] transition-all duration-200 hover:ring-white/[0.10] hover:-translate-y-px">
+          <div className="group relative overflow-hidden rounded-3xl bg-[#111a14] px-5 py-6 ring-1 ring-white/[0.06] transition-all duration-200 hover:ring-white/[0.10] hover:-translate-y-px">
             <div className="absolute inset-y-0 left-0 w-[3px] rounded-r-[2px] bg-amber-400/70" />
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -316,7 +316,7 @@ export const OverviewSection = ({
           </div>
 
           {/* Strengths */}
-          <div className="group relative overflow-hidden rounded-2xl bg-[#111a14] px-5 py-6 ring-1 ring-white/[0.06] transition-all duration-200 hover:ring-white/[0.10] hover:-translate-y-px">
+          <div className="group relative overflow-hidden rounded-3xl bg-[#111a14] px-5 py-6 ring-1 ring-white/[0.06] transition-all duration-200 hover:ring-white/[0.10] hover:-translate-y-px">
             <div className="absolute inset-y-0 left-0 w-[3px] rounded-r-[2px] bg-emerald-500/70" />
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -329,7 +329,7 @@ export const OverviewSection = ({
           </div>
 
           {/* Monitoring */}
-          <div className="group relative overflow-hidden rounded-2xl bg-[#111a14] px-5 py-6 ring-1 ring-white/[0.06] transition-all duration-200 hover:ring-white/[0.10] hover:-translate-y-px">
+          <div className="group relative overflow-hidden rounded-3xl bg-[#111a14] px-5 py-6 ring-1 ring-white/[0.06] transition-all duration-200 hover:ring-white/[0.10] hover:-translate-y-px">
             <div className="absolute inset-y-0 left-0 w-[3px] rounded-r-[2px] bg-zinc-600/60" />
             <div className="flex items-start justify-between gap-2">
               <div>

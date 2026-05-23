@@ -21,10 +21,12 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/report/:scanId" element={<ReportPage />} />
-          </Routes>
+          <div className="noise">
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/report/:scanId" element={<ReportPage />} />
+            </Routes>
+          </div>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
