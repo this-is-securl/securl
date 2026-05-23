@@ -102,7 +102,16 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
           <StatBox label="External script domains" value={<p className="text-2xl font-semibold">{htmlSecurity.externalScriptDomains.length}</p>} />
           <StatBox label="Same-site hosts" value={<p className="text-2xl font-semibold">{htmlSecurity.sameSiteHosts.length}</p>} />
           <StatBox label="Inline scripts" value={<p className="text-2xl font-semibold">{htmlSecurity.inlineScriptCount}</p>} />
+          <StatBox label="Inline styles" value={<p className="text-2xl font-semibold">{htmlSecurity.inlineStyleCount}</p>} />
           <StatBox label="Missing SRI" value={<p className="text-2xl font-semibold">{htmlSecurity.missingSriScriptUrls.length}</p>} />
+          <StatBox
+            label="Mixed content"
+            value={<p className="text-2xl font-semibold">{(htmlSecurity.insecureResourceUrls?.length ?? 0)}</p>}
+            variant={(htmlSecurity.insecureResourceUrls?.length ?? 0) > 0 ? "warning" : "default"}
+            note={(htmlSecurity.insecureResourceUrls?.length ?? 0) > 0 ? (
+              <p className="text-xs text-[#d9b488]">HTTP resources on HTTPS page</p>
+            ) : null}
+          />
           <StatBox
             label="Passive leak signals"
             value={<p className="text-2xl font-semibold">{htmlSecurity.passiveLeakSignals.length}</p>}
@@ -223,6 +232,22 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
                     </div>
                   </div>
                 ))}
+              </div>
+            }
+          />
+        )}
+
+        {(htmlSecurity.insecureResourceUrls?.length ?? 0) > 0 && (
+          <StatBox
+            label="Mixed content URLs"
+            value={
+              <div className="space-y-1">
+                {htmlSecurity.insecureResourceUrls.slice(0, 10).map((url) => (
+                  <p key={url} className="break-all rounded-[0.75rem] border border-rose-500/20 bg-rose-500/[0.05] px-3 py-1.5 font-mono text-xs text-rose-300">{url}</p>
+                ))}
+                {htmlSecurity.insecureResourceUrls.length > 10 && (
+                  <p className="text-xs text-zinc-400">+{htmlSecurity.insecureResourceUrls.length - 10} more</p>
+                )}
               </div>
             }
           />

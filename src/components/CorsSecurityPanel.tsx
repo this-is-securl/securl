@@ -25,6 +25,31 @@ export const CorsSecurityPanel = ({ corsSecurity }: CorsSecurityPanelProps) => {
           <StatBox label="Vary" value={<p className="break-all text-sm text-zinc-200">{corsSecurity.vary ?? "Not set"}</p>} />
         </div>
 
+        {corsSecurity.allowPrivateNetwork != null && (
+          <StatBox
+            label="Private network access"
+            value={
+              <div className="space-y-2">
+                <Badge
+                  variant="outline"
+                  className={
+                    corsSecurity.allowPrivateNetwork === "true"
+                      ? "border-rose-500/30 bg-rose-500/[0.08] text-rose-200"
+                      : "border-white/10 bg-white/[0.06] text-zinc-200"
+                  }
+                >
+                  Access-Control-Allow-Private-Network: {corsSecurity.allowPrivateNetwork}
+                </Badge>
+                {corsSecurity.allowPrivateNetwork === "true" && (
+                  <p className="text-xs text-zinc-400">
+                    This header permits cross-origin requests to private or local network resources. Ensure this is intentional.
+                  </p>
+                )}
+              </div>
+            }
+          />
+        )}
+
         <div className="grid gap-4 md:grid-cols-2">
           <StatBox
             label="Allowed methods"
