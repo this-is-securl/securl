@@ -14,6 +14,7 @@
     "typecheck:core:strict": "tsc -p packages/core/tsconfig.strict.json",
     "typecheck:architecture:strict": "tsc -p tsconfig.architecture-strict.json",
     "build": "npm run build:core && vite build",
+    "build:server": "npm run build:core",
     "build:hostinger": "rm -rf dist && VITE_API_BASE_URL=https://securl-app-production.up.railway.app npm run build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",

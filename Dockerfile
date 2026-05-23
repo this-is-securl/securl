@@ -5,7 +5,7 @@ WORKDIR /app
 COPY . .
 
 RUN npm ci
-RUN npm run build
+RUN npm run build:server
 RUN npm prune --omit=dev
 
 ENV NODE_ENV=production
