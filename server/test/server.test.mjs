@@ -322,6 +322,26 @@ test("static frontend responses include the hardened browser headers", async () 
   }
 });
 
+test("production defaults to API-only serving unless frontend serving is enabled", async () => {
+  const server = await startServer({
+    NODE_ENV: "production",
+    ALLOW_UNAUTHENTICATED: "true",
+    AUTH_TOKEN_FINGERPRINT_SALT: "test-auth-token-salt",
+    API_KEY_FINGERPRINT_SALT: "test-api-key-salt",
+    SERVE_FRONTEND: "false",
+  });
+
+  try {
+    const response = await fetch(`${server.baseUrl}/`);
+    const payload = await response.json();
+
+    assert.equal(response.status, 404);
+    assert.match(payload.error, /frontend is served separately/i);
+  } finally {
+    await server.stop();
+  }
+});
+
 test("security.txt is served as a real file instead of the SPA shell", async () => {
   const server = await startServer();
 
