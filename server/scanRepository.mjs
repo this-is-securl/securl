@@ -7,6 +7,7 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
   const qualifiedTargetsTable = `${schema}.monitoring_targets`;
   const qualifiedUsersTable = `${schema}.users`;
   const qualifiedSessionsTable = `${schema}.auth_sessions`;
+  const qualifiedApiKeysTable = `${schema}.api_keys`;
   return [
     `create schema if not exists ${schema}`,
     `create table if not exists ${qualifiedUsersTable} (
@@ -24,6 +25,16 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
       created_at timestamptz not null,
       expires_at timestamptz not null,
       last_seen_at timestamptz not null
+    )`,
+    `create table if not exists ${qualifiedApiKeysTable} (
+      id uuid primary key,
+      user_id uuid not null references ${qualifiedUsersTable}(id) on delete cascade,
+      name text not null,
+      token_hash text not null unique,
+      token_prefix text not null,
+      created_at timestamptz not null,
+      last_used_at timestamptz null,
+      revoked_at timestamptz null
     )`,
     `create table if not exists ${qualifiedTable} (
       id uuid primary key,
@@ -70,6 +81,8 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
     `create unique index if not exists monitoring_targets_owner_url_uidx on ${qualifiedTargetsTable} (owner_id, url)`,
     `create index if not exists auth_sessions_user_idx on ${qualifiedSessionsTable} (user_id, created_at desc)`,
     `create index if not exists auth_sessions_expires_idx on ${qualifiedSessionsTable} (expires_at)`,
+    `create index if not exists api_keys_user_created_idx on ${qualifiedApiKeysTable} (user_id, created_at desc)`,
+    `create index if not exists api_keys_active_token_hash_idx on ${qualifiedApiKeysTable} (token_hash) where revoked_at is null`,
   ];
 }
 
@@ -207,6 +220,28 @@ export function buildAuthSessionRecord({
   };
 }
 
+export function buildApiKeyRecord({
+  id = crypto.randomUUID(),
+  userId,
+  name,
+  tokenHash,
+  tokenPrefix,
+  createdAt = new Date().toISOString(),
+  lastUsedAt = null,
+  revokedAt = null,
+}) {
+  return {
+    id,
+    userId,
+    name,
+    tokenHash,
+    tokenPrefix,
+    createdAt,
+    lastUsedAt,
+    revokedAt,
+  };
+}
+
 function enrichScan(scan) {
   if (!scan) {
     return null;
@@ -303,6 +338,23 @@ function hydrateAuthSessionFromRow(row) {
   };
 }
 
+function hydrateApiKeyFromRow(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    userId: row.user_id,
+    name: row.name,
+    tokenHash: row.token_hash,
+    tokenPrefix: row.token_prefix,
+    createdAt: row.created_at?.toISOString?.() ?? row.created_at,
+    lastUsedAt: row.last_used_at?.toISOString?.() ?? row.last_used_at,
+    revokedAt: row.revoked_at?.toISOString?.() ?? row.revoked_at,
+  };
+}
+
 function matchesScope(scan, { requesterScope = null, ownerId = null } = {}) {
   if (!scan) {
     return false;
@@ -328,6 +380,8 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
   const usersByEmail = new Map();
   const authSessions = new Map();
   const authSessionsByTokenHash = new Map();
+  const apiKeys = new Map();
+  const apiKeysByTokenHash = new Map();
 
   const touchOrder = (id) => {
     const index = order.indexOf(id);
@@ -420,6 +474,47 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       }
       authSessions.delete(id);
       authSessionsByTokenHash.delete(session.tokenHash);
+      return true;
+    },
+    async createApiKey({ userId, name, tokenHash, tokenPrefix }) {
+      const apiKey = buildApiKeyRecord({
+        userId,
+        name,
+        tokenHash,
+        tokenPrefix,
+      });
+      apiKeys.set(apiKey.id, apiKey);
+      apiKeysByTokenHash.set(apiKey.tokenHash, apiKey.id);
+      return { ...apiKey };
+    },
+    async listApiKeysByUser(userId) {
+      return [...apiKeys.values()]
+        .filter((apiKey) => apiKey.userId === userId && !apiKey.revokedAt)
+        .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+        .map((apiKey) => ({ ...apiKey }));
+    },
+    async getApiKeyByTokenHash(tokenHash) {
+      const apiKeyId = apiKeysByTokenHash.get(tokenHash);
+      if (!apiKeyId) {
+        return null;
+      }
+      const apiKey = apiKeys.get(apiKeyId);
+      return apiKey && !apiKey.revokedAt ? { ...apiKey } : null;
+    },
+    async touchApiKey(id) {
+      const apiKey = apiKeys.get(id);
+      if (!apiKey || apiKey.revokedAt) {
+        return null;
+      }
+      apiKey.lastUsedAt = new Date().toISOString();
+      return { ...apiKey };
+    },
+    async revokeApiKey(id, { userId }) {
+      const apiKey = apiKeys.get(id);
+      if (!apiKey || apiKey.userId !== userId || apiKey.revokedAt) {
+        return false;
+      }
+      apiKey.revokedAt = new Date().toISOString();
       return true;
     },
     async createScan({ url, mode, requesterScope, clientIp, ownerId = null }) {
@@ -693,6 +788,7 @@ export function createPostgresScanRepository({
   const targetsTable = `${schema}.monitoring_targets`;
   const usersTable = `${schema}.users`;
   const sessionsTable = `${schema}.auth_sessions`;
+  const apiKeysTable = `${schema}.api_keys`;
   const schemaStatements = buildScanRepositorySchemaStatements(schema);
 
   const repository = {
@@ -797,6 +893,71 @@ export function createPostgresScanRepository({
       const result = await pool.query(
         `delete from ${sessionsTable} where id = $1`,
         [id],
+      );
+      return result.rowCount > 0;
+    },
+    async createApiKey({ userId, name, tokenHash, tokenPrefix }) {
+      const apiKey = buildApiKeyRecord({
+        userId,
+        name,
+        tokenHash,
+        tokenPrefix,
+      });
+      const { rows } = await pool.query(
+        `insert into ${apiKeysTable}
+          (id, user_id, name, token_hash, token_prefix, created_at, last_used_at, revoked_at)
+         values
+          ($1, $2, $3, $4, $5, $6::timestamptz, $7::timestamptz, $8::timestamptz)
+         returning *`,
+        [
+          apiKey.id,
+          apiKey.userId,
+          apiKey.name,
+          apiKey.tokenHash,
+          apiKey.tokenPrefix,
+          apiKey.createdAt,
+          apiKey.lastUsedAt,
+          apiKey.revokedAt,
+        ],
+      );
+      return hydrateApiKeyFromRow(rows[0]);
+    },
+    async listApiKeysByUser(userId) {
+      const { rows } = await pool.query(
+        `select * from ${apiKeysTable}
+         where user_id = $1 and revoked_at is null
+         order by created_at desc`,
+        [userId],
+      );
+      return rows.map(hydrateApiKeyFromRow).filter(Boolean);
+    },
+    async getApiKeyByTokenHash(tokenHash) {
+      const { rows } = await pool.query(
+        `select * from ${apiKeysTable}
+         where token_hash = $1 and revoked_at is null
+         limit 1`,
+        [tokenHash],
+      );
+      return hydrateApiKeyFromRow(rows[0]);
+    },
+    async touchApiKey(id) {
+      const lastUsedAt = new Date().toISOString();
+      const { rows } = await pool.query(
+        `update ${apiKeysTable}
+         set last_used_at = $2::timestamptz
+         where id = $1 and revoked_at is null
+         returning *`,
+        [id, lastUsedAt],
+      );
+      return hydrateApiKeyFromRow(rows[0]);
+    },
+    async revokeApiKey(id, { userId }) {
+      const revokedAt = new Date().toISOString();
+      const result = await pool.query(
+        `update ${apiKeysTable}
+         set revoked_at = $3::timestamptz
+         where id = $1 and user_id = $2 and revoked_at is null`,
+        [id, userId, revokedAt],
       );
       return result.rowCount > 0;
     },
