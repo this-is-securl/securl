@@ -18,7 +18,9 @@ deployments
 !.vscode/extensions.json
 .idea
 .claire/
-.claude/
+.claude/settings.json
+.claude/settings.local.json
+.claude/launch.json
 .DS_Store
 *.suo
 *.ntvs*

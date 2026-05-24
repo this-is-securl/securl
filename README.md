@@ -3,6 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/%40ktbatterham%2Fexternal-posture-core)](https://www.npmjs.com/package/@ktbatterham/external-posture-core)
 [![npm package](https://img.shields.io/badge/npm-package-red)](https://www.npmjs.com/package/@ktbatterham/external-posture-core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Sponsor](https://img.shields.io/badge/Sponsor-SecURL-0f766e)](https://github.com/sponsors/ktbatterham)
 
 **Public security posture, quietly interpreted.**
 
@@ -16,6 +17,8 @@ It is built for low-noise review of headers, TLS, cookies, redirects, DNS/email 
   <a href="https://app.securl.online"><strong>Run a live scan</strong></a>
   ·
   <a href="https://www.npmjs.com/package/@ktbatterham/external-posture-core"><strong>Use the npm package</strong></a>
+  ·
+  <a href="https://github.com/sponsors/ktbatterham"><strong>Support the project</strong></a>
 </p>
 
 ## Try It
@@ -150,9 +153,15 @@ That makes it much easier to:
 - No public pricing or paywall yet
 - No commitment to a final commercial package until the premium experience is clearly strong enough to justify it
 
+## Support SecURL
+
+SecURL is built as a FOSS-first security tool. If it helps your work, you can support ongoing development through [GitHub Sponsors](https://github.com/sponsors/ktbatterham).
+
+Sponsorship helps fund continued work on the passive analysis engine, hosted scanner, reporting polish, and the open npm package. The scanner remains usable without sponsorship; support is simply a way to help the project keep moving.
+
 ## Package status
 
-- Latest published core package: `@ktbatterham/external-posture-core@0.11.0`
+- Latest published core package: `@ktbatterham/external-posture-core@0.11.1`
 - npm tag: `latest`
 
 ## Docs

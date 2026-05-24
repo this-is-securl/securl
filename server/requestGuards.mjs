@@ -4,6 +4,7 @@ import net from "node:net";
 import { promisify } from "node:util";
 
 const scryptAsync = promisify(crypto.scrypt);
+const USER_API_KEY_PREFIX = "securl_";
 
 function isPublicIp(ip, { isPrivateAddress }) {
   return net.isIP(ip) !== 0 && !isPrivateAddress(ip);
@@ -80,6 +81,16 @@ async function getRequesterScope({ clientIp, presentedApiKey, apiKey, apiKeyFing
     return `api-key:${await tokenFingerprint(presentedApiKey, apiKeyFingerprintSalt)}`;
   }
   return `ip:${clientIp || "unknown"}`;
+}
+
+function getPresentedUserApiKey({ presentedApiKey, presentedBearerToken }) {
+  if (presentedBearerToken?.startsWith(USER_API_KEY_PREFIX)) {
+    return presentedBearerToken;
+  }
+  if (presentedApiKey?.startsWith(USER_API_KEY_PREFIX)) {
+    return presentedApiKey;
+  }
+  return "";
 }
 
 async function getScanOwnerId({
@@ -279,6 +290,7 @@ export function createRequestGuards({
     response,
     requestPath,
     resolveSessionAuth = null,
+    resolveApiKeyAuth = null,
     enforceRateLimit = true,
     requireScanOwner = false,
     sendJsonResponse = sendJson,
@@ -288,8 +300,12 @@ export function createRequestGuards({
     const presentedApiKey = getPresentedApiKey(request);
     const presentedScanOwner = getPresentedScanOwner(request, scanOwnerHeader);
     const presentedBearerToken = getPresentedBearerToken(request);
+    const presentedUserApiKey = getPresentedUserApiKey({ presentedApiKey, presentedBearerToken });
     const sessionAuth = presentedBearerToken && typeof resolveSessionAuth === "function"
       ? await resolveSessionAuth(presentedBearerToken)
+      : null;
+    const apiKeyAuth = !sessionAuth && presentedUserApiKey && typeof resolveApiKeyAuth === "function"
+      ? await resolveApiKeyAuth(presentedUserApiKey)
       : null;
     const requesterScope = await getRequesterScope({
       clientIp,
@@ -298,7 +314,7 @@ export function createRequestGuards({
       apiKeyFingerprintSalt,
     });
 
-    if (presentedBearerToken && !sessionAuth) {
+    if (presentedBearerToken && !sessionAuth && !apiKeyAuth) {
       telemetry.recordAuthRejected();
       telemetry.recordFailure("auth_rejected");
       recordAbuseSignal("session_token_rejected", {
@@ -312,6 +328,24 @@ export function createRequestGuards({
       });
       sendJsonResponse(response, 401, {
         error: "A valid session token is required for this request.",
+      });
+      return null;
+    }
+
+    if (presentedUserApiKey && !apiKeyAuth && !sessionAuth) {
+      telemetry.recordAuthRejected();
+      telemetry.recordFailure("auth_rejected");
+      recordAbuseSignal("user_api_key_rejected", {
+        clientIp,
+        path: requestPath,
+      }, {
+        abuseSignalBuckets,
+        abuseAlertWindowMs,
+        abuseAlertThreshold,
+        log,
+      });
+      sendJsonResponse(response, 401, {
+        error: "A valid SecURL API key is required for this request.",
       });
       return null;
     }
@@ -354,6 +388,50 @@ export function createRequestGuards({
         user: sessionAuth.user,
         session: sessionAuth.session,
         authMode: "session",
+      };
+    }
+
+    if (apiKeyAuth) {
+      const userScope = `user:${apiKeyAuth.user.id}`;
+      const apiKeyScope = `api-key:${apiKeyAuth.apiKey.id}`;
+      if (!enforceRateLimit) {
+        return {
+          clientIp,
+          requesterScope: apiKeyScope,
+          ownerId: userScope,
+          user: apiKeyAuth.user,
+          session: null,
+          apiKey: apiKeyAuth.apiKey,
+          authMode: "api-key",
+        };
+      }
+
+      const rateLimitState = await rateLimiter.check(apiKeyScope);
+      if (rateLimitState.limited) {
+        telemetry.recordRequesterRateLimited();
+        telemetry.recordFailure("requester_rate_limited");
+        recordAbuseSignal("rate_limit_exceeded", {
+          clientIp,
+          requesterScope: apiKeyScope,
+          path: requestPath,
+        }, {
+          abuseSignalBuckets,
+          abuseAlertWindowMs,
+          abuseAlertThreshold,
+          log,
+        });
+        sendRateLimitedResponse(response, rateLimitState.retryAfterSeconds);
+        return null;
+      }
+
+      return {
+        clientIp,
+        requesterScope: apiKeyScope,
+        ownerId: userScope,
+        user: apiKeyAuth.user,
+        session: null,
+        apiKey: apiKeyAuth.apiKey,
+        authMode: "api-key",
       };
     }
 

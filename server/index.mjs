@@ -26,7 +26,7 @@ import {
   handleMonitoringTargetCollectionRequest,
   handleMonitoringTargetItemRequest,
 } from "./monitoringTargetHandlers.mjs";
-import { handleAuthRequest, resolveAuthenticatedSession } from "./authHandlers.mjs";
+import { handleAuthRequest, resolveAuthenticatedApiKey, resolveAuthenticatedSession } from "./authHandlers.mjs";
 import { handleScanCollectionRequest, handleScanResourceRequest, runQueuedScan } from "./scanResourceHandlers.mjs";
 import { createStaticHandler } from "./staticServer.mjs";
 import { enforceStartupConfiguration, initializeScanRepository } from "./startupValidation.mjs";
@@ -45,6 +45,7 @@ const distDir = path.join(projectRoot, "dist");
 const publicDir = path.join(projectRoot, "public");
 const port = Number(process.env.PORT || 8787);
 const isProduction = process.env.NODE_ENV === "production";
+const serveFrontend = process.env.SERVE_FRONTEND === "true" || (!isProduction && process.env.SERVE_FRONTEND !== "false");
 const apiKey = process.env.API_KEY || "";
 const allowUnauthenticated = process.env.ALLOW_UNAUTHENTICATED === "true";
 const trustProxy = process.env.TRUST_PROXY === "true";
@@ -274,6 +275,22 @@ const corsPolicy = createCorsPolicy({
   allowedOrigins,
 });
 
+const withAuthResolvers = (options) => authorizeAnalysisRequest({
+  ...options,
+  resolveSessionAuth: (token) => resolveAuthenticatedSession({
+    token,
+    scanRepository,
+    authTokenFingerprintSalt: AUTH_TOKEN_FINGERPRINT_SALT,
+  }),
+  resolveApiKeyAuth: (token) => resolveAuthenticatedApiKey({
+    token,
+    scanRepository,
+    authTokenFingerprintSalt: AUTH_TOKEN_FINGERPRINT_SALT,
+  }),
+  sendJsonResponse: options.sendJsonResponse ?? sendJson,
+  sendRateLimitedResponse: options.sendRateLimitedResponse ?? sendRateLimited,
+});
+
 const server = http.createServer(async (request, response) => {
   const rawRequestPath = (request.url || "/").split("?")[0] || "/";
   const requestUrl = new URL(request.url || "/", `http://${request.headers.host}`);
@@ -343,6 +360,7 @@ const server = http.createServer(async (request, response) => {
         windowMs: ABUSE_ALERT_WINDOW_MS,
       };
       payload.scanTimeoutMs = SCAN_TIMEOUT_MS;
+      payload.serveFrontend = serveFrontend;
     }
 
     sendApiJson(response, 200, payload);
@@ -406,13 +424,8 @@ const server = http.createServer(async (request, response) => {
       response,
       requestUrl,
       scanRepository,
-      authorizeAnalysisRequest: (options) => authorizeAnalysisRequest({
+      authorizeAnalysisRequest: (options) => withAuthResolvers({
         ...options,
-        resolveSessionAuth: (token) => resolveAuthenticatedSession({
-          token,
-          scanRepository,
-          authTokenFingerprintSalt: AUTH_TOKEN_FINGERPRINT_SALT,
-        }),
         sendJsonResponse: sendApiJson,
         sendRateLimitedResponse: sendApiRateLimited,
       }),
@@ -444,13 +457,8 @@ const server = http.createServer(async (request, response) => {
       response,
       requestUrl,
       scanRepository,
-      authorizeAnalysisRequest: (options) => authorizeAnalysisRequest({
+      authorizeAnalysisRequest: (options) => withAuthResolvers({
         ...options,
-        resolveSessionAuth: (token) => resolveAuthenticatedSession({
-          token,
-          scanRepository,
-          authTokenFingerprintSalt: AUTH_TOKEN_FINGERPRINT_SALT,
-        }),
         sendJsonResponse: sendApiJson,
         sendRateLimitedResponse: sendApiRateLimited,
       }),
@@ -474,13 +482,8 @@ const server = http.createServer(async (request, response) => {
       response,
       requestUrl,
       scanRepository,
-      authorizeAnalysisRequest: (options) => authorizeAnalysisRequest({
+      authorizeAnalysisRequest: (options) => withAuthResolvers({
         ...options,
-        resolveSessionAuth: (token) => resolveAuthenticatedSession({
-          token,
-          scanRepository,
-          authTokenFingerprintSalt: AUTH_TOKEN_FINGERPRINT_SALT,
-        }),
         sendJsonResponse: sendApiJson,
         sendRateLimitedResponse: sendApiRateLimited,
       }),
@@ -511,13 +514,8 @@ const server = http.createServer(async (request, response) => {
       response,
       requestUrl,
       scanRepository,
-      authorizeAnalysisRequest: (options) => authorizeAnalysisRequest({
+      authorizeAnalysisRequest: (options) => withAuthResolvers({
         ...options,
-        resolveSessionAuth: (token) => resolveAuthenticatedSession({
-          token,
-          scanRepository,
-          authTokenFingerprintSalt: AUTH_TOKEN_FINGERPRINT_SALT,
-        }),
         sendJsonResponse: sendApiJson,
         sendRateLimitedResponse: sendApiRateLimited,
       }),
@@ -533,13 +531,25 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
-  if (request.method === "GET" || request.method === "HEAD") {
+  if (serveFrontend && (request.method === "GET" || request.method === "HEAD")) {
     serveStatic(rawRequestPath, request.method, request, response);
     return;
   }
 
-  response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
-  response.end("Not found");
+  if (!requestUrl.pathname.startsWith("/api/") && (request.method === "GET" || request.method === "HEAD")) {
+    response.writeHead(404, { "Content-Type": "application/json; charset=utf-8" });
+    if (request.method === "HEAD") {
+      response.end();
+      return;
+    }
+    response.end(JSON.stringify({
+      error: "SecURL API service. The frontend is served separately.",
+    }));
+    return;
+  }
+
+  response.writeHead(404, { "Content-Type": "application/json; charset=utf-8" });
+  response.end(JSON.stringify({ error: "Not found" }));
 });
 
 enforceStartupConfiguration({
@@ -587,6 +597,7 @@ server.listen(port, () => {
     port,
     url: `http://127.0.0.1:${port}`,
     production: isProduction,
+    serveFrontend,
     authenticated: Boolean(apiKey),
     allowUnauthenticated,
     trustProxy,

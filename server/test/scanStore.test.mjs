@@ -197,6 +197,7 @@ test("scan repository schema statements create the scans table and scoped indexe
   assert.match(statements[0], /create schema if not exists public/i);
   assert.ok(statements.some((statement) => /create table if not exists public\.users/i.test(statement)));
   assert.ok(statements.some((statement) => /create table if not exists public\.auth_sessions/i.test(statement)));
+  assert.ok(statements.some((statement) => /create table if not exists public\.api_keys/i.test(statement)));
   const scansStatement = statements.find((statement) => /create table if not exists public\.scans/i.test(statement));
   assert.ok(scansStatement);
   assert.match(scansStatement, /owner_id text null/i);
@@ -210,4 +211,6 @@ test("scan repository schema statements create the scans table and scoped indexe
   assert.ok(statements.some((statement) => /monitoring_targets_requester_added_idx/i.test(statement)));
   assert.ok(statements.some((statement) => /monitoring_targets_owner_url_uidx/i.test(statement)));
   assert.ok(statements.some((statement) => /auth_sessions_user_idx/i.test(statement)));
+  assert.ok(statements.some((statement) => /api_keys_user_created_idx/i.test(statement)));
+  assert.ok(statements.some((statement) => /api_keys_active_token_hash_idx/i.test(statement)));
 });
