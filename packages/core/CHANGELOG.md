@@ -6,6 +6,11 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [0.11.2] - 2026-05-24
+
+### Changed
+- Replaced Cheerio with `node-html-parser` for passive HTML page analysis, reducing the core package dependency tree while preserving title, metadata, form, script, stylesheet, link, and SRI extraction behavior.
+
 ## [0.11.1] - 2026-05-21
 
 ### Changed
