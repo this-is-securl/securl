@@ -201,7 +201,7 @@ export const OverviewSection = ({
                   {overallPostureLabel}
                 </p>
                 <p className="mt-1 text-[11px] font-medium text-zinc-600">
-                  Weighted signal: {overallPercent}
+                  Score: {overallPercent}
                 </p>
 
                 {/* Scan freshness */}
