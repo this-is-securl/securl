@@ -1,5 +1,6 @@
 import { URL } from "node:url";
-import { createRequire } from "node:module";
+import { parse } from "node-html-parser";
+import type { HTMLElement as NhpElement } from "node-html-parser";
 import { analyzeAiSurface, detectHtmlTechnologies } from "./htmlInsights.js";
 import {
   collectClientExposureSignals,
@@ -15,14 +16,6 @@ import { normalizeDiscoveredPath, rankDiscoveredPaths } from "./path-discovery.j
 import { requestText } from "./network.js";
 import type { HtmlSecurityInfo } from "./types.js";
 import { headerValue, unique } from "./utils.js";
-
-const require = createRequire(import.meta.url);
-let cheerioModule: typeof import("cheerio") | null = null;
-
-function loadCheerio() {
-  cheerioModule ??= require("cheerio") as typeof import("cheerio");
-  return cheerioModule;
-}
 
 const emptySriCoverage = (): HtmlSecurityInfo["sriCoverage"] => ({
   externalScripts: 0,
@@ -48,22 +41,19 @@ const isAbsoluteExternalResource = (value: string | undefined, finalUrl: URL): b
   }
 };
 
-type CheerioSelector = (element: unknown) => { attr(name: string): string | undefined };
-
 const calculateSriCoverage = (
-  scriptElements: unknown[],
-  stylesheetElements: unknown[],
+  scriptElements: NhpElement[],
+  stylesheetElements: NhpElement[],
   finalUrl: URL,
-  $: CheerioSelector,
 ): HtmlSecurityInfo["sriCoverage"] => {
   const externalScripts = scriptElements.filter((script) =>
-    isAbsoluteExternalResource($(script).attr("src"), finalUrl),
+    isAbsoluteExternalResource(script.getAttribute("src"), finalUrl),
   );
   const externalStylesheets = stylesheetElements.filter((link) =>
-    isAbsoluteExternalResource($(link).attr("href"), finalUrl),
+    isAbsoluteExternalResource(link.getAttribute("href"), finalUrl),
   );
-  const scriptsWithSri = externalScripts.filter((script) => hasValidSriPrefix($(script).attr("integrity"))).length;
-  const stylesheetsWithSri = externalStylesheets.filter((link) => hasValidSriPrefix($(link).attr("integrity"))).length;
+  const scriptsWithSri = externalScripts.filter((script) => hasValidSriPrefix(script.getAttribute("integrity"))).length;
+  const stylesheetsWithSri = externalStylesheets.filter((link) => hasValidSriPrefix(link.getAttribute("integrity"))).length;
   const total = externalScripts.length + externalStylesheets.length;
   const protectedTotal = scriptsWithSri + stylesheetsWithSri;
   const coveragePercent = total ? Math.round((protectedTotal / total) * 100) : 100;
@@ -208,45 +198,41 @@ export function analyzeHtmlSecurity(finalUrl: URL, document: { html: string; pag
     const html = document.html;
     const issues: string[] = [];
     const strengths: string[] = [];
-    const cheerio = loadCheerio();
-    const $ = cheerio.load(html);
-    const pageTitle = document.pageTitle || $("title").first().text().trim() || null;
-    const metaGenerator = $('meta[name="generator"]').attr("content") || null;
+    const root = parse(html);
+    const pageTitle = document.pageTitle || root.querySelector("title")?.text?.trim() || null;
+    const metaGenerator = root.querySelector('meta[name="generator"]')?.getAttribute("content") || null;
 
-    const forms = $("form")
-      .toArray()
-      .map((form) => {
-        const element = $(form);
-        const action = element.attr("action") || null;
-        const method = (element.attr("method") || "GET").toUpperCase();
-        const resolvedAction = action ? new URL(action, finalUrl).toString() : finalUrl.toString();
-        return {
-          action,
-          method,
-          insecureSubmission: resolvedAction.startsWith("http://"),
-          hasPasswordField: element.find('input[type="password"]').length > 0,
-        };
-      });
+    const forms = root.querySelectorAll("form").map((form) => {
+      const action = form.getAttribute("action") || null;
+      const method = (form.getAttribute("method") || "GET").toUpperCase();
+      const resolvedAction = action ? new URL(action, finalUrl).toString() : finalUrl.toString();
+      return {
+        action,
+        method,
+        insecureSubmission: resolvedAction.startsWith("http://"),
+        hasPasswordField: form.querySelectorAll('input[type="password"]').length > 0,
+      };
+    });
 
-    const scriptElements = $("script").toArray();
+    const scriptElements = root.querySelectorAll("script");
     const externalScriptUrls = scriptElements
-      .map((script) => $(script).attr("src"))
+      .map((script) => script.getAttribute("src"))
       .filter(Boolean)
       .map((src) => new URL(src as string, finalUrl).toString());
-    const externalStylesheetUrls = $('link[rel~="stylesheet"]')
-      .toArray()
-      .map((link) => $(link).attr("href"))
+    const stylesheetElements = root.querySelectorAll('link[rel~="stylesheet"]');
+    const externalStylesheetUrls = stylesheetElements
+      .map((link) => link.getAttribute("href"))
       .filter(Boolean)
       .map((href) => new URL(href as string, finalUrl).toString());
-    const stylesheetElements = $('link[rel~="stylesheet"]').toArray();
+    const anchorElements = root.querySelectorAll("a[href]");
     const sameSiteHosts = collectSameSiteHosts(finalUrl, [
-      ...$("a[href]").toArray().map((anchor) => $(anchor).attr("href")),
-      ...scriptElements.map((script) => $(script).attr("src")),
-      ...$('link[rel~="stylesheet"]').toArray().map((link) => $(link).attr("href")),
+      ...anchorElements.map((anchor) => anchor.getAttribute("href")),
+      ...scriptElements.map((script) => script.getAttribute("src")),
+      ...stylesheetElements.map((link) => link.getAttribute("href")),
       ...forms.map((form) => form.action),
     ]);
     const firstPartyPaths = rankDiscoveredPaths([
-      ...$("a[href]").toArray().map((anchor) => normalizeDiscoveredPath($(anchor).attr("href"), finalUrl)),
+      ...anchorElements.map((anchor) => normalizeDiscoveredPath(anchor.getAttribute("href"), finalUrl)),
       ...forms.map((form) => normalizeDiscoveredPath(form.action, finalUrl)),
     ]);
     const trainingLabMarkers = unique([
@@ -266,23 +252,22 @@ export function analyzeHtmlSecurity(finalUrl: URL, document: { html: string; pag
     const externalStylesheetDomains = unique(
       externalStylesheetUrls.map((url) => new URL(url).hostname).filter((hostname) => hostname !== finalUrl.hostname),
     );
-    const inlineScriptCount = scriptElements.filter((script) => !$(script).attr("src")).length;
-    const inlineStyleCount = $("style").length;
+    const inlineScriptCount = scriptElements.filter((script) => !script.getAttribute("src")).length;
+    const inlineStyleCount = root.querySelectorAll("style").length;
     const missingSriScriptUrls = scriptElements
       .map((script) => {
-        const element = $(script);
-        const src = element.attr("src");
+        const src = script.getAttribute("src");
         if (!src) {
           return null;
         }
         const resolved = new URL(src, finalUrl);
-        if (resolved.hostname === finalUrl.hostname || element.attr("integrity")) {
+        if (resolved.hostname === finalUrl.hostname || script.getAttribute("integrity")) {
           return null;
         }
         return resolved.toString();
       })
       .filter(Boolean) as string[];
-    const sriCoverage = calculateSriCoverage(scriptElements, stylesheetElements, finalUrl, $ as CheerioSelector);
+    const sriCoverage = calculateSriCoverage(scriptElements, stylesheetElements, finalUrl);
     const passiveLeakSignals = collectPassiveLeakSignals(
       html,
       finalUrl,
