@@ -92,7 +92,7 @@ export const SecurityGrade = ({ grade, score, summary, context, actions, pulse }
             Security posture
           </p>
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-500">
-            Weighted signal: {clamped}
+            Score: {clamped}
           </p>
           <p className="text-sm leading-7 text-zinc-300">{summary}</p>
         </div>
