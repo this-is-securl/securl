@@ -53,8 +53,8 @@ export const CapabilityStrip = () => (
         key={title}
         className="rounded-[1.2rem] border border-white/[0.07] bg-white/[0.03] p-4 transition-colors duration-200 hover:border-white/[0.13] hover:bg-white/[0.05]"
       >
-        <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-[0.65rem] bg-[#14b8a6]/14">
-          <Icon className="h-4 w-4 text-[#2dd4bf]" />
+        <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-[0.65rem] bg-zinc-700/40">
+          <Icon className="h-4 w-4 text-[#d89a63]" />
         </div>
         <p className="mb-1 text-[13px] font-semibold text-zinc-100">{title}</p>
         <p className="text-[12px] leading-[1.55] text-zinc-400">{description}</p>

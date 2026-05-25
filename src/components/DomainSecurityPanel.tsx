@@ -17,7 +17,7 @@ const extractBimiLogoUrl = (dns: string | null | undefined): string | null => {
 const policyBadgeClass = {
   strong: "border-[#4f6676]/35 bg-[#4f6676]/12 text-[#edf3f6]",
   watch: "border-[#7f1d1d]/30 bg-[#7f1d1d]/12 text-[#f0dfcf]",
-  weak: "border-[#14b8a6]/35 bg-[#3a2a20] text-[#ccfbf1]",
+  weak: "border-amber-500/25 bg-amber-500/[0.08] text-amber-200",
   missing: "border-white/10 bg-white/[0.06] text-zinc-200",
 } as const;
 

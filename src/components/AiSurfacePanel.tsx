@@ -18,7 +18,7 @@ export const AiSurfacePanel = ({ aiSurface }: AiSurfacePanelProps) => {
 
   const confidenceStyles = {
     high: "bg-white/[0.12] text-zinc-100",
-    medium: "bg-[#14b8a6]/14 text-[#99f6e4]",
+    medium: "bg-zinc-700/40 text-zinc-300",
     low: "bg-[#4f6676]/14 text-[#d6e5ec]",
   } as const;
 

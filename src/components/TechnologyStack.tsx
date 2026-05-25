@@ -19,11 +19,11 @@ const categoryConfig = {
   },
   security: {
     icon: <Shield className="h-4 w-4" />,
-    color: "bg-[#14b8a6]/16 text-[#99f6e4]",
+    color: "bg-zinc-700/40 text-zinc-300",
   },
   hosting: {
     icon: <Cloud className="h-4 w-4" />,
-    color: "bg-[#7f1d1d]/14 text-[#99f6e4]",
+    color: "bg-[#7f1d1d]/14 text-zinc-300",
   },
   network: {
     icon: <Network className="h-4 w-4" />,
@@ -35,7 +35,7 @@ const categoryOrder: Array<keyof typeof categoryConfig> = ["network", "hosting",
 
 const confidenceStyles = {
   high: "bg-white/[0.08] text-zinc-100",
-  medium: "bg-[#14b8a6]/16 text-[#99f6e4]",
+  medium: "bg-zinc-700/40 text-zinc-300",
   low: "bg-[#4f6676]/18 text-[#d9e4ea]",
 } as const;
 

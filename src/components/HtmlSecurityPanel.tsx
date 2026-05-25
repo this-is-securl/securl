@@ -285,7 +285,7 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
                       <p className="font-semibold text-zinc-50">{signal.title}</p>
                       <Badge
                         variant="secondary"
-                        className={signal.severity === "warning" ? "bg-[#14b8a6]/16 text-[#99f6e4]" : "bg-white/[0.08] text-zinc-100"}
+                        className={signal.severity === "warning" ? "bg-zinc-700/40 text-zinc-300" : "bg-white/[0.08] text-zinc-100"}
                       >
                         {signal.severity}
                       </Badge>
@@ -316,7 +316,7 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
                           {signal.packageName} {signal.version}
                         </p>
                         <Badge variant="secondary" className="bg-white/[0.08] text-zinc-100">{signal.confidence} confidence</Badge>
-                        <Badge variant="secondary" className="bg-[#14b8a6]/16 text-[#99f6e4]">
+                        <Badge variant="secondary" className="bg-zinc-700/40 text-zinc-300">
                           {signal.vulnerabilities.length} advisor{signal.vulnerabilities.length === 1 ? "y" : "ies"}
                         </Badge>
                       </div>
@@ -359,7 +359,7 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
                         {leak.risk === "high" ? "Attention" : "Watch"}
                       </Badge>
                     </div>
-                    {leak.versionHint && <p className="mt-1 font-mono text-sm text-[#2dd4bf]">{leak.versionHint}</p>}
+                    {leak.versionHint && <p className="mt-1 font-mono text-sm text-[#d89a63]">{leak.versionHint}</p>}
                     <p className="mt-1 text-xs text-zinc-400">{leak.evidence}</p>
                   </div>
                 ))}

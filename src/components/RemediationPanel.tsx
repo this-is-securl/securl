@@ -66,7 +66,7 @@ export const RemediationPanel = ({ remediation }: RemediationPanelProps) => {
               onClick={() => setSelected(item.platform)}
               className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                 item.platform === active.platform
-                  ? "bg-[#14b8a6] text-[#f8efe7]"
+                  ? "bg-[#b56a2c] text-white"
                   : "bg-white/[0.06] text-zinc-200 hover:bg-white/[0.1]"
               }`}
             >

@@ -11,8 +11,8 @@ interface CookieAnalysisProps {
 
 const riskStyles: Record<CookieResult["risk"], string> = {
   low: "bg-[#4f6676]/18 text-[#d9e4ea]",
-  medium: "bg-[#7f1d1d]/14 text-[#99f6e4]",
-  high: "bg-[#14b8a6]/16 text-[#99f6e4]",
+  medium: "bg-[#7f1d1d]/14 text-zinc-300",
+  high: "bg-zinc-700/40 text-zinc-300",
 };
 
 export const CookieAnalysis = ({ cookies }: CookieAnalysisProps) => {

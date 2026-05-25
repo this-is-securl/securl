@@ -11,10 +11,10 @@ interface ExposurePanelProps {
 
 const findingStyles = {
   safe: "bg-white/[0.08] text-zinc-100",
-  interesting: "bg-[#7f1d1d]/14 text-[#99f6e4]",
+  interesting: "bg-[#7f1d1d]/14 text-zinc-300",
   blocked: "bg-white/[0.08] text-zinc-100",
-  exposed: "bg-[#14b8a6]/16 text-[#99f6e4]",
-  error: "bg-[#14b8a6]/18 text-[#99f6e4]",
+  exposed: "bg-zinc-700/40 text-zinc-300",
+  error: "bg-zinc-700/40 text-zinc-300",
 } as const;
 
 export const ExposurePanel = ({ exposure }: ExposurePanelProps) => {

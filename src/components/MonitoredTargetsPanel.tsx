@@ -68,7 +68,7 @@ export const MonitoredTargetsPanel = ({
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2 text-lg font-semibold text-zinc-50">
-              <BellDot className="h-5 w-5 text-[#2dd4bf]" />
+              <BellDot className="h-5 w-5 text-[#d89a63]" />
               Monitoring
             </div>
             <p className="max-w-xl text-sm leading-5 text-zinc-400">
@@ -94,13 +94,15 @@ export const MonitoredTargetsPanel = ({
                 Save weekly
               </Button>
             </div>
-            <Button
-              className="h-8 rounded-2xl bg-[#14b8a6] px-3 text-xs text-[#f8efe7] hover:bg-[#c07a3f]"
-              disabled={!targets.some((target) => target.due) || busy}
-              onClick={onRunDue}
-            >
-              Run due
-            </Button>
+            {targets.some((target) => target.due) && (
+              <Button
+                className="h-8 rounded-2xl bg-[#b56a2c] px-3 text-xs text-white hover:bg-[#9d5a23]"
+                disabled={busy}
+                onClick={onRunDue}
+              >
+                Run due
+              </Button>
+            )}
           </div>
         </div>
 
@@ -138,7 +140,7 @@ export const MonitoredTargetsPanel = ({
                       <p className="truncate text-sm font-semibold text-zinc-50">{target.label}</p>
                       <Badge
                         variant="secondary"
-                        className={target.due ? "bg-[#14b8a6]/16 text-[#99f6e4]" : "bg-white/[0.08] text-zinc-100"}
+                        className={target.due ? "bg-zinc-700/40 text-zinc-300" : "bg-white/[0.08] text-zinc-100"}
                       >
                         {target.due ? "due" : "scheduled"}
                       </Badge>
@@ -212,13 +214,15 @@ export const MonitoredTargetsPanel = ({
           <Button variant="outline" className={buttonClass} disabled={!currentUrl || busy} onClick={onAddWeekly}>
             Monitor Weekly
           </Button>
-          <Button
-            className={embedded ? "rounded-2xl bg-[#14b8a6] text-[#f8efe7] hover:bg-[#c07a3f]" : "rounded-2xl"}
-            disabled={!targets.some((target) => target.due) || busy}
-            onClick={onRunDue}
-          >
-            Run Due Scans
-          </Button>
+          {targets.some((target) => target.due) && (
+            <Button
+              className={embedded ? "rounded-2xl bg-[#b56a2c] text-white hover:bg-[#9d5a23]" : "rounded-2xl"}
+              disabled={busy}
+              onClick={onRunDue}
+            >
+              Run Due Scans
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className={embedded ? "space-y-4 px-0 pb-0" : "space-y-4"}>
@@ -273,7 +277,7 @@ export const MonitoredTargetsPanel = ({
                       <p className={`truncate text-sm font-semibold ${strongTextClass}`}>{target.label}</p>
                       <Badge
                         variant="secondary"
-                        className={target.due ? "bg-[#14b8a6]/16 text-[#99f6e4]" : "bg-white/[0.08] text-zinc-100"}
+                        className={target.due ? "bg-zinc-700/40 text-zinc-300" : "bg-white/[0.08] text-zinc-100"}
                       >
                         {target.due ? "due" : "scheduled"}
                       </Badge>

@@ -10,8 +10,8 @@ interface ThirdPartyTrustPanelProps {
 
 const riskStyles = {
   low: "bg-white/[0.08] text-zinc-100",
-  medium: "bg-[#7f1d1d]/14 text-[#99f6e4]",
-  high: "bg-[#14b8a6]/18 text-[#99f6e4]",
+  medium: "bg-[#7f1d1d]/14 text-zinc-300",
+  high: "bg-zinc-700/40 text-zinc-300",
 } as const;
 
 const categoryLabel = {

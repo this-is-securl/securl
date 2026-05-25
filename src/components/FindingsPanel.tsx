@@ -33,7 +33,7 @@ const issueAccent = {
 
 const confidenceStyles = {
   high: "bg-white/[0.12] text-zinc-100 border-white/10",
-  medium: "bg-[#14b8a6]/14 text-[#99f6e4] border-[#14b8a6]/25",
+  medium: "bg-zinc-700/40 text-zinc-300 border-white/10",
   low: "bg-white/[0.06] text-zinc-300 border-white/10",
 } as const;
 
@@ -52,29 +52,29 @@ export const FindingsPanel = ({ issues, strengths }: FindingsPanelProps) => {
   };
 
   return (
-    <Card className="rounded-[2rem] border border-zinc-800 bg-[#111a14] shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset]">
+    <Card className="rounded-[2rem] border border-white/[0.09] bg-white/[0.04] shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset]">
       <CardHeader className="pb-3">
         <CardTitle className="text-xl font-black tracking-[-0.03em] text-white">Top Findings</CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="grid gap-4 md:grid-cols-[1.05fr_0.95fr]">
-          <div className="rounded-[1.5rem] border border-zinc-800 bg-[#111a14] p-6">
+          <div className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.04] p-6">
             <div className="flex items-center gap-2 mb-4">
-              <TriangleAlert className="h-3.5 w-3.5 text-[#2dd4bf]" />
+              <TriangleAlert className="h-3.5 w-3.5 text-[#d89a63]" />
               <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500">Finding mix</p>
             </div>
             <div className="grid gap-2.5 sm:grid-cols-3">
-              <div className="relative overflow-hidden rounded-xl bg-[#0c1410] px-3.5 py-3.5 ring-1 ring-white/[0.05]">
+              <div className="relative overflow-hidden rounded-xl bg-zinc-950/50 px-3.5 py-3.5 ring-1 ring-white/[0.05]">
                 <div className="absolute inset-y-0 left-0 w-[2.5px] rounded-r-[2px] bg-rose-500/60" />
                 <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">Critical</p>
                 <p className="mt-2 text-2xl font-black text-white">{severityCounts.critical}</p>
               </div>
-              <div className="relative overflow-hidden rounded-xl bg-[#0c1410] px-3.5 py-3.5 ring-1 ring-white/[0.05]">
+              <div className="relative overflow-hidden rounded-xl bg-zinc-950/50 px-3.5 py-3.5 ring-1 ring-white/[0.05]">
                 <div className="absolute inset-y-0 left-0 w-[2.5px] rounded-r-[2px] bg-amber-400/60" />
                 <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">Warning</p>
                 <p className="mt-2 text-2xl font-black text-white">{severityCounts.warning}</p>
               </div>
-              <div className="relative overflow-hidden rounded-xl bg-[#0c1410] px-3.5 py-3.5 ring-1 ring-white/[0.05]">
+              <div className="relative overflow-hidden rounded-xl bg-zinc-950/50 px-3.5 py-3.5 ring-1 ring-white/[0.05]">
                 <div className="absolute inset-y-0 left-0 w-[2.5px] rounded-r-[2px] bg-zinc-600/60" />
                 <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">Info</p>
                 <p className="mt-2 text-2xl font-black text-white">{severityCounts.info}</p>
@@ -82,9 +82,9 @@ export const FindingsPanel = ({ issues, strengths }: FindingsPanelProps) => {
             </div>
           </div>
 
-          <div className="rounded-[1.5rem] border border-zinc-800 bg-[#111a14] p-6">
+          <div className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.04] p-6">
             <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="h-3.5 w-3.5 text-[#2dd4bf]" />
+              <Sparkles className="h-3.5 w-3.5 text-[#d89a63]" />
               <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500">How to read this</p>
             </div>
             <p className="text-sm leading-relaxed text-zinc-300">
@@ -94,7 +94,7 @@ export const FindingsPanel = ({ issues, strengths }: FindingsPanelProps) => {
         </div>
 
         {strengths.length ? (
-          <div className="rounded-[1.5rem] border border-zinc-800 bg-[#111a14] p-6">
+          <div className="rounded-[1.5rem] border border-white/[0.09] bg-white/[0.04] p-6">
             <div className="flex items-center gap-2 mb-3">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-500/70" />
               <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500">Observed strengths</p>
@@ -103,7 +103,7 @@ export const FindingsPanel = ({ issues, strengths }: FindingsPanelProps) => {
               {strengths.slice(0, 3).map((strength) => (
                 <div
                   key={strength}
-                  className="rounded-xl border border-zinc-800 bg-[#0c1410] px-3.5 py-3 text-sm leading-relaxed text-zinc-300"
+                  className="rounded-xl border border-white/[0.08] bg-zinc-950/50 px-3.5 py-3 text-sm leading-relaxed text-zinc-300"
                 >
                   {strength}
                 </div>
@@ -113,7 +113,7 @@ export const FindingsPanel = ({ issues, strengths }: FindingsPanelProps) => {
         ) : null}
 
         {topIssues.length ? (
-          <div className="overflow-hidden rounded-[1.5rem] border border-zinc-800 bg-[#111a14]">
+          <div className="overflow-hidden rounded-[1.5rem] border border-white/[0.09] bg-white/[0.04]">
             <Accordion type="single" collapsible {...(topIssues[0] ? { defaultValue: `finding-${topIssues[0].title}` } : {})}>
               {topIssues.map((issue, index) => {
                 const accent = issueAccent[issue.severity];

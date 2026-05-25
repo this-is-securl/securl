@@ -9,8 +9,8 @@ interface HeadersTableProps {
 
 const statusStyles: Record<SecurityHeaderResult["status"], string> = {
   present: "border-white/10 bg-white/[0.08] text-zinc-100",
-  warning: "border-[#14b8a6]/35 bg-[#14b8a6]/14 text-[#99f6e4]",
-  missing: "border-[#7f1d1d]/35 bg-[#7f1d1d]/14 text-[#99f6e4]",
+  warning: "border-white/[0.10] text-zinc-300",
+  missing: "border-[#7f1d1d]/35 bg-[#7f1d1d]/14 text-zinc-300",
 };
 
 const statusIcons = {
@@ -49,7 +49,7 @@ export const HeadersTable = ({ headers }: HeadersTableProps) => {
                 </code>
                 <p className="text-xs text-zinc-400">{header.summary}</p>
                 {header.status !== "present" && (
-                  <div className="flex gap-2 rounded-xl border border-[#14b8a6]/35 bg-[#14b8a6]/12 px-3 py-2 text-xs text-[#99f6e4]">
+                  <div className="flex gap-2 rounded-xl border border-white/[0.10] px-3 py-2 text-xs text-zinc-300">
                     <Info className="mt-0.5 h-4 w-4 shrink-0" />
                     <span>{header.recommendation}</span>
                   </div>

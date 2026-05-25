@@ -9,10 +9,10 @@ interface SecurityTxtPanelProps {
 }
 
 const statusStyles: Record<SecurityTxtInfo["status"], string> = {
-  present_valid: "bg-[#14b8a6]/14 text-[#99f6e4]",
+  present_valid: "bg-zinc-700/40 text-zinc-300",
   present_expired: "bg-[#f97316]/14 text-[#fed7aa]",
   present_incomplete: "bg-[#eab308]/14 text-[#fde68a]",
-  missing: "bg-[#7f1d1d]/14 text-[#99f6e4]",
+  missing: "bg-[#7f1d1d]/14 text-zinc-300",
 };
 
 export const SecurityTxtPanel = ({ securityTxt }: SecurityTxtPanelProps) => {

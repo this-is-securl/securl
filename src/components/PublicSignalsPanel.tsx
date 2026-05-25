@@ -10,7 +10,7 @@ interface PublicSignalsPanelProps {
 const statusStyles = {
   preloaded: "bg-white/[0.08] text-zinc-100",
   pending: "bg-white/[0.08] text-zinc-100",
-  eligible: "bg-[#7f1d1d]/14 text-[#99f6e4]",
+  eligible: "bg-[#7f1d1d]/14 text-zinc-300",
   not_preloaded: "bg-white/[0.08] text-zinc-200",
   unknown: "bg-white/[0.08] text-zinc-200",
 } as const;
@@ -43,7 +43,7 @@ export const PublicSignalsPanel = ({ publicSignals }: PublicSignalsPanelProps) =
             href={publicSignals.hstsPreload.sourceUrl}
             target="_blank"
             rel="noreferrer"
-            className="mt-3 inline-flex text-sm font-medium text-[#e0b286] hover:text-[#99f6e4]"
+            className="mt-3 inline-flex text-sm font-medium text-[#e0b286] hover:text-zinc-300"
           >
             Open dataset reference
           </a>

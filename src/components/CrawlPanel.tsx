@@ -13,9 +13,9 @@ const gradeStyles: Record<string, string> = {
   "A+": "bg-white/[0.08] text-zinc-100",
   A: "bg-white/[0.08] text-zinc-100",
   B: "bg-[#4f6676]/18 text-[#d9e4ea]",
-  C: "bg-[#7f1d1d]/14 text-[#99f6e4]",
-  D: "bg-[#14b8a6]/16 text-[#99f6e4]",
-  F: "bg-[#14b8a6]/18 text-[#99f6e4]",
+  C: "bg-[#7f1d1d]/14 text-zinc-300",
+  D: "bg-zinc-700/40 text-zinc-300",
+  F: "bg-zinc-700/40 text-zinc-300",
   Redirected: "bg-white/[0.08] text-zinc-100",
 };
 
@@ -66,14 +66,14 @@ export const CrawlPanel = ({ crawl }: CrawlPanelProps) => {
         )}
 
         {crawl.inconsistentHeaders.length > 0 && (
-          <div className="rounded-[1.25rem] border border-[#14b8a6]/30 bg-[#14b8a6]/10 p-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-[#99f6e4]">
+          <div className="rounded-[1.25rem] border border-white/[0.10] p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-zinc-300">
               <GitCompareArrows className="h-4 w-4" />
               Inconsistent across routes
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               {crawl.inconsistentHeaders.map((header) => (
-                <Badge key={header} variant="secondary" className="bg-[#7f1d1d]/14 text-[#99f6e4]">
+                <Badge key={header} variant="secondary" className="bg-[#7f1d1d]/14 text-zinc-300">
                   {header}
                 </Badge>
               ))}

@@ -154,7 +154,7 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
       <Card className="rounded-[1.75rem] border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
-            <BellRing className="h-5 w-5 text-[#2dd4bf]" />
+            <BellRing className="h-5 w-5 text-[#d89a63]" />
             Monitoring
           </CardTitle>
         </CardHeader>
@@ -171,7 +171,7 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
     <Card className="rounded-[1.75rem] border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2">
-          <BellRing className="h-5 w-5 text-[#2dd4bf]" />
+          <BellRing className="h-5 w-5 text-[#d89a63]" />
           Monitoring
         </CardTitle>
       </CardHeader>
@@ -182,7 +182,7 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
               <p
                 className={`text-[11px] font-bold uppercase tracking-[0.2em] ${
                   changeLead.tone === "warning"
-                    ? "text-[#2dd4bf]"
+                    ? "text-[#d89a63]"
                     : changeLead.tone === "info"
                       ? "text-[#cdd7e6]"
                       : "text-zinc-400"
@@ -262,7 +262,7 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
             </div>
             {scoreSeries.length >= 2 ? (
               <div className="flex items-center gap-1 text-sm font-semibold text-zinc-200">
-                {trendDirection === "up" ? <TrendingUp className="h-4 w-4 text-[#2dd4bf]" /> : null}
+                {trendDirection === "up" ? <TrendingUp className="h-4 w-4 text-[#d89a63]" /> : null}
                 {trendDirection === "down" ? <TrendingDown className="h-4 w-4 text-[#c78455]" /> : null}
                 {trendDirection === "flat" ? <Minus className="h-4 w-4 text-zinc-400" /> : null}
                 <span>
@@ -283,7 +283,7 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
                 >
                   <polyline
                     fill="none"
-                    stroke={trendDirection === "down" ? "#c78455" : trendDirection === "up" ? "#2dd4bf" : "#64748b"}
+                    stroke={trendDirection === "down" ? "#f87171" : trendDirection === "up" ? "#22c55e" : "#64748b"}
                     strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
