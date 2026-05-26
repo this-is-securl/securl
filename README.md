@@ -4,6 +4,8 @@
 [![npm package](https://img.shields.io/badge/npm-package-red)](https://www.npmjs.com/package/@ktbatterham/external-posture-core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Sponsor](https://img.shields.io/badge/Sponsor-SecURL-0f766e)](https://github.com/sponsors/ktbatterham)
+[![Follow on X](https://img.shields.io/badge/X-%40ThisIsSecURL-111827)](https://x.com/ThisIsSecURL)
+[![Dev.to](https://img.shields.io/badge/Dev.to-thisissecurl-0a0a0a)](https://dev.to/thisissecurl)
 
 **Public security posture, quietly interpreted.**
 
@@ -18,6 +20,10 @@ It is built for low-noise review of headers, TLS, cookies, redirects, DNS/email 
   ·
   <a href="https://www.npmjs.com/package/@ktbatterham/external-posture-core"><strong>Use the npm package</strong></a>
   ·
+  <a href="https://x.com/ThisIsSecURL"><strong>Follow @ThisIsSecURL</strong></a>
+  ·
+  <a href="https://dev.to/thisissecurl"><strong>Read the Dev.to posts</strong></a>
+  ·
   <a href="https://github.com/sponsors/ktbatterham"><strong>Support the project</strong></a>
 </p>
 
@@ -28,6 +34,8 @@ Use the hosted scanner if you want the quickest feel for the product:
 - [securl.online](https://securl.online) — product and landing page
 - [app.securl.online](https://app.securl.online) — live scanner and report workspace
 - [`@ktbatterham/external-posture-core`](https://www.npmjs.com/package/@ktbatterham/external-posture-core) — reusable CLI and Node engine
+
+Follow product notes and practical posture write-ups at [@ThisIsSecURL on X](https://x.com/ThisIsSecURL) and [Dev.to/thisissecurl](https://dev.to/thisissecurl).
 
 Or run the engine directly:
 

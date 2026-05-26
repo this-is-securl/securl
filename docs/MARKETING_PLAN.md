@@ -68,7 +68,8 @@
 #### C. Twitter/X — automated scan results
 - **The hook:** Auto-post "we scanned the homepage of [well-known company] — their grade is X" with a screenshot of the report
 - **Cadence:** 3–4 posts/week
-- **Keith needs to:** Create a Twitter/X account for @securl_online (or use personal), connect a social scheduler (Buffer free tier is enough to start)
+- **Owned channel:** [@ThisIsSecURL](https://x.com/ThisIsSecURL)
+- **Keith needs to:** Connect @ThisIsSecURL to a social scheduler (Buffer free tier is enough to start)
 - **Claude does:** Draft all posts, suggest which companies to scan (interesting grades, notable findings)
 - **Rules:** Only scan public-facing homepages. Never name a finding as a "vulnerability." Frame as "here's what external tools see."
 
@@ -83,6 +84,7 @@
 
 #### E. Dev.to / Hashnode articles
 - **Format:** How-to articles that rank on Google
+- **Owned channel:** [dev.to/thisissecurl](https://dev.to/thisissecurl)
 - **Article ideas:**
   1. "What is a Content-Security-Policy and why does your site need one?"
   2. "DMARC explained: stop people spoofing your email domain in 20 minutes"
@@ -155,8 +157,8 @@ These are the only accounts/tools needed to execute the above:
 |---------|---------|------|-----|
 | **Lemon Squeezy** | Billing / payments | Free to set up (takes % of revenue) | lemonsqueezy.com |
 | **Buffer** | Social media scheduling | Free (3 channels, 10 posts queue) | buffer.com |
-| **Dev.to** | Article publishing | Free | dev.to |
-| **Twitter/X** | Scan result posts | Free | x.com |
+| **Dev.to** | Article publishing | Free | [dev.to/thisissecurl](https://dev.to/thisissecurl) |
+| **Twitter/X** | Scan result posts | Free | [@ThisIsSecURL](https://x.com/ThisIsSecURL) |
 | **LinkedIn** | B2B audience | Free (personal or company page) | linkedin.com |
 | **Product Hunt** | Launch | Free | producthunt.com |
 | **Hunter.io** | Agency email finding | Free (25 searches/month) | hunter.io |
@@ -206,8 +208,8 @@ These are conservative. A good HN or PH day can blow month-1 targets in a single
 ## 8. Next Actions (in order)
 
 1. **Keith:** Sign up for Lemon Squeezy and share the account so billing can be configured
-2. **Claude:** Draft the first 5 tweets + Dev.to article #1 for review
-3. **Keith:** Create Twitter/X account for @securl_online (or confirm using personal)
+2. **Claude:** Draft the first 5 @ThisIsSecURL posts + Dev.to article #1 for review
+3. **Keith:** Connect @ThisIsSecURL and Dev.to to the publishing workflow
 4. **Claude:** Draft the HN Show HN post and PH launch copy for review
-5. **Keith:** Create Buffer account, connect Twitter + LinkedIn
+5. **Keith:** Create Buffer account, connect Twitter/X + LinkedIn
 6. **Both:** Set a PH launch date (aim for a Tuesday or Wednesday, never Friday)
