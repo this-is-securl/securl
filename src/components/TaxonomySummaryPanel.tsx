@@ -41,7 +41,7 @@ const ThemeColumn = ({ title, emptyState, items }: ThemeColumnProps) => (
                   <ul className="mt-2 space-y-1 text-sm text-zinc-300">
                     {topExamples.map((example) => (
                       <li key={example} className="flex items-start gap-2">
-                        <span className="mt-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[#14b8a6]" aria-hidden="true" />
+                        <span className="mt-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-400" aria-hidden="true" />
                         <span>{example}</span>
                       </li>
                     ))}
@@ -72,7 +72,7 @@ export const TaxonomySummaryPanel = ({ analysis }: TaxonomySummaryPanelProps) =>
     <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Layers3 className="h-5 w-5 text-[#2dd4bf]" />
+          <Layers3 className="h-5 w-5 text-[#d89a63]" />
           Risk Themes
         </CardTitle>
       </CardHeader>

@@ -76,7 +76,7 @@ const HeroPreviewCard = () => (
             className="mt-0.5 inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em]"
             style={{ color: MINI_COLOR, background: `${MINI_COLOR}18`, border: `1px solid ${MINI_COLOR}30` }}
           >
-            Good Posture
+            Good posture
           </span>
         </div>
       </div>
@@ -101,7 +101,7 @@ const HeroPreviewCard = () => (
               : { background: "rgba(100,116,139,0.08)", borderColor: "rgba(100,116,139,0.20)", color: "#94a3b8" }
           }
         >
-          {sev === "warning" ? "⚠ " : "ℹ "}{label}
+          {label}
         </span>
       ))}
     </div>
@@ -195,13 +195,21 @@ const Index = () => {
   const hasHistory = recentScans.length > 0 || monitoredTargets.length > 0;
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[#040c08] text-zinc-100">
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(ellipse_90%_70%_at_18%_-5%,rgba(16,185,129,0.38),transparent_55%),radial-gradient(ellipse_50%_45%_at_88%_8%,rgba(20,184,166,0.18),transparent_52%),radial-gradient(ellipse_60%_55%_at_80%_95%,rgba(5,150,105,0.16),transparent_55%),radial-gradient(ellipse_35%_30%_at_5%_85%,rgba(52,211,153,0.09),transparent_48%),linear-gradient(180deg,#040c08_0%,#040c08_100%)]" />
+    <div className="min-h-screen overflow-hidden bg-[#070b14] text-zinc-100">
+      <div
+        className="pointer-events-none fixed inset-0 -z-10"
+        style={{
+          background:
+            "radial-gradient(circle at 18% 0%, rgba(181,106,44,0.14), transparent 34%)," +
+            "radial-gradient(circle at 82% 12%, rgba(122,166,182,0.10), transparent 30%)," +
+            "linear-gradient(180deg, #070b14 0%, #0b1220 48%, #101827 100%)",
+        }}
+      />
 
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
 
         {/* ── Hero card ─────────────────────────────────────────────────── */}
-        <section className="rounded-[2.5rem] border border-emerald-700/20 bg-[#040c08]/60 p-6 shadow-[0_48px_120px_-40px_rgba(0,0,0,0.7),0_0_0_1px_rgba(16,185,129,0.10)_inset,0_1px_0_rgba(255,255,255,0.05)_inset] backdrop-blur-md sm:p-8 lg:p-10">
+        <section className="rounded-[2.5rem] border border-white/[0.09] bg-white/[0.04] p-6 shadow-[0_48px_120px_-40px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.05)_inset] backdrop-blur-md sm:p-8 lg:p-10">
           <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1.3fr_0.7fr] lg:items-start">
 
             {/* Left: headline + form */}
@@ -212,7 +220,7 @@ const Index = () => {
                     href="https://securl.online"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-full border border-[#14b8a6]/25 bg-[#14b8a6]/12 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[#99f6e4] transition-colors hover:bg-[#14b8a6]/20"
+                    className="inline-flex items-center gap-2 rounded-full border border-[#b56a2c]/30 bg-[#b56a2c]/[0.12] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[#f0d5bc] transition-colors hover:bg-[#b56a2c]/20"
                   >
                     <Sparkles className="h-3.5 w-3.5" />
                     SecURL
@@ -231,7 +239,7 @@ const Index = () => {
                   </h1>
                   <p className="max-w-lg text-lg font-semibold leading-8 text-zinc-200">
                     Paste a URL. Get a letter grade, ranked findings, and a clear path to fix —
-                    <span className="text-[#2dd4bf]"> in under 30 seconds.</span>
+                    <span className="text-[#d89a63]"> in under 30 seconds.</span>
                   </p>
                 </div>
               </div>
@@ -248,7 +256,7 @@ const Index = () => {
             {analysisData ? (
               <div className="h-full rounded-[1.8rem] border border-white/10 bg-zinc-950/35 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
                 <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-zinc-200">
-                  <Clock3 className="h-4 w-4 text-[#2dd4bf]" />
+                  <Clock3 className="h-4 w-4 text-[#d89a63]" />
                   Recent scans
                 </div>
                 <div className="flex flex-col gap-3">
@@ -260,8 +268,8 @@ const Index = () => {
                       disabled={isLoading}
                       className={`rounded-[1.2rem] border px-4 py-3 text-left shadow-sm transition duration-300 ${
                         activeRecentScanUrl === (scan.id ?? scan.url)
-                          ? "border-[#14b8a6]/45 bg-[#14b8a6]/12 shadow-[0_18px_36px_-28px_rgba(20,184,166,0.5)]"
-                          : "border-white/10 bg-zinc-950/45 hover:-translate-y-0.5 hover:border-[#14b8a6]/25 hover:bg-white/[0.08]"
+                          ? "border-[#b56a2c]/45 bg-[#b56a2c]/[0.12] shadow-[0_18px_36px_-28px_rgba(181,106,44,0.35)]"
+                          : "border-white/10 bg-zinc-950/45 hover:-translate-y-0.5 hover:border-[#b56a2c]/25 hover:bg-white/[0.08]"
                       } ${isLoading ? "cursor-wait" : ""}`}
                     >
                       <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
@@ -270,7 +278,7 @@ const Index = () => {
                           className="text-sm font-bold uppercase tracking-[0.14em]"
                           style={{
                             color: activeRecentScanUrl === (scan.id ?? scan.url)
-                              ? "#99f6e4"
+                              ? "#f0d5bc"
                               : (GRADE_PALETTE[scan.grade ?? "U"] ?? GRADE_PALETTE.U).textColor,
                           }}
                         >
@@ -299,7 +307,7 @@ const Index = () => {
         {analysisData && (
           <section className="mt-10 space-y-6">
             <div className="flex items-center gap-2.5 px-1">
-              <Layers3 className="h-4 w-4 text-[#2dd4bf]" />
+              <Layers3 className="h-4 w-4 text-[#d89a63]" />
               <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">
                 Report workspace
               </span>
@@ -315,7 +323,7 @@ const Index = () => {
                         navigator.clipboard.writeText(`${window.location.origin}/report/${currentScanId}`);
                         toast.success("Link copied to clipboard");
                       }}
-                      className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-semibold text-zinc-400 transition hover:border-[#14b8a6]/30 hover:bg-[#14b8a6]/10 hover:text-[#2dd4bf]"
+                      className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-semibold text-zinc-400 transition hover:border-[#b56a2c]/30 hover:bg-[#b56a2c]/10 hover:text-[#d89a63]"
                       title="Copy shareable link"
                     >
                       <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -335,12 +343,12 @@ const Index = () => {
               {activeSection ? (
                 <div
                   key={activeSection.key}
-                  className="min-w-0 overflow-hidden rounded-[2rem] border border-zinc-800 bg-[#111a14] shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset] animate-in fade-in-50 slide-in-from-bottom-2 duration-500"
+                  className="min-w-0 overflow-hidden rounded-[2rem] border border-white/[0.09] bg-white/[0.04] shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset] animate-in fade-in-50 slide-in-from-bottom-2 duration-500"
                 >
-                  <div className="border-b border-zinc-800 px-4 py-6 sm:px-10 sm:py-8">
+                  <div className="border-b border-white/[0.08] px-4 py-6 sm:px-10 sm:py-8">
                     <div className="flex items-center gap-2.5">
                       {activeSection.icon && (
-                        <activeSection.icon className="h-3.5 w-3.5 text-[#2dd4bf]" />
+                        <activeSection.icon className="h-3.5 w-3.5 text-[#d89a63]" />
                       )}
                       {(activeSection.badge ?? activeSection.context) ? (
                         <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500">
@@ -371,7 +379,7 @@ const Index = () => {
             {/* 1 — Output preview */}
             <section>
               <div className="mb-6 text-center">
-                <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.22em] text-[#2dd4bf]/70">
+                <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.22em] text-[#d89a63]">
                   What you get
                 </p>
                 <h2 className="text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl">
@@ -393,7 +401,7 @@ const Index = () => {
               <h2 className="text-3xl font-black tracking-[-0.05em] text-white sm:text-4xl lg:text-[3.25rem] lg:leading-[1.1]">
                 Security tools give you data.
                 <br />
-                <span className="text-[#2dd4bf]">SecURL gives you a read.</span>
+                <span className="text-[#d89a63]">SecURL gives you a read.</span>
               </h2>
               <p className="mx-auto mt-5 max-w-lg text-base font-medium leading-7 text-zinc-300">
                 No agents. No configuration. No credentials. Just how your site looks to an informed
@@ -418,7 +426,7 @@ const Index = () => {
             {/* 3 — Capability strip */}
             <section>
               <div className="mb-6">
-                <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#2dd4bf]/70">
+                <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#d89a63]">
                   What it checks
                 </p>
                 <h2 className="text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl">
@@ -447,7 +455,7 @@ const Index = () => {
                 {/* Left: recent scans + monitoring */}
                 <div className="rounded-[1.7rem] border border-white/10 bg-white/[0.04] p-4 sm:p-5">
                   {!isAuthenticated ? (
-                    <div className="mb-4 rounded-[1.25rem] border border-[#14b8a6]/25 bg-[#14b8a6]/10 px-4 py-3 text-sm leading-6 text-[#99f6e4]">
+                    <div className="mb-4 rounded-[1.25rem] border border-[#b56a2c]/25 bg-[#b56a2c]/[0.08] px-4 py-3 text-sm leading-6 text-[#f0d5bc]">
                       Signed-out mode keeps recent scans and monitoring in this browser only.
                     </div>
                   ) : (
@@ -462,7 +470,7 @@ const Index = () => {
                       {recentScans.length > 0 && (
                         <div className="space-y-3">
                           <div className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
-                            <Clock3 className="h-4 w-4 text-[#2dd4bf]" />
+                            <Clock3 className="h-4 w-4 text-[#d89a63]" />
                             Recent scans
                           </div>
                           <div className="flex flex-col gap-2">
@@ -474,8 +482,8 @@ const Index = () => {
                                 disabled={isLoading}
                                 className={`rounded-[1.2rem] border px-4 py-3 text-left shadow-sm transition duration-300 ${
                                   activeRecentScanUrl === (scan.id ?? scan.url)
-                                    ? "border-[#14b8a6]/45 bg-[#14b8a6]/12"
-                                    : "border-white/10 bg-zinc-950/45 hover:border-[#14b8a6]/25 hover:bg-white/[0.08]"
+                                    ? "border-[#b56a2c]/45 bg-[#b56a2c]/[0.12]"
+                                    : "border-white/10 bg-zinc-950/45 hover:border-[#b56a2c]/25 hover:bg-white/[0.08]"
                                 } ${isLoading ? "cursor-wait" : ""}`}
                               >
                                 <div className="flex items-center justify-between gap-3">
@@ -515,7 +523,7 @@ const Index = () => {
                     </div>
                   ) : (
                     <div className="flex items-start gap-3">
-                      <Activity className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#2dd4bf]" />
+                      <Activity className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#d89a63]" />
                       <div>
                         <p className="text-sm font-semibold text-zinc-200">Monitoring & drift tracking</p>
                         <p className="mt-1 text-xs leading-5 text-zinc-400">

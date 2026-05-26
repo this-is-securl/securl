@@ -93,7 +93,7 @@ export const AuthCard = ({
     <div className="h-full rounded-[1.8rem] border border-white/10 bg-zinc-950/35 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">Account</p>
-        <KeyRound className="h-5 w-5 text-[#2dd4bf]" />
+        <KeyRound className="h-5 w-5 text-[#d89a63]" />
       </div>
       <div className="space-y-4">
         <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.04] px-4 py-4 text-sm leading-6 text-zinc-300">
@@ -131,7 +131,7 @@ export const AuthCard = ({
         </div>
         <Button
           type="button"
-          className="w-full bg-[#14b8a6] text-white hover:bg-[#c2783d]"
+          className="w-full bg-[#b56a2c] text-white hover:bg-[#9d5a23]"
           onClick={() => void handleSubmit()}
           disabled={isSubmitting || isLoading || !email || !password}
         >

@@ -143,7 +143,7 @@ export const PassiveIntelligencePanel = ({ passiveIntelligence }: PassiveIntelli
               return (
                 <div
                   key={`${signal.category}-${signal.title}-${index}`}
-                  className="rounded-[1.35rem] border border-white/10 bg-[#111a14] px-4 py-4"
+                  className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] px-4 py-4"
                 >
                   <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">

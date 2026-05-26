@@ -67,10 +67,10 @@ export const CookieAnalysisPanel = ({ cookieAnalysis }: CookieAnalysisPanelProps
                   >
                     <p className="font-semibold text-zinc-50 break-all">
                       {cookie.hasHostPrefix && (
-                        <span className="mr-1 text-xs font-bold text-[#2dd4bf]">__Host-</span>
+                        <span className="mr-1 text-xs font-bold text-[#d89a63]">__Host-</span>
                       )}
                       {cookie.hasSecurePrefix && !cookie.hasHostPrefix && (
-                        <span className="mr-1 text-xs font-bold text-[#2dd4bf]">__Secure-</span>
+                        <span className="mr-1 text-xs font-bold text-[#d89a63]">__Secure-</span>
                       )}
                       {cookie.name}
                     </p>

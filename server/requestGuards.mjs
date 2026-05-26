@@ -28,12 +28,26 @@ function shouldTrustForwardedHeaders(request, { isLocalHostname, isPrivateAddres
   return false;
 }
 
+function getForwardedClientIp(request) {
+  const forwarded = request.headers["x-forwarded-for"];
+  const raw = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+  if (typeof raw !== "string" || !raw.trim()) {
+    return "";
+  }
+
+  const candidates = raw
+    .split(",")
+    .map((candidate) => candidate.trim())
+    .filter((candidate) => net.isIP(candidate) !== 0);
+
+  return candidates.at(-1) || "";
+}
+
 export function getClientIp(request, { trustProxy, isLocalHostname, isPrivateAddress }) {
   if (trustProxy && shouldTrustForwardedHeaders(request, { isLocalHostname, isPrivateAddress })) {
-    const forwarded = request.headers["x-forwarded-for"];
-    const candidate = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-    if (typeof candidate === "string" && candidate.trim()) {
-      return candidate.split(",")[0].trim();
+    const forwardedClientIp = getForwardedClientIp(request);
+    if (forwardedClientIp) {
+      return forwardedClientIp;
     }
   }
 

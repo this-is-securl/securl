@@ -53,6 +53,15 @@ Examples:
   npx @ktbatterham/external-posture-core scan example.com github.com --fail-if-score-below 75
   npx @ktbatterham/external-posture-core compare current-report.json baseline-report.json
   npx @ktbatterham/external-posture-core compare current-report.json baseline-report.json --format sarif --fail-on critical
+
+Scan modes:
+  default scan   Fetches the primary response plus bounded passive enrichment: HTML, DNS/mail, CT, OSV, exposure, CORS, API-surface, and public trust signals.
+  --quiet        Keeps primary response, TLS, headers, cookies, redirects, DNS/mail, CT summary, infrastructure, and public trust checks; skips page-body analysis, related-page crawl, security.txt fetch, identity discovery, exposure probes, CORS probes, API probes, OSV lookups, and CT host sampling.
+
+CI policy modes:
+  --fail-on warning          Fail when findings at or above the selected severity are present.
+  --fail-on-regression       Fail when a baseline comparison finds score, issue, or status regressions.
+  --fail-if-score-below 75   Fail when any scanned target falls below the selected score.
 `;
 
 process.once("SIGINT", () => {

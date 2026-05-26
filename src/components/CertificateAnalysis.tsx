@@ -19,7 +19,7 @@ export const CertificateAnalysis = ({ certInfo }: CertificateAnalysisProps) => {
       </CardHeader>
       <CardContent className="space-y-4">
         {!certInfo.available ? (
-          <Alert className="border-[#14b8a6]/35 bg-[#3a2a20] text-[#ccfbf1] [&>svg]:text-[#2dd4bf]">
+          <Alert className="border-amber-500/25 bg-amber-500/[0.08] text-amber-100 [&>svg]:text-[#d89a63]">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>{certInfo.issues[0]}</AlertDescription>
           </Alert>
@@ -72,7 +72,7 @@ export const CertificateAnalysis = ({ certInfo }: CertificateAnalysisProps) => {
             </div>
 
             {certInfo.issues.map((issue) => (
-              <Alert key={issue} className="border-[#14b8a6]/35 bg-[#3a2a20] text-[#ccfbf1] [&>svg]:text-[#2dd4bf]">
+              <Alert key={issue} className="border-amber-500/25 bg-amber-500/[0.08] text-amber-100 [&>svg]:text-[#d89a63]">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>{issue}</AlertDescription>
               </Alert>

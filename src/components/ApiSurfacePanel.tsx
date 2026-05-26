@@ -11,11 +11,11 @@ interface ApiSurfacePanelProps {
 
 const styles = {
   absent: "bg-white/[0.08] text-zinc-200",
-  public: "bg-[#14b8a6]/18 text-[#99f6e4]",
+  public: "bg-zinc-700/40 text-zinc-300",
   restricted: "bg-white/[0.08] text-zinc-100",
-  interesting: "bg-[#7f1d1d]/14 text-[#99f6e4]",
+  interesting: "bg-[#7f1d1d]/14 text-zinc-300",
   fallback: "bg-white/[0.08] text-zinc-100",
-  error: "bg-[#14b8a6]/18 text-[#99f6e4]",
+  error: "bg-zinc-700/40 text-zinc-300",
 } as const;
 
 export const ApiSurfacePanel = ({ apiSurface }: ApiSurfacePanelProps) => {

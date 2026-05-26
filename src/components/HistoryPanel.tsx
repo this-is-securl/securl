@@ -34,8 +34,8 @@ const getTrendState = (delta: number) => {
     return {
       label: "Improving",
       icon: TrendingUp,
-      iconClassName: "text-[#2dd4bf]",
-      stroke: "#2dd4bf",
+      iconClassName: "text-[#22c55e]",
+      stroke: "#22c55e",
       detail: "Scores have moved upward across saved scans.",
     };
   }
@@ -44,8 +44,8 @@ const getTrendState = (delta: number) => {
     return {
       label: "Degrading",
       icon: TrendingDown,
-      iconClassName: "text-[#2dd4bf]",
-      stroke: "#c78455",
+      iconClassName: "text-rose-400",
+      stroke: "#f87171",
       detail: "Recent saved scans have trended weaker.",
     };
   }
@@ -111,7 +111,7 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
       <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <History className="h-5 w-5 text-[#2dd4bf]" />
+            <History className="h-5 w-5 text-[#d89a63]" />
             Scan History
           </CardTitle>
         </CardHeader>
@@ -222,7 +222,7 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
     <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <History className="h-5 w-5 text-[#2dd4bf]" />
+          <History className="h-5 w-5 text-[#d89a63]" />
           Scan History
         </CardTitle>
       </CardHeader>
@@ -230,7 +230,7 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
         <div className="rounded-[1.35rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(15,23,42,0.35))] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="max-w-2xl">
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#2dd4bf]">{lead.eyebrow}</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#d89a63]">{lead.eyebrow}</p>
               <p className="mt-2 text-lg font-semibold text-zinc-50">{lead.title}</p>
               <p className="mt-2 text-sm leading-6 text-zinc-300">{lead.detail}</p>
             </div>
@@ -304,7 +304,7 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
                   <div key={point.id} className="rounded-xl border border-white/10 bg-white/[0.03] px-2 py-2 text-center">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">{point.label}</p>
                     <p className="mt-1 text-sm font-semibold text-zinc-100">{point.score}</p>
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-[#2dd4bf]">{point.grade}</p>
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-400">{point.grade}</p>
                   </div>
                 ))}
               </div>
@@ -352,7 +352,7 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
               <div className="mt-3">
                 <div className="h-2 overflow-hidden rounded-full bg-white/10">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-[#7f1d1d] via-[#14b8a6] to-[#2dd4bf] transition-all duration-700"
+                    className="h-full rounded-full bg-gradient-to-r from-[#7f1d1d] via-amber-500/70 to-[#22c55e] transition-all duration-700"
                     style={{ width: `${Math.max(6, Math.min(snapshot.score, 100))}%` }}
                   />
                 </div>

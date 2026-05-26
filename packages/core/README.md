@@ -42,7 +42,7 @@ Prefer the hosted report workspace? Use [app.securl.online](https://app.securl.o
 - npm publishing from GitHub Actions with provenance enabled
 - CI checks covering audit, build, lint, tests, and dry-run packaging
 - no install scripts
-- one runtime dependency (`cheerio`)
+- one runtime dependency (`node-html-parser`)
 - published MIT license, changelog, release notes, and security policy
 
 Security disclosure guidance:
@@ -121,6 +121,16 @@ npx @ktbatterham/external-posture-core scan example.com --format ci-json
 ```
 
 The CLI writes machine-readable report output to stdout, and lightweight multi-target progress to stderr only when running interactively. This keeps JSON/SARIF output pipe-friendly.
+
+Scan modes:
+
+```bash
+npx @ktbatterham/external-posture-core scan example.com
+npx @ktbatterham/external-posture-core scan example.com --quiet
+```
+
+- default scan: primary response plus bounded passive enrichment, including HTML, DNS/mail, Certificate Transparency, OSV, exposure, CORS, API-surface, and public trust signals.
+- `--quiet`: keeps primary response, TLS, headers, cookies, redirects, DNS/mail, Certificate Transparency summary, infrastructure, and public trust checks; skips page-body analysis, related-page crawl, security.txt fetch, identity discovery, exposure probes, CORS probes, API probes, OSV lookups, and CT host sampling. Use this for lower-noise CI smoke checks or frequent regression monitoring.
 
 CI policy modes:
 
@@ -203,6 +213,8 @@ console.log(result.score, result.grade);
 
 `analyzeTarget` remains available as a compatibility alias, but `analyzeUrl` is the primary public entrypoint.
 
+`analyzeUrl("https://example.com", { scanMode: "quiet" })` uses the same quiet boundary as CLI `--quiet`.
+
 When a baseline report is supplied to the CLI, summary and Markdown output append a `Changes Since Baseline` section. JSON output returns:
 
 ```json
@@ -227,5 +239,6 @@ console.log(htmlSecurity.clientExposureSignals);
 
 - Only use this against targets you are authorized to assess.
 - The package is intentionally conservative about active probing.
+- Default scans perform bounded passive enrichment; quiet scans skip page-body and probe-heavy enrichment to keep request volume lower.
 - Scoring is heuristic and should be treated as a prioritization aid, not an absolute security truth.
 - The author is not responsible for misuse, unauthorized scanning, operational impact, or decisions made from the output without appropriate validation.

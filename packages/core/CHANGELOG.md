@@ -6,6 +6,14 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+### Added
+- Added score driver metadata to analysis results so callers can explain the largest score deductions and limited-assessment caps.
+- Added deterministic scoring calibration profiles and passive signature registry tests to protect launch-facing grade expectations.
+
+### Changed
+- Documented default versus quiet scan boundaries and CI policy modes more explicitly in CLI help and the package README.
+- Hardened public-target validation coverage for normalized private IP literal forms, including IPv6-mapped loopback redirects.
+
 ## [0.11.2] - 2026-05-24
 
 ### Changed

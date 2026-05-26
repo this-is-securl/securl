@@ -1,4 +1,4 @@
-import type { AnalysisResult, CertificateResult, CookieResult, RedirectHop, SecurityHeaderResult } from "./types.js";
+import type { AnalysisResult, CertificateResult, CookieResult, RedirectHop, ScoreDriver, SecurityHeaderResult } from "./types.js";
 
 export type PostureAreaKey = "edge" | "content" | "domain" | "exposure" | "api" | "trust" | "ai";
 
@@ -107,6 +107,38 @@ const statusForScore = (score: number): PostureAreaScore["status"] => {
   if (score >= 85) return "strong";
   if (score >= 65) return "watch";
   return "weak";
+};
+
+const AREA_LABELS: Record<PostureAreaKey | "overall", string> = {
+  edge: "Edge Security",
+  content: "Content Security",
+  domain: "Domain & Trust",
+  exposure: "Exposure Control",
+  api: "API Surface",
+  trust: "Third-Party Trust",
+  ai: "AI & Automation",
+  overall: "Overall posture",
+};
+
+const scoreDriver = (
+  areaKey: ScoreDriver["areaKey"],
+  impact: number,
+  label: string,
+  detail: string,
+  source: ScoreDriver["source"],
+): ScoreDriver | null => {
+  if (impact <= 0) {
+    return null;
+  }
+
+  return {
+    areaKey,
+    areaLabel: AREA_LABELS[areaKey],
+    impact,
+    label,
+    detail,
+    source,
+  };
 };
 
 export function gradeForScore(score: number): string {
@@ -292,7 +324,66 @@ export function getPostureAreaScores(analysis: PostureScoringInput): PostureArea
   }));
 }
 
-export function scorePostureAnalysis(analysis: PostureScoringInput): { score: number; grade: string } {
+export function getPostureScoreDrivers(analysis: PostureScoringInput): ScoreDriver[] {
+  const hostedPlatformTarget = isHostedPlatformTarget(analysis);
+  const cspHeaderFindings = analysis.headers.filter(
+    (header) => header.key === "content-security-policy" && header.status !== "present",
+  );
+  const edgeHeaderFindings = analysis.headers.filter(
+    (header) => header.key !== "content-security-policy" && header.status !== "present",
+  );
+  const missingHeaderCount = edgeHeaderFindings.filter((header) => header.status === "missing").length;
+  const warningHeaderCount = edgeHeaderFindings.filter((header) => header.status === "warning").length;
+  const cookieIssueCount = analysis.cookies.reduce((count, cookie) => count + cookie.issues.length, 0);
+  const redirectPenalty = analysis.redirects.length > 1 ? Math.max(analysis.redirects.length - 1, 0) * 2 : 0;
+  const availabilityPenalty = statusAvailabilityPenalty(analysis.statusCode);
+  const transportPenalty = new URL(analysis.finalUrl).protocol === "https:" ? 0 : 35;
+  const certificatePenalty =
+    analysis.certificate.available && !analysis.certificate.valid
+      ? 25
+      : analysis.certificate.protocol && /tlsv1(\.0|\.1)?$/i.test(analysis.certificate.protocol)
+        ? 15
+        : (analysis.certificate.daysRemaining ?? 365) <= 14
+          ? 10
+          : 0;
+  const domainPenaltyRaw =
+    analysis.domainSecurity.issues.length * 8 +
+    analysis.securityTxt.issues.length * 5 +
+    analysis.publicSignals.issues.length * 4;
+  const domainPenalty = hostedPlatformTarget ? Math.min(domainPenaltyRaw, 30) : domainPenaltyRaw;
+  const highRiskThirdPartyPenalty = analysis.thirdPartyTrust.highRiskProviders * 10;
+  const thirdPartyIssuePenalty = analysis.thirdPartyTrust.issues.length * 6;
+  const absentAiPenalty = !analysis.aiSurface.detected ? AI_NEUTRAL_NO_SURFACE_PENALTY : 0;
+  const missingAiDisclosurePenalty = analysis.aiSurface.detected && !analysis.aiSurface.disclosures.length ? 8 : 0;
+
+  return [
+    scoreDriver("edge", transportPenalty, "Plain HTTP final URL", "The final URL did not use HTTPS, which heavily reduces edge-security confidence.", "tls"),
+    scoreDriver("edge", certificatePenalty, "TLS certificate or protocol issue", "The observed TLS posture was invalid, outdated, or close to expiry.", "tls"),
+    scoreDriver("edge", missingHeaderCount * 8, "Missing edge headers", `${missingHeaderCount} non-CSP browser-facing protection${missingHeaderCount === 1 ? " is" : "s are"} missing.`, "headers"),
+    scoreDriver("edge", warningHeaderCount * 4, "Weak edge header values", `${warningHeaderCount} non-CSP browser-facing protection${warningHeaderCount === 1 ? " has" : "s have"} warning-level configuration.`, "headers"),
+    scoreDriver("edge", analysis.corsSecurity.issues.length * 8, "CORS configuration findings", `${analysis.corsSecurity.issues.length} CORS finding${analysis.corsSecurity.issues.length === 1 ? "" : "s"} reduced edge confidence.`, "headers"),
+    scoreDriver("edge", availabilityPenalty, "Availability status penalty", `The target returned HTTP ${analysis.statusCode}, limiting confidence in the observed posture.`, "availability"),
+    scoreDriver("edge", redirectPenalty, "Redirect chain penalty", `The scan followed ${analysis.redirects.length - 1} redirect${analysis.redirects.length === 2 ? "" : "s"} before the final response.`, "headers"),
+    scoreDriver("content", cspHeaderFindings.length * 18, "Content-Security-Policy gap", "CSP is missing or weak, which is the largest content-security driver.", "headers"),
+    scoreDriver("content", analysis.htmlSecurity.issues.length * 10, "HTML security findings", `${analysis.htmlSecurity.issues.length} fetched-page finding${analysis.htmlSecurity.issues.length === 1 ? "" : "s"} affected content-security confidence.`, "html"),
+    scoreDriver("content", cookieIssueCount * 6, "Cookie attribute findings", `${cookieIssueCount} cookie attribute finding${cookieIssueCount === 1 ? "" : "s"} affected content-security confidence.`, "cookies"),
+    scoreDriver("domain", domainPenalty, "Domain and public-trust findings", `${analysis.domainSecurity.issues.length + analysis.securityTxt.issues.length + analysis.publicSignals.issues.length} domain, disclosure, or public-trust signal${analysis.domainSecurity.issues.length + analysis.securityTxt.issues.length + analysis.publicSignals.issues.length === 1 ? "" : "s"} reduced trust confidence${hostedPlatformTarget && domainPenaltyRaw > domainPenalty ? " after hosted-platform softening" : ""}.`, "dns"),
+    scoreDriver("exposure", analysis.exposure.issues.length * 20, "Exposed sensitive path findings", `${analysis.exposure.issues.length} exposure finding${analysis.exposure.issues.length === 1 ? "" : "s"} had high score impact.`, "public_record"),
+    scoreDriver("exposure", analysis.exposure.probes.filter((probe) => probe.finding === "interesting").length * 4, "Interesting exposure probes", "Public discovery or sensitive-looking paths produced review-worthy responses.", "public_record"),
+    scoreDriver("api", analysis.apiSurface.issues.length * 15, "API surface findings", `${analysis.apiSurface.issues.length} API surface finding${analysis.apiSurface.issues.length === 1 ? "" : "s"} reduced API confidence.`, "public_record"),
+    scoreDriver("api", analysis.apiSurface.probes.filter((probe) => probe.classification === "interesting").length * 4, "Interesting API probes", "API-like paths produced review-worthy responses.", "public_record"),
+    scoreDriver("trust", highRiskThirdPartyPenalty, "High-risk third-party providers", `${analysis.thirdPartyTrust.highRiskProviders} higher-risk third-party integration${analysis.thirdPartyTrust.highRiskProviders === 1 ? "" : "s"} affected trust confidence.`, "third_party"),
+    scoreDriver("trust", thirdPartyIssuePenalty, "Third-party trust findings", `${analysis.thirdPartyTrust.issues.length} third-party trust finding${analysis.thirdPartyTrust.issues.length === 1 ? "" : "s"} affected trust confidence.`, "third_party"),
+    scoreDriver("ai", absentAiPenalty, "No visible AI surface", "No public AI or automation surface was detected; this is scored as strong-neutral rather than perfect assurance.", "ai"),
+    scoreDriver("ai", analysis.aiSurface.issues.length * 12, "AI and automation findings", `${analysis.aiSurface.issues.length} AI or automation finding${analysis.aiSurface.issues.length === 1 ? "" : "s"} reduced confidence.`, "ai"),
+    scoreDriver("ai", missingAiDisclosurePenalty, "AI disclosure gap", "AI or automation signals were detected without obvious disclosure language.", "ai"),
+  ]
+    .filter((driver): driver is ScoreDriver => Boolean(driver))
+    .sort((left, right) => right.impact - left.impact)
+    .slice(0, 8);
+}
+
+export function scorePostureAnalysis(analysis: PostureScoringInput): { score: number; grade: string; scoreDrivers: ScoreDriver[] } {
   const areaScores = getPostureAreaScores(analysis);
   const weakAreaCount = areaScores.filter((area) => area.score < 65).length;
   const watchAreaCount = areaScores.filter((area) => area.score >= 65 && area.score < 85).length;
@@ -304,7 +395,32 @@ export function scorePostureAnalysis(analysis: PostureScoringInput): { score: nu
   const score = analysis.assessmentLimitation.limited
     ? Math.min(adjustedScore, limitedAssessmentScoreCap(analysis.assessmentLimitation.kind))
     : adjustedScore;
-  return { score, grade: gradeForPostureScore(score, analysis.assessmentLimitation) };
+  const drivers = getPostureScoreDrivers(analysis);
+  const breadthDriver = scoreDriver(
+    "overall",
+    breadthPenalty,
+    "Multiple weak or watch areas",
+    "The final score includes a breadth penalty because findings are spread across several posture areas.",
+    "breadth",
+  );
+  const limitedDriver = analysis.assessmentLimitation.limited
+    ? scoreDriver(
+        "overall",
+        Math.max(1, adjustedScore - score),
+        "Limited assessment score cap",
+        "The target could not be assessed cleanly, so the score is capped and the grade is marked unscored.",
+        "assessment_limit",
+      )
+    : null;
+
+  return {
+    score,
+    grade: gradeForPostureScore(score, analysis.assessmentLimitation),
+    scoreDrivers: [...drivers, breadthDriver, limitedDriver]
+      .filter((driver): driver is ScoreDriver => Boolean(driver))
+      .sort((left, right) => right.impact - left.impact)
+      .slice(0, 8),
+  };
 }
 
 export function summarizePostureGrade(grade: string): string {

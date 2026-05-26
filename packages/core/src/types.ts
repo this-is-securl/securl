@@ -569,6 +569,15 @@ export interface ExecutiveSummaryInfo {
   takeaways: string[];
 }
 
+export interface ScoreDriver {
+  areaKey: "edge" | "content" | "domain" | "exposure" | "api" | "trust" | "ai" | "overall";
+  areaLabel: string;
+  impact: number;
+  label: string;
+  detail: string;
+  source: "headers" | "tls" | "cookies" | "dns" | "html" | "public_record" | "third_party" | "ai" | "availability" | "breadth" | "assessment_limit";
+}
+
 export interface AssessmentLimitation {
   limited: boolean;
   kind: "blocked_edge_response" | "auth_required" | "rate_limited" | "service_unavailable" | "other" | null;
@@ -670,6 +679,7 @@ export interface AnalysisResult {
   infrastructure: InfrastructureInfo;
   passiveIntelligence: PassiveIntelligenceInfo;
   executiveSummary: ExecutiveSummaryInfo;
+  scoreDrivers?: ScoreDriver[];
   assessmentLimitation: AssessmentLimitation;
   exposure: ExposureSummary;
   corsSecurity: CorsSecurityInfo;

@@ -1365,6 +1365,32 @@ test("trusted proxy mode uses forwarded headers for client attribution", async (
   }
 });
 
+test("trusted proxy mode uses the last valid forwarded IP for client attribution", async () => {
+  const server = await startServer({
+    TRUST_PROXY: "true",
+  });
+
+  try {
+    let limitedResponse = null;
+    for (let index = 0; index < 31; index += 1) {
+      const response = await postScan(server.baseUrl, `https://localhost-${index}.example.com`, {
+        headers: {
+          "X-Forwarded-For": `198.51.100.${index}, not-an-ip, 203.0.113.10`,
+        },
+      });
+      if (response.status === 429) {
+        limitedResponse = response;
+        break;
+      }
+    }
+
+    assert.ok(limitedResponse, "Expected the appended forwarded IP to be used for rate limiting.");
+    assert.equal(limitedResponse.status, 429);
+  } finally {
+    await server.stop();
+  }
+});
+
 test("rate limiting supports environment overrides", async () => {
   const server = await startServer({
     RATE_LIMIT_WINDOW_MS: "2000",
