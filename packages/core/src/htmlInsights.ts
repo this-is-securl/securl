@@ -61,6 +61,49 @@ const addDetectedTechnology = (
   });
 };
 
+interface AiVendorMatcher {
+  name: string;
+  pattern: RegExp;
+  evidence: string;
+  category: AiSurfaceInfo["vendors"][number]["category"];
+  confidence: IssueConfidence;
+}
+
+export const AI_VENDOR_MATCHERS: AiVendorMatcher[] = [
+  { name: "Intercom Fin", pattern: /intercom.*fin|fin ai|intercom/i, evidence: "Detected from Intercom-related assets or markup", category: "support_automation", confidence: "medium" },
+  { name: "Drift", pattern: /drift\.com|driftt/i, evidence: "Detected from Drift assets or widget markup", category: "support_automation", confidence: "high" },
+  { name: "Zendesk AI", pattern: /zendesk|zopim/i, evidence: "Detected from Zendesk widget assets or markup", category: "support_automation", confidence: "medium" },
+  { name: "HubSpot Chat", pattern: /hubspot|hs-scripts/i, evidence: "Detected from HubSpot assets or chat markup", category: "support_automation", confidence: "medium" },
+  { name: "Salesforce Einstein", pattern: /einstein|salesforce ai/i, evidence: "Detected from Salesforce or Einstein signals", category: "ai_vendor", confidence: "medium" },
+  { name: "Crisp", pattern: /\$crisp|crisp\.chat|client\.crisp|go\.crisp|crisp-im/i, evidence: "Detected from Crisp widget assets or markup", category: "support_automation", confidence: "high" },
+  { name: "Freshchat", pattern: /freshchat|freshworks/i, evidence: "Detected from Freshchat assets or markup", category: "support_automation", confidence: "high" },
+  { name: "OpenAI", pattern: /openai/i, evidence: "Detected from OpenAI-related assets or markup", category: "ai_vendor", confidence: "high" },
+  { name: "Anthropic", pattern: /anthropic|claude/i, evidence: "Detected from Anthropic-related assets or markup", category: "ai_vendor", confidence: "high" },
+  { name: "Google Gemini", pattern: /gemini|generativelanguage|vertex ai/i, evidence: "Detected from Google AI-related assets or markup", category: "ai_vendor", confidence: "medium" },
+  { name: "Microsoft Copilot", pattern: /\bmicrosoft copilot\b|copilot for|copilot studio|copilot.microsoft/i, evidence: "Detected from Copilot-specific assets or markup", category: "assistant_ui", confidence: "medium" },
+];
+
+interface ThirdPartyProviderMatcher {
+  pattern: RegExp;
+  name: string;
+  category: ThirdPartyProvider["category"];
+  risk: ThirdPartyProvider["risk"];
+  evidence: string;
+}
+
+export const THIRD_PARTY_PROVIDER_MATCHERS: ThirdPartyProviderMatcher[] = [
+  { pattern: /(google-analytics|googletagmanager|doubleclick|omtrdc|adobedtm|adobedc|analytics|plausible|matomo|segment|mixpanel|amplitude|heapanalytics|pendo|clarity\.ms|newrelic|nr-data|datadog)/, name: "Analytics / Telemetry", category: "analytics", risk: "medium", evidence: "Detected from third-party analytics, telemetry, or tag-management assets" },
+  { pattern: /(onetrust|cookiebot|usercentrics)/, name: "Consent Management", category: "consent", risk: "low", evidence: "Detected from consent-management assets" },
+  { pattern: /(intercom|drift|zendesk|zopim|hubspot|freshchat|crisp|sprinklr)/, name: "Support / Chat", category: "support", risk: "medium", evidence: "Detected from public support or chat tooling" },
+  { pattern: /(openai|anthropic|gemini|vertex|copilot|wizdom\.ai)/, name: "AI / Assistant Vendor", category: "ai", risk: "high", evidence: "Detected from AI-related scripts, assets, or public assistant tooling" },
+  { pattern: /(contentsquare|decibelinsight|hotjar|fullstory|medallia|logrocket|clarity\.ms)/, name: "Session Replay / Experience Analytics", category: "session_replay", risk: "high", evidence: "Detected from session-replay or detailed experience-analytics assets" },
+  { pattern: /(braintree|paypal|cardinalcommerce|arcot|3dsecure|tsys|payment|payments)/, name: "Payments / Verification", category: "payments", risk: "medium", evidence: "Detected from payments or challenge-flow assets" },
+  { pattern: /(facebook|twitter|linkedin|tiktok|pinterest|reddit|youtube|snapchat|instagram)/, name: "Social / Advertising", category: "social", risk: "medium", evidence: "Detected from social, embedded media, or advertising assets" },
+  { pattern: /(ads|adservice|amazon-adsystem|smartadserver|pubmatic|gumgum|teads|casalemedia|openx|lijit|bidswitch)/, name: "Advertising", category: "ads", risk: "high", evidence: "Detected from advertising or programmatic asset domains" },
+  { pattern: /(cloudfront|fastly|akamai|cloudflare|jsdelivr|cdnjs)/, name: "CDN / Delivery", category: "cdn", risk: "low", evidence: "Detected from CDN or static-delivery domains" },
+  { pattern: /(imperva|incapsula|sucuri|sentry)/, name: "Security / Monitoring", category: "security", risk: "low", evidence: "Detected from security, edge-protection, or monitoring assets" },
+];
+
 export const detectHtmlTechnologies = (
   html: string,
   finalUrl: URL,
@@ -208,28 +251,8 @@ export const analyzeAiSurface = (
     vendors.push({ name, evidence, category, confidence });
   };
 
-  const vendorMatchers: Array<{
-    name: string;
-    pattern: RegExp;
-    evidence: string;
-    category: AiSurfaceInfo["vendors"][number]["category"];
-    confidence: IssueConfidence;
-  }> = [
-    { name: "Intercom Fin", pattern: /intercom.*fin|fin ai|intercom/i, evidence: "Detected from Intercom-related assets or markup", category: "support_automation", confidence: "medium" },
-    { name: "Drift", pattern: /drift\.com|driftt/i, evidence: "Detected from Drift assets or widget markup", category: "support_automation", confidence: "high" },
-    { name: "Zendesk AI", pattern: /zendesk|zopim/i, evidence: "Detected from Zendesk widget assets or markup", category: "support_automation", confidence: "medium" },
-    { name: "HubSpot Chat", pattern: /hubspot|hs-scripts/i, evidence: "Detected from HubSpot assets or chat markup", category: "support_automation", confidence: "medium" },
-    { name: "Salesforce Einstein", pattern: /einstein|salesforce ai/i, evidence: "Detected from Salesforce or Einstein signals", category: "ai_vendor", confidence: "medium" },
-    { name: "Crisp", pattern: /\$crisp|crisp\.chat|client\.crisp|go\.crisp|crisp-im/i, evidence: "Detected from Crisp widget assets or markup", category: "support_automation", confidence: "high" },
-    { name: "Freshchat", pattern: /freshchat|freshworks/i, evidence: "Detected from Freshchat assets or markup", category: "support_automation", confidence: "high" },
-    { name: "OpenAI", pattern: /openai/i, evidence: "Detected from OpenAI-related assets or markup", category: "ai_vendor", confidence: "high" },
-    { name: "Anthropic", pattern: /anthropic|claude/i, evidence: "Detected from Anthropic-related assets or markup", category: "ai_vendor", confidence: "high" },
-    { name: "Google Gemini", pattern: /gemini|generativelanguage|vertex ai/i, evidence: "Detected from Google AI-related assets or markup", category: "ai_vendor", confidence: "medium" },
-    { name: "Microsoft Copilot", pattern: /\bmicrosoft copilot\b|copilot for|copilot studio|copilot.microsoft/i, evidence: "Detected from Copilot-specific assets or markup", category: "assistant_ui", confidence: "medium" },
-  ];
-
   const combinedSignals = `${htmlLower} ${externalScriptUrls.join(" ").toLowerCase()}`;
-  for (const matcher of vendorMatchers) {
+  for (const matcher of AI_VENDOR_MATCHERS) {
     if (matcher.pattern.test(combinedSignals)) {
       addVendor(matcher.name, matcher.evidence, matcher.category, matcher.confidence);
     }
@@ -319,26 +342,7 @@ export const analyzeAiSurface = (
 
 const classifyThirdPartyProvider = (domain: string): Omit<ThirdPartyProvider, "domain"> => {
   const lower = domain.toLowerCase();
-  const providers: Array<{
-    pattern: RegExp;
-    name: string;
-    category: ThirdPartyProvider["category"];
-    risk: ThirdPartyProvider["risk"];
-    evidence: string;
-  }> = [
-    { pattern: /(google-analytics|googletagmanager|doubleclick|omtrdc|adobedtm|adobedc|analytics|plausible|matomo|segment|mixpanel|amplitude|heapanalytics|pendo|clarity\.ms|newrelic|nr-data|datadog)/, name: "Analytics / Telemetry", category: "analytics", risk: "medium", evidence: "Detected from third-party analytics, telemetry, or tag-management assets" },
-    { pattern: /(onetrust|cookiebot|usercentrics)/, name: "Consent Management", category: "consent", risk: "low", evidence: "Detected from consent-management assets" },
-    { pattern: /(intercom|drift|zendesk|zopim|hubspot|freshchat|crisp|sprinklr)/, name: "Support / Chat", category: "support", risk: "medium", evidence: "Detected from public support or chat tooling" },
-    { pattern: /(openai|anthropic|gemini|vertex|copilot|wizdom\.ai)/, name: "AI / Assistant Vendor", category: "ai", risk: "high", evidence: "Detected from AI-related scripts, assets, or public assistant tooling" },
-    { pattern: /(contentsquare|decibelinsight|hotjar|fullstory|medallia|logrocket|clarity\.ms)/, name: "Session Replay / Experience Analytics", category: "session_replay", risk: "high", evidence: "Detected from session-replay or detailed experience-analytics assets" },
-    { pattern: /(braintree|paypal|cardinalcommerce|arcot|3dsecure|tsys|payment|payments)/, name: "Payments / Verification", category: "payments", risk: "medium", evidence: "Detected from payments or challenge-flow assets" },
-    { pattern: /(facebook|twitter|linkedin|tiktok|pinterest|reddit|youtube|snapchat|instagram)/, name: "Social / Advertising", category: "social", risk: "medium", evidence: "Detected from social, embedded media, or advertising assets" },
-    { pattern: /(ads|adservice|amazon-adsystem|smartadserver|pubmatic|gumgum|teads|casalemedia|openx|lijit|bidswitch)/, name: "Advertising", category: "ads", risk: "high", evidence: "Detected from advertising or programmatic asset domains" },
-    { pattern: /(cloudfront|fastly|akamai|cloudflare|jsdelivr|cdnjs)/, name: "CDN / Delivery", category: "cdn", risk: "low", evidence: "Detected from CDN or static-delivery domains" },
-    { pattern: /(imperva|incapsula|sucuri|sentry)/, name: "Security / Monitoring", category: "security", risk: "low", evidence: "Detected from security, edge-protection, or monitoring assets" },
-  ];
-
-  const match = providers.find((provider) => provider.pattern.test(lower));
+  const match = THIRD_PARTY_PROVIDER_MATCHERS.find((provider) => provider.pattern.test(lower));
   if (match) {
     return {
       name: match.name,

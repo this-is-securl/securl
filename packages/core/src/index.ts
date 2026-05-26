@@ -550,6 +550,16 @@ async function buildLimitedResult(
           : "Public preload and trust signals could not materially improve this limited read.",
       ],
     },
+    scoreDrivers: [
+      {
+        areaKey: "overall",
+        areaLabel: "Overall posture",
+        impact: 100,
+        label: "Limited assessment",
+        detail: failure.detail,
+        source: "assessment_limit",
+      },
+    ] as AnalysisResult["scoreDrivers"],
     assessmentLimitation: {
       limited: true,
       kind: failure.kind,
@@ -1024,6 +1034,16 @@ function buildTimedOutEnrichmentResult(
     apiSurface: emptyApiSurface(),
     publicSignals: emptyPublicSignals(result.host),
     wafFingerprint: analyzeWafFingerprint(finalUrl, result.rawHeaders, null, result.redirects),
+    scoreDrivers: [
+      {
+        areaKey: "overall",
+        areaLabel: "Overall posture",
+        impact: 20,
+        label: "Secondary enrichment timeout",
+        detail: "The primary response was scored, but secondary enrichment did not complete within the scan budget.",
+        source: "assessment_limit",
+      },
+    ] as AnalysisResult["scoreDrivers"],
     assessmentLimitation: {
       limited: true,
       kind: "other" as const,
@@ -1098,6 +1118,7 @@ export async function analyzeUrl(input: string, options: AnalyzeTargetOptions = 
     ...enrichedResult,
     score: postureScore.score,
     grade: postureScore.grade,
+    scoreDrivers: postureScore.scoreDrivers,
     summary: assessmentLimitation.limited
       ? "Assessment is limited because the target returned a blocked or restricted response."
       : summarizePostureGrade(postureScore.grade),

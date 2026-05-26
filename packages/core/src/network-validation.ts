@@ -22,7 +22,7 @@ export function isPrivateIpv4(value: string): boolean {
 }
 
 export function isPrivateIpv6(value: string): boolean {
-  const normalized = value.toLowerCase();
+  const normalized = value.toLowerCase().replace(/^\[(.*)\]$/, "$1");
   return (
     normalized === "::1" ||
     normalized === "::" ||
@@ -48,12 +48,13 @@ export function isLocalHostname(hostname: string): boolean {
 }
 
 export function isPrivateAddress(value: string): boolean {
-  const ipVersion = net.isIP(value);
+  const normalized = value.replace(/^\[(.*)\]$/, "$1");
+  const ipVersion = net.isIP(normalized);
   if (ipVersion === 4) {
-    return isPrivateIpv4(value);
+    return isPrivateIpv4(normalized);
   }
   if (ipVersion === 6) {
-    return isPrivateIpv6(value);
+    return isPrivateIpv6(normalized);
   }
   return false;
 }

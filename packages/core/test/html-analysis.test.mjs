@@ -5,6 +5,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { analyzeHtmlDocument } from "../dist/index.js";
 import { detectAssessmentLimitation } from "../dist/html-page-analysis.js";
+import { AI_VENDOR_MATCHERS, THIRD_PARTY_PROVIDER_MATCHERS, analyzeThirdPartyTrust } from "../dist/htmlInsights.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,6 +30,52 @@ test("does not treat generic crisp css class names as AI/support automation", ()
   const htmlSecurity = analyzeHtmlDocument("https://sentrustsouthend.co.uk/", readFixture("crisp-wordpress-class.html"));
   assert.equal(htmlSecurity.aiSurface.detected, false);
   assert.equal(htmlSecurity.aiSurface.vendors.length, 0);
+});
+
+test("keeps passive vendor signature registries visible to tests", () => {
+  assert.equal(AI_VENDOR_MATCHERS.some((matcher) => matcher.name === "OpenAI"), true);
+  assert.equal(AI_VENDOR_MATCHERS.some((matcher) => matcher.name === "Crisp"), true);
+  assert.equal(THIRD_PARTY_PROVIDER_MATCHERS.some((matcher) => matcher.name === "Session Replay / Experience Analytics"), true);
+});
+
+test("detects explicit AI vendor assets without relying on generic copy", () => {
+  const htmlSecurity = analyzeHtmlDocument(
+    "https://example.com/",
+    `<!doctype html><html><head>
+      <script src="https://cdn.openai.com/widgets/assistant.js"></script>
+    </head><body><button>Chat with AI</button></body></html>`,
+  );
+
+  assert.equal(htmlSecurity.aiSurface.detected, true);
+  assert.equal(htmlSecurity.aiSurface.vendors.some((vendor) => vendor.name === "OpenAI"), true);
+  assert.equal(htmlSecurity.aiSurface.issues.some((issue) => /disclosure/i.test(issue)), true);
+});
+
+test("does not treat generic product copy as Microsoft Copilot exposure", () => {
+  const htmlSecurity = analyzeHtmlDocument(
+    "https://example.com/",
+    `<!doctype html><html><body>
+      <p>Our onboarding co-pilot helps teams learn the workflow.</p>
+      <p>This is a guide for copiloting a rollout with a human reviewer.</p>
+    </body></html>`,
+  );
+
+  assert.equal(htmlSecurity.aiSurface.vendors.some((vendor) => vendor.name === "Microsoft Copilot"), false);
+});
+
+test("classifies third-party trust from the exported provider registry", () => {
+  const htmlSecurity = analyzeHtmlDocument(
+    "https://example.com/",
+    `<!doctype html><html><head>
+      <script src="https://cdn.segment.com/analytics.js"></script>
+      <script src="https://static.hotjar.com/c/hotjar.js"></script>
+    </head><body></body></html>`,
+  );
+  const trust = analyzeThirdPartyTrust(new URL("https://example.com/"), htmlSecurity, htmlSecurity.aiSurface);
+
+  assert.equal(trust.totalProviders, 2);
+  assert.equal(trust.providers.some((provider) => provider.category === "session_replay" && provider.risk === "high"), true);
+  assert.equal(trust.issues.some((issue) => /Session replay/i.test(issue)), true);
 });
 
 test("preserves positive client exposure and auth signals when they are explicit", () => {

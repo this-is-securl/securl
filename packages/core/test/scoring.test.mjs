@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildExecutiveSummary } from "../dist/htmlInsights.js";
-import { getPostureAreaScores, scoreAnalysis, scorePostureAnalysis } from "../dist/scoring.js";
+import { getPostureAreaScores, getPostureScoreDrivers, scoreAnalysis, scorePostureAnalysis } from "../dist/scoring.js";
 
 test("scoreAnalysis heavily penalizes plain HTTP and invalid transport posture", () => {
   const result = scoreAnalysis({
@@ -135,6 +135,104 @@ test("scorePostureAnalysis grades the wider passive posture, not just core heade
   assert.equal(posture.score < oldBaseline.score, true);
   assert.equal(posture.score < 90, true);
   assert.equal(posture.grade, "C");
+  assert.equal(posture.scoreDrivers.length > 0, true);
+});
+
+test("getPostureScoreDrivers explains the largest score deductions without changing the score", () => {
+  const analysis = createPostureAnalysis({
+    headers: [
+      { key: "strict-transport-security", status: "missing" },
+      { key: "content-security-policy", status: "missing" },
+      { key: "x-frame-options", status: "missing" },
+    ],
+    htmlSecurity: { issues: ["Inline scripts detected", "SRI coverage is incomplete"] },
+    domainSecurity: { issues: ["No DMARC record detected."] },
+    securityTxt: { issues: ["No valid security.txt disclosure route was detected."] },
+    publicSignals: { issues: [] },
+    exposure: { issues: ["Environment file may be exposed"], probes: [] },
+    thirdPartyTrust: { totalProviders: 4, highRiskProviders: 2, issues: ["Session replay tooling appears present"] },
+  });
+
+  const posture = scorePostureAnalysis(analysis);
+  const drivers = getPostureScoreDrivers(analysis);
+
+  assert.equal(posture.scoreDrivers[0].impact >= posture.scoreDrivers.at(-1).impact, true);
+  assert.equal(drivers.some((driver) => driver.label === "Content-Security-Policy gap"), true);
+  assert.equal(drivers.some((driver) => driver.areaKey === "exposure" && driver.impact === 20), true);
+  assert.equal(posture.score, scorePostureAnalysis(analysis).score);
+});
+
+test("scorePostureAnalysis keeps calibrated profile grades stable", () => {
+  const profiles = [
+    {
+      name: "hardened owned domain",
+      analysis: createPostureAnalysis({
+        aiSurface: { detected: true, disclosures: ["AI disclosure visible"], issues: [] },
+      }),
+      expected: { score: 100, grade: "A+" },
+    },
+    {
+      name: "mature SaaS homepage with common passive gaps",
+      analysis: createPostureAnalysis({
+        headers: [
+          { key: "strict-transport-security", status: "present" },
+          { key: "content-security-policy", status: "warning" },
+          { key: "x-frame-options", status: "present" },
+          { key: "x-content-type-options", status: "present" },
+          { key: "referrer-policy", status: "present" },
+        ],
+        htmlSecurity: { issues: ["Some third-party scripts are missing SRI"] },
+        domainSecurity: { issues: ["No DNSSEC DS records detected at the domain apex."] },
+        publicSignals: { issues: ["Domain is not shown as preloaded in the public HSTS preload dataset."] },
+        thirdPartyTrust: {
+          totalProviders: 5,
+          highRiskProviders: 1,
+          issues: ["Session replay tooling appears present"],
+        },
+      }),
+      expected: { score: 87, grade: "B" },
+    },
+    {
+      name: "early-stage launch site with broad hygiene gaps",
+      analysis: createPostureAnalysis({
+        headers: [
+          { key: "strict-transport-security", status: "missing" },
+          { key: "content-security-policy", status: "missing" },
+          { key: "x-frame-options", status: "missing" },
+          { key: "x-content-type-options", status: "present" },
+          { key: "referrer-policy", status: "missing" },
+        ],
+        cookies: [{ issues: ["missing Secure"] }, { issues: ["missing HttpOnly"] }],
+        htmlSecurity: { issues: ["Inline scripts detected", "Some third-party scripts are missing SRI"] },
+        domainSecurity: { issues: ["No SPF", "No DMARC", "No DNSSEC"] },
+        securityTxt: { issues: ["No security.txt"] },
+        publicSignals: { issues: ["Not preloaded"] },
+        thirdPartyTrust: {
+          totalProviders: 8,
+          highRiskProviders: 3,
+          issues: ["adtech", "session replay"],
+        },
+      }),
+      expected: { score: 67, grade: "D" },
+    },
+    {
+      name: "blocked edge response",
+      analysis: createPostureAnalysis({
+        statusCode: 403,
+        assessmentLimitation: {
+          limited: true,
+          kind: "blocked_edge_response",
+        },
+      }),
+      expected: { score: 41, grade: "U" },
+    },
+  ];
+
+  for (const profile of profiles) {
+    const result = scorePostureAnalysis(profile.analysis);
+    assert.equal(result.score, profile.expected.score, profile.name);
+    assert.equal(result.grade, profile.expected.grade, profile.name);
+  }
 });
 
 test("scorePostureAnalysis softens domain-trust penalties for known hosted app subdomains", () => {
@@ -205,6 +303,7 @@ test("scorePostureAnalysis caps unavailable targets below a C grade", () => {
 
   assert.equal(posture.score <= 49, true);
   assert.equal(posture.grade, "U");
+  assert.equal(posture.scoreDrivers.some((driver) => driver.label === "Limited assessment score cap"), true);
 });
 
 test("scorePostureAnalysis marks blocked or restricted reads as unable to complete", () => {
