@@ -6,6 +6,8 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-05-27
+
 ### Added
 - Added score driver metadata to analysis results so callers can explain the largest score deductions and limited-assessment caps.
 - Added deterministic scoring calibration profiles and passive signature registry tests to protect launch-facing grade expectations.
