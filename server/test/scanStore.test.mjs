@@ -93,6 +93,55 @@ test("scan repository can filter summaries by target url", async () => {
   assert.ok(list.every((scan) => scan.url === "https://example.com"));
 });
 
+test("scan repository result cache is mode-aware", async () => {
+  const repository = createInMemoryScanRepository();
+  const standard = await repository.createScan({
+    url: "https://example.com/",
+    mode: "standard",
+    requesterScope: "ip:test",
+    clientIp: "127.0.0.1",
+  });
+  await repository.markCompleted(standard.id, {
+    score: 74,
+    grade: "C",
+    assessmentLimitation: { limited: false },
+    executiveSummary: { mainRisk: "Browser hardening gaps" },
+    issues: [],
+    scanTiming: { timeoutMs: 45000, timedOut: false },
+  });
+
+  assert.equal((await repository.getRecentSuccessfulScan({
+    url: "https://example.com/",
+    mode: "standard",
+  })).id, standard.id);
+  assert.equal(await repository.getRecentSuccessfulScan({
+    url: "https://example.com/",
+    mode: "deep-passive",
+  }), null);
+
+  const deepPassive = await repository.createScan({
+    url: "https://example.com/",
+    mode: "deep-passive",
+    requesterScope: "ip:test",
+    clientIp: "127.0.0.1",
+  });
+  await repository.markCompleted(deepPassive.id, {
+    score: 74,
+    grade: "C",
+    assessmentLimitation: { limited: false },
+    executiveSummary: { mainRisk: "Browser hardening gaps" },
+    issues: [],
+    scanTiming: { timeoutMs: 75000, timedOut: false },
+  });
+
+  const cached = await repository.getRecentSuccessfulScan({
+    url: "https://example.com/",
+    mode: "deep-passive",
+  });
+  assert.equal(cached.id, deepPassive.id);
+  assert.equal(cached.result.scanTiming.timeoutMs, 75000);
+});
+
 test("scan repository can expose a persisted record shape", async () => {
   const repository = createInMemoryScanRepository();
   const scan = await repository.createScan({
