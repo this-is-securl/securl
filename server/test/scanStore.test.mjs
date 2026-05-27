@@ -6,6 +6,8 @@ import {
   createInMemoryScanRepository,
 } from "../scanRepository.mjs";
 
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 test("scan repository tracks queued, running, and completed scans", async () => {
   const repository = createInMemoryScanRepository();
   const scan = await repository.createScan({
@@ -189,6 +191,37 @@ test("completed scans sync matching monitoring targets", async () => {
   assert.equal(target.url, "https://www.example.com/");
   assert.equal(target.label, "www.example.com");
   assert.equal(target.lastScannedAt, "2026-05-08T10:00:00.000Z");
+});
+
+test("scan repository recovers stale running scans as failed", async () => {
+  const repository = createInMemoryScanRepository();
+  const scan = await repository.createScan({
+    url: "https://example.com",
+    mode: "deep-passive",
+    requesterScope: "ip:test",
+    clientIp: "127.0.0.1",
+  });
+
+  await repository.markRunning(scan.id);
+  await wait(5);
+
+  const recovered = await repository.recoverStaleRunningScans({
+    maxAgeMs: 1,
+    failureClass: "scan_timeout",
+    message: "Recovered from a stale worker.",
+  });
+
+  const saved = await repository.getScan(scan.id);
+  const events = await repository.listScanEvents(scan.id);
+
+  assert.equal(recovered, 1);
+  assert.equal(saved.status, "failed");
+  assert.equal(saved.failureClass, "scan_timeout");
+  assert.equal(saved.error, "Recovered from a stale worker.");
+  assert.deepEqual(
+    events.map((event) => event.eventType),
+    ["failed", "started", "queued"],
+  );
 });
 
 test("scan repository schema statements create the scans table and scoped indexes", () => {

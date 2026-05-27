@@ -693,5 +693,5 @@ export interface AnalyzeTargetOptions {
   includeCertificate?: boolean;
   maxScanDurationMs?: number;
   requestTimeoutMs?: number;
-  scanMode?: "standard" | "quiet";
+  scanMode?: "standard" | "quiet" | "deep-passive";
 }

@@ -6,6 +6,7 @@ import type { AnalysisResult, HistoryDiff, ScanIssue } from "./types.js";
 
 type OutputFormat = "json" | "markdown" | "summary" | "sarif" | "ci-json";
 type FailOnSeverity = Exclude<ScanIssue["severity"], "good">;
+type ScanMode = "standard" | "quiet" | "deep-passive";
 type ParsedArgs =
   | { command: "help" }
   | {
@@ -17,7 +18,7 @@ type ParsedArgs =
       failOnSeverity: FailOnSeverity | null;
       failOnRegression: boolean;
       failIfScoreBelow: number | null;
-      quiet: boolean;
+      scanMode: ScanMode;
     }
   | {
       command: "compare";
@@ -33,7 +34,7 @@ type ParsedArgs =
 const usage = `External Posture Insight CLI
 
 Usage:
-  epi scan <target...> [--format json|markdown|summary|sarif|ci-json] [--baseline <report.json>] [--output <file>] [--quiet] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
+  epi scan <target...> [--format json|markdown|summary|sarif|ci-json] [--baseline <report.json>] [--output <file>] [--quiet|--deep-passive] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
   epi compare <current-report.json> <baseline-report.json> [--format json|markdown|summary|sarif|ci-json] [--output <file>] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
   external-posture-insight scan <target...> [...]
   external-posture-insight compare <current-report.json> <baseline-report.json> [...]
@@ -47,6 +48,7 @@ Examples:
   npx @ktbatterham/external-posture-core scan example.com --format ci-json --output ci.json
   npx @ktbatterham/external-posture-core scan example.com --format json --output report.json
   npx @ktbatterham/external-posture-core scan example.com --quiet
+  npx @ktbatterham/external-posture-core scan example.com --deep-passive
   npx @ktbatterham/external-posture-core scan example.com --baseline previous-report.json
   npx @ktbatterham/external-posture-core scan example.com --baseline previous-report.json --fail-on-regression
   npx @ktbatterham/external-posture-core scan example.com github.com --fail-on warning
@@ -57,6 +59,7 @@ Examples:
 Scan modes:
   default scan   Fetches the primary response plus bounded passive enrichment: HTML, DNS/mail, CT, OSV, exposure, CORS, API-surface, and public trust signals.
   --quiet        Keeps primary response, TLS, headers, cookies, redirects, DNS/mail, CT summary, infrastructure, and public trust checks; skips page-body analysis, related-page crawl, security.txt fetch, identity discovery, exposure probes, CORS probes, API probes, OSV lookups, and CT host sampling.
+  --deep-passive Expands passive CT host sampling, related-page crawl, exposure probes, and API-surface probes while keeping strict request limits and scan timeout bounds.
 
 CI policy modes:
   --fail-on warning          Fail when findings at or above the selected severity are present.
@@ -87,7 +90,7 @@ const parseArgs = (argv: string[]): ParsedArgs => {
   let failOnSeverity: FailOnSeverity | null = null;
   let failOnRegression = false;
   let failIfScoreBelow: number | null = null;
-  let quiet = false;
+  let scanMode: ScanMode = "standard";
   const positionals: string[] = [];
 
   for (let index = 0; index < args.length; index += 1) {
@@ -154,7 +157,18 @@ const parseArgs = (argv: string[]): ParsedArgs => {
     }
 
     if (arg === "--quiet") {
-      quiet = true;
+      if (scanMode === "deep-passive") {
+        throw new Error("Choose either --quiet or --deep-passive, not both.");
+      }
+      scanMode = "quiet";
+      continue;
+    }
+
+    if (arg === "--deep-passive") {
+      if (scanMode === "quiet") {
+        throw new Error("Choose either --quiet or --deep-passive, not both.");
+      }
+      scanMode = "deep-passive";
       continue;
     }
 
@@ -185,7 +199,7 @@ const parseArgs = (argv: string[]): ParsedArgs => {
       failOnSeverity,
       failOnRegression,
       failIfScoreBelow,
-      quiet,
+      scanMode,
     };
   }
 
@@ -659,7 +673,7 @@ const scanTargets = async (parsed: Extract<ParsedArgs, { command: "scan" }>): Pr
     if (showProgress) {
       process.stderr.write(`Scanning ${index + 1}/${parsed.targets.length}: ${target}\n`);
     }
-    analyses.push(await analyzeUrl(target, { scanMode: parsed.quiet ? "quiet" : "standard" }));
+    analyses.push(await analyzeUrl(target, { scanMode: parsed.scanMode }));
   }
 
   if (showProgress) {
