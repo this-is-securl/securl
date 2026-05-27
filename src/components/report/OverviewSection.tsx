@@ -470,6 +470,17 @@ export const OverviewSection = ({
                 <p className={eyebrow + " mb-2"}>Latency</p>
                 <p className="text-2xl font-black tracking-[-0.03em] text-white">{analysisData.responseTimeMs}<span className="ml-0.5 text-sm font-medium text-zinc-500">ms</span></p>
               </div>
+              {analysisData.scanTiming && (
+                <div className="rounded-[1.25rem] border border-white/[0.08] bg-zinc-950/50 px-4 py-4">
+                  <p className={eyebrow + " mb-2"}>Scan duration</p>
+                  <p className="text-2xl font-black tracking-[-0.03em] text-white">
+                    {(analysisData.scanTiming.totalMs / 1000).toFixed(1)}<span className="ml-0.5 text-sm font-medium text-zinc-500">s</span>
+                  </p>
+                  {analysisData.scanTiming.timedOut && (
+                    <p className="mt-0.5 text-[10px] uppercase tracking-[0.16em] text-amber-500">Timed out</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
