@@ -4,6 +4,20 @@ import { StatBox } from "@/components/ui/panel-primitives";
 import { AnalysisResult } from "@/types/analysis";
 import { getAreaScores, getUnifiedIssueSummary } from "@/lib/posture";
 
+const SOURCE_LABELS: Record<string, string> = {
+  headers: "Headers",
+  tls: "TLS",
+  cookies: "Cookies",
+  dns: "DNS",
+  html: "HTML",
+  public_record: "Public record",
+  third_party: "Third-party",
+  ai: "AI surface",
+  availability: "Availability",
+  breadth: "Coverage",
+  assessment_limit: "Assessment limit",
+};
+
 interface PostureSummaryPanelProps {
   analysis: AnalysisResult;
 }
@@ -96,6 +110,41 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
             value={<p className="text-3xl font-black tracking-[-0.03em]">{analysis.crawl.pages.filter((page) => page.sameOrigin).length}</p>}
           />
         </div>
+
+        {analysis.scoreDrivers && analysis.scoreDrivers.length > 0 && (
+          <div className="rounded-[1.5rem] border border-white/[0.08] bg-zinc-950/50 p-6">
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500 mb-4">Score drivers</p>
+            <div className="space-y-0">
+              {analysis.scoreDrivers.map((driver, index) => {
+                const isPositive = driver.impact >= 0;
+                const impactColor = isPositive ? "#4ade80" : "#f87171";
+                const impactPrefix = isPositive ? "+" : "";
+                const isLast = index === analysis.scoreDrivers!.length - 1;
+                return (
+                  <div
+                    key={index}
+                    className={`py-3 ${!isLast ? "border-b border-white/[0.05]" : ""}`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-zinc-600">{driver.areaLabel}</span>
+                          <span className="text-[9px] text-zinc-700">·</span>
+                          <span className="text-[9px] font-medium uppercase tracking-[0.15em] text-zinc-700">{SOURCE_LABELS[driver.source] ?? driver.source}</span>
+                        </div>
+                        <p className="text-sm font-medium text-zinc-300 leading-snug">{driver.label}</p>
+                        <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">{driver.detail}</p>
+                      </div>
+                      <p className="text-sm font-black tabular-nums shrink-0 mt-3" style={{ color: impactColor }}>
+                        {impactPrefix}{driver.impact}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
