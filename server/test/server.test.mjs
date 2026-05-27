@@ -1146,12 +1146,30 @@ test("scan resources accept deep-passive mode for bounded recon", async () => {
   const server = await startServer();
 
   try {
+    const standardResponse = await postScan(server.baseUrl, "https://example.com", {
+      mode: "standard",
+    });
+    const standardPayload = await standardResponse.json();
+    assert.equal(standardResponse.status, 202);
+
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      const response = await fetch(`${server.baseUrl}/api/scans/${standardPayload.scan.id}`, {
+        headers: scanOwnerHeaders(),
+      });
+      const payload = await response.json();
+      if (payload.scan.status === "completed" || payload.scan.status === "failed") {
+        break;
+      }
+      await wait(100);
+    }
+
     const createResponse = await postScan(server.baseUrl, "https://example.com", {
       mode: "deep-passive",
     });
     const payload = await createResponse.json();
 
     assert.equal(createResponse.status, 202);
+    assert.equal(payload.fromCache, undefined);
     assert.equal(payload.scan.mode, "deep-passive");
     assert.equal(["queued", "running", "completed"].includes(payload.scan.status), true);
 

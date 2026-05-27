@@ -217,9 +217,11 @@ export async function handleScanCollectionRequest({
     // Result TTL cache — serve a recent successful scan rather than re-hitting a target
     // that may block repeated scanner requests (CDN/WAF bot protection).
     const RESULT_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
-    const cachedScan = await scanRepository
-      .getRecentSuccessfulScan({ url: validatedTarget.toString(), mode, maxAgeMs: RESULT_CACHE_TTL_MS })
-      .catch(() => null); // cache miss on error — fall through to live scan
+    const cachedScan = mode === "deep-passive"
+      ? null
+      : await scanRepository
+        .getRecentSuccessfulScan({ url: validatedTarget.toString(), mode, maxAgeMs: RESULT_CACHE_TTL_MS })
+        .catch(() => null); // cache miss on error — fall through to live scan
     if (cachedScan?.result) {
       try {
         const scan = await scanRepository.createScan({
