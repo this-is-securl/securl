@@ -1,6 +1,6 @@
 {
   "name": "@ktbatterham/external-posture-core",
-  "version": "0.11.2",
+  "version": "1.0.0",
   "type": "module",
   "description": "Passive external security posture analysis engine for SecURL.",
   "author": {

@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-05-27 — app 1.0.0 / core 1.0.0
+
+### Added
+
+- Added `deep-passive` scan mode across the backend API, frontend API client, core package, and CLI for broader bounded passive recon.
+- Added a bounded backend scan scheduler with configurable `SCAN_CONCURRENCY` and startup recovery for stale `running` scans.
+- Added mode-aware scan timeouts, keeping standard/quiet scans at the normal bound and deep-passive scans at a 75 second default.
+
+### Changed
+
+- Deployed the backend as an API-only Railway service while keeping the Hostinger frontend on `app.securl.online`.
+- Made the recent scan result cache mode-aware and bypassed it entirely for deep-passive scans so release-readiness checks always run fresh.
+- Documented production scan modes and backend runtime controls in the API notes.
+
+### Verified
+
+- `npm run test:core`
+- `npm run test:server`
+- `npm run test:app:unit`
+- `npm run lint`
+- `npm run pack:core`
+- GitHub `verify-core` and CodeQL checks on merged PRs.
+- Live Railway/Hostinger smoke: health, API-only root behavior, Hostinger CORS preflight, and a fresh deep-passive scan with `timeoutMs: 75000`.
+
 ## 2026-05-11 — app 0.9.0
 
 ### Changed
