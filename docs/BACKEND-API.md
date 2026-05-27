@@ -14,6 +14,19 @@ This project now treats the backend as a real scan service boundary rather than 
 - `GET /api/scans/:id/history`
 - `GET /api/scans/:id/share` (public — no auth required)
 
+`POST /api/scans` accepts an optional `mode`:
+
+- `standard`: default bounded passive enrichment for normal product scans.
+- `quiet`: lower-noise scans that skip page-body analysis, crawl, probe-heavy enrichment, OSV lookups, and CT host sampling.
+- `deep-passive`: broader passive recon for release readiness and scheduled review passes. It expands CT host sampling, related-page crawl, exposure probes, and API-surface probes while keeping strict limits and timeout bounds.
+
+Runtime controls:
+
+- `SCAN_TIMEOUT_MS`: standard/quiet scan timeout, default `45000`.
+- `DEEP_PASSIVE_SCAN_TIMEOUT_MS`: deep-passive timeout, default `75000`, never lower than `SCAN_TIMEOUT_MS`.
+- `SCAN_CONCURRENCY`: in-process queued scan concurrency, default `2`.
+- `STALE_RUNNING_SCAN_MS`: startup recovery threshold for scans left `running`, default `120000`.
+
 ## Current monitoring resources
 
 - `POST /api/monitoring-targets`

@@ -166,7 +166,10 @@ function recordAbuseSignal(signalType, details = {}, { abuseSignalBuckets, abuse
 }
 
 export function getRequestedScanMode(input) {
-  return input === "quiet" ? "quiet" : "standard";
+  if (input === "quiet" || input === "deep-passive") {
+    return input;
+  }
+  return "standard";
 }
 
 export function normalizeScanErrorMessage(error) {

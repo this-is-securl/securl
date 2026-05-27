@@ -129,6 +129,7 @@ export async function handleScanCollectionRequest({
   classifyScanFailure,
   normalizeScanErrorMessage,
   runScanAnalysis,
+  enqueueScan,
   formatErrorMessage,
   log,
   requireScanOwner = false,
@@ -265,8 +266,7 @@ export async function handleScanCollectionRequest({
       return true;
     }
 
-    queueMicrotask(() => {
-      void runQueuedScan({
+    enqueueScan({
         scan,
         validatedTarget,
         mode,
@@ -278,7 +278,6 @@ export async function handleScanCollectionRequest({
         normalizeScanErrorMessage,
         formatErrorMessage,
         log,
-      });
     });
   } catch (error) {
     telemetry.recordFailure(classifyScanFailure(error));

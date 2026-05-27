@@ -145,7 +145,7 @@ export async function handleMonitoringTargetItemRequest({
   getRequestedScanMode,
   checkTargetQuota,
   runScanAnalysis,
-  runQueuedScan,
+  enqueueScan,
   buildMonitoringTargetDetailPayload,
   telemetry,
   classifyScanFailure,
@@ -255,8 +255,7 @@ export async function handleMonitoringTargetItemRequest({
         return true;
       }
 
-      queueMicrotask(() => {
-        void runQueuedScan({
+      enqueueScan({
           scan,
           validatedTarget: new URL(target.url),
           mode,
@@ -268,7 +267,6 @@ export async function handleMonitoringTargetItemRequest({
           normalizeScanErrorMessage,
           formatErrorMessage,
           log,
-        });
       });
       return true;
     }

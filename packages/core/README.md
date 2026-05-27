@@ -127,10 +127,12 @@ Scan modes:
 ```bash
 npx @ktbatterham/external-posture-core scan example.com
 npx @ktbatterham/external-posture-core scan example.com --quiet
+npx @ktbatterham/external-posture-core scan example.com --deep-passive
 ```
 
 - default scan: primary response plus bounded passive enrichment, including HTML, DNS/mail, Certificate Transparency, OSV, exposure, CORS, API-surface, and public trust signals.
 - `--quiet`: keeps primary response, TLS, headers, cookies, redirects, DNS/mail, Certificate Transparency summary, infrastructure, and public trust checks; skips page-body analysis, related-page crawl, security.txt fetch, identity discovery, exposure probes, CORS probes, API probes, OSV lookups, and CT host sampling. Use this for lower-noise CI smoke checks or frequent regression monitoring.
+- `--deep-passive`: expands passive CT host sampling, related-page crawl, exposure probes, and API-surface probes while keeping request counts and scan duration bounded. Use this for pre-release or scheduled posture reviews where a broader passive pass is worth the extra time.
 
 CI policy modes:
 
@@ -213,7 +215,7 @@ console.log(result.score, result.grade);
 
 `analyzeTarget` remains available as a compatibility alias, but `analyzeUrl` is the primary public entrypoint.
 
-`analyzeUrl("https://example.com", { scanMode: "quiet" })` uses the same quiet boundary as CLI `--quiet`.
+`analyzeUrl("https://example.com", { scanMode: "quiet" })` uses the same quiet boundary as CLI `--quiet`. `analyzeUrl("https://example.com", { scanMode: "deep-passive" })` uses the expanded passive recon boundary as CLI `--deep-passive`.
 
 When a baseline report is supplied to the CLI, summary and Markdown output append a `Changes Since Baseline` section. JSON output returns:
 

@@ -28,6 +28,7 @@ import {
 } from "./monitoringTargetHandlers.mjs";
 import { handleAuthRequest, resolveAuthenticatedApiKey, resolveAuthenticatedSession } from "./authHandlers.mjs";
 import { handleScanCollectionRequest, handleScanResourceRequest, runQueuedScan } from "./scanResourceHandlers.mjs";
+import { createScanScheduler } from "./scanScheduler.mjs";
 import { createStaticHandler } from "./staticServer.mjs";
 import { enforceStartupConfiguration, initializeScanRepository } from "./startupValidation.mjs";
 import { classifyTrafficSource, classifyScanFailure, createTelemetryTracker } from "./telemetry.mjs";
@@ -59,6 +60,9 @@ const DEFAULT_ABUSE_ALERT_THRESHOLD = 25;
 const DEFAULT_AUTH_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const DEFAULT_AUTH_RATE_LIMIT_MAX_REQUESTS = 8;
 const DEFAULT_SCAN_TIMEOUT_MS = 45 * 1000;
+const DEFAULT_DEEP_PASSIVE_SCAN_TIMEOUT_MS = 75 * 1000;
+const DEFAULT_SCAN_CONCURRENCY = 2;
+const DEFAULT_STALE_RUNNING_SCAN_MS = 2 * 60 * 1000;
 const RATE_LIMIT_MAX_BUCKETS = 20000;
 const configuredRateLimitBackend = (process.env.RATE_LIMIT_BACKEND || "").trim().toLowerCase();
 const rateLimitBackend = configuredRateLimitBackend || (deploymentMode === "multi-instance" ? "upstash" : "in-memory");
@@ -134,6 +138,27 @@ const SCAN_TIMEOUT_MS = (() => {
   }
   return Math.floor(raw);
 })();
+const DEEP_PASSIVE_SCAN_TIMEOUT_MS = (() => {
+  const raw = Number(process.env.DEEP_PASSIVE_SCAN_TIMEOUT_MS || DEFAULT_DEEP_PASSIVE_SCAN_TIMEOUT_MS);
+  if (!Number.isFinite(raw) || raw < SCAN_TIMEOUT_MS) {
+    return Math.max(DEFAULT_DEEP_PASSIVE_SCAN_TIMEOUT_MS, SCAN_TIMEOUT_MS);
+  }
+  return Math.floor(raw);
+})();
+const SCAN_CONCURRENCY = (() => {
+  const raw = Number(process.env.SCAN_CONCURRENCY || DEFAULT_SCAN_CONCURRENCY);
+  if (!Number.isFinite(raw) || raw < 1) {
+    return DEFAULT_SCAN_CONCURRENCY;
+  }
+  return Math.floor(raw);
+})();
+const STALE_RUNNING_SCAN_MS = (() => {
+  const raw = Number(process.env.STALE_RUNNING_SCAN_MS || DEFAULT_STALE_RUNNING_SCAN_MS);
+  if (!Number.isFinite(raw) || raw < 5_000) {
+    return DEFAULT_STALE_RUNNING_SCAN_MS;
+  }
+  return Math.floor(raw);
+})();
 const upstashRestUrl = (process.env.UPSTASH_REDIS_REST_URL || "").trim();
 const upstashRestToken = (process.env.UPSTASH_REDIS_REST_TOKEN || "").trim();
 const abuseSignalBuckets = new Map();
@@ -141,6 +166,7 @@ const exposeDetailedHealth = !isProduction;
 const exposeTelemetry = process.env.EXPOSE_TELEMETRY === "true" || !isProduction;
 const telemetry = createTelemetryTracker({ storagePath: TELEMETRY_STORAGE_PATH });
 let scanRepository;
+let scanScheduler;
 
 function buildVisitorKey(request) {
   const clientIp = getClientIp(request, { trustProxy, isLocalHostname, isPrivateAddress });
@@ -187,16 +213,18 @@ const log = (level, event, details = {}) => {
 
 async function runScanAnalysis({ validatedTarget, mode, clientIp, requesterScope }) {
   const startedAt = Date.now();
+  const maxScanDurationMs = mode === "deep-passive" ? DEEP_PASSIVE_SCAN_TIMEOUT_MS : SCAN_TIMEOUT_MS;
   telemetry.recordScanRequested({ mode });
   log("info", "analysis_requested", {
     clientIp,
     requesterScope,
     target: validatedTarget.toString(),
     mode,
+    maxScanDurationMs,
   });
   const result = await analyzeUrl(validatedTarget.toString(), {
     scanMode: mode,
-    maxScanDurationMs: SCAN_TIMEOUT_MS,
+    maxScanDurationMs,
   });
   telemetry.recordScanCompleted(result);
   log("info", "analysis_completed", {
@@ -360,6 +388,13 @@ const server = http.createServer(async (request, response) => {
         windowMs: ABUSE_ALERT_WINDOW_MS,
       };
       payload.scanTimeoutMs = SCAN_TIMEOUT_MS;
+      payload.deepPassiveScanTimeoutMs = DEEP_PASSIVE_SCAN_TIMEOUT_MS;
+      payload.scanScheduler = scanScheduler?.snapshot?.() || {
+        active: 0,
+        queued: 0,
+        concurrency: SCAN_CONCURRENCY,
+        staleRunningScanMs: STALE_RUNNING_SCAN_MS,
+      };
       payload.serveFrontend = serveFrontend;
     }
 
@@ -444,6 +479,7 @@ const server = http.createServer(async (request, response) => {
       classifyScanFailure,
       normalizeScanErrorMessage,
       runScanAnalysis,
+      enqueueScan: (job) => scanScheduler.enqueue(job),
       formatErrorMessage,
       log,
       requireScanOwner: true,
@@ -494,7 +530,7 @@ const server = http.createServer(async (request, response) => {
         sendRateLimitedResponse: sendApiRateLimited,
       }),
       runScanAnalysis,
-      runQueuedScan,
+      enqueueScan: (job) => scanScheduler.enqueue(job),
       buildMonitoringTargetDetailPayload,
       telemetry,
       classifyScanFailure,
@@ -579,6 +615,15 @@ try {
   process.exit(1);
 }
 
+scanScheduler = createScanScheduler({
+  concurrency: SCAN_CONCURRENCY,
+  staleRunningScanMs: STALE_RUNNING_SCAN_MS,
+  scanRepository,
+  runQueuedScan,
+  log,
+});
+await scanScheduler.recoverStaleRunningScans();
+
 process.on("unhandledRejection", (reason) => {
   log("error", "unhandled_rejection", {
     message: reason instanceof Error ? reason.message : String(reason),
@@ -604,6 +649,8 @@ server.listen(port, () => {
     deploymentMode,
     scanRepositoryBackend,
     rateLimitBackend: targetRateLimiter.backend,
+    scanConcurrency: SCAN_CONCURRENCY,
+    staleRunningScanMs: STALE_RUNNING_SCAN_MS,
     distributedRateLimit: targetRateLimiter.distributed,
     requesterRateLimit: {
       maxRequests: RATE_LIMIT_MAX_REQUESTS,
@@ -614,6 +661,7 @@ server.listen(port, () => {
       windowMs: TARGET_RATE_LIMIT_WINDOW_MS,
     },
     scanTimeoutMs: SCAN_TIMEOUT_MS,
+    deepPassiveScanTimeoutMs: DEEP_PASSIVE_SCAN_TIMEOUT_MS,
     abuseAlerting: {
       threshold: ABUSE_ALERT_THRESHOLD,
       windowMs: ABUSE_ALERT_WINDOW_MS,

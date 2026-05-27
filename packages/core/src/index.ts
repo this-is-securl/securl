@@ -8,6 +8,17 @@ import {
   API_SURFACE_PROBES,
   CRAWL_CONCURRENCY_LIMIT,
   CRAWL_CANDIDATES,
+  CRAWL_PAGE_LIMIT,
+  CT_SAMPLE_LIMIT,
+  CT_SUBDOMAIN_LIMIT,
+  CT_WILDCARD_LIMIT,
+  DEEP_PASSIVE_API_SURFACE_PROBES,
+  DEEP_PASSIVE_CRAWL_PAGE_LIMIT,
+  DEEP_PASSIVE_CT_SAMPLE_LIMIT,
+  DEEP_PASSIVE_CT_SUBDOMAIN_LIMIT,
+  DEEP_PASSIVE_CT_WILDCARD_LIMIT,
+  DEEP_PASSIVE_EXPOSURE_PROBES,
+  DEEP_PASSIVE_SCAN_TIMEOUT_MS,
   EXPOSURE_PROBES,
   MAX_SCAN_DURATION_MS,
   REQUEST_TIMEOUT_MS,
@@ -57,6 +68,34 @@ type ScanMode = NonNullable<AnalyzeTargetOptions["scanMode"]>;
 type CoreScanResult = Awaited<ReturnType<typeof analyzeUrlCore>>;
 type DiscoveryResult = Awaited<ReturnType<typeof collectDiscoveryPaths>>;
 type EnrichedAnalysisResult = Omit<AnalysisResult, "executiveSummary">;
+
+interface ScanProfile {
+  mode: ScanMode;
+  pageAnalysisEnabled: boolean;
+  scanTimeoutMs: number;
+  crawlPageLimit: number;
+  exposureProbes: Array<{ label: string; path: string }>;
+  apiSurfaceProbes: Array<{ label: string; path: string }>;
+  ctSubdomainLimit: number;
+  ctWildcardLimit: number;
+  ctSampleLimit: number;
+}
+
+function buildScanProfile(mode: ScanMode, requestedTimeoutMs?: number): ScanProfile {
+  const deepPassive = mode === "deep-passive";
+  const scanTimeoutMs = requestedTimeoutMs ?? (deepPassive ? DEEP_PASSIVE_SCAN_TIMEOUT_MS : MAX_SCAN_DURATION_MS);
+  return {
+    mode,
+    pageAnalysisEnabled: mode !== "quiet",
+    scanTimeoutMs,
+    crawlPageLimit: deepPassive ? DEEP_PASSIVE_CRAWL_PAGE_LIMIT : CRAWL_PAGE_LIMIT,
+    exposureProbes: deepPassive ? DEEP_PASSIVE_EXPOSURE_PROBES : EXPOSURE_PROBES,
+    apiSurfaceProbes: deepPassive ? DEEP_PASSIVE_API_SURFACE_PROBES : API_SURFACE_PROBES,
+    ctSubdomainLimit: deepPassive ? DEEP_PASSIVE_CT_SUBDOMAIN_LIMIT : CT_SUBDOMAIN_LIMIT,
+    ctWildcardLimit: deepPassive ? DEEP_PASSIVE_CT_WILDCARD_LIMIT : CT_WILDCARD_LIMIT,
+    ctSampleLimit: deepPassive ? DEEP_PASSIVE_CT_SAMPLE_LIMIT : CT_SAMPLE_LIMIT,
+  };
+}
 
 const emptyCertificate = () => ({
   available: false,
@@ -584,13 +623,16 @@ async function buildLimitedResult(
 
 async function enrichCoreResult(
   result: CoreScanResult,
-  pageAnalysisEnabled: boolean,
+  profile: ScanProfile,
 ): Promise<EnrichedAnalysisResult> {
   const finalUrl = new URL(result.finalUrl);
   const ctDiscoveryPromise = fetchCtDiscovery(result.host, requestJson, requestText, {
-    sampleHosts: pageAnalysisEnabled,
+    sampleHosts: profile.pageAnalysisEnabled,
+    subdomainLimit: profile.ctSubdomainLimit,
+    wildcardLimit: profile.ctWildcardLimit,
+    sampleLimit: profile.ctSampleLimit,
   });
-  const { htmlDocument, htmlSecurity } = await analyzeHtmlSecuritySignals(finalUrl, pageAnalysisEnabled);
+  const { htmlDocument, htmlSecurity } = await analyzeHtmlSecuritySignals(finalUrl, profile.pageAnalysisEnabled);
   const thirdPartyTrust = analyzeThirdPartyTrust(finalUrl, htmlSecurity, htmlSecurity.aiSurface);
   const technologies = mergeTechnologies(result.technologies, htmlSecurity.detectedTechnologies);
   const secondaryRequestText = (targetUrl: URL, extraHeaders: Record<string, string> = {}) =>
@@ -611,14 +653,14 @@ async function enrichCoreResult(
     domainSecurity,
     securityTxt,
   ] = await Promise.all([
-    pageAnalysisEnabled
+    profile.pageAnalysisEnabled
       ? collectDiscoveryPaths(finalUrl, htmlSecurity, secondaryRequestText)
       : Promise.resolve({ paths: [], sources: ["quiet mode"] } satisfies DiscoveryResult),
     fetchPublicSignals(result.host, { requestText }),
     analyzeInfrastructure(finalUrl, result.rawHeaders, technologies),
     ctDiscoveryPromise,
     analyzeDomainSecurity(result.host, secondaryRequestText),
-    pageAnalysisEnabled ? fetchSecurityTxt(finalUrl, secondaryRequestText) : Promise.resolve(emptySecurityTxt()),
+    profile.pageAnalysisEnabled ? fetchSecurityTxt(finalUrl, secondaryRequestText) : Promise.resolve(emptySecurityTxt()),
   ]);
 
   // Batch 2: tasks that depend on batch-1 results or do additional network probing
@@ -629,7 +671,7 @@ async function enrichCoreResult(
     corsSecurity,
     apiSurface,
   ] = await Promise.all([
-    pageAnalysisEnabled
+    profile.pageAnalysisEnabled
       ? analyzeIdentityProvider(
           finalUrl,
           result.redirects,
@@ -639,10 +681,10 @@ async function enrichCoreResult(
           ctDiscovery,
         )
       : Promise.resolve(emptyIdentityProvider()),
-    pageAnalysisEnabled ? crawlRelatedPages(result, discovery) : Promise.resolve(emptyCrawlSummary(discovery.sources)),
-    pageAnalysisEnabled
+    profile.pageAnalysisEnabled ? crawlRelatedPages(result, discovery, profile.crawlPageLimit) : Promise.resolve(emptyCrawlSummary(discovery.sources)),
+    profile.pageAnalysisEnabled
       ? analyzeExposure(finalUrl, htmlDocument, {
-          exposureProbes: EXPOSURE_PROBES,
+          exposureProbes: profile.exposureProbes,
           requestOnce: secondaryRequestOnce,
           requestText: secondaryRequestText,
           fetchWithRedirects: secondaryFetchWithRedirects,
@@ -652,15 +694,15 @@ async function enrichCoreResult(
           classifyHtmlApiFallback,
         })
       : Promise.resolve(emptyExposure()),
-    pageAnalysisEnabled
+    profile.pageAnalysisEnabled
       ? analyzeCorsSecurity(finalUrl, result.rawHeaders, {
           requestWithHeaders: secondaryRequestWithHeaders,
           headerValue,
         })
       : Promise.resolve(emptyCorsSecurity()),
-    pageAnalysisEnabled
+    profile.pageAnalysisEnabled
       ? analyzeApiSurface(finalUrl, htmlDocument, {
-          apiSurfaceProbes: API_SURFACE_PROBES,
+          apiSurfaceProbes: profile.apiSurfaceProbes,
           requestText: secondaryRequestText,
           fetchWithRedirects: secondaryFetchWithRedirects,
           headerValue,
@@ -752,7 +794,7 @@ function toCandidateLabel(pathname) {
   return label.length > 42 ? `${label.slice(0, 39).trimEnd()}...` : label;
 }
 
-function buildCrawlCandidates(result, discoveryPaths = []) {
+function buildCrawlCandidates(result, discoveryPaths = [], limit = CRAWL_PAGE_LIMIT) {
   const finalUrl = new URL(result.finalUrl);
   const userPath = new URL(result.normalizedUrl).pathname || "/";
   const seen = new Set<string>();
@@ -778,7 +820,7 @@ function buildCrawlCandidates(result, discoveryPaths = []) {
       seen.add(key);
       return true;
     })
-    .slice(0, 6);
+    .slice(0, limit);
 }
 
 function summarizePageAnalysis(label, path, pageResult, rootHost) {
@@ -802,8 +844,8 @@ function summarizePageAnalysis(label, path, pageResult, rootHost) {
   };
 }
 
-async function crawlRelatedPages(rootResult, discovery) {
-  const candidates = buildCrawlCandidates(rootResult, discovery.paths);
+async function crawlRelatedPages(rootResult, discovery, pageLimit = CRAWL_PAGE_LIMIT) {
+  const candidates = buildCrawlCandidates(rootResult, discovery.paths, pageLimit);
   const rootHost = new URL(rootResult.finalUrl).hostname;
   const pages = await mapWithConcurrency(candidates, CRAWL_CONCURRENCY_LIMIT, async (candidate) => {
     try {
@@ -1068,9 +1110,9 @@ function buildTimedOutEnrichmentResult(
 export async function analyzeUrl(input: string, options: AnalyzeTargetOptions = {}): Promise<AnalysisResult> {
   const scanStartedAt = Date.now();
   const scanMode: ScanMode = options.scanMode || "standard";
-  const pageAnalysisEnabled = scanMode === "standard";
+  const profile = buildScanProfile(scanMode, options.maxScanDurationMs);
   const normalizedInput = normalizeUrl(input);
-  const maxScanDurationMs = options.maxScanDurationMs ?? MAX_SCAN_DURATION_MS;
+  const maxScanDurationMs = profile.scanTimeoutMs;
   const requestTimeoutMs = Math.min(options.requestTimeoutMs ?? REQUEST_TIMEOUT_MS, maxScanDurationMs);
   let result: CoreScanResult;
 
@@ -1101,13 +1143,13 @@ export async function analyzeUrl(input: string, options: AnalyzeTargetOptions = 
   let enrichedResult: EnrichedAnalysisResult;
   try {
     enrichedResult = await withTimeout(
-      enrichCoreResult(result, pageAnalysisEnabled),
+      enrichCoreResult(result, profile),
       remainingMs,
       "Secondary scan enrichment timed out.",
     );
   } catch (error) {
     if (error instanceof Error && error.message === "Secondary scan enrichment timed out.") {
-      return buildTimedOutEnrichmentResult(result, pageAnalysisEnabled, maxScanDurationMs, coreMs);
+      return buildTimedOutEnrichmentResult(result, profile.pageAnalysisEnabled, maxScanDurationMs, coreMs);
     }
     throw error;
   }

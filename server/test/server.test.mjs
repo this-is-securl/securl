@@ -375,6 +375,10 @@ test("health endpoint includes deployment and rate-limit metadata", async () => 
     assert.equal(payload.rateLimit.requester.maxRequests, 30);
     assert.equal(payload.rateLimit.target.maxRequests, 10);
     assert.equal(payload.abuseAlerting.threshold, 25);
+    assert.equal(payload.scanTimeoutMs, 45000);
+    assert.equal(payload.deepPassiveScanTimeoutMs, 75000);
+    assert.equal(payload.scanScheduler.concurrency, 2);
+    assert.equal(payload.scanScheduler.staleRunningScanMs, 120000);
   } finally {
     await server.stop();
   }
@@ -1133,6 +1137,28 @@ test("scan resources require the same requester scope that created the scan", as
     const scopedDetailPayload = await scopedDetailResponse.json();
     assert.equal(scopedDetailResponse.status, 200);
     assert.equal(scopedDetailPayload.scan.id, scanId);
+  } finally {
+    await server.stop();
+  }
+});
+
+test("scan resources accept deep-passive mode for bounded recon", async () => {
+  const server = await startServer();
+
+  try {
+    const createResponse = await postScan(server.baseUrl, "https://example.com", {
+      mode: "deep-passive",
+    });
+    const payload = await createResponse.json();
+
+    assert.equal(createResponse.status, 202);
+    assert.equal(payload.scan.mode, "deep-passive");
+    assert.equal(["queued", "running", "completed"].includes(payload.scan.status), true);
+
+    for (let attempt = 0; attempt < 20 && !server.getStdout().includes('"maxScanDurationMs":75000'); attempt += 1) {
+      await wait(100);
+    }
+    assert.match(server.getStdout(), /"mode":"deep-passive".*"maxScanDurationMs":75000/);
   } finally {
     await server.stop();
   }

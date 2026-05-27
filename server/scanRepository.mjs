@@ -632,6 +632,29 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       touchOrder(id);
       return enrichScan(scan);
     },
+    async recoverStaleRunningScans({
+      maxAgeMs = 2 * 60 * 1000,
+      limit = 20,
+      failureClass = "scan_timeout",
+      message = "Scan was marked failed because it was still running after the recovery window.",
+    } = {}) {
+      const cutoff = Date.now() - maxAgeMs;
+      const staleIds = order
+        .map((id) => scans.get(id))
+        .filter((scan) => {
+          if (!scan || scan.status !== "running") return false;
+          const startedAt = scan.startedAt ? new Date(scan.startedAt).getTime() : 0;
+          return !startedAt || startedAt <= cutoff;
+        })
+        .slice(0, Math.max(1, limit))
+        .map((scan) => scan.id);
+
+      for (const id of staleIds) {
+        await this.markFailed(id, failureClass, message);
+      }
+
+      return staleIds.length;
+    },
     async getScan(id, scope = {}) {
       const scan = scans.get(id);
       return matchesScope(scan, scope) ? enrichScan(scan) : null;
@@ -1160,6 +1183,28 @@ export function createPostgresScanRepository({
         [event.id, event.scanId, event.eventType, event.occurredAt, event.status, event.failureClass, event.message, JSON.stringify({})],
       );
       return hydrateScanFromRow(rows[0]);
+    },
+    async recoverStaleRunningScans({
+      maxAgeMs = 2 * 60 * 1000,
+      limit = 20,
+      failureClass = "scan_timeout",
+      message = "Scan was marked failed because it was still running after the recovery window.",
+    } = {}) {
+      const cutoffAt = new Date(Date.now() - maxAgeMs).toISOString();
+      const { rows } = await pool.query(
+        `select id from ${table}
+         where status = 'running'
+           and (started_at is null or started_at < $1::timestamptz)
+         order by coalesce(started_at, requested_at) asc
+         limit $2`,
+        [cutoffAt, Math.max(1, limit)],
+      );
+
+      for (const row of rows) {
+        await this.markFailed(row.id, failureClass, message);
+      }
+
+      return rows.length;
     },
     async getScan(id, { requesterScope = null, ownerId = null } = {}) {
       const filters = ["id = $1"];

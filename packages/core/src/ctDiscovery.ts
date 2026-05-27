@@ -5,13 +5,12 @@ import {
   CT_LOOKUP_TIMEOUT_MS,
   CT_SAMPLE_CONCURRENCY_LIMIT,
   CT_SAMPLE_LIMIT,
+  CT_SUBDOMAIN_LIMIT,
+  CT_WILDCARD_LIMIT,
 } from "./scannerConfig.js";
 import type { CtDiscoveryInfo, CtDiscoveredHost, CtHostObservation } from "./types.js";
 import { detectIdentityProviderName } from "./identityProvider.js";
 import { headerValue, mapWithConcurrency, safeResolveWithTimeout, unique, withTimeout } from "./utils.js";
-
-const CT_SUBDOMAIN_LIMIT = 20;
-const CT_WILDCARD_LIMIT = 5;
 
 interface CtCacheEntry {
   expiresAt: number;
@@ -283,8 +282,9 @@ const detectTakeoverSignal = (cnameTargets: string[], body: string): CtHostObser
 const observeSampledHosts = async (
   prioritizedHosts: CtDiscoveredHost[],
   requestText: RequestTextFn,
+  sampleLimit = CT_SAMPLE_LIMIT,
 ): Promise<CtHostObservation[]> => {
-  const samples = prioritizedHosts.slice(0, CT_SAMPLE_LIMIT);
+  const samples = prioritizedHosts.slice(0, sampleLimit);
   const observations = await mapWithConcurrency(
     samples,
     CT_SAMPLE_CONCURRENCY_LIMIT,
@@ -353,9 +353,19 @@ export const fetchCtDiscovery = async (
   host: string,
   requestJson: RequestJsonFn,
   requestText: RequestTextFn,
-  options: { sampleHosts?: boolean } = {},
+  options: {
+    sampleHosts?: boolean;
+    subdomainLimit?: number;
+    wildcardLimit?: number;
+    sampleLimit?: number;
+  } = {},
 ): Promise<CtDiscoveryInfo> => {
-  const { sampleHosts = true } = options;
+  const {
+    sampleHosts = true,
+    subdomainLimit = CT_SUBDOMAIN_LIMIT,
+    wildcardLimit = CT_WILDCARD_LIMIT,
+    sampleLimit = CT_SAMPLE_LIMIT,
+  } = options;
   const queriedDomain = toDiscoveryDomain(host);
   const cached = ctCache.get(queriedDomain);
   if (cached) {
@@ -385,13 +395,13 @@ export const fetchCtDiscovery = async (
         .filter((value) => value.startsWith("*."))
         .map((value) => value.slice(2))
         .filter((value) => value === queriedDomain || value.endsWith(`.${queriedDomain}`)),
-    ).slice(0, CT_WILDCARD_LIMIT);
+    ).slice(0, wildcardLimit);
     const subdomains = unique(
       rawNames.filter((value) => !value.startsWith("*.") && value !== queriedDomain && value.endsWith(`.${queriedDomain}`)),
-    ).slice(0, CT_SUBDOMAIN_LIMIT);
+    ).slice(0, subdomainLimit);
 
     const prioritizedHosts = rankHosts(subdomains);
-    const sampledHosts = sampleHosts ? await observeSampledHosts(prioritizedHosts, requestText) : [];
+    const sampledHosts = sampleHosts ? await observeSampledHosts(prioritizedHosts, requestText, sampleLimit) : [];
     const authCount = prioritizedHosts.filter((entry) => entry.category === "auth").length;
     const edgeHits = sampledHosts.filter((entry) => entry.edgeProvider).length;
     const takeoverHits = sampledHosts.filter((entry) => entry.suspectedTakeover);

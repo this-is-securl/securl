@@ -302,7 +302,9 @@ export const logoutUser = async () => {
   await clearStoredAuthSession();
 };
 
-export const createScan = async (url: string, mode: "standard" | "quiet" = "standard") => {
+export type ScanMode = "standard" | "quiet" | "deep-passive";
+
+export const createScan = async (url: string, mode: ScanMode = "standard") => {
   const scanOwnerToken = await getScanOwnerToken();
   const response = await fetch(buildApiUrl("/api/scans"), {
     method: "POST",
@@ -372,7 +374,7 @@ export interface AnalyzeTargetResult {
 
 export const analyzeTargetWithMetadata = async (
   url: string,
-  setMode: "standard" | "quiet" = "standard",
+  setMode: ScanMode = "standard",
 ): Promise<AnalyzeTargetResult> => {
   const { scan, scanOwnerToken, fromCache } = await createScan(url, setMode);
   const scanId = scan.id;
@@ -399,7 +401,7 @@ export const getSharedScan = async (scanId: string): Promise<AnalysisResult | nu
   return result;
 };
 
-export const analyzeTarget = async (url: string, setMode: "standard" | "quiet" = "standard"): Promise<AnalysisResult> =>
+export const analyzeTarget = async (url: string, setMode: ScanMode = "standard"): Promise<AnalysisResult> =>
   (await analyzeTargetWithMetadata(url, setMode)).result;
 
 export const getRecentScanSummaries = async (limit = 10): Promise<ApiScanSummary[]> => {
