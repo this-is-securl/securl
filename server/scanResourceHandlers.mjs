@@ -218,7 +218,7 @@ export async function handleScanCollectionRequest({
     // that may block repeated scanner requests (CDN/WAF bot protection).
     const RESULT_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
     const cachedScan = await scanRepository
-      .getRecentSuccessfulScan({ url: validatedTarget.toString(), maxAgeMs: RESULT_CACHE_TTL_MS })
+      .getRecentSuccessfulScan({ url: validatedTarget.toString(), mode, maxAgeMs: RESULT_CACHE_TTL_MS })
       .catch(() => null); // cache miss on error — fall through to live scan
     if (cachedScan?.result) {
       try {
