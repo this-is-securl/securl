@@ -502,6 +502,54 @@ test("telemetry page-load beacon records Hostinger frontend visits", async () =>
   }
 });
 
+test("telemetry event beacon records funnel events", async () => {
+  const server = await startServer({
+    TRUST_PROXY: "true",
+  });
+
+  try {
+    const eventResponse = await fetch(`${server.baseUrl}/api/telemetry/event`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Origin: "https://app.securl.online",
+        "User-Agent": "TelemetryEventTest/1.0",
+        "X-Forwarded-For": "203.0.113.21",
+      },
+      body: JSON.stringify({
+        event: "share_link_copied",
+        referrer: "https://github.com/ktbatterham/external-posture-insight",
+        currentUrl: "https://app.securl.online/?utm_source=launch",
+        target: "https://example.com/",
+        scanId: "scan-one",
+      }),
+    });
+    assert.equal(eventResponse.status, 202);
+    assert.equal(eventResponse.headers.get("access-control-allow-origin"), "https://app.securl.online");
+
+    const telemetryResponse = await fetch(`${server.baseUrl}/api/telemetry`);
+    const payload = await telemetryResponse.json();
+
+    assert.equal(payload.funnel.events.share_link_copied, 1);
+    assert.equal(payload.funnel.bySource["utm:launch"].share_link_copied, 1);
+    assert.equal(payload.funnel.recent[0].scanId, "scan-one");
+
+    const invalidResponse = await fetch(`${server.baseUrl}/api/telemetry/event`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Origin: "https://app.securl.online",
+      },
+      body: JSON.stringify({
+        event: "unexpected_event",
+      }),
+    });
+    assert.equal(invalidResponse.status, 400);
+  } finally {
+    await server.stop();
+  }
+});
+
 test("telemetry endpoint is hidden by default in production", async () => {
   const server = await startServer({
     NODE_ENV: "production",

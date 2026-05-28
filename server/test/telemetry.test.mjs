@@ -29,6 +29,19 @@ test("telemetry tracker records aggregate counts", () => {
   telemetry.recordAuthRejected();
   telemetry.recordRequesterRateLimited();
   telemetry.recordTargetRateLimited();
+  telemetry.recordFunnelEvent({
+    event: "scan_started",
+    source: "hacker_news",
+    target: "https://example.com/",
+    scanId: "scan-one",
+  });
+  telemetry.recordFunnelEvent({
+    event: "export_clicked",
+    source: "hacker_news",
+    target: "https://example.com/",
+    scanId: "scan-one",
+    format: "pdf",
+  });
 
   const snapshot = telemetry.snapshot();
   assert.equal(snapshot.pageLoads, 3);
@@ -58,6 +71,12 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.failures.authRejected, 1);
   assert.equal(snapshot.failures.requesterRateLimited, 1);
   assert.equal(snapshot.failures.targetRateLimited, 1);
+  assert.equal(snapshot.funnel.events.scan_started, 1);
+  assert.equal(snapshot.funnel.events.export_clicked, 1);
+  assert.equal(snapshot.funnel.bySource.hacker_news.scan_started, 1);
+  assert.equal(snapshot.funnel.today.scan_started, 1);
+  assert.equal(snapshot.funnel.recent.length, 2);
+  assert.equal(snapshot.funnel.recent[0].event, "export_clicked");
 });
 
 test("telemetry tracker can persist counters to disk", () => {
@@ -68,6 +87,7 @@ test("telemetry tracker can persist counters to disk", () => {
     const first = createTelemetryTracker({ storagePath });
     first.recordPageLoad({ visitorKey: "visitor-one", now: new Date("2026-05-15T08:00:00Z"), source: "reddit" });
     first.recordScanRequested({ mode: "quiet" });
+    first.recordFunnelEvent({ event: "report_viewed", source: "reddit", target: "https://example.com/path" });
     first.recordFailure("requester_rate_limited", {
       target: "https://example.com/path",
       message: "Too many requests\tfrom this client.",
@@ -84,6 +104,9 @@ test("telemetry tracker can persist counters to disk", () => {
     assert.equal(snapshot.trafficSources.pageLoads.reddit, 1);
     assert.equal(snapshot.scans.requested, 1);
     assert.equal(snapshot.scans.quietMode, 1);
+    assert.equal(snapshot.funnel.events.report_viewed, 1);
+    assert.equal(snapshot.funnel.bySource.reddit.report_viewed, 1);
+    assert.equal(snapshot.funnel.recent[0].target, "https://example.com/path");
     assert.equal(snapshot.failures.classes.requester_rate_limited, 1);
     assert.equal(snapshot.failures.recent.length, 1);
     assert.equal(snapshot.failures.recent[0].class, "requester_rate_limited");
