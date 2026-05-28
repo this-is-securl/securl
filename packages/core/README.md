@@ -62,6 +62,7 @@ Use it only against systems you own or are authorized to assess. Results are heu
 - TLS and certificate inspection
 - Cookie hygiene
 - Passive HTML inspection
+- Passive public IOC and abuse indicators for suspicious scripts, off-origin credential flows, exposed paths, CT takeover clues, and visible vulnerable client libraries
 - AI surface and third-party trust signals
 - Low-noise exposure, CORS, API-surface, and DNS/mail posture checks
 - OWASP/MITRE-aligned finding labels

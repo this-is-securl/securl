@@ -57,6 +57,14 @@ const buildLibraryRiskLines = (analysis: AnalysisResult) =>
       ? ["- Explicitly versioned client libraries were detected, but no OSV advisory matches were returned."]
       : ["- No explicit versioned client-library fingerprints were detected."];
 
+const buildCompromiseSignalLines = (analysis: AnalysisResult) =>
+  analysis.compromiseSignals?.indicators?.length
+    ? analysis.compromiseSignals.indicators.map(
+        (indicator) =>
+          `- [${indicator.severity}] ${indicator.title}: ${indicator.detail}${indicator.evidence.length ? ` Evidence: ${indicator.evidence.join(", ")}` : ""}`,
+      )
+    : ["- No passive public IOC-style indicators were inferred."];
+
 const buildThirdPartyLines = (analysis: AnalysisResult) =>
   analysis.thirdPartyTrust.providers.length
     ? analysis.thirdPartyTrust.providers.map(
@@ -467,6 +475,12 @@ export const buildMarkdownReport = (analysis: AnalysisResult, diff: HistoryDiff 
     ...buildSameSiteHostLines(analysis),
     ...buildPassiveLeakLines(analysis),
     ...buildLibraryRiskLines(analysis),
+    "",
+    "### Public IOC & Abuse Indicators",
+    "",
+    `- Summary: ${analysis.compromiseSignals?.summary ?? "Compromise and abuse indicators were not assessed."}`,
+    `- Posture: ${analysis.compromiseSignals?.posture ?? "not_assessed"}`,
+    ...buildCompromiseSignalLines(analysis),
     "",
     "### Auth Surface",
     "",

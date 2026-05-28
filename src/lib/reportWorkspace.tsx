@@ -23,6 +23,7 @@ import { DisclosureTrustPanel } from "@/components/DisclosureTrustPanel";
 import { IdentityProviderPanel } from "@/components/IdentityProviderPanel";
 import { InfrastructurePanel } from "@/components/InfrastructurePanel";
 import { PassiveIntelligencePanel } from "@/components/PassiveIntelligencePanel";
+import { CompromiseSignalsPanel } from "@/components/CompromiseSignalsPanel";
 import { WafFingerprintPanel } from "@/components/WafFingerprintPanel";
 import { CtDiscoveryPanel } from "@/components/CtDiscoveryPanel";
 import { AiSurfacePanel } from "@/components/AiSurfacePanel";
@@ -88,6 +89,7 @@ export const buildReportWorkspaceSections = ({
   const domainIssueCount = analysisData.domainSecurity.issues.length;
   const edgeSignalCount =
     (analysisData.passiveIntelligence?.issues.length ?? 0) +
+    (analysisData.compromiseSignals?.issues.length ?? 0) +
     analysisData.infrastructure.issues.length +
     analysisData.wafFingerprint.issues.length +
     analysisData.ctDiscovery.issues.length +
@@ -203,6 +205,7 @@ export const buildReportWorkspaceSections = ({
       <div className="space-y-8">
         <IdentityProviderPanel identityProvider={analysisData.identityProvider} />
         <PassiveIntelligencePanel passiveIntelligence={analysisData.passiveIntelligence} />
+        <CompromiseSignalsPanel compromiseSignals={analysisData.compromiseSignals} />
         <InfrastructurePanel infrastructure={analysisData.infrastructure} />
         <WafFingerprintPanel wafFingerprint={analysisData.wafFingerprint} />
         <CtDiscoveryPanel ctDiscovery={analysisData.ctDiscovery} />

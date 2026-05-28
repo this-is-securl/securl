@@ -98,6 +98,7 @@ export function buildScanEvidencePayload(scan) {
       publicSignals: result.publicSignals ?? null,
       infrastructure: result.infrastructure ?? null,
       passiveIntelligence: result.passiveIntelligence ?? null,
+      compromiseSignals: result.compromiseSignals ?? null,
       identityProvider: result.identityProvider ?? null,
       thirdPartyTrust: result.thirdPartyTrust ?? null,
       aiSurface: result.aiSurface ?? null,
