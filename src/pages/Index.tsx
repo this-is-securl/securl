@@ -227,7 +227,7 @@ const Index = () => {
                   </a>
                   <div
                     title={[coreLabel, buildLabel, appVersionLabel].filter(Boolean).join(" / ")}
-                    className="inline-flex cursor-default items-center gap-1.5 rounded-full border border-white/[0.07] bg-zinc-950/25 px-2.5 py-0.5 text-[10px] font-medium tracking-[0.12em] text-zinc-600 opacity-50 hover:opacity-100 transition-opacity"
+                    className="inline-flex cursor-default items-center gap-1.5 rounded-full border border-white/[0.12] bg-white/[0.05] px-2.5 py-0.5 text-[10px] font-semibold tracking-[0.12em] text-zinc-400 transition-colors hover:text-zinc-200"
                   >
                     <span>v{__CORE_VERSION__}</span>
                   </div>
