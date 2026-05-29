@@ -660,6 +660,29 @@ process.on("uncaughtException", (error) => {
   process.exit(1);
 });
 
+let shutdownStarted = false;
+const shutdownGracefully = (signal) => {
+  if (shutdownStarted) {
+    return;
+  }
+  shutdownStarted = true;
+  log("info", "shutdown_started", { signal });
+  server.close((error) => {
+    if (error) {
+      log("error", "shutdown_failed", {
+        signal,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      process.exit(1);
+    }
+    log("info", "shutdown_completed", { signal });
+    process.exit(0);
+  });
+};
+
+process.on("SIGTERM", () => shutdownGracefully("SIGTERM"));
+process.on("SIGINT", () => shutdownGracefully("SIGINT"));
+
 server.listen(port, () => {
   log("info", "server_started", {
     port,

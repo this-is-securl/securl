@@ -10,4 +10,4 @@ RUN npm prune --omit=dev
 
 ENV NODE_ENV=production
 
-CMD ["npm", "run", "start"]
+CMD ["node", "server/index.mjs"]
