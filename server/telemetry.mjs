@@ -20,6 +20,10 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     coreDurationsMs: [],
     enrichmentDurationsMs: [],
     limitedReadKinds: {},
+    funnelEvents: {},
+    funnelEventsBySource: {},
+    funnelDays: {},
+    recentFunnelEvents: [],
     failureClasses: {},
     recentFailures: [],
     authRejected: 0,
@@ -71,6 +75,23 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     state.coreDurationsMs = Array.isArray(value.coreDurationsMs) ? value.coreDurationsMs.filter(Number.isFinite).slice(-200) : state.coreDurationsMs;
     state.enrichmentDurationsMs = Array.isArray(value.enrichmentDurationsMs) ? value.enrichmentDurationsMs.filter(Number.isFinite).slice(-200) : state.enrichmentDurationsMs;
     state.limitedReadKinds = { ...(value.limitedReadKinds || {}) };
+    state.funnelEvents = { ...(value.funnelEvents || {}) };
+    state.funnelEventsBySource = { ...(value.funnelEventsBySource || {}) };
+    state.funnelDays = Object.fromEntries(
+      Object.entries(value.funnelDays || {}).map(([date, bucket]) => [
+        date,
+        {
+          events: { ...(bucket?.events || {}) },
+          sources: { ...(bucket?.sources || {}) },
+        },
+      ]),
+    );
+    state.recentFunnelEvents = Array.isArray(value.recentFunnelEvents)
+      ? value.recentFunnelEvents
+        .map(sanitizeFunnelEvent)
+        .filter(Boolean)
+        .slice(-40)
+      : state.recentFunnelEvents;
     state.failureClasses = { ...(value.failureClasses || {}) };
     state.recentFailures = Array.isArray(value.recentFailures)
       ? value.recentFailures
@@ -113,6 +134,15 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       };
     }
     return state.visitorDays[dateKey];
+  };
+  const getFunnelDayBucket = (dateKey) => {
+    if (!state.funnelDays[dateKey]) {
+      state.funnelDays[dateKey] = {
+        events: {},
+        sources: {},
+      };
+    }
+    return state.funnelDays[dateKey];
   };
   const serializeDayBucket = (date, bucket) => ({
     date,
@@ -158,6 +188,12 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       state.recentFailures.splice(0, state.recentFailures.length - 20);
     }
   };
+  const pushRecentFunnelEvent = (event) => {
+    state.recentFunnelEvents.push(event);
+    if (state.recentFunnelEvents.length > 40) {
+      state.recentFunnelEvents.splice(0, state.recentFunnelEvents.length - 40);
+    }
+  };
 
   return {
     recordPageLoad({ visitorKey = null, now = new Date(), source = "unknown" } = {}) {
@@ -176,6 +212,36 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         dayBucket.visitorKeys.add(visitorKey);
       }
       persist();
+    },
+    recordFunnelEvent({ event, source = "unknown", target = null, scanId = null, format = null, mode = null, now = new Date() } = {}) {
+      const sanitized = sanitizeFunnelEvent({
+        occurredAt: now.toISOString(),
+        event,
+        source: normalizeTrafficSource(source),
+        target,
+        scanId,
+        format,
+        mode,
+      });
+      if (!sanitized) {
+        return false;
+      }
+
+      incrementBucket(state.funnelEvents, sanitized.event);
+      if (!state.funnelEventsBySource[sanitized.source]) {
+        state.funnelEventsBySource[sanitized.source] = {};
+      }
+      incrementBucket(state.funnelEventsBySource[sanitized.source], sanitized.event);
+      const dateKey = now.toISOString().slice(0, 10);
+      const dayBucket = getFunnelDayBucket(dateKey);
+      incrementBucket(dayBucket.events, sanitized.event);
+      if (!dayBucket.sources[sanitized.source]) {
+        dayBucket.sources[sanitized.source] = {};
+      }
+      incrementBucket(dayBucket.sources[sanitized.source], sanitized.event);
+      pushRecentFunnelEvent(sanitized);
+      persist();
+      return true;
     },
     recordScanRequested({ mode }) {
       state.scansRequested += 1;
@@ -244,6 +310,24 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
           pageLoads: { ...state.sourceBuckets },
           today: { ...(getDayBucket(todayKey).sourceBuckets || {}) },
         },
+        funnel: {
+          events: { ...state.funnelEvents },
+          bySource: Object.fromEntries(
+            Object.entries(state.funnelEventsBySource).map(([source, events]) => [
+              source,
+              { ...events },
+            ]),
+          ),
+          today: { ...(getFunnelDayBucket(todayKey).events || {}) },
+          recentDays: Object.entries(state.funnelDays)
+            .sort(([left], [right]) => left.localeCompare(right))
+            .slice(-14)
+            .map(([date, bucket]) => ({
+              date,
+              events: { ...bucket.events },
+            })),
+          recent: [...state.recentFunnelEvents].reverse(),
+        },
         scans: {
           requested: state.scansRequested,
           completed: state.scansCompleted,
@@ -298,6 +382,36 @@ function sanitizeRecentFailure(value) {
     target: sanitizeTelemetryText(value.target, 240),
     message: sanitizeTelemetryText(value.message, 240),
     source: sanitizeTelemetryText(value.source, 80),
+  };
+}
+
+const FUNNEL_EVENT_NAMES = new Set([
+  "scan_started",
+  "scan_completed",
+  "scan_failed",
+  "report_viewed",
+  "shared_report_viewed",
+  "share_link_copied",
+  "export_clicked",
+  "monitoring_saved",
+]);
+
+function sanitizeFunnelEvent(value) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  const event = sanitizeTelemetryText(value.event, 80);
+  if (!event || !FUNNEL_EVENT_NAMES.has(event)) {
+    return null;
+  }
+  return {
+    occurredAt: sanitizeTelemetryText(value.occurredAt, 40) || new Date().toISOString(),
+    event,
+    source: normalizeTrafficSource(value.source),
+    target: sanitizeTelemetryText(value.target, 160),
+    scanId: sanitizeTelemetryText(value.scanId, 80),
+    format: sanitizeTelemetryText(value.format, 40),
+    mode: sanitizeTelemetryText(value.mode, 40),
   };
 }
 

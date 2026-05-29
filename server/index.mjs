@@ -420,6 +420,29 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
+  if (requestUrl.pathname === "/api/telemetry/event") {
+    if (request.method !== "POST") {
+      sendApiMethodNotAllowed(response, ["POST", "OPTIONS"]);
+      return;
+    }
+
+    const body = await readJsonBody(request, { maxBytes: 4 * 1024 }).catch(() => ({}));
+    const source = classifyTrafficSource({
+      referrer: typeof body.referrer === "string" ? body.referrer : String(request.headers.referer || ""),
+      currentUrl: typeof body.currentUrl === "string" ? body.currentUrl : "",
+    });
+    const recorded = telemetry.recordFunnelEvent({
+      event: typeof body.event === "string" ? body.event : "",
+      source,
+      target: typeof body.target === "string" ? body.target : null,
+      scanId: typeof body.scanId === "string" ? body.scanId : null,
+      format: typeof body.format === "string" ? body.format : null,
+      mode: typeof body.mode === "string" ? body.mode : null,
+    });
+    sendApiJson(response, recorded ? 202 : 400, recorded ? { ok: true } : { error: "Unsupported telemetry event." });
+    return;
+  }
+
   if (requestUrl.pathname === "/api/telemetry") {
     if (!exposeTelemetry || !isTelemetryRequestAuthorized(request)) {
       sendApiJson(response, 404, {

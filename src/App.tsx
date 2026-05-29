@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import { ReportPage } from "./pages/ReportPage";
+import { PrivacyPage } from "./pages/PrivacyPage";
 import { recordPageLoad } from "./lib/apiClient";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => {
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/report/:scanId" element={<ReportPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
             </Routes>
           </div>
         </BrowserRouter>

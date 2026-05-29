@@ -60,6 +60,52 @@ export const recordPageLoad = () => {
   });
 };
 
+export type TelemetryEventName =
+  | "scan_started"
+  | "scan_completed"
+  | "scan_failed"
+  | "report_viewed"
+  | "shared_report_viewed"
+  | "share_link_copied"
+  | "export_clicked"
+  | "monitoring_saved";
+
+export const recordTelemetryEvent = (
+  event: TelemetryEventName,
+  details: {
+    target?: string | null;
+    scanId?: string | null;
+    format?: string | null;
+    mode?: string | null;
+  } = {},
+) => {
+  const url = buildApiUrl("/api/telemetry/event");
+  const payload = JSON.stringify({
+    event,
+    target: details.target ?? null,
+    scanId: details.scanId ?? null,
+    format: details.format ?? null,
+    mode: details.mode ?? null,
+    referrer: typeof document !== "undefined" ? document.referrer : "",
+    currentUrl: typeof window !== "undefined" ? window.location.href : "",
+  });
+  if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
+    navigator.sendBeacon(url, new Blob([payload], { type: "application/json" }));
+    return;
+  }
+
+  void fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: payload,
+    keepalive: true,
+  }).catch(() => {
+    // Telemetry must never interrupt the user journey.
+  });
+};
+
 export class ApiClientError extends Error {
   status: number;
   payload: unknown;

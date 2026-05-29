@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Sparkles } from "lucide-react";
-import { getSharedScan } from "@/lib/apiClient";
+import { getSharedScan, recordTelemetryEvent } from "@/lib/apiClient";
 import { buildReportWorkspaceSections } from "@/lib/reportWorkspace";
 import { getAreaScores } from "@/lib/posture";
 import { ReportSectionNav } from "@/components/report/ReportSectionNav";
@@ -20,7 +20,13 @@ export function ReportPage() {
     setLoading(true);
     getSharedScan(scanId).then((data) => {
       if (!data) setNotFound(true);
-      else setResult(data);
+      else {
+        setResult(data);
+        recordTelemetryEvent("shared_report_viewed", {
+          target: data.url,
+          scanId,
+        });
+      }
       setLoading(false);
     });
   }, [scanId]);

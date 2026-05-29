@@ -62,6 +62,30 @@ const main = async () => {
   console.log(`  Timed out: ${telemetry.scans?.timedOut ?? 0}`);
   console.log(`  Average total time: ${formatMs(telemetry.scans?.timing?.total?.averageMs)}`);
   console.log("");
+  console.log(`Funnel`);
+  const funnelEvents = Object.entries(telemetry.funnel?.events || {})
+    .sort(([, left], [, right]) => right - left);
+  if (funnelEvents.length) {
+    for (const [event, count] of funnelEvents) {
+      console.log(`  ${event}: ${count}`);
+    }
+  } else {
+    console.log("  No funnel events recorded yet.");
+  }
+  const topFunnelSources = Object.entries(telemetry.funnel?.bySource || {})
+    .map(([source, events]) => [
+      source,
+      Object.values(events || {}).reduce((sum, count) => sum + Number(count || 0), 0),
+    ])
+    .sort(([, left], [, right]) => right - left)
+    .slice(0, 5);
+  if (topFunnelSources.length) {
+    console.log("  Sources:");
+    for (const [source, count] of topFunnelSources) {
+      console.log(`    - ${source}: ${count}`);
+    }
+  }
+  console.log("");
   console.log(`Failures`);
   console.log(`  Auth rejected: ${telemetry.failures?.authRejected ?? 0}`);
   console.log(`  Requester rate limited: ${telemetry.failures?.requesterRateLimited ?? 0}`);

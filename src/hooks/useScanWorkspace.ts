@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import type { AnalysisResult } from "@/types/analysis";
 import { getAreaScores } from "@/lib/posture";
 import type { ReportWorkspaceSectionKey } from "@/lib/reportWorkspace";
-import { analyzeTargetWithMetadata, ApiClientError, getSavedScan } from "@/lib/apiClient";
+import { analyzeTargetWithMetadata, ApiClientError, getSavedScan, recordTelemetryEvent } from "@/lib/apiClient";
 import type { RecentScan } from "@/lib/scanWorkspace";
 
 import { useRecentScans } from "./useRecentScans";
@@ -159,9 +159,21 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
 
   const analyzeUrl = async (url: string, setAsCurrent = true) => {
     setCurrentScanId(null);
+    recordTelemetryEvent("scan_started", { target: url, mode: "standard" });
     const payload = await analyzeTargetWithMetadata(url);
     setCurrentScanId(payload.scanId);
     persistAnalysis(payload.result, setAsCurrent, payload.fromCache);
+    recordTelemetryEvent("scan_completed", {
+      target: payload.result.url,
+      scanId: payload.scanId,
+      mode: "standard",
+    });
+    if (setAsCurrent) {
+      recordTelemetryEvent("report_viewed", {
+        target: payload.result.url,
+        scanId: payload.scanId,
+      });
+    }
     return payload.result;
   };
 
@@ -179,6 +191,7 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
         toast.success(`Reloaded ${result.host}.`);
       }
     } catch (error) {
+      recordTelemetryEvent("scan_failed", { target: url, mode: "standard" });
       toast.error(error instanceof Error ? error.message : "Unable to scan that site.");
     } finally {
       setActiveRecentScanUrl(null);
@@ -204,6 +217,10 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
         setAnalysisData(payload.scan.result);
         setCurrentScanWasCached(false);
         addHistorySnapshot(payload.scan.result, true);
+      });
+      recordTelemetryEvent("report_viewed", {
+        target: payload.scan.result.url,
+        scanId: scan.id,
       });
       toast.success(`Reopened ${payload.scan.result.host}.`);
     } catch (error) {
@@ -231,6 +248,7 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
       try {
         await analyzeUrlRef.current?.(target, true);
       } catch (error) {
+        recordTelemetryEvent("scan_failed", { target, mode: "standard" });
         toast.error(error instanceof Error ? error.message : "Unable to scan that site.");
       } finally {
         setIsLoading(false);
@@ -244,6 +262,7 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
       const result = await analyzeUrl(url, setAsCurrent);
       toast.success(`Scanned ${result.host}.`);
     } catch (error) {
+      recordTelemetryEvent("scan_failed", { target: url, mode: "standard" });
       toast.error(error instanceof Error ? error.message : "Unable to scan that monitored target.");
     } finally {
       setIsLoading(false);
@@ -266,6 +285,7 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
         await analyzeUrl(target.url, false);
         successCount += 1;
       } catch {
+        recordTelemetryEvent("scan_failed", { target: target.url, mode: "standard" });
         failureCount += 1;
       }
     }
@@ -300,12 +320,26 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
     openRecentScan,
     saveCurrentAsMonitored: async (cadence: "daily" | "weekly") => {
       await saveCurrentAsMonitored(cadence, analysisData);
+      recordTelemetryEvent("monitoring_saved", {
+        target: analysisData?.url ?? null,
+        scanId: currentScanId,
+        mode: cadence,
+      });
     },
     removeMonitoredTarget,
     runTargetScan,
     runDueScans,
-    exportReport: () => exportReportJson(analysisData),
-    exportMarkdown: () => exportReportMarkdown(analysisData, historyDiff),
-    exportPdf: () => exportReportPdf(analysisData, historyDiff),
+    exportReport: () => {
+      recordTelemetryEvent("export_clicked", { target: analysisData?.url ?? null, scanId: currentScanId, format: "json" });
+      exportReportJson(analysisData);
+    },
+    exportMarkdown: () => {
+      recordTelemetryEvent("export_clicked", { target: analysisData?.url ?? null, scanId: currentScanId, format: "markdown" });
+      exportReportMarkdown(analysisData, historyDiff);
+    },
+    exportPdf: () => {
+      recordTelemetryEvent("export_clicked", { target: analysisData?.url ?? null, scanId: currentScanId, format: "pdf" });
+      exportReportPdf(analysisData, historyDiff);
+    },
   };
 };

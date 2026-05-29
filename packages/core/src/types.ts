@@ -367,9 +367,12 @@ export interface WafFingerprintInfo {
 
 export interface HtmlFormInfo {
   action: string | null;
+  resolvedAction: string;
+  actionHost: string | null;
   method: string;
   insecureSubmission: boolean;
   hasPasswordField: boolean;
+  offOriginSubmission: boolean;
 }
 
 export interface PassiveLeakSignal {
@@ -430,6 +433,14 @@ export interface FrameworkVersionLeak {
   risk: "low" | "medium" | "high";
 }
 
+export interface SuspiciousScriptSignal {
+  category: "obfuscation" | "dynamic_loader" | "suspicious_host";
+  severity: "info" | "warning";
+  title: string;
+  detail: string;
+  evidence: string[];
+}
+
 export interface HtmlSecurityInfo {
   fetched: boolean;
   pageUrl: string | null;
@@ -450,6 +461,7 @@ export interface HtmlSecurityInfo {
   libraryFingerprints: LibraryFingerprint[];
   libraryRiskSignals: LibraryRiskSignal[];
   frameworkVersionLeaks: FrameworkVersionLeak[];
+  suspiciousScriptSignals: SuspiciousScriptSignal[];
   detectedTechnologies: TechnologyResult[];
   aiSurface: AiSurfaceInfo;
   issues: string[];
@@ -560,6 +572,39 @@ export interface PassiveIntelligenceInfo {
   signals: PassiveIntelligenceSignal[];
   issues: string[];
   strengths: string[];
+}
+
+export interface CompromiseIndicator {
+  category:
+    | "credential_collection"
+    | "script_anomaly"
+    | "supply_chain"
+    | "infrastructure"
+    | "exposure"
+    | "reputation";
+  severity: "info" | "watch" | "warning" | "critical";
+  title: string;
+  detail: string;
+  confidence: IssueConfidence;
+  source: "html" | "asset" | "dns" | "ct" | "public_record" | "reputation" | "derived";
+  evidence: string[];
+  action: string | null;
+}
+
+export interface ReputationCheckSummary {
+  provider: "google_safe_browsing" | "google_web_risk" | "urlhaus" | "virustotal";
+  status: "not_configured" | "not_checked" | "clean" | "flagged" | "error";
+  summary: string;
+}
+
+export interface CompromiseSignalsInfo {
+  posture: "no_public_ioc" | "review_recommended" | "suspicious" | "reputation_flagged" | "not_assessed";
+  summary: string;
+  indicators: CompromiseIndicator[];
+  reputationChecks: ReputationCheckSummary[];
+  issues: string[];
+  strengths: string[];
+  collectionBoundary: string;
 }
 
 export interface ExecutiveSummaryInfo {
@@ -678,6 +723,7 @@ export interface AnalysisResult {
   thirdPartyTrust: ThirdPartyTrustInfo;
   infrastructure: InfrastructureInfo;
   passiveIntelligence: PassiveIntelligenceInfo;
+  compromiseSignals: CompromiseSignalsInfo;
   executiveSummary: ExecutiveSummaryInfo;
   scoreDrivers?: ScoreDriver[];
   assessmentLimitation: AssessmentLimitation;

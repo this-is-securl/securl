@@ -139,6 +139,74 @@ const detectFrameworkVersionLeaks = (
   return leaks;
 };
 
+const summarizeEvidence = (values: Array<string | null | undefined>, limit = 6): string[] =>
+  unique(values.filter((value): value is string => Boolean(value && value.trim())).map((value) => value.trim())).slice(0, limit);
+
+const detectSuspiciousScriptSignals = (
+  scriptElements: NhpElement[],
+  externalScriptUrls: string[],
+  finalUrl: URL,
+): HtmlSecurityInfo["suspiciousScriptSignals"] => {
+  const signals: HtmlSecurityInfo["suspiciousScriptSignals"] = [];
+  const inlineBodies = scriptElements
+    .filter((script) => !script.getAttribute("src"))
+    .map((script) => script.text.slice(0, 20_000));
+  const inlineCorpus = inlineBodies.join("\n");
+  const obfuscationMarkers = summarizeEvidence([
+    /\beval\s*\(/.test(inlineCorpus) ? "eval(...)" : null,
+    /\batob\s*\(/.test(inlineCorpus) ? "atob(...)" : null,
+    /String\.fromCharCode\s*\(/.test(inlineCorpus) ? "String.fromCharCode(...)" : null,
+    /\bunescape\s*\(/.test(inlineCorpus) ? "unescape(...)" : null,
+    /[A-Za-z0-9+/]{180,}={0,2}/.test(inlineCorpus) ? "long base64-like string" : null,
+  ]);
+  if (obfuscationMarkers.length) {
+    signals.push({
+      category: "obfuscation",
+      severity: "warning",
+      title: "Obfuscated inline script markers visible",
+      detail: "The fetched page contains inline JavaScript patterns often used by packers, tag loaders, or injected scripts. Review the source before treating this as compromise proof.",
+      evidence: obfuscationMarkers,
+    });
+  }
+
+  const dynamicLoaderMarkers = summarizeEvidence([
+    /document\.write\s*\([^)]*<script/i.test(inlineCorpus) ? "document.write(<script...)" : null,
+    /createElement\s*\(\s*['"]script['"]\s*\)/i.test(inlineCorpus) ? "createElement('script')" : null,
+    /\.appendChild\s*\([^)]*script/i.test(inlineCorpus) ? "appendChild(script)" : null,
+  ]);
+  if (dynamicLoaderMarkers.length) {
+    signals.push({
+      category: "dynamic_loader",
+      severity: "info",
+      title: "Dynamic script loader markers visible",
+      detail: "The page dynamically creates or writes script elements. That is common for tag managers, but it increases review value when combined with weak CSP or unfamiliar third-party hosts.",
+      evidence: dynamicLoaderMarkers,
+    });
+  }
+
+  const suspiciousHosts = summarizeEvidence(
+    externalScriptUrls
+      .map((url) => {
+        const parsed = new URL(url);
+        if (parsed.hostname === finalUrl.hostname) return null;
+        return /(^|\.)xn--|\.duckdns\.org$|\.ddns\.net$|\.no-ip\./i.test(parsed.hostname)
+          ? parsed.hostname
+          : null;
+      }),
+  );
+  if (suspiciousHosts.length) {
+    signals.push({
+      category: "suspicious_host",
+      severity: "warning",
+      title: "Suspicious script host pattern visible",
+      detail: "One or more script hosts use punycode or dynamic-DNS style naming. Review ownership and expected use before trusting loaded code.",
+      evidence: suspiciousHosts,
+    });
+  }
+
+  return signals;
+};
+
 export async function fetchHtmlDocument(finalUrl: URL) {
   const response = await requestText(finalUrl);
   const contentType = headerValue(response.headers, "content-type") || "";
@@ -177,6 +245,7 @@ export function analyzeHtmlSecurity(finalUrl: URL, document: { html: string; pag
         libraryFingerprints: [],
         libraryRiskSignals: [],
         frameworkVersionLeaks: [],
+        suspiciousScriptSignals: [],
         detectedTechnologies: [],
         aiSurface: {
           detected: false,
@@ -206,11 +275,15 @@ export function analyzeHtmlSecurity(finalUrl: URL, document: { html: string; pag
       const action = form.getAttribute("action") || null;
       const method = (form.getAttribute("method") || "GET").toUpperCase();
       const resolvedAction = action ? new URL(action, finalUrl).toString() : finalUrl.toString();
+      const actionHost = new URL(resolvedAction).hostname;
       return {
         action,
+        resolvedAction,
+        actionHost,
         method,
         insecureSubmission: resolvedAction.startsWith("http://"),
         hasPasswordField: form.querySelectorAll('input[type="password"]').length > 0,
+        offOriginSubmission: actionHost !== finalUrl.hostname,
       };
     });
 
@@ -268,6 +341,7 @@ export function analyzeHtmlSecurity(finalUrl: URL, document: { html: string; pag
       })
       .filter(Boolean) as string[];
     const sriCoverage = calculateSriCoverage(scriptElements, stylesheetElements, finalUrl);
+    const suspiciousScriptSignals = detectSuspiciousScriptSignals(scriptElements, externalScriptUrls, finalUrl);
     const passiveLeakSignals = collectPassiveLeakSignals(
       html,
       finalUrl,
@@ -287,6 +361,9 @@ export function analyzeHtmlSecurity(finalUrl: URL, document: { html: string; pag
     }
     if (forms.some((form) => form.insecureSubmission)) {
       issues.push("At least one form appears to submit over HTTP.");
+    }
+    if (forms.some((form) => form.hasPasswordField && form.offOriginSubmission)) {
+      issues.push("A password form appears to submit to a different origin.");
     }
     if (insecureResourceUrls.length) {
       issues.push("The page references insecure HTTP resources.");
@@ -308,6 +385,11 @@ export function analyzeHtmlSecurity(finalUrl: URL, document: { html: string; pag
       }
     }
     for (const signal of clientExposureSignals) {
+      if (signal.severity === "warning") {
+        issues.push(signal.title);
+      }
+    }
+    for (const signal of suspiciousScriptSignals) {
       if (signal.severity === "warning") {
         issues.push(signal.title);
       }
@@ -353,6 +435,7 @@ export function analyzeHtmlSecurity(finalUrl: URL, document: { html: string; pag
         externalScriptUrls,
         externalStylesheetUrls,
       ),
+      suspiciousScriptSignals,
       detectedTechnologies: detectHtmlTechnologies(
         html,
         finalUrl,
@@ -385,6 +468,7 @@ export function analyzeHtmlSecurity(finalUrl: URL, document: { html: string; pag
       libraryFingerprints: [],
       libraryRiskSignals: [],
       frameworkVersionLeaks: [],
+      suspiciousScriptSignals: [],
       detectedTechnologies: [],
       aiSurface: {
         detected: false,

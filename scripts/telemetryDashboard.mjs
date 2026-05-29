@@ -176,6 +176,8 @@ const html = String.raw`<!doctype html>
         const failureTotal = (data.failures?.authRejected || 0) + (data.failures?.requesterRateLimited || 0) + (data.failures?.targetRateLimited || 0) + entries(data.failures?.classes).reduce((s, e) => s + e[1], 0);
         const sources = entries(data.trafficSources?.pageLoads);
         const todaySources = entries(data.trafficSources?.today);
+        const funnelEvents = entries(data.funnel?.events);
+        const funnelSources = entries(Object.fromEntries(entries(data.funnel?.bySource).map(([source, events]) => [source, Object.values(events || {}).reduce((sum, count) => sum + Number(count || 0), 0)])));
         const limitedKinds = entries(data.scans?.limitedReadKinds);
         const failureClasses = entries(data.failures?.classes);
         const recentFailures = Array.isArray(data.failures?.recent) ? data.failures.recent.slice(0, 8) : [];
@@ -190,6 +192,12 @@ const html = String.raw`<!doctype html>
             '<div class="card"><div class="kicker">Traffic sources</div><h2>Where visits came from</h2>' +
               (sources.length ? sources.map(([source, count]) => '<div class="row"><span style="text-transform:capitalize">' + sourceLabel(source) + '</span><strong>' + fmt(count) + '</strong></div><div class="bar"><div class="fill" style="width:' + Math.max(6, data.pageLoads ? count / data.pageLoads * 100 : 0) + '%"></div></div>').join("") : '<p class="detail">No traffic source data yet.</p>') +
             '</div>' +
+            '<div class="card"><div class="kicker">Funnel events</div><h2>What visitors did next</h2>' +
+              (funnelEvents.length ? funnelEvents.map(([event, count]) => row(event, fmt(count))).join("") : '<p class="detail">No funnel events recorded yet.</p>') +
+              (funnelSources.length ? '<div class="detail">Top sources</div>' + funnelSources.slice(0, 5).map(([source, count]) => row(sourceLabel(source), fmt(count))).join("") : '') +
+            '</div>' +
+          '</div>' +
+          '<div class="two">' +
             '<div class="card"><div class="kicker">Scan timings</div><h2>How the engine is behaving</h2>' +
               row("Average total", ms(data.scans?.timing?.total?.averageMs)) +
               row("95% finished under", ms(data.scans?.timing?.total?.p95Ms)) +

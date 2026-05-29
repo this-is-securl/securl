@@ -1,5 +1,6 @@
 import { URL } from "node:url";
 import { scanTls } from "./certificate.js";
+import { buildCompromiseSignals, emptyCompromiseSignals } from "./compromiseSignals.js";
 import { parseSetCookie } from "./cookie-analysis.js";
 import { analyzeCookieHeaders } from "./cookieAnalysis.js";
 import { fetchCtDiscovery } from "./ctDiscovery.js";
@@ -569,6 +570,7 @@ async function buildLimitedResult(
       summary: "Infrastructure attribution was not completed because the primary response could not be fetched cleanly.",
     },
     passiveIntelligence: emptyPassiveIntelligence("Passive intelligence was limited because the primary response could not be fetched cleanly."),
+    compromiseSignals: emptyCompromiseSignals("Compromise and abuse indicators were limited because the primary response could not be fetched cleanly."),
     executiveSummary: {
       overview:
         failure.kind === "service_unavailable"
@@ -737,6 +739,12 @@ async function enrichCoreResult(
     apiSurface,
     assessmentLimitation,
   });
+  const compromiseSignals = buildCompromiseSignals({
+    finalUrl,
+    htmlSecurity,
+    ctDiscovery,
+    exposure,
+  });
   return {
     ...result,
     issues: [...result.issues, ...buildLibraryRiskIssues(htmlSecurity.libraryRiskSignals).map(classifyIssueTaxonomy)],
@@ -751,6 +759,7 @@ async function enrichCoreResult(
     thirdPartyTrust,
     infrastructure,
     passiveIntelligence,
+    compromiseSignals,
     wafFingerprint,
     exposure,
     corsSecurity,
@@ -1071,6 +1080,7 @@ function buildTimedOutEnrichmentResult(
       summary: "Infrastructure attribution did not complete before the scan timeout.",
     },
     passiveIntelligence: emptyPassiveIntelligence("Passive intelligence did not complete before the scan timeout."),
+    compromiseSignals: emptyCompromiseSignals("Compromise and abuse indicators did not complete before the scan timeout."),
     exposure: emptyExposure(),
     corsSecurity: emptyCorsSecurity(),
     apiSurface: emptyApiSurface(),
@@ -1181,6 +1191,7 @@ export async function analyzeUrl(input: string, options: AnalyzeTargetOptions = 
 
 export const analyzeTarget = analyzeUrl;
 export { formatErrorMessage };
+export { buildCompromiseSignals, emptyCompromiseSignals } from "./compromiseSignals.js";
 export { analyzeInfrastructure } from "./infrastructure.js";
 export { buildHistoryDiff, buildHistoryDiffFromSnapshots, snapshotFromAnalysis } from "./historyDiff.js";
 export {

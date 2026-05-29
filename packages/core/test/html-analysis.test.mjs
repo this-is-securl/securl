@@ -94,6 +94,26 @@ test("preserves positive client exposure and auth signals when they are explicit
   assert.equal(htmlSecurity.firstPartyPaths.includes("/login"), true);
 });
 
+test("detects suspicious script and off-origin form signals", () => {
+  const htmlSecurity = analyzeHtmlDocument(
+    "https://example.com/",
+    `<!doctype html><html><head>
+      <script>const packed = String.fromCharCode(97,108,101,114,116); eval(packed);</script>
+      <script src="https://xn--paypa1-l2c.example/script.js"></script>
+    </head><body>
+      <form method="POST" action="https://forms.example.net/collect">
+        <input type="password" name="password">
+      </form>
+    </body></html>`,
+  );
+
+  assert.equal(htmlSecurity.forms[0].offOriginSubmission, true);
+  assert.equal(htmlSecurity.forms[0].actionHost, "forms.example.net");
+  assert.equal(htmlSecurity.issues.includes("A password form appears to submit to a different origin."), true);
+  assert.ok(htmlSecurity.suspiciousScriptSignals.some((signal) => signal.category === "obfuscation"));
+  assert.ok(htmlSecurity.suspiciousScriptSignals.some((signal) => signal.category === "suspicious_host"));
+});
+
 test("extracts explicit versioned client library fingerprints from script URLs", () => {
   const htmlSecurity = analyzeHtmlDocument(
     "https://example.com/",
