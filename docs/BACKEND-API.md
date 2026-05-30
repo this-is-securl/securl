@@ -2,6 +2,13 @@
 
 This project now treats the backend as a real scan service boundary rather than a same-origin helper for the browser app.
 
+## Current service metadata resources
+
+- `GET /api/health`
+- `GET /api/capabilities`
+
+`GET /api/capabilities` is public and additive. It lets web, mobile, CLI, and future SDK clients discover supported API version, scan modes, auth modes, monitoring resources, export formats, package versions, and passive-safety boundaries without relying on hard-coded assumptions.
+
 ## Current scan resources
 
 - `POST /api/scans`

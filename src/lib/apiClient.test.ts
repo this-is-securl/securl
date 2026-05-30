@@ -73,6 +73,63 @@ describe("api client URL helpers", () => {
     });
   });
 
+  it("fetches backend capabilities without auth headers", async () => {
+    const capabilities = {
+      apiVersion: "2026-05-14",
+      service: {
+        name: "SecURL API",
+        appVersion: "1.0.1",
+        corePackage: "@ktbatterham/external-posture-core",
+        coreVersion: "1.0.1",
+        serveFrontend: false,
+      },
+      auth: {
+        methods: ["scan-owner"],
+        anonymousScanOwner: true,
+      },
+      scans: {
+        modes: ["standard", "quiet", "deep-passive"],
+        statuses: ["queued", "running", "completed", "failed"],
+        maxDurationMs: {
+          standard: 45000,
+          quiet: 45000,
+          deepPassive: 75000,
+        },
+        concurrency: 2,
+        resources: ["POST /api/scans"],
+      },
+      monitoring: {
+        enabled: true,
+        cadences: ["daily", "weekly"],
+        scheduler: {
+          enabled: true,
+          mode: "quiet",
+          intervalMs: 900000,
+          limit: 20,
+        },
+        resources: ["POST /api/monitoring-targets"],
+      },
+      exports: {
+        formats: ["json", "markdown", "sarif", "ci-json"],
+        shareLinks: true,
+      },
+      safety: {
+        passiveFirst: true,
+        publicTargetsOnly: true,
+        blocksPrivateNetworkTargets: true,
+      },
+    };
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(capabilities), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { getCapabilities } = await import("./apiClient");
+    await expect(getCapabilities()).resolves.toEqual(capabilities);
+    expect(fetchMock).toHaveBeenCalledWith("/api/capabilities");
+  });
+
   it("falls back to crypto.getRandomValues when randomUUID is unavailable", async () => {
     const browserStorage = await import("@/lib/browserStorage");
     vi.mocked(browserStorage.readBrowserStorage).mockResolvedValue(null);

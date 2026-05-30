@@ -28,6 +28,51 @@ export interface VersionedApiResponse {
   apiVersion: ApiVersion;
 }
 
+export interface CapabilitiesResponse extends VersionedApiResponse {
+  service: {
+    name: string;
+    appVersion: string;
+    corePackage: string;
+    coreVersion: string;
+    serveFrontend: boolean;
+  };
+  auth: {
+    methods: string[];
+    anonymousScanOwner: boolean;
+  };
+  scans: {
+    modes: Array<"standard" | "quiet" | "deep-passive">;
+    statuses: ApiScanStatus[];
+    maxDurationMs: {
+      standard: number;
+      quiet: number;
+      deepPassive: number;
+    };
+    concurrency: number;
+    resources: string[];
+  };
+  monitoring: {
+    enabled: boolean;
+    cadences: Array<"daily" | "weekly">;
+    scheduler: {
+      enabled: boolean;
+      mode: "standard" | "quiet" | "deep-passive";
+      intervalMs: number | null;
+      limit: number | null;
+    };
+    resources: string[];
+  };
+  exports: {
+    formats: string[];
+    shareLinks: boolean;
+  };
+  safety: {
+    passiveFirst: boolean;
+    publicTargetsOnly: boolean;
+    blocksPrivateNetworkTargets: boolean;
+  };
+}
+
 export interface ApiScanRecord {
   id: string;
   ownerId: string | null;

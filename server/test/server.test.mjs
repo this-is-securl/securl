@@ -405,6 +405,53 @@ test("health endpoint returns minimal readiness data in production mode", async 
   }
 });
 
+test("capabilities endpoint exposes additive client feature metadata", async () => {
+  const server = await startServer({
+    MONITORING_SCHEDULER_ENABLED: "true",
+    MONITORING_SWEEP_INTERVAL_MS: "60000",
+  });
+
+  try {
+    const response = await fetch(`${server.baseUrl}/api/capabilities`);
+    const payload = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(payload.apiVersion, "2026-05-14");
+    assert.equal(payload.service.name, "SecURL API");
+    assert.equal(payload.service.corePackage, "@ktbatterham/external-posture-core");
+    assert.match(payload.service.coreVersion, /^\d+\.\d+\.\d+/);
+    assert.deepEqual(payload.scans.modes, ["standard", "quiet", "deep-passive"]);
+    assert.equal(payload.scans.maxDurationMs.standard, 45000);
+    assert.equal(payload.scans.maxDurationMs.deepPassive, 75000);
+    assert.equal(payload.monitoring.enabled, true);
+    assert.equal(payload.monitoring.scheduler.enabled, true);
+    assert.equal(payload.monitoring.scheduler.mode, "quiet");
+    assert.equal(payload.monitoring.scheduler.intervalMs, 60000);
+    assert.ok(payload.monitoring.resources.includes("POST /api/monitoring-targets/:id/run"));
+    assert.equal(payload.safety.passiveFirst, true);
+  } finally {
+    await server.stop();
+  }
+});
+
+test("capabilities endpoint is public in production mode", async () => {
+  const server = await startServer({
+    NODE_ENV: "production",
+    API_KEY: "test-secret",
+    DEPLOYMENT_MODE: "single-instance",
+  });
+
+  try {
+    const response = await fetch(`${server.baseUrl}/api/capabilities`);
+    const payload = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(payload.apiVersion, "2026-05-14");
+    assert.equal(payload.auth.methods.includes("api-key"), true);
+    assert.equal(payload.auth.anonymousScanOwner, false);
+  } finally {
+    await server.stop();
+  }
+});
+
 test("telemetry endpoint returns aggregate page-load and failure counters", async () => {
   const server = await startServer();
 

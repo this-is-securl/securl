@@ -3,6 +3,7 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath, URL } from "node:url";
 import { createCorsPolicy, resolveAllowedOrigins } from "./cors.mjs";
+import { buildCapabilitiesPayload } from "./capabilities.mjs";
 import { createRateLimiter } from "./rateLimiter.mjs";
 import { sendJson, sendMethodNotAllowed, sendRateLimited } from "./httpResponses.mjs";
 import {
@@ -429,6 +430,24 @@ const server = http.createServer(async (request, response) => {
     }
 
     sendApiJson(response, 200, payload);
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/capabilities") {
+    if (request.method !== "GET") {
+      sendApiMethodNotAllowed(response, ["GET", "OPTIONS"]);
+      return;
+    }
+
+    sendApiJson(response, 200, buildCapabilitiesPayload({
+      authenticated: Boolean(apiKey),
+      allowUnauthenticated,
+      scanTimeoutMs: SCAN_TIMEOUT_MS,
+      deepPassiveScanTimeoutMs: DEEP_PASSIVE_SCAN_TIMEOUT_MS,
+      scanConcurrency: SCAN_CONCURRENCY,
+      monitoringScheduler: monitoringScheduler?.snapshot?.(),
+      serveFrontend,
+    }));
     return;
   }
 

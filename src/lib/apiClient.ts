@@ -5,6 +5,7 @@ import type {
   ApiMonitoringTarget,
   ApiScanRecord,
   ApiScanSummary,
+  CapabilitiesResponse,
   CreateScanResponse,
   DeleteMonitoringTargetResponse,
   GetScanResponse,
@@ -35,6 +36,11 @@ export const buildApiUrl = (path: string) => {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   const baseUrl = getApiBaseUrl();
   return baseUrl ? `${baseUrl}${normalizedPath}` : normalizedPath;
+};
+
+export const getCapabilities = async (): Promise<CapabilitiesResponse> => {
+  const response = await fetch(buildApiUrl("/api/capabilities"));
+  return readJsonResponse<CapabilitiesResponse>(response);
 };
 
 export const recordPageLoad = () => {
