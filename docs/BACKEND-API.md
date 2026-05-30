@@ -26,6 +26,10 @@ Runtime controls:
 - `DEEP_PASSIVE_SCAN_TIMEOUT_MS`: deep-passive timeout, default `75000`, never lower than `SCAN_TIMEOUT_MS`.
 - `SCAN_CONCURRENCY`: in-process queued scan concurrency, default `2`.
 - `STALE_RUNNING_SCAN_MS`: startup recovery threshold for scans left `running`, default `120000`.
+- `MONITORING_SCHEDULER_ENABLED`: enables backend-owned due target sweeps when set to `true`, default `false`.
+- `MONITORING_SWEEP_INTERVAL_MS`: due target sweep interval, default `900000`, minimum `60000`.
+- `MONITORING_SWEEP_LIMIT`: maximum due targets queued per sweep, default `20`.
+- `MONITORING_SCAN_MODE`: scan mode for scheduled monitoring sweeps, default `quiet`.
 
 ## Current monitoring resources
 
@@ -59,6 +63,8 @@ The detail payload includes:
 - recent scan summaries for that target
 - latest-vs-previous comparison when two completed scans exist
 - recent lifecycle events aggregated from recent scans
+
+When `MONITORING_SCHEDULER_ENABLED=true`, the backend periodically queues due monitoring targets itself. The scheduler uses the same scan queue as user-triggered scans and skips targets that already have a queued or running scan.
 
 ## Auth model
 

@@ -204,7 +204,7 @@ export const MonitoredTargetsPanel = ({
             Monitoring Targets
           </CardTitle>
           <p className={`max-w-2xl text-sm ${mutedTextClass}`}>
-            Server-backed monitoring targets now persist across clients. Scheduled scans still only run when you trigger them from the app.
+            Server-backed monitoring targets persist across clients and can run automatically when backend scheduling is enabled.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
