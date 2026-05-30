@@ -23,6 +23,9 @@ const targetRateLimitWindowMs = asNumber(env.TARGET_RATE_LIMIT_WINDOW_MS, 900000
 const targetRateLimitMaxRequests = asNumber(env.TARGET_RATE_LIMIT_MAX_REQUESTS, 10);
 const abuseAlertWindowMs = asNumber(env.ABUSE_ALERT_WINDOW_MS, 600000);
 const abuseAlertThreshold = asNumber(env.ABUSE_ALERT_THRESHOLD, 25);
+const monitoringSchedulerEnabled = env.MONITORING_SCHEDULER_ENABLED === "true";
+const monitoringSweepIntervalMs = asNumber(env.MONITORING_SWEEP_INTERVAL_MS, 900000);
+const monitoringSweepLimit = asNumber(env.MONITORING_SWEEP_LIMIT, 20);
 
 const errors = [];
 const warnings = [];
@@ -84,6 +87,14 @@ if (!Number.isFinite(abuseAlertThreshold) || abuseAlertThreshold < 1) {
   errors.push("ABUSE_ALERT_THRESHOLD must be a number >= 1.");
 }
 
+if (!Number.isFinite(monitoringSweepIntervalMs) || monitoringSweepIntervalMs < 60000) {
+  errors.push("MONITORING_SWEEP_INTERVAL_MS must be a number >= 60000.");
+}
+
+if (!Number.isFinite(monitoringSweepLimit) || monitoringSweepLimit < 1) {
+  errors.push("MONITORING_SWEEP_LIMIT must be a number >= 1.");
+}
+
 if (!env.TRUST_PROXY || env.TRUST_PROXY !== "true") {
   warnings.push("TRUST_PROXY is disabled. This is fine for direct traffic, but verify proxy topology before public edge deployment.");
 }
@@ -108,6 +119,10 @@ if (!env.TELEMETRY_STORAGE_PATH) {
   warnings.push("TELEMETRY_STORAGE_PATH is not set. Telemetry counters will reset on deploy/restart unless a persistent volume path is configured.");
 }
 
+if (monitoringSchedulerEnabled && scanRepositoryBackend !== "postgres") {
+  warnings.push("MONITORING_SCHEDULER_ENABLED=true is most useful with SCAN_REPOSITORY_BACKEND=postgres; memory-backed monitoring resets on restart.");
+}
+
 const summary = {
   nodeEnv,
   deploymentMode,
@@ -121,6 +136,9 @@ const summary = {
   targetRateLimitMaxRequests,
   abuseAlertWindowMs,
   abuseAlertThreshold,
+  monitoringSchedulerEnabled,
+  monitoringSweepIntervalMs,
+  monitoringSweepLimit,
 };
 
 if (errors.length === 0 && scanRepositoryBackend === "postgres") {

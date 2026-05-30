@@ -128,4 +128,10 @@ export function enforceStartupConfiguration({
       message: "Set TELEMETRY_STORAGE_PATH on a persistent volume if telemetry should survive deploys and restarts.",
     });
   }
+
+  if (process.env.MONITORING_SCHEDULER_ENABLED === "true" && scanRepositoryBackend !== "postgres") {
+    log("warn", "monitoring_scheduler_without_durable_store", {
+      message: "Backend-owned monitoring sweeps are enabled, but scan storage is memory-backed and will reset on restart.",
+    });
+  }
 }

@@ -26,6 +26,7 @@ import {
   handleMonitoringTargetCollectionRequest,
   handleMonitoringTargetItemRequest,
 } from "./monitoringTargetHandlers.mjs";
+import { createMonitoringScheduler } from "./monitoringScheduler.mjs";
 import { handleAuthRequest, resolveAuthenticatedApiKey, resolveAuthenticatedSession } from "./authHandlers.mjs";
 import { handleScanCollectionRequest, handleScanResourceRequest, runQueuedScan } from "./scanResourceHandlers.mjs";
 import { createScanScheduler } from "./scanScheduler.mjs";
@@ -63,6 +64,8 @@ const DEFAULT_SCAN_TIMEOUT_MS = 45 * 1000;
 const DEFAULT_DEEP_PASSIVE_SCAN_TIMEOUT_MS = 75 * 1000;
 const DEFAULT_SCAN_CONCURRENCY = 2;
 const DEFAULT_STALE_RUNNING_SCAN_MS = 2 * 60 * 1000;
+const DEFAULT_MONITORING_SWEEP_INTERVAL_MS = 15 * 60 * 1000;
+const DEFAULT_MONITORING_SWEEP_LIMIT = 20;
 const RATE_LIMIT_MAX_BUCKETS = 20000;
 const configuredRateLimitBackend = (process.env.RATE_LIMIT_BACKEND || "").trim().toLowerCase();
 const rateLimitBackend = configuredRateLimitBackend || (deploymentMode === "multi-instance" ? "upstash" : "in-memory");
@@ -75,6 +78,10 @@ const AUTH_TOKEN_FINGERPRINT_SALT = process.env.AUTH_TOKEN_FINGERPRINT_SALT || "
 const TELEMETRY_TOKEN = (process.env.TELEMETRY_TOKEN || process.env.ADMIN_TELEMETRY_TOKEN || "").trim();
 const TELEMETRY_VISITOR_SALT = process.env.TELEMETRY_VISITOR_SALT || "epi-visitor-count-v1";
 const TELEMETRY_STORAGE_PATH = (process.env.TELEMETRY_STORAGE_PATH || "").trim();
+const MONITORING_SCHEDULER_ENABLED = process.env.MONITORING_SCHEDULER_ENABLED === "true";
+const MONITORING_SCAN_MODE = ["quiet", "standard", "deep-passive"].includes(process.env.MONITORING_SCAN_MODE)
+  ? process.env.MONITORING_SCAN_MODE
+  : "quiet";
 const RATE_LIMIT_WINDOW_MS = (() => {
   const raw = Number(process.env.RATE_LIMIT_WINDOW_MS || DEFAULT_RATE_LIMIT_WINDOW_MS);
   if (!Number.isFinite(raw) || raw < 1000) {
@@ -159,6 +166,20 @@ const STALE_RUNNING_SCAN_MS = (() => {
   }
   return Math.floor(raw);
 })();
+const MONITORING_SWEEP_INTERVAL_MS = (() => {
+  const raw = Number(process.env.MONITORING_SWEEP_INTERVAL_MS || DEFAULT_MONITORING_SWEEP_INTERVAL_MS);
+  if (!Number.isFinite(raw) || raw < 60_000) {
+    return DEFAULT_MONITORING_SWEEP_INTERVAL_MS;
+  }
+  return Math.floor(raw);
+})();
+const MONITORING_SWEEP_LIMIT = (() => {
+  const raw = Number(process.env.MONITORING_SWEEP_LIMIT || DEFAULT_MONITORING_SWEEP_LIMIT);
+  if (!Number.isFinite(raw) || raw < 1) {
+    return DEFAULT_MONITORING_SWEEP_LIMIT;
+  }
+  return Math.floor(raw);
+})();
 const upstashRestUrl = (process.env.UPSTASH_REDIS_REST_URL || "").trim();
 const upstashRestToken = (process.env.UPSTASH_REDIS_REST_TOKEN || "").trim();
 const abuseSignalBuckets = new Map();
@@ -167,6 +188,7 @@ const exposeTelemetry = process.env.EXPOSE_TELEMETRY === "true" || !isProduction
 const telemetry = createTelemetryTracker({ storagePath: TELEMETRY_STORAGE_PATH });
 let scanRepository;
 let scanScheduler;
+let monitoringScheduler;
 
 function buildVisitorKey(request) {
   const clientIp = getClientIp(request, { trustProxy, isLocalHostname, isPrivateAddress });
@@ -394,6 +416,14 @@ const server = http.createServer(async (request, response) => {
         queued: 0,
         concurrency: SCAN_CONCURRENCY,
         staleRunningScanMs: STALE_RUNNING_SCAN_MS,
+      };
+      payload.monitoringScheduler = monitoringScheduler?.snapshot?.() || {
+        enabled: MONITORING_SCHEDULER_ENABLED,
+        running: false,
+        intervalMs: MONITORING_SWEEP_INTERVAL_MS,
+        mode: MONITORING_SCAN_MODE,
+        limit: MONITORING_SWEEP_LIMIT,
+        lastSweep: null,
       };
       payload.serveFrontend = serveFrontend;
     }
@@ -646,6 +676,31 @@ scanScheduler = createScanScheduler({
   log,
 });
 await scanScheduler.recoverStaleRunningScans();
+monitoringScheduler = createMonitoringScheduler({
+  enabled: MONITORING_SCHEDULER_ENABLED,
+  intervalMs: MONITORING_SWEEP_INTERVAL_MS,
+  scanRepository,
+  enqueueScan: (job) => scanScheduler.enqueue({
+    ...job,
+    scanRepository,
+    runScanAnalysis,
+    telemetry,
+    classifyScanFailure,
+    normalizeScanErrorMessage,
+    formatErrorMessage,
+    log,
+  }),
+  mode: MONITORING_SCAN_MODE,
+  limit: MONITORING_SWEEP_LIMIT,
+  log,
+});
+if (monitoringScheduler.start()) {
+  log("info", "monitoring_scheduler_started", {
+    intervalMs: MONITORING_SWEEP_INTERVAL_MS,
+    mode: MONITORING_SCAN_MODE,
+    limit: MONITORING_SWEEP_LIMIT,
+  });
+}
 
 process.on("unhandledRejection", (reason) => {
   log("error", "unhandled_rejection", {
@@ -667,6 +722,7 @@ const shutdownGracefully = (signal) => {
   }
   shutdownStarted = true;
   log("info", "shutdown_started", { signal });
+  monitoringScheduler?.stop?.();
   server.close((error) => {
     if (error) {
       log("error", "shutdown_failed", {
