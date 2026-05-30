@@ -6,6 +6,8 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-05-30
+
 ### Added
 - Added passive public IOC and abuse indicators, including off-origin credential-form review signals, suspicious script markers, CT takeover evidence, exposure findings, and visible client-library advisory matches.
 
