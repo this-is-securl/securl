@@ -103,8 +103,8 @@ if (allowUnauthenticated) {
   warnings.push("ALLOW_UNAUTHENTICATED=true is enabled. Confirm this is intentional for a public deployment.");
 }
 
-if (scanRepositoryBackend === "postgres" && env.PGSSLMODE !== "disable" && env.PGSSL_REJECT_UNAUTHORIZED !== "true") {
-  warnings.push("Postgres TLS certificate verification is not enforced. Set PGSSL_REJECT_UNAUTHORIZED=true when your provider chain is trusted.");
+if (scanRepositoryBackend === "postgres" && env.PGSSLMODE !== "disable" && env.PGSSL_REJECT_UNAUTHORIZED === "false") {
+  warnings.push("Postgres TLS certificate verification is disabled (PGSSL_REJECT_UNAUTHORIZED=false). Re-enable it and pin a trusted CA chain when possible.");
 }
 
 if (!env.AUTH_TOKEN_FINGERPRINT_SALT) {

@@ -3,7 +3,7 @@ import https from "node:https";
 import { OBSERVATIONAL_TLS_OPTIONS } from "./certificate.js";
 import { REDIRECT_LIMIT, REQUEST_TIMEOUT_MS, TEXT_BODY_LIMIT } from "./scannerConfig.js";
 import { headerValue } from "./utils.js";
-import { assertPublicRedirectTarget, assertPublicRequestTarget } from "./network-validation.js";
+import { assertPublicRequestTarget, createPinnedLookup } from "./network-validation.js";
 import type { RedirectHop } from "./types.js";
 
 export const SCANNER_USER_AGENT = "ExternalPostureInsight/1.0";
@@ -44,7 +44,7 @@ export async function requestWithHeaders(
   extraHeaders: Record<string, string> = {},
   options: RequestOptions = {},
 ): Promise<RequestHeadResult> {
-  await assertPublicRequestTarget(targetUrl);
+  const validatedAddresses = await assertPublicRequestTarget(targetUrl);
   const isHttps = targetUrl.protocol === "https:";
   const transport = isHttps ? https : http;
   const startedAt = Date.now();
@@ -56,6 +56,7 @@ export async function requestWithHeaders(
       {
         method,
         ...OBSERVATIONAL_TLS_OPTIONS,
+        lookup: createPinnedLookup(validatedAddresses),
         headers: {
           "User-Agent": SCANNER_USER_AGENT,
           Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -86,7 +87,7 @@ export async function requestText(
   extraHeaders: Record<string, string> = {},
   options: RequestOptions = {},
 ): Promise<RequestTextResult> {
-  await assertPublicRequestTarget(targetUrl);
+  const validatedAddresses = await assertPublicRequestTarget(targetUrl);
   const isHttps = targetUrl.protocol === "https:";
   const transport = isHttps ? https : http;
   const timeoutMs = options.timeoutMs ?? REQUEST_TIMEOUT_MS;
@@ -97,6 +98,7 @@ export async function requestText(
       {
         method: "GET",
         ...OBSERVATIONAL_TLS_OPTIONS,
+        lookup: createPinnedLookup(validatedAddresses),
         headers: {
           "User-Agent": SCANNER_USER_AGENT,
           Accept: "text/plain,text/*;q=0.9,*/*;q=0.1",
@@ -175,7 +177,8 @@ export async function fetchWithRedirects(initialUrl: URL, redirectLimit = REDIRE
       secure: currentUrl.protocol === "https:",
     });
     currentUrl = new URL(location!, currentUrl);
-    await assertPublicRedirectTarget(currentUrl);
+    // Each hop is validated and IP-pinned inside requestOnce -> assertPublicRequestTarget,
+    // so a redirect cannot be re-pointed at a private address between check and connect.
     response = await requestOnce(currentUrl, "HEAD", options);
     if (response.statusCode === 405 || response.statusCode === 403) {
       response = await requestOnce(currentUrl, "GET", options);

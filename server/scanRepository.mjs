@@ -91,8 +91,11 @@ function buildPostgresSslConfig() {
     return false;
   }
 
+  // Fail closed: verify the server certificate by default. Operators whose
+  // managed Postgres provider presents a self-signed chain can opt out with
+  // PGSSL_REJECT_UNAUTHORIZED=false (preferably alongside a pinned CA cert).
   return {
-    rejectUnauthorized: process.env.PGSSL_REJECT_UNAUTHORIZED === "true",
+    rejectUnauthorized: process.env.PGSSL_REJECT_UNAUTHORIZED !== "false",
   };
 }
 

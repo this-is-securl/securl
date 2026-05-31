@@ -104,10 +104,10 @@ export function enforceStartupConfiguration({
     isProduction
     && scanRepositoryBackend === "postgres"
     && process.env.PGSSLMODE !== "disable"
-    && process.env.PGSSL_REJECT_UNAUTHORIZED !== "true"
+    && process.env.PGSSL_REJECT_UNAUTHORIZED === "false"
   ) {
-    log("warn", "postgres_tls_verification_not_enforced", {
-      message: "Postgres TLS is enabled without certificate verification. Set PGSSL_REJECT_UNAUTHORIZED=true when your provider chain is trusted.",
+    log("warn", "postgres_tls_verification_disabled", {
+      message: "Postgres TLS certificate verification is disabled (PGSSL_REJECT_UNAUTHORIZED=false). Re-enable it and pin a trusted CA chain when possible.",
     });
   }
 

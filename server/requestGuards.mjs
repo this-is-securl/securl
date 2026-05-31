@@ -5,6 +5,33 @@ import { promisify } from "node:util";
 
 const scryptAsync = promisify(crypto.scrypt);
 const USER_API_KEY_PREFIX = "securl_";
+const MIN_SCAN_OWNER_TOKEN_LENGTH = 24;
+const MAX_SCAN_OWNER_TOKEN_LENGTH = 256;
+// Real clients send a randomUUID (36 chars) or 16 random bytes as hex (32 chars),
+// both drawn from a small alphabet, so this stays low enough to never reject a
+// genuine token while still rejecting degenerate values like "aaaa..." or "1212...".
+const MIN_SCAN_OWNER_TOKEN_ENTROPY_CHARS = 8;
+
+// Constant-time string comparison that does not short-circuit on length, so it
+// leaks neither the deployment key's value nor its length via timing.
+function timingSafeStringEqual(a, b) {
+  const aBuffer = Buffer.from(String(a), "utf8");
+  const bBuffer = Buffer.from(String(b), "utf8");
+  const length = Math.max(aBuffer.length, bBuffer.length, 1);
+  const aPadded = Buffer.alloc(length);
+  const bPadded = Buffer.alloc(length);
+  aBuffer.copy(aPadded);
+  bBuffer.copy(bPadded);
+  // crypto.timingSafeEqual requires equal-length buffers; the separate length
+  // check keeps unequal-length inputs from ever comparing equal.
+  return aBuffer.length === bBuffer.length && crypto.timingSafeEqual(aPadded, bPadded);
+}
+
+// A client-supplied scan-owner token acts as a bearer secret, so reject values
+// that are too short or have too little variety to be a real random token.
+function hasSufficientOwnerTokenEntropy(token) {
+  return new Set(token).size >= MIN_SCAN_OWNER_TOKEN_ENTROPY_CHARS;
+}
 
 function isPublicIp(ip, { isPrivateAddress }) {
   return net.isIP(ip) !== 0 && !isPrivateAddress(ip);
@@ -119,7 +146,12 @@ async function getScanOwnerId({
   }
 
   const ownerToken = presentedScanOwner.trim();
-  if (!ownerToken || ownerToken.length < 16 || ownerToken.length > 256) {
+  if (
+    !ownerToken ||
+    ownerToken.length < MIN_SCAN_OWNER_TOKEN_LENGTH ||
+    ownerToken.length > MAX_SCAN_OWNER_TOKEN_LENGTH ||
+    !hasSufficientOwnerTokenEntropy(ownerToken)
+  ) {
     return null;
   }
 
@@ -452,7 +484,7 @@ export function createRequestGuards({
       };
     }
 
-    if (apiKey && presentedApiKey !== apiKey) {
+    if (apiKey && !timingSafeStringEqual(presentedApiKey, apiKey)) {
       telemetry.recordAuthRejected();
       telemetry.recordFailure("auth_rejected");
       recordAbuseSignal("api_key_rejected", {
