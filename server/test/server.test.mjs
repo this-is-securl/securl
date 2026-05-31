@@ -1606,3 +1606,30 @@ test("static serving rejects encoded traversal paths", async () => {
     await server.stop();
   }
 });
+
+test("scan owner tokens that are too short or low-entropy are rejected", async () => {
+  const server = await startServer();
+
+  try {
+    // Too short (< 24 chars).
+    const shortResponse = await fetch(`${server.baseUrl}/api/scans`, {
+      headers: scanOwnerHeaders("short-owner-token"),
+    });
+    assert.equal(shortResponse.status, 401);
+    assert.match((await shortResponse.json()).error, /scan owner token is required/i);
+
+    // Long enough but degenerate (only 1 distinct character).
+    const lowEntropyResponse = await fetch(`${server.baseUrl}/api/scans`, {
+      headers: scanOwnerHeaders("a".repeat(40)),
+    });
+    assert.equal(lowEntropyResponse.status, 401);
+
+    // A realistic random token (UUID-shaped) is accepted.
+    const okResponse = await fetch(`${server.baseUrl}/api/scans`, {
+      headers: scanOwnerHeaders("3f2504e0-4f89-41d3-9a0c-0305e82c3301"),
+    });
+    assert.equal(okResponse.status, 200);
+  } finally {
+    await server.stop();
+  }
+});

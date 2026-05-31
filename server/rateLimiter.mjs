@@ -35,6 +35,10 @@ function createInMemoryRateLimiter({ windowMs, maxRequests, maxBuckets = 20000 }
       const current = buckets.get(clientId) || [];
       const recent = current.filter((timestamp) => now - timestamp < windowMs);
       recent.push(now);
+      // Delete before re-inserting so the Map's iteration order tracks recency:
+      // the first key is then the genuinely least-recently-used bucket to evict,
+      // rather than just the earliest-created one.
+      buckets.delete(clientId);
       buckets.set(clientId, recent);
       return {
         limited: recent.length > maxRequests,
