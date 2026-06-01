@@ -44,6 +44,10 @@
     "./history-diff": {
       "types": "./dist/historyDiff.d.ts",
       "default": "./dist/historyDiff.js"
+    },
+    "./risk-events": {
+      "types": "./dist/riskEvents.d.ts",
+      "default": "./dist/riskEvents.js"
     }
   },
   "files": [

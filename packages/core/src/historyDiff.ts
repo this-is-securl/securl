@@ -80,6 +80,7 @@ export const buildHistoryDiffFromSnapshots = (
     previousScore: previous.score,
     scoreDelta,
     previousGrade: previous.grade,
+    currentGrade: current.grade,
     statusCodeDelta: {
       from: previous.statusCode,
       to: current.statusCode,

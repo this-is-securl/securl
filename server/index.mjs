@@ -15,6 +15,7 @@ import {
 } from "./requestGuards.mjs";
 import {
   buildMonitoringTargetDetailPayload,
+  buildMonitoringSummaryPayload,
   buildMonitoringTargetView,
   buildMonitoringTargetsPayload,
   buildScanEvidencePayload,
@@ -24,6 +25,7 @@ import {
   buildTargetHistoryPayload,
 } from "./scanDtos.mjs";
 import {
+  handleMonitoringSummaryRequest,
   handleMonitoringTargetCollectionRequest,
   handleMonitoringTargetItemRequest,
 } from "./monitoringTargetHandlers.mjs";
@@ -614,6 +616,25 @@ const server = http.createServer(async (request, response) => {
       classifyScanFailure,
       normalizeScanErrorMessage,
       telemetry,
+    });
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/monitoring-summary") {
+    await handleMonitoringSummaryRequest({
+      request,
+      response,
+      requestUrl,
+      scanRepository,
+      authorizeAnalysisRequest: (options) => withAuthResolvers({
+        ...options,
+        sendJsonResponse: sendApiJson,
+        sendRateLimitedResponse: sendApiRateLimited,
+      }),
+      buildMonitoringSummaryPayload,
+      sendJson: sendApiJson,
+      sendMethodNotAllowed: sendApiMethodNotAllowed,
+      sendRepositoryUnavailable: sendApiRepositoryUnavailable,
     });
     return;
   }

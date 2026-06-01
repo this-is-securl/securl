@@ -168,6 +168,7 @@ export interface HistoryDiff {
   previousScore: number | null;
   scoreDelta: number | null;
   previousGrade: string | null;
+  currentGrade: string | null;
   statusCodeDelta: {
     from: number | null;
     to: number | null;
@@ -201,6 +202,16 @@ export interface HistoryDiff {
     removedHosts: string[];
   };
   summary: string[];
+}
+
+export type PostureRiskEventSeverity = "info" | "warning" | "critical";
+
+export interface PostureRiskEvent {
+  eventType: string;
+  severity: PostureRiskEventSeverity;
+  title: string;
+  detail: string;
+  metadata: Record<string, unknown>;
 }
 
 export type SecurityTxtStatus = "present_valid" | "present_expired" | "present_incomplete" | "missing";

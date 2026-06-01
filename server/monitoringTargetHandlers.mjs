@@ -34,6 +34,54 @@ async function listMonitoringTargetRecords(scanRepository, ownerId, target, limi
     .slice(0, limit);
 }
 
+export async function handleMonitoringSummaryRequest({
+  request,
+  response,
+  requestUrl,
+  scanRepository,
+  authorizeAnalysisRequest,
+  buildMonitoringSummaryPayload,
+  sendJson,
+  sendMethodNotAllowed,
+  sendRepositoryUnavailable,
+}) {
+  if (request.method !== "GET") {
+    sendMethodNotAllowed(response, ["GET"]);
+    return true;
+  }
+
+  const authState = await authorizeAnalysisRequest({
+    request,
+    response,
+    requestPath: requestUrl.pathname,
+    enforceRateLimit: false,
+    requireScanOwner: true,
+  });
+  if (!authState) {
+    return true;
+  }
+
+  try {
+    const limit = clampLimit(requestUrl.searchParams.get("limit"), 100, 250);
+    const targets = await scanRepository.listMonitoringTargets({
+      ownerId: authState.ownerId,
+      limit,
+    });
+    const entries = await Promise.all(
+      targets.map(async (target) => ({
+        target,
+        records: await listMonitoringTargetRecords(scanRepository, authState.ownerId, target, 5),
+      })),
+    );
+
+    sendJson(response, 200, buildMonitoringSummaryPayload(entries));
+  } catch (error) {
+    sendRepositoryUnavailable(response, error, "monitoring_summary");
+  }
+
+  return true;
+}
+
 export async function handleMonitoringTargetCollectionRequest({
   request,
   response,

@@ -1,4 +1,5 @@
 import { buildHistoryDiffFromSnapshots, snapshotFromAnalysis } from "../packages/core/dist/historyDiff.js";
+import { buildPostureRiskEventsFromSnapshots } from "../packages/core/dist/riskEvents.js";
 
 export const API_VERSION = "2026-05-14";
 
@@ -13,13 +14,15 @@ function buildStoredTargetDiff(records) {
   }
 
   const [current, previous] = completedWithResults;
+  const currentSnapshot = snapshotFromAnalysis(current.result);
+  const previousSnapshot = snapshotFromAnalysis(previous.result);
+  const diff = buildHistoryDiffFromSnapshots(currentSnapshot, previousSnapshot);
+
   return {
     currentScanId: current.id,
     previousScanId: previous.id,
-    diff: buildHistoryDiffFromSnapshots(
-      snapshotFromAnalysis(current.result),
-      snapshotFromAnalysis(previous.result),
-    ),
+    diff,
+    riskEvents: buildPostureRiskEventsFromSnapshots(currentSnapshot, previousSnapshot, diff),
   };
 }
 
@@ -139,6 +142,72 @@ export function buildMonitoringTargetsPayload(targets) {
   return {
     apiVersion: API_VERSION,
     targets: normalizeArray(targets),
+  };
+}
+
+function incrementCount(counts, key) {
+  counts[key] = (counts[key] ?? 0) + 1;
+}
+
+export function buildMonitoringSummaryPayload(targetEntries = []) {
+  const entries = normalizeArray(targetEntries);
+  const targets = entries.map(({ target, records }) => {
+    const view = buildMonitoringTargetView(target, records);
+    const comparison = buildStoredTargetDiff(records);
+    return {
+      ...view,
+      latestRiskEvents: comparison?.riskEvents ?? [],
+    };
+  });
+  const gradeDistribution = {};
+  const riskEventCounts = {
+    critical: 0,
+    warning: 0,
+    info: 0,
+  };
+  const topRiskEvents = [];
+
+  for (const target of targets) {
+    if (target.latestScan?.grade) {
+      incrementCount(gradeDistribution, target.latestScan.grade);
+    }
+
+    for (const event of target.latestRiskEvents) {
+      if (event.severity in riskEventCounts) {
+        riskEventCounts[event.severity] += 1;
+      }
+      topRiskEvents.push({
+        targetId: target.id,
+        targetUrl: target.url,
+        targetLabel: target.label,
+        eventType: event.eventType,
+        severity: event.severity,
+        title: event.title,
+        detail: event.detail,
+      });
+    }
+  }
+
+  topRiskEvents.sort((left, right) => {
+    const severityOrder = { critical: 0, warning: 1, info: 2 };
+    const severityDelta = severityOrder[left.severity] - severityOrder[right.severity];
+    if (severityDelta !== 0) {
+      return severityDelta;
+    }
+    return String(left.targetLabel).localeCompare(String(right.targetLabel));
+  });
+
+  return {
+    apiVersion: API_VERSION,
+    summary: {
+      totalTargets: targets.length,
+      dueTargets: targets.filter((target) => target.due).length,
+      targetsWithCompletedScans: targets.filter((target) => target.latestScan).length,
+      gradeDistribution,
+      riskEventCounts,
+      topRiskEvents: topRiskEvents.slice(0, 20),
+    },
+    targets,
   };
 }
 

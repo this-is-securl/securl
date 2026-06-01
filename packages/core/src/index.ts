@@ -65,6 +65,9 @@ import { headerValue, mapWithConcurrency, unique, withTimeout } from "./utils.js
 import { analyzeWafFingerprint } from "./wafFingerprint.js";
 import type { AnalysisResult, AnalyzeTargetOptions, HtmlSecurityInfo } from "./types.js";
 
+export { buildPostureRiskEventsFromDiff, buildPostureRiskEventsFromSnapshots } from "./riskEvents.js";
+export type { PostureRiskEvent, PostureRiskEventSeverity } from "./types.js";
+
 type ScanMode = NonNullable<AnalyzeTargetOptions["scanMode"]>;
 type CoreScanResult = Awaited<ReturnType<typeof analyzeUrlCore>>;
 type DiscoveryResult = Awaited<ReturnType<typeof collectDiscoveryPaths>>;
