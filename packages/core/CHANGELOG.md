@@ -6,6 +6,15 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-06-01
+
+### Added
+- Added posture risk event classification helpers for scan history diffs, including score, grade, certificate, security-header, WAF, CT-host, third-party, AI-vendor, identity-provider, and new critical-finding changes.
+- Added the `@ktbatterham/external-posture-core/risk-events` package export for consumers that want to build monitoring or alerting workflows from scan comparisons.
+
+### Changed
+- Added `currentGrade` to `HistoryDiff` so consumers can render grade movement without carrying a separate current snapshot.
+
 ## [1.0.1] - 2026-05-30
 
 ### Added
