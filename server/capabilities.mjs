@@ -64,6 +64,7 @@ export function buildCapabilitiesPayload({
       resources: [
         "POST /api/monitoring-targets",
         "GET /api/monitoring-targets",
+        "GET /api/monitoring-summary",
         "GET /api/monitoring-targets/:id",
         "POST /api/monitoring-targets/:id/run",
         "DELETE /api/monitoring-targets/:id",

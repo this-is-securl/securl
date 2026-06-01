@@ -81,6 +81,11 @@ const getMonitoringTarget = (baseUrl, targetId, options = {}) =>
     headers: options.token ? bearerHeaders(options.token) : scanOwnerHeaders(options.owner),
   });
 
+const getMonitoringSummary = (baseUrl, options = {}) =>
+  fetch(`${baseUrl}/api/monitoring-summary`, {
+    headers: options.token ? bearerHeaders(options.token) : scanOwnerHeaders(options.owner),
+  });
+
 const registerUser = (baseUrl, { email, password, displayName }) =>
   fetch(`${baseUrl}/api/auth/register`, {
     method: "POST",
@@ -426,6 +431,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.equal(payload.monitoring.scheduler.enabled, true);
     assert.equal(payload.monitoring.scheduler.mode, "quiet");
     assert.equal(payload.monitoring.scheduler.intervalMs, 60000);
+    assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-summary"));
     assert.ok(payload.monitoring.resources.includes("POST /api/monitoring-targets/:id/run"));
     assert.equal(payload.safety.passiveFirst, true);
   } finally {
@@ -1110,6 +1116,63 @@ test("monitoring target detail returns recent scans, comparison, and lifecycle e
     }
 
     assert.fail("Timed out waiting for monitoring target detail.");
+  } finally {
+    await server.stop();
+  }
+});
+
+test("monitoring summary rolls up scoped targets and latest risk events", async () => {
+  const server = await startServer();
+
+  try {
+    const createTargetResponse = await postMonitoringTarget(server.baseUrl, "https://example.com", {
+      owner: SCAN_OWNER_ONE,
+      cadence: "daily",
+      label: "Example portfolio target",
+    });
+    const createTargetPayload = await createTargetResponse.json();
+    assert.equal(createTargetResponse.status, 201);
+
+    const otherOwnerResponse = await postMonitoringTarget(server.baseUrl, "https://example.org", {
+      owner: SCAN_OWNER_TWO,
+      cadence: "weekly",
+      label: "Other owner target",
+    });
+    assert.equal(otherOwnerResponse.status, 201);
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const runResponse = await runMonitoringTarget(server.baseUrl, createTargetPayload.target.id, {
+        owner: SCAN_OWNER_ONE,
+      });
+      assert.equal(runResponse.status, 202);
+    }
+
+    for (let attempt = 0; attempt < 120; attempt += 1) {
+      const summaryResponse = await getMonitoringSummary(server.baseUrl, {
+        owner: SCAN_OWNER_ONE,
+      });
+      const summaryPayload = await summaryResponse.json();
+      const target = summaryPayload.targets?.find((item) => item.id === createTargetPayload.target.id);
+
+      if (target?.latestScan && target?.previousScan) {
+        assert.equal(summaryResponse.status, 200);
+        assert.equal(summaryPayload.apiVersion, "2026-05-14");
+        assert.equal(summaryPayload.summary.totalTargets, 1);
+        assert.equal(summaryPayload.summary.targetsWithCompletedScans, 1);
+        assert.equal(typeof summaryPayload.summary.dueTargets, "number");
+        assert.equal(typeof summaryPayload.summary.gradeDistribution[target.latestScan.grade], "number");
+        assert.equal(typeof summaryPayload.summary.riskEventCounts.info, "number");
+        assert.equal(typeof summaryPayload.summary.riskEventCounts.warning, "number");
+        assert.equal(typeof summaryPayload.summary.riskEventCounts.critical, "number");
+        assert.ok(Array.isArray(summaryPayload.summary.topRiskEvents));
+        assert.ok(Array.isArray(target.latestRiskEvents));
+        return;
+      }
+
+      await wait(100);
+    }
+
+    assert.fail("Timed out waiting for monitoring summary.");
   } finally {
     await server.stop();
   }
