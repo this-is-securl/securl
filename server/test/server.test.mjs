@@ -1099,6 +1099,7 @@ test("monitoring target detail returns recent scans, comparison, and lifecycle e
         assert.ok(detailPayload.comparison);
         assert.equal(detailPayload.comparison.currentScanId, detailPayload.scans[0].id);
         assert.equal(detailPayload.comparison.previousScanId, detailPayload.scans[1].id);
+        assert.ok(Array.isArray(detailPayload.comparison.riskEvents));
         assert.ok(Array.isArray(detailPayload.events));
         assert.ok(detailPayload.events.some((event) => event.eventType === "queued"));
         assert.ok(detailPayload.events.some((event) => event.eventType === "completed"));

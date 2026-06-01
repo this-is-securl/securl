@@ -1,4 +1,5 @@
 import { buildHistoryDiffFromSnapshots, snapshotFromAnalysis } from "../packages/core/dist/historyDiff.js";
+import { buildPostureRiskEventsFromSnapshots } from "../packages/core/dist/riskEvents.js";
 
 export const API_VERSION = "2026-05-14";
 
@@ -13,13 +14,15 @@ function buildStoredTargetDiff(records) {
   }
 
   const [current, previous] = completedWithResults;
+  const currentSnapshot = snapshotFromAnalysis(current.result);
+  const previousSnapshot = snapshotFromAnalysis(previous.result);
+  const diff = buildHistoryDiffFromSnapshots(currentSnapshot, previousSnapshot);
+
   return {
     currentScanId: current.id,
     previousScanId: previous.id,
-    diff: buildHistoryDiffFromSnapshots(
-      snapshotFromAnalysis(current.result),
-      snapshotFromAnalysis(previous.result),
-    ),
+    diff,
+    riskEvents: buildPostureRiskEventsFromSnapshots(currentSnapshot, previousSnapshot, diff),
   };
 }
 
