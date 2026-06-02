@@ -6,6 +6,12 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-06-02
+
+### Changed
+- Refreshed npm package signalling with clearer CLI, CI, SDK, and monitoring examples for developer adoption.
+- Expanded package keywords and shipped examples to make the engine easier to discover for posture, CI, and vendor-risk workflows.
+
 ## [1.1.0] - 2026-06-01
 
 ### Added
