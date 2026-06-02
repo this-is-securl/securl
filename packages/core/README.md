@@ -11,6 +11,14 @@
 
 It is designed for passive, low-noise assessment rather than active exploitation or broad reconnaissance. The engine turns public web signals into structured JSON, Markdown, SARIF, and CI-friendly output.
 
+Use it when you need a fast outside-in read on a public web service:
+
+- run a security posture smoke check in CI before release
+- generate JSON or SARIF evidence for internal review
+- compare the current posture against a saved baseline
+- classify monitoring changes into risk events for alerts or dashboards
+- enrich vendor, supplier, or customer domain reviews without credentials or agents
+
 <p>
   <a href="https://securl.online"><strong>Visit the SecURL site</strong></a>
   ·
@@ -35,6 +43,94 @@ epi scan example.com
 ```
 
 Prefer the hosted report workspace? Use [app.securl.online](https://app.securl.online).
+
+## Common use cases
+
+### 1. Quick CLI posture check
+
+```bash
+npx @ktbatterham/external-posture-core scan https://example.com --format summary
+```
+
+Example summary output:
+
+```text
+example.com  A  93/100  2 findings
+```
+
+### 2. CI gate for public-facing deployments
+
+Fail the job when a target drops below a minimum score or introduces warning-level findings:
+
+```bash
+npx @ktbatterham/external-posture-core scan https://example.com \
+  --quiet \
+  --format ci-json \
+  --fail-if-score-below 75 \
+  --fail-on warning
+```
+
+Compare a new scan with a saved baseline:
+
+```bash
+npx @ktbatterham/external-posture-core scan https://example.com \
+  --baseline ./security-baseline.json \
+  --fail-on-regression
+```
+
+### 3. Node.js SDK scan
+
+```js
+import { analyzeUrl } from "@ktbatterham/external-posture-core";
+
+const result = await analyzeUrl("https://example.com", {
+  scanMode: "quiet",
+});
+
+console.log({
+  score: result.score,
+  grade: result.grade,
+  mainRisk: result.executiveSummary.mainRisk,
+  findings: result.issues.map((issue) => ({
+    severity: issue.severity,
+    title: issue.title,
+  })),
+});
+```
+
+### 4. Monitoring and risk-event classification
+
+Version `1.1.0+` includes helpers for turning two scan snapshots into alert-friendly posture events.
+
+```js
+import {
+  buildHistoryDiffFromSnapshots,
+  snapshotFromAnalysis,
+} from "@ktbatterham/external-posture-core/history-diff";
+import {
+  buildPostureRiskEventsFromSnapshots,
+} from "@ktbatterham/external-posture-core/risk-events";
+
+const currentSnapshot = snapshotFromAnalysis(currentReport);
+const previousSnapshot = snapshotFromAnalysis(previousReport);
+const diff = buildHistoryDiffFromSnapshots(currentSnapshot, previousSnapshot);
+const riskEvents = buildPostureRiskEventsFromSnapshots(
+  currentSnapshot,
+  previousSnapshot,
+  diff,
+);
+
+console.log(riskEvents);
+```
+
+Risk events include score regressions, grade drops, new critical findings, certificates nearing expiry, security header regressions, WAF signal removals, new CT priority hosts, identity-provider changes, and new third-party or AI vendors.
+
+Runnable examples are included in [`examples/`](./examples):
+
+```bash
+node examples/scan-url.mjs https://example.com
+node examples/risk-events.mjs current-report.json previous-report.json
+```
 
 ## Package trust and release signals
 
@@ -99,6 +195,21 @@ See also:
 - `packages/core/RELEASING.md`
 
 ## Public API
+
+Primary exports:
+
+- `analyzeUrl(url, options)` - scan a public target and return a structured posture result.
+- `analyzeTarget(url, options)` - compatibility alias for `analyzeUrl`.
+- `analyzeHtmlDocument(url, html)` - run passive HTML/content analysis against already-fetched markup.
+- `snapshotFromAnalysis(result)` - reduce a scan result to a comparison snapshot.
+- `buildHistoryDiffFromSnapshots(current, previous)` - build a structured diff between scans.
+- `buildPostureRiskEventsFromSnapshots(current, previous, diff)` - classify scan changes into alert-friendly risk events.
+
+Package subpath exports:
+
+- `@ktbatterham/external-posture-core/history-diff`
+- `@ktbatterham/external-posture-core/risk-events`
+- `@ktbatterham/external-posture-core/types`
 
 ## CLI
 
