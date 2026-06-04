@@ -427,6 +427,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.deepEqual(payload.scans.modes, ["standard", "quiet", "deep-passive"]);
     assert.equal(payload.scans.maxDurationMs.standard, 45000);
     assert.equal(payload.scans.maxDurationMs.deepPassive, 75000);
+    assert.ok(payload.scans.resources.includes("GET /api/scans/:id/digest"));
     assert.equal(payload.monitoring.enabled, true);
     assert.equal(payload.monitoring.scheduler.enabled, true);
     assert.equal(payload.monitoring.scheduler.mode, "quiet");
@@ -1453,6 +1454,9 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     const findingsResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/findings`, {
       headers: scanOwnerHeaders(),
     });
+    const digestResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/digest`, {
+      headers: scanOwnerHeaders(),
+    });
     const evidenceResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/evidence`, {
       headers: scanOwnerHeaders(),
     });
@@ -1462,6 +1466,7 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
 
     const summaryPayload = await summaryResponse.json();
     const findingsPayload = await findingsResponse.json();
+    const digestPayload = await digestResponse.json();
     const evidencePayload = await evidenceResponse.json();
     const historyPayload = await historyResponse.json();
 
@@ -1473,6 +1478,14 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.ok(Array.isArray(findingsPayload.findings));
     assert.ok(Array.isArray(findingsPayload.strengths));
     assert.ok(Array.isArray(findingsPayload.priorityActions));
+    assert.equal(digestResponse.status, 200);
+    assert.equal(digestPayload.apiVersion, "2026-05-14");
+    assert.equal(digestPayload.scan.id, scanId);
+    assert.equal(digestPayload.digest.target.host, "example.com");
+    assert.equal(typeof digestPayload.digest.posture.score, "number");
+    assert.ok(Array.isArray(digestPayload.digest.findings.top));
+    assert.ok(Array.isArray(digestPayload.digest.posture.scoreDrivers));
+    assert.ok(Array.isArray(digestPayload.digest.intelligence.riskIndicators));
     assert.equal(evidenceResponse.status, 200);
     assert.equal(evidencePayload.apiVersion, "2026-05-14");
     assert.ok(Array.isArray(evidencePayload.evidence.headers));

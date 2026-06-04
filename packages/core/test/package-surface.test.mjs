@@ -8,6 +8,7 @@ const execFile = promisify(execFileCallback);
 
 test("package surface exports expected public functions", async () => {
   const pkg = await import("../dist/index.js");
+  const postureDigest = await import("../dist/postureDigest.js");
 
   assert.equal(typeof pkg.analyzeTarget, "function");
   assert.equal(typeof pkg.analyzeUrl, "function");
@@ -17,6 +18,8 @@ test("package surface exports expected public functions", async () => {
   assert.equal(typeof pkg.buildHistoryDiffFromSnapshots, "function");
   assert.equal(typeof pkg.buildPostureRiskEventsFromSnapshots, "function");
   assert.equal(typeof pkg.buildPostureRiskEventsFromDiff, "function");
+  assert.equal(typeof pkg.buildPostureDigest, "function");
+  assert.equal(typeof postureDigest.buildPostureDigest, "function");
   assert.equal(typeof pkg.formatErrorMessage, "function");
 });
 

@@ -299,6 +299,7 @@ export async function handleScanResourceRequest({
   authorizeAnalysisRequest,
   buildScanSummaryPayload,
   buildScanFindingsPayload,
+  buildScanDigestPayload,
   buildScanEvidencePayload,
   buildScanHistoryPayload,
   sendJson,
@@ -376,6 +377,11 @@ export async function handleScanResourceRequest({
 
     if (resource === "findings") {
       sendJson(response, 200, buildScanFindingsPayload(scan));
+      return true;
+    }
+
+    if (resource === "digest") {
+      sendJson(response, 200, buildScanDigestPayload(scan));
       return true;
     }
 

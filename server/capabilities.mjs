@@ -47,6 +47,7 @@ export function buildCapabilitiesPayload({
         "GET /api/scans/:id",
         "GET /api/scans/:id/summary",
         "GET /api/scans/:id/findings",
+        "GET /api/scans/:id/digest",
         "GET /api/scans/:id/evidence",
         "GET /api/scans/:id/history",
         "GET /api/scans/:id/share",
