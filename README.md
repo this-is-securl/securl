@@ -18,6 +18,8 @@ It is built for low-noise review of headers, TLS, cookies, redirects, DNS/email 
   ·
   <a href="https://app.securl.online"><strong>Run a live scan</strong></a>
   ·
+  <a href="https://apps.apple.com/app/securl/id6774322464"><strong>Download the iOS app</strong></a>
+  ·
   <a href="https://www.npmjs.com/package/@ktbatterham/external-posture-core"><strong>Use the npm package</strong></a>
   ·
   <a href="https://x.com/ThisIsSecURL"><strong>Follow @ThisIsSecURL</strong></a>
@@ -33,6 +35,7 @@ Use the hosted scanner if you want the quickest feel for the product:
 
 - [securl.online](https://securl.online) — product and landing page
 - [app.securl.online](https://app.securl.online) — live scanner and report workspace
+- [SecURL on the App Store](https://apps.apple.com/app/securl/id6774322464) — iOS companion app
 - [`@ktbatterham/external-posture-core`](https://www.npmjs.com/package/@ktbatterham/external-posture-core) — reusable CLI and Node engine
 
 Follow product notes and practical posture write-ups at [@ThisIsSecURL on X](https://x.com/ThisIsSecURL) and [Dev.to/thisissecurl](https://dev.to/thisissecurl).
@@ -88,6 +91,8 @@ The short version:
 
 Open [app.securl.online](https://app.securl.online) and scan a public target. For the product overview first, start at [securl.online](https://securl.online).
 
+Prefer mobile? Install [SecURL on the App Store](https://apps.apple.com/app/securl/id6774322464).
+
 ### CLI
 
 ```sh
@@ -138,7 +143,7 @@ SecURL now has a clean split between:
 That makes it much easier to:
 
 - host the frontend separately from the backend
-- evolve toward Android and iOS companion apps
+- support the hosted web app, iOS companion, CLI, and future clients from the same backend/API shape
 - keep the scanner logic reusable in CLI and service contexts
 
 ## Roadmap
@@ -169,7 +174,7 @@ Sponsorship helps fund continued work on the passive analysis engine, hosted sca
 
 ## Package status
 
-- Latest published core package: `@ktbatterham/external-posture-core@0.11.1`
+- Latest published core package: `@ktbatterham/external-posture-core@1.2.0`
 - npm tag: `latest`
 
 ## Docs
