@@ -1,4 +1,5 @@
 import { buildHistoryDiffFromSnapshots, snapshotFromAnalysis } from "../packages/core/dist/historyDiff.js";
+import { buildPostureDigest } from "../packages/core/dist/postureDigest.js";
 import { buildPostureRiskEventsFromSnapshots } from "../packages/core/dist/riskEvents.js";
 
 export const API_VERSION = "2026-05-14";
@@ -73,6 +74,22 @@ export function buildScanFindingsPayload(scan) {
     findings: normalizeArray(result.issues),
     strengths: normalizeArray(result.strengths),
     priorityActions: normalizeArray(result.executiveSummary?.takeaways),
+  };
+}
+
+export function buildScanDigestPayload(scan) {
+  const result = scan.result;
+  return {
+    apiVersion: API_VERSION,
+    scan: {
+      id: scan.id,
+      status: scan.status,
+      url: scan.url,
+      mode: scan.mode,
+      requestedAt: scan.requestedAt,
+      completedAt: scan.completedAt,
+    },
+    digest: result ? buildPostureDigest(result) : null,
   };
 }
 

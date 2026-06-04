@@ -6,6 +6,12 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-06-04
+
+### Added
+- Added `buildPostureDigest()` for producing compact, API/mobile-friendly summaries from full scan results.
+- Added the `@ktbatterham/external-posture-core/posture-digest` package export for consumers that want the digest helper without importing the wider SDK surface.
+
 ## [1.1.1] - 2026-06-02
 
 ### Changed

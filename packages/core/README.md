@@ -132,6 +132,28 @@ node examples/scan-url.mjs https://example.com
 node examples/risk-events.mjs current-report.json previous-report.json
 ```
 
+### 5. Compact posture digest for APIs and mobile clients
+
+Version `1.2.0+` includes a digest helper for turning a full scan result into a smaller, stable summary payload.
+
+```js
+import { analyzeUrl } from "@ktbatterham/external-posture-core";
+import { buildPostureDigest } from "@ktbatterham/external-posture-core/posture-digest";
+
+const result = await analyzeUrl("https://example.com", {
+  scanMode: "quiet",
+});
+
+const digest = buildPostureDigest(result);
+
+console.log({
+  grade: digest.posture.grade,
+  score: digest.posture.score,
+  topFindings: digest.findings.top,
+  riskIndicators: digest.intelligence.riskIndicators,
+});
+```
+
 ## Package trust and release signals
 
 - public source repository with package code under `packages/core`
@@ -204,10 +226,12 @@ Primary exports:
 - `snapshotFromAnalysis(result)` - reduce a scan result to a comparison snapshot.
 - `buildHistoryDiffFromSnapshots(current, previous)` - build a structured diff between scans.
 - `buildPostureRiskEventsFromSnapshots(current, previous, diff)` - classify scan changes into alert-friendly risk events.
+- `buildPostureDigest(result)` - reduce a full scan result to a compact API/mobile-friendly digest.
 
 Package subpath exports:
 
 - `@ktbatterham/external-posture-core/history-diff`
+- `@ktbatterham/external-posture-core/posture-digest`
 - `@ktbatterham/external-posture-core/risk-events`
 - `@ktbatterham/external-posture-core/types`
 
