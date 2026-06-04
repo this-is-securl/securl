@@ -24,6 +24,8 @@ Use it when you need a fast outside-in read on a public web service:
   ·
   <a href="https://app.securl.online"><strong>Try the live scanner</strong></a>
   ·
+  <a href="https://apps.apple.com/app/securl/id6774322464"><strong>Get the iOS app</strong></a>
+  ·
   <a href="https://github.com/ktbatterham/external-posture-insight"><strong>View the source</strong></a>
 </p>
 
@@ -42,7 +44,7 @@ npm install -g @ktbatterham/external-posture-core
 epi scan example.com
 ```
 
-Prefer the hosted report workspace? Use [app.securl.online](https://app.securl.online).
+Prefer the hosted report workspace? Use [app.securl.online](https://app.securl.online). For the product overview, start at [securl.online](https://securl.online). Prefer mobile? Install [SecURL on the App Store](https://apps.apple.com/app/securl/id6774322464).
 
 ## Common use cases
 
@@ -192,6 +194,7 @@ This package is published and consumable from npm:
 - [`@ktbatterham/external-posture-core`](https://www.npmjs.com/package/@ktbatterham/external-posture-core)
 - Product site: [securl.online](https://securl.online)
 - Live scanner: [app.securl.online](https://app.securl.online)
+- iOS app: [SecURL on the App Store](https://apps.apple.com/app/securl/id6774322464)
 
 It is also used by the External Posture Insight app from the local workspace during development.
 
