@@ -10,6 +10,7 @@ import { useAuthSession } from "@/hooks/useAuthSession";
 import { useScanWorkspace } from "@/hooks/useScanWorkspace";
 import { OutputPreview } from "@/components/landing/OutputPreview";
 import { CapabilityStrip } from "@/components/landing/CapabilityStrip";
+import { AppStoreBadge } from "@/components/AppStoreBadge";
 import { recordTelemetryEvent } from "@/lib/apiClient";
 
 // ── Mini ring preview (hero right column, pre-scan) ──────────────────────────
@@ -452,7 +453,7 @@ const Index = () => {
                 </h2>
                 <p className="mt-2 max-w-xl text-sm leading-6 text-zinc-300">
                   Account mode makes everything portable — scan history, monitored targets, and
-                  future mobile access all follow your account instead of being tied to one browser.
+                  mobile access all follow your account instead of being tied to one browser.
                 </p>
               </div>
 
@@ -551,6 +552,25 @@ const Index = () => {
                   signUp={signUp}
                   signOut={signOut}
                 />
+              </div>
+            </section>
+
+            {/* 5 — iOS app */}
+            <section className="rounded-[1.75rem] border border-white/[0.08] bg-white/[0.03] px-4 py-8 shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] sm:px-8 sm:py-10">
+              <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:justify-between sm:text-left">
+                <div className="space-y-1.5">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#d89a63]">
+                    SecURL on iPhone
+                  </p>
+                  <h2 className="text-xl font-black tracking-[-0.03em] text-white sm:text-2xl">
+                    Check posture anywhere
+                  </h2>
+                  <p className="mx-auto max-w-md text-sm leading-6 text-zinc-300 sm:mx-0">
+                    Run scans, track monitored targets, and get alerts when a site's protection
+                    changes — from your pocket.
+                  </p>
+                </div>
+                <AppStoreBadge className="shrink-0" />
               </div>
             </section>
 
