@@ -8,6 +8,27 @@ function normalizeArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function buildPublicScanEvent(event) {
+  const metadata = event?.metadata && typeof event.metadata === "object" ? event.metadata : {};
+  return {
+    id: event.id,
+    scanId: event.scanId,
+    eventType: event.eventType,
+    occurredAt: event.occurredAt,
+    status: event.status,
+    failureClass: event.failureClass ?? null,
+    message: event.message ?? null,
+    metadata: {
+      ...(Object.hasOwn(metadata, "url") ? { url: metadata.url } : {}),
+      ...(Object.hasOwn(metadata, "mode") ? { mode: metadata.mode } : {}),
+      ...(Object.hasOwn(metadata, "score") ? { score: metadata.score } : {}),
+      ...(Object.hasOwn(metadata, "grade") ? { grade: metadata.grade } : {}),
+      ...(Object.hasOwn(metadata, "limited") ? { limited: metadata.limited } : {}),
+      ...(Object.hasOwn(metadata, "limitedKind") ? { limitedKind: metadata.limitedKind } : {}),
+    },
+  };
+}
+
 function buildStoredTargetDiff(records) {
   const completedWithResults = normalizeArray(records).filter((scan) => scan?.status === "completed" && scan?.result);
   if (completedWithResults.length < 2) {
@@ -155,7 +176,7 @@ export function buildScanHistoryPayload(scan, events) {
       startedAt: scan.startedAt,
       completedAt: scan.completedAt,
     },
-    events: normalizeArray(events),
+    events: normalizeArray(events).map(buildPublicScanEvent),
   };
 }
 
@@ -251,6 +272,6 @@ export function buildMonitoringTargetDetailPayload(target, records = [], events 
     target: view,
     scans: normalizeArray(records).map((record) => record.summary).filter(Boolean),
     comparison: buildStoredTargetDiff(records),
-    events: normalizeArray(events),
+    events: normalizeArray(events).map(buildPublicScanEvent),
   };
 }
