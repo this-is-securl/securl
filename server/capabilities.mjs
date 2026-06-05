@@ -30,6 +30,15 @@ export function buildCapabilitiesPayload({
         ...(allowUnauthenticated ? ["scan-owner"] : []),
       ],
       anonymousScanOwner: Boolean(allowUnauthenticated),
+      resources: [
+        "POST /api/auth/register",
+        "POST /api/auth/login",
+        "GET /api/auth/session",
+        "POST /api/auth/logout",
+        "GET /api/auth/api-keys",
+        "POST /api/auth/api-keys",
+        "DELETE /api/auth/api-keys/:id",
+      ],
     },
     scans: {
       modes: ["standard", "quiet", "deep-passive"],

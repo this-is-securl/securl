@@ -245,6 +245,49 @@ export function buildApiKeyRecord({
   };
 }
 
+function buildApiKeyUsageSummary(scans = []) {
+  const counters = {
+    queued: 0,
+    running: 0,
+    completed: 0,
+    failed: 0,
+  };
+  let limitedReads = 0;
+  let fullReads = 0;
+
+  const ordered = [...scans].sort((left, right) =>
+    new Date(right.requestedAt || 0).getTime() - new Date(left.requestedAt || 0).getTime(),
+  );
+
+  for (const scan of ordered) {
+    if (scan?.status in counters) {
+      counters[scan.status] += 1;
+    }
+    if (scan?.status === "completed") {
+      if (scan.result?.assessmentLimitation?.limited || scan.summary?.limited) {
+        limitedReads += 1;
+      } else {
+        fullReads += 1;
+      }
+    }
+  }
+
+  const latest = ordered[0] ?? null;
+
+  return {
+    scansRequested: ordered.length,
+    scansCompleted: counters.completed,
+    scansFailed: counters.failed,
+    scansQueued: counters.queued,
+    scansRunning: counters.running,
+    fullReads,
+    limitedReads,
+    latestScanAt: latest?.requestedAt ?? null,
+    latestScanId: latest?.id ?? null,
+    latestTarget: latest?.url ?? null,
+  };
+}
+
 function enrichScan(scan) {
   if (!scan) {
     return null;
@@ -519,6 +562,17 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       }
       apiKey.revokedAt = new Date().toISOString();
       return true;
+    },
+    async getApiKeyUsageSummary(id, { userId }) {
+      const apiKey = apiKeys.get(id);
+      if (!apiKey || apiKey.userId !== userId) {
+        return buildApiKeyUsageSummary([]);
+      }
+      const ownerId = `user:${userId}`;
+      const requesterScope = `api-key:${id}`;
+      return buildApiKeyUsageSummary(
+        [...scans.values()].filter((scan) => scan.ownerId === ownerId && scan.requesterScope === requesterScope),
+      );
     },
     async createScan({ url, mode, requesterScope, clientIp, ownerId = null }) {
       const scan = {
@@ -987,6 +1041,25 @@ export function createPostgresScanRepository({
         [id, userId, revokedAt],
       );
       return result.rowCount > 0;
+    },
+    async getApiKeyUsageSummary(id, { userId }) {
+      const ownerId = `user:${userId}`;
+      const requesterScope = `api-key:${id}`;
+      const { rows } = await pool.query(
+        `select id, url, status, requested_at, completed_at, summary
+         from ${table}
+         where owner_id = $1 and requester_scope = $2
+         order by requested_at desc`,
+        [ownerId, requesterScope],
+      );
+      return buildApiKeyUsageSummary(rows.map((row) => ({
+        id: row.id,
+        url: row.url,
+        status: row.status,
+        requestedAt: row.requested_at?.toISOString?.() ?? row.requested_at,
+        completedAt: row.completed_at?.toISOString?.() ?? row.completed_at,
+        summary: row.summary ?? null,
+      })));
     },
     async createScan({ url, mode, requesterScope, clientIp, ownerId = null }) {
       const scan = {
