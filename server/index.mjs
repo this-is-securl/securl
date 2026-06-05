@@ -21,6 +21,7 @@ import {
   buildScanDetailPayload,
   buildScanDigestPayload,
   buildScanEvidencePayload,
+  buildScanExportResponse,
   buildScanFindingsPayload,
   buildScanHistoryPayload,
   buildScanSummaryPayload,
@@ -390,6 +391,14 @@ const server = http.createServer(async (request, response) => {
     sendMethodNotAllowed(targetResponse, allowedMethods, apiCorsHeaders || {});
   const sendApiRateLimited = (targetResponse, retryAfterSeconds, message) =>
     sendRateLimited(targetResponse, retryAfterSeconds, message, apiCorsHeaders || {});
+  const sendApiBody = (targetResponse, statusCode, body, headers = {}) => {
+    targetResponse.writeHead(statusCode, {
+      ...(apiCorsHeaders || {}),
+      "Cache-Control": "no-store",
+      ...headers,
+    });
+    targetResponse.end(body);
+  };
   const sendApiRepositoryUnavailable = (targetResponse, error, context) => {
     log("error", "scan_repository_unavailable", {
       context,
@@ -730,9 +739,11 @@ const server = http.createServer(async (request, response) => {
       buildScanSummaryPayload,
       buildScanFindingsPayload,
       buildScanDetailPayload,
+      buildScanExportResponse,
       buildScanDigestPayload,
       buildScanEvidencePayload,
       buildScanHistoryPayload,
+      sendBody: sendApiBody,
       sendJson: sendApiJson,
       sendMethodNotAllowed: sendApiMethodNotAllowed,
       sendRepositoryUnavailable: sendApiRepositoryUnavailable,

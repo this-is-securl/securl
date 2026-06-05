@@ -298,11 +298,13 @@ export async function handleScanResourceRequest({
   scanRepository,
   authorizeAnalysisRequest,
   buildScanDetailPayload,
+  buildScanExportResponse,
   buildScanSummaryPayload,
   buildScanFindingsPayload,
   buildScanDigestPayload,
   buildScanEvidencePayload,
   buildScanHistoryPayload,
+  sendBody,
   sendJson,
   sendMethodNotAllowed,
   sendRepositoryUnavailable,
@@ -396,6 +398,28 @@ export async function handleScanResourceRequest({
         ownerId: authState.ownerId,
       });
       sendJson(response, 200, buildScanHistoryPayload(scan, events));
+      return true;
+    }
+
+    if (resource === "export") {
+      const requestedFormat = requestUrl.searchParams.get("format") || "json";
+      const exportResponse = buildScanExportResponse(scan, requestedFormat);
+      if (!exportResponse) {
+        sendJson(response, 400, {
+          error: "Unsupported export format. Use json, markdown, sarif, or ci-json.",
+        });
+        return true;
+      }
+      if (exportResponse.notReady) {
+        sendJson(response, 409, {
+          error: "Scan export is only available once the scan has completed.",
+        });
+        return true;
+      }
+      sendBody(response, 200, exportResponse.body, {
+        "Content-Type": exportResponse.contentType,
+        "Content-Disposition": `attachment; filename="${exportResponse.filename}"`,
+      });
       return true;
     }
 

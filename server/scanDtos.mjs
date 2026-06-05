@@ -3,6 +3,7 @@ import { buildPostureDigest } from "../packages/core/dist/postureDigest.js";
 import { buildPostureRiskEventsFromSnapshots } from "../packages/core/dist/riskEvents.js";
 
 export const API_VERSION = "2026-05-14";
+export const SCAN_EXPORT_FORMATS = ["json", "markdown", "sarif", "ci-json"];
 
 function normalizeArray(value) {
   return Array.isArray(value) ? value : [];
@@ -26,6 +27,204 @@ function buildPublicScanEvent(event) {
       ...(Object.hasOwn(metadata, "limited") ? { limited: metadata.limited } : {}),
       ...(Object.hasOwn(metadata, "limitedKind") ? { limitedKind: metadata.limitedKind } : {}),
     },
+  };
+}
+
+function safeExportName(value) {
+  return String(value || "scan")
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "scan";
+}
+
+function countIssuesBySeverity(issues) {
+  return normalizeArray(issues).reduce((counts, issue) => {
+    const severity = issue?.severity || "unknown";
+    counts[severity] = (counts[severity] ?? 0) + 1;
+    return counts;
+  }, {});
+}
+
+function sarifLevel(severity) {
+  if (severity === "critical") return "error";
+  if (severity === "warning") return "warning";
+  return "note";
+}
+
+function ruleIdForIssue(issue) {
+  return safeExportName(issue?.title || "external-posture-finding") || "external-posture-finding";
+}
+
+function buildMarkdownExport(scan) {
+  const result = scan.result;
+  return [
+    `# SecURL Scan: ${result.host || scan.url}`,
+    "",
+    `- URL: ${result.finalUrl || scan.url}`,
+    `- Scan ID: ${scan.id}`,
+    `- Mode: ${scan.mode}`,
+    `- Completed: ${scan.completedAt}`,
+    `- Score: ${result.score}/100`,
+    `- Grade: ${result.grade}`,
+    "",
+    "## Summary",
+    "",
+    result.executiveSummary?.overview || result.summary || "No summary recorded.",
+    "",
+    "## Key Findings",
+    "",
+    ...(normalizeArray(result.issues).length
+      ? normalizeArray(result.issues).slice(0, 20).map((issue) => `- [${issue.severity}] ${issue.title}: ${issue.detail}`)
+      : ["- No findings recorded."]),
+    "",
+    "## Score Drivers",
+    "",
+    ...(normalizeArray(result.scoreDrivers).length
+      ? normalizeArray(result.scoreDrivers).map((driver) => `- ${driver.label}: ${driver.impact} (${driver.detail})`)
+      : ["- No score drivers recorded."]),
+  ].join("\n");
+}
+
+function buildSarifExport(scan) {
+  const result = scan.result;
+  const rules = new Map();
+  const results = [];
+
+  for (const issue of normalizeArray(result.issues)) {
+    const ruleId = ruleIdForIssue(issue);
+    if (!rules.has(ruleId)) {
+      rules.set(ruleId, {
+        id: ruleId,
+        name: issue.title,
+        shortDescription: { text: issue.title },
+        fullDescription: { text: issue.detail },
+        help: { text: issue.detail },
+        properties: {
+          tags: [
+            ...normalizeArray(issue.owasp),
+            ...normalizeArray(issue.mitre),
+            issue.area,
+            issue.source,
+            issue.confidence,
+          ].filter(Boolean),
+        },
+      });
+    }
+
+    results.push({
+      ruleId,
+      level: sarifLevel(issue.severity),
+      message: { text: issue.detail },
+      locations: [
+        {
+          physicalLocation: {
+            artifactLocation: { uri: result.finalUrl || scan.url },
+          },
+        },
+      ],
+      properties: {
+        scanId: scan.id,
+        host: result.host,
+        score: result.score,
+        grade: result.grade,
+        severity: issue.severity,
+        area: issue.area,
+        confidence: issue.confidence,
+        source: issue.source,
+      },
+    });
+  }
+
+  return {
+    version: "2.1.0",
+    $schema: "https://json.schemastore.org/sarif-2.1.0.json",
+    runs: [
+      {
+        tool: {
+          driver: {
+            name: "SecURL",
+            informationUri: "https://securl.online",
+            rules: [...rules.values()],
+          },
+        },
+        results,
+      },
+    ],
+  };
+}
+
+function buildCiJsonExport(scan) {
+  const result = scan.result;
+  const criticalIssues = normalizeArray(result.issues).filter((issue) => issue.severity === "critical");
+  return {
+    apiVersion: API_VERSION,
+    scan: scan.summary,
+    target: {
+      inputUrl: result.inputUrl,
+      finalUrl: result.finalUrl,
+      host: result.host,
+    },
+    posture: {
+      score: result.score,
+      grade: result.grade,
+      summary: result.summary,
+      mainRisk: result.executiveSummary?.mainRisk ?? null,
+      issueCounts: countIssuesBySeverity(result.issues),
+      criticalIssueCount: criticalIssues.length,
+      passed: criticalIssues.length === 0,
+    },
+    findings: normalizeArray(result.issues).map((issue) => ({
+      severity: issue.severity,
+      area: issue.area,
+      title: issue.title,
+      detail: issue.detail,
+      confidence: issue.confidence,
+      source: issue.source,
+    })),
+  };
+}
+
+export function buildScanExportResponse(scan, format = "json") {
+  if (!SCAN_EXPORT_FORMATS.includes(format)) {
+    return null;
+  }
+
+  if (scan.status !== "completed" || !scan.result) {
+    return {
+      notReady: true,
+    };
+  }
+
+  const baseName = safeExportName(scan.result.host || scan.url || scan.id);
+  if (format === "markdown") {
+    return {
+      body: `${buildMarkdownExport(scan)}\n`,
+      contentType: "text/markdown; charset=utf-8",
+      filename: `${baseName}-securl-report.md`,
+    };
+  }
+
+  if (format === "sarif") {
+    return {
+      body: `${JSON.stringify(buildSarifExport(scan), null, 2)}\n`,
+      contentType: "application/sarif+json; charset=utf-8",
+      filename: `${baseName}-securl.sarif`,
+    };
+  }
+
+  if (format === "ci-json") {
+    return {
+      body: `${JSON.stringify(buildCiJsonExport(scan), null, 2)}\n`,
+      contentType: "application/json; charset=utf-8",
+      filename: `${baseName}-securl-ci.json`,
+    };
+  }
+
+  return {
+    body: `${JSON.stringify({ apiVersion: API_VERSION, scan: scan.summary, result: scan.result }, null, 2)}\n`,
+    contentType: "application/json; charset=utf-8",
+    filename: `${baseName}-securl-report.json`,
   };
 }
 
