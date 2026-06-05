@@ -471,6 +471,39 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
+  if (requestUrl.pathname === "/api/ready") {
+    if (request.method !== "GET") {
+      sendApiMethodNotAllowed(response, ["GET", "OPTIONS"]);
+      return;
+    }
+
+    try {
+      await scanRepository.ping();
+      sendApiJson(response, 200, {
+        ok: true,
+        now: new Date().toISOString(),
+        storage: {
+          backend: scanRepository?.kind || scanRepositoryBackend,
+          available: true,
+        },
+      });
+    } catch (error) {
+      log("error", "readiness_check_failed", {
+        message: formatErrorMessage(error),
+        backend: scanRepository?.kind || scanRepositoryBackend,
+      });
+      sendApiJson(response, 503, {
+        ok: false,
+        now: new Date().toISOString(),
+        storage: {
+          backend: scanRepository?.kind || scanRepositoryBackend,
+          available: false,
+        },
+      });
+    }
+    return;
+  }
+
   if (requestUrl.pathname === "/api/capabilities") {
     if (request.method !== "GET") {
       sendApiMethodNotAllowed(response, ["GET", "OPTIONS"]);

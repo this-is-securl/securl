@@ -22,6 +22,11 @@ export function buildCapabilitiesPayload({
       corePackage: corePackage.name,
       coreVersion: corePackage.version,
       serveFrontend: Boolean(serveFrontend),
+      resources: [
+        "GET /api/health",
+        "GET /api/ready",
+        "GET /api/capabilities",
+      ],
     },
     auth: {
       methods: [
