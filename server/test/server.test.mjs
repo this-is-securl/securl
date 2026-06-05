@@ -1476,6 +1476,12 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     }
 
     assert.equal(scanPayload.scan.status, "completed");
+    assert.ok(scanPayload.scan.result);
+    assert.equal(scanPayload.scan.id, scanId);
+    assert.equal(scanPayload.scan.ownerId, undefined);
+    assert.equal(scanPayload.scan.requesterScope, undefined);
+    assert.equal(scanPayload.scan.clientIp, undefined);
+    assert.equal(scanPayload.scan.summary, undefined);
 
     const summaryResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/summary`, {
       headers: scanOwnerHeaders(),
