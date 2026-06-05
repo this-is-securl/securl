@@ -427,6 +427,8 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.deepEqual(payload.scans.modes, ["standard", "quiet", "deep-passive"]);
     assert.equal(payload.scans.maxDurationMs.standard, 45000);
     assert.equal(payload.scans.maxDurationMs.deepPassive, 75000);
+    assert.ok(payload.auth.resources.includes("GET /api/auth/api-keys"));
+    assert.ok(payload.auth.resources.includes("DELETE /api/auth/api-keys/:id"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/digest"));
     assert.equal(payload.monitoring.enabled, true);
     assert.equal(payload.monitoring.scheduler.enabled, true);
@@ -838,6 +840,18 @@ test("authenticated users can create, use, list, and revoke API keys", async () 
     assert.equal(createKeyPayload.apiKey.name, "Local CLI");
     assert.match(createKeyPayload.token, /^securl_/);
     assert.ok(!createKeyPayload.apiKey.tokenHash);
+    assert.deepEqual(createKeyPayload.apiKey.usage, {
+      scansRequested: 0,
+      scansCompleted: 0,
+      scansFailed: 0,
+      scansQueued: 0,
+      scansRunning: 0,
+      fullReads: 0,
+      limitedReads: 0,
+      latestScanAt: null,
+      latestScanId: null,
+      latestTarget: null,
+    });
 
     const listKeysResponse = await fetch(`${server.baseUrl}/api/auth/api-keys`, {
       headers: bearerHeaders(sessionToken),
@@ -847,6 +861,7 @@ test("authenticated users can create, use, list, and revoke API keys", async () 
     assert.equal(listKeysPayload.apiKeys.length, 1);
     assert.equal(listKeysPayload.apiKeys[0].id, createKeyPayload.apiKey.id);
     assert.ok(!("token" in listKeysPayload.apiKeys[0]));
+    assert.equal(listKeysPayload.apiKeys[0].usage.scansRequested, 0);
 
     const scanResponse = await fetch(`${server.baseUrl}/api/scans`, {
       method: "POST",
@@ -866,6 +881,20 @@ test("authenticated users can create, use, list, and revoke API keys", async () 
     assert.equal(listScansResponse.status, 200);
     assert.equal(listScansPayload.scans.length, 1);
     assert.equal(listScansPayload.scans[0].id, scanPayload.scan.id);
+
+    const usedKeysResponse = await fetch(`${server.baseUrl}/api/auth/api-keys`, {
+      headers: bearerHeaders(sessionToken),
+    });
+    const usedKeysPayload = await usedKeysResponse.json();
+    assert.equal(usedKeysResponse.status, 200);
+    const usage = usedKeysPayload.apiKeys[0].usage;
+    assert.equal(usage.scansRequested, 1);
+    assert.equal(
+      usage.scansQueued + usage.scansRunning + usage.scansCompleted + usage.scansFailed,
+      1,
+    );
+    assert.equal(usage.latestScanId, scanPayload.scan.id);
+    assert.equal(usage.latestTarget, "https://example.com/");
 
     const revokeResponse = await fetch(`${server.baseUrl}/api/auth/api-keys/${createKeyPayload.apiKey.id}`, {
       method: "DELETE",
