@@ -813,7 +813,8 @@ test("authenticated sessions can own scan and monitoring resources without scan-
     const monitoringPayload = await monitoringResponse.json();
     assert.equal(monitoringResponse.status, 201);
     assert.equal(monitoringPayload.apiVersion, "2026-05-14");
-    assert.match(monitoringPayload.target.ownerId, /^user:/);
+    assert.equal(monitoringPayload.target.ownerId, undefined);
+    assert.equal(monitoringPayload.target.requesterScope, undefined);
   } finally {
     await server.stop();
   }
@@ -1022,6 +1023,8 @@ test("monitoring targets can be created, listed, and deleted", async () => {
     assert.equal(createPayload.target.label, "Example target");
     assert.equal(createPayload.target.due, false);
     assert.equal(createPayload.target.latestScan, null);
+    assert.equal(createPayload.target.ownerId, undefined);
+    assert.equal(createPayload.target.requesterScope, undefined);
 
     const targetId = createPayload.target.id;
     const listResponse = await fetch(`${server.baseUrl}/api/monitoring-targets`, {
@@ -1031,6 +1034,8 @@ test("monitoring targets can be created, listed, and deleted", async () => {
     assert.equal(listResponse.status, 200);
     assert.equal(listPayload.targets.length, 1);
     assert.equal(listPayload.targets[0].id, targetId);
+    assert.equal(listPayload.targets[0].ownerId, undefined);
+    assert.equal(listPayload.targets[0].requesterScope, undefined);
 
     const deleteResponse = await fetch(`${server.baseUrl}/api/monitoring-targets/${targetId}`, {
       method: "DELETE",
@@ -1130,6 +1135,8 @@ test("monitoring target detail returns recent scans, comparison, and lifecycle e
         assert.equal(detailResponse.status, 200);
         assert.equal(detailPayload.target.id, createTargetPayload.target.id);
         assert.equal(detailPayload.target.url, "https://example.com/");
+        assert.equal(detailPayload.target.ownerId, undefined);
+        assert.equal(detailPayload.target.requesterScope, undefined);
         assert.ok(Array.isArray(detailPayload.scans));
         assert.ok(detailPayload.scans.length >= 2);
         assert.ok(detailPayload.comparison);
@@ -1196,6 +1203,8 @@ test("monitoring summary rolls up scoped targets and latest risk events", async 
         assert.equal(typeof summaryPayload.summary.riskEventCounts.critical, "number");
         assert.ok(Array.isArray(summaryPayload.summary.topRiskEvents));
         assert.ok(Array.isArray(target.latestRiskEvents));
+        assert.equal(target.ownerId, undefined);
+        assert.equal(target.requesterScope, undefined);
         return;
       }
 

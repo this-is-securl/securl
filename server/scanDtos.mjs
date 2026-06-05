@@ -40,7 +40,12 @@ export function buildMonitoringTargetView(target, records = []) {
   const previousScan = completedScans[1] ?? null;
 
   return {
-    ...target,
+    id: target.id,
+    url: target.url,
+    label: target.label,
+    cadence: target.cadence,
+    addedAt: target.addedAt,
+    lastScannedAt: target.lastScannedAt ?? null,
     nextDueAt,
     due: Date.now() >= new Date(nextDueAt).getTime(),
     latestScan,
