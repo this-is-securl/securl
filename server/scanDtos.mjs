@@ -93,6 +93,16 @@ export function buildScanDigestPayload(scan) {
   };
 }
 
+export function buildScanDetailPayload(scan) {
+  return {
+    apiVersion: API_VERSION,
+    scan: {
+      ...scan.summary,
+      result: scan.result ?? null,
+    },
+  };
+}
+
 export function buildScanEvidencePayload(scan) {
   const result = scan.result;
   if (!result) {

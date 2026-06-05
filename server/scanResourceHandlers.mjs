@@ -297,6 +297,7 @@ export async function handleScanResourceRequest({
   requestUrl,
   scanRepository,
   authorizeAnalysisRequest,
+  buildScanDetailPayload,
   buildScanSummaryPayload,
   buildScanFindingsPayload,
   buildScanDigestPayload,
@@ -366,7 +367,7 @@ export async function handleScanResourceRequest({
     }
 
     if (!resource) {
-      sendJson(response, 200, { apiVersion: API_VERSION, scan });
+      sendJson(response, 200, buildScanDetailPayload(scan));
       return true;
     }
 
