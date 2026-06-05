@@ -410,6 +410,22 @@ test("health endpoint returns minimal readiness data in production mode", async 
   }
 });
 
+test("health endpoint rejects unsupported methods", async () => {
+  const server = await startServer();
+
+  try {
+    const response = await fetch(`${server.baseUrl}/api/health`, {
+      method: "POST",
+    });
+    const payload = await response.json();
+    assert.equal(response.status, 405);
+    assert.equal(response.headers.get("allow"), "GET, OPTIONS");
+    assert.match(payload.error, /Method not allowed/i);
+  } finally {
+    await server.stop();
+  }
+});
+
 test("readiness endpoint reports storage availability", async () => {
   const server = await startServer();
 
@@ -512,6 +528,22 @@ test("telemetry endpoint returns aggregate page-load and failure counters", asyn
     assert.equal(payload.scans.requested, 0);
     assert.equal(payload.scans.completed, 0);
     assert.equal(payload.failures.classes.invalid_target_credentials, 1);
+  } finally {
+    await server.stop();
+  }
+});
+
+test("telemetry endpoint rejects unsupported methods", async () => {
+  const server = await startServer();
+
+  try {
+    const response = await fetch(`${server.baseUrl}/api/telemetry`, {
+      method: "POST",
+    });
+    const payload = await response.json();
+    assert.equal(response.status, 405);
+    assert.equal(response.headers.get("allow"), "GET, OPTIONS");
+    assert.match(payload.error, /Method not allowed/i);
   } finally {
     await server.stop();
   }
