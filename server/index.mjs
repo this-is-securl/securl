@@ -425,6 +425,11 @@ const server = http.createServer(async (request, response) => {
   }
 
   if (requestUrl.pathname === "/api/health") {
+    if (request.method !== "GET") {
+      sendApiMethodNotAllowed(response, ["GET", "OPTIONS"]);
+      return;
+    }
+
     const payload = {
       ok: true,
       now: new Date().toISOString(),
@@ -564,6 +569,11 @@ const server = http.createServer(async (request, response) => {
   }
 
   if (requestUrl.pathname === "/api/telemetry") {
+    if (request.method !== "GET") {
+      sendApiMethodNotAllowed(response, ["GET", "OPTIONS"]);
+      return;
+    }
+
     if (!exposeTelemetry || !isTelemetryRequestAuthorized(request)) {
       sendApiJson(response, 404, {
         error: "Telemetry is not available.",
