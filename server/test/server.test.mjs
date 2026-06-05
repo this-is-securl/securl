@@ -410,6 +410,22 @@ test("health endpoint returns minimal readiness data in production mode", async 
   }
 });
 
+test("readiness endpoint reports storage availability", async () => {
+  const server = await startServer();
+
+  try {
+    const response = await fetch(`${server.baseUrl}/api/ready`);
+    const payload = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(payload.ok, true);
+    assert.ok(payload.now);
+    assert.equal(payload.storage.backend, "memory");
+    assert.equal(payload.storage.available, true);
+  } finally {
+    await server.stop();
+  }
+});
+
 test("capabilities endpoint exposes additive client feature metadata", async () => {
   const server = await startServer({
     MONITORING_SCHEDULER_ENABLED: "true",
@@ -424,6 +440,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.equal(payload.service.name, "SecURL API");
     assert.equal(payload.service.corePackage, "@ktbatterham/external-posture-core");
     assert.match(payload.service.coreVersion, /^\d+\.\d+\.\d+/);
+    assert.ok(payload.service.resources.includes("GET /api/ready"));
     assert.deepEqual(payload.scans.modes, ["standard", "quiet", "deep-passive"]);
     assert.equal(payload.scans.maxDurationMs.standard, 45000);
     assert.equal(payload.scans.maxDurationMs.deepPassive, 75000);
