@@ -36,6 +36,11 @@ test("telemetry tracker records aggregate counts", () => {
     scanId: "scan-one",
   });
   telemetry.recordFunnelEvent({
+    event: "handoff_started",
+    source: "utm:landing",
+    target: "https://example.com/",
+  });
+  telemetry.recordFunnelEvent({
     event: "export_clicked",
     source: "hacker_news",
     target: "https://example.com/",
@@ -72,10 +77,13 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.failures.requesterRateLimited, 1);
   assert.equal(snapshot.failures.targetRateLimited, 1);
   assert.equal(snapshot.funnel.events.scan_started, 1);
+  assert.equal(snapshot.funnel.events.handoff_started, 1);
   assert.equal(snapshot.funnel.events.export_clicked, 1);
   assert.equal(snapshot.funnel.bySource.hacker_news.scan_started, 1);
+  assert.equal(snapshot.funnel.bySource["utm:landing"].handoff_started, 1);
   assert.equal(snapshot.funnel.today.scan_started, 1);
-  assert.equal(snapshot.funnel.recent.length, 2);
+  assert.equal(snapshot.funnel.today.handoff_started, 1);
+  assert.equal(snapshot.funnel.recent.length, 3);
   assert.equal(snapshot.funnel.recent[0].event, "export_clicked");
 });
 

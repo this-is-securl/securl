@@ -387,6 +387,7 @@ function sanitizeRecentFailure(value) {
 
 const FUNNEL_EVENT_NAMES = new Set([
   "scan_started",
+  "handoff_started",
   "scan_completed",
   "scan_failed",
   "report_viewed",

@@ -640,6 +640,25 @@ test("telemetry event beacon records funnel events", async () => {
     assert.equal(payload.funnel.bySource["utm:launch"].share_link_copied, 1);
     assert.equal(payload.funnel.recent[0].scanId, "scan-one");
 
+    const handoffResponse = await fetch(`${server.baseUrl}/api/telemetry/event`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Origin: "https://app.securl.online",
+      },
+      body: JSON.stringify({
+        event: "handoff_started",
+        currentUrl: "https://securl.online/?utm_source=landing",
+        target: "https://example.com/",
+      }),
+    });
+    assert.equal(handoffResponse.status, 202);
+
+    const updatedTelemetryResponse = await fetch(`${server.baseUrl}/api/telemetry`);
+    const updatedPayload = await updatedTelemetryResponse.json();
+    assert.equal(updatedPayload.funnel.events.handoff_started, 1);
+    assert.equal(updatedPayload.funnel.bySource["utm:landing"].handoff_started, 1);
+
     const invalidResponse = await fetch(`${server.baseUrl}/api/telemetry/event`, {
       method: "POST",
       headers: {
