@@ -1,4 +1,5 @@
 const DEFAULT_ALLOWED_ORIGINS = [
+  "https://securl.online",
   "https://app.securl.online",
 ];
 

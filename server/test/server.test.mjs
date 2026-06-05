@@ -720,25 +720,27 @@ test("telemetry endpoint requires an admin token when exposed in production", as
   }
 });
 
-test("api preflight allows the Hostinger frontend origin", async () => {
+test("api preflight allows the Hostinger frontend origins", async () => {
   const server = await startServer();
 
   try {
-    const response = await fetch(`${server.baseUrl}/api/scans`, {
-      method: "OPTIONS",
-      headers: {
-        Origin: "https://app.securl.online",
-        "Access-Control-Request-Method": "POST",
-        "Access-Control-Request-Headers": "content-type,x-scan-owner,authorization",
-      },
-    });
+    for (const origin of ["https://app.securl.online", "https://securl.online"]) {
+      const response = await fetch(`${server.baseUrl}/api/scans`, {
+        method: "OPTIONS",
+        headers: {
+          Origin: origin,
+          "Access-Control-Request-Method": "POST",
+          "Access-Control-Request-Headers": "content-type,x-scan-owner,authorization",
+        },
+      });
 
-    assert.equal(response.status, 204);
-    assert.equal(response.headers.get("access-control-allow-origin"), "https://app.securl.online");
-    assert.match(response.headers.get("access-control-allow-methods") || "", /POST/);
-    assert.match(response.headers.get("access-control-allow-methods") || "", /DELETE/);
-    assert.match(response.headers.get("access-control-allow-headers") || "", /X-Scan-Owner/i);
-    assert.match(response.headers.get("access-control-allow-headers") || "", /Authorization/i);
+      assert.equal(response.status, 204);
+      assert.equal(response.headers.get("access-control-allow-origin"), origin);
+      assert.match(response.headers.get("access-control-allow-methods") || "", /POST/);
+      assert.match(response.headers.get("access-control-allow-methods") || "", /DELETE/);
+      assert.match(response.headers.get("access-control-allow-headers") || "", /X-Scan-Owner/i);
+      assert.match(response.headers.get("access-control-allow-headers") || "", /Authorization/i);
+    }
   } finally {
     await server.stop();
   }
