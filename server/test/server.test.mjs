@@ -463,6 +463,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.auth.resources.includes("GET /api/auth/api-keys"));
     assert.ok(payload.auth.resources.includes("DELETE /api/auth/api-keys/:id"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/digest"));
+    assert.ok(payload.scans.resources.includes("GET /api/scans/:id/export?format=json|markdown|sarif|ci-json"));
     assert.equal(payload.monitoring.enabled, true);
     assert.equal(payload.monitoring.scheduler.enabled, true);
     assert.equal(payload.monitoring.scheduler.mode, "quiet");
@@ -1556,12 +1557,28 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     const historyResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/history`, {
       headers: scanOwnerHeaders(),
     });
+    const markdownExportResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/export?format=markdown`, {
+      headers: scanOwnerHeaders(),
+    });
+    const sarifExportResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/export?format=sarif`, {
+      headers: scanOwnerHeaders(),
+    });
+    const ciJsonExportResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/export?format=ci-json`, {
+      headers: scanOwnerHeaders(),
+    });
+    const invalidExportResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/export?format=pdf`, {
+      headers: scanOwnerHeaders(),
+    });
 
     const summaryPayload = await summaryResponse.json();
     const findingsPayload = await findingsResponse.json();
     const digestPayload = await digestResponse.json();
     const evidencePayload = await evidenceResponse.json();
     const historyPayload = await historyResponse.json();
+    const markdownExport = await markdownExportResponse.text();
+    const sarifExport = await sarifExportResponse.json();
+    const ciJsonExport = await ciJsonExportResponse.json();
+    const invalidExportPayload = await invalidExportResponse.json();
 
     assert.equal(summaryResponse.status, 200);
     assert.equal(summaryPayload.apiVersion, "2026-05-14");
@@ -1590,6 +1607,19 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.ok(Array.isArray(historyPayload.events));
     assert.ok(historyPayload.events.length >= 3);
     assert.equal(historyPayload.events[0].eventType, "completed");
+    assert.equal(markdownExportResponse.status, 200);
+    assert.match(markdownExportResponse.headers.get("content-type") || "", /text\/markdown/i);
+    assert.match(markdownExport, /^# SecURL Scan:/);
+    assert.equal(sarifExportResponse.status, 200);
+    assert.match(sarifExportResponse.headers.get("content-type") || "", /application\/sarif\+json/i);
+    assert.equal(sarifExport.version, "2.1.0");
+    assert.ok(Array.isArray(sarifExport.runs[0].results));
+    assert.equal(ciJsonExportResponse.status, 200);
+    assert.equal(ciJsonExport.apiVersion, "2026-05-14");
+    assert.equal(ciJsonExport.scan.id, scanId);
+    assert.equal(typeof ciJsonExport.posture.passed, "boolean");
+    assert.equal(invalidExportResponse.status, 400);
+    assert.match(invalidExportPayload.error, /unsupported export format/i);
   } finally {
     await server.stop();
   }
