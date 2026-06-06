@@ -137,6 +137,7 @@ Current important resources:
 - `GET /api/scans/:id/findings`
 - `GET /api/scans/:id/evidence`
 - `GET /api/scans/:id/history`
+- `GET /api/scans/:id/comparison`
 - `GET /api/scans/:id/share` (public — no auth required)
 - `POST /api/monitoring-targets`
 - `GET /api/monitoring-targets`

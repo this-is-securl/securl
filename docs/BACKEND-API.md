@@ -19,6 +19,7 @@ This project now treats the backend as a real scan service boundary rather than 
 - `GET /api/scans/:id/findings`
 - `GET /api/scans/:id/evidence`
 - `GET /api/scans/:id/history`
+- `GET /api/scans/:id/comparison`
 - `GET /api/scans/:id/share` (public — no auth required)
 
 `POST /api/scans` accepts an optional `mode`:
@@ -37,6 +38,8 @@ Runtime controls:
 - `MONITORING_SWEEP_INTERVAL_MS`: due target sweep interval, default `900000`, minimum `60000`.
 - `MONITORING_SWEEP_LIMIT`: maximum due targets queued per sweep, default `20`.
 - `MONITORING_SCAN_MODE`: scan mode for scheduled monitoring sweeps, default `quiet`.
+
+`GET /api/scans/:id/comparison` returns the completed scan summary, the previous completed scan summary for the same URL and owner when available, and the same diff/risk-event payload used by target history and monitoring detail views.
 
 ## Current monitoring resources
 

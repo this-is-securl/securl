@@ -379,6 +379,21 @@ export function buildScanHistoryPayload(scan, events) {
   };
 }
 
+export function buildScanComparisonPayload(scan, records) {
+  const completedRecords = normalizeArray(records).filter((record) => record?.status === "completed" && record?.result);
+  const currentIndex = completedRecords.findIndex((record) => record.id === scan.id);
+  const comparisonRecords = currentIndex >= 0
+    ? completedRecords.slice(currentIndex, currentIndex + 2)
+    : completedRecords.slice(0, 2);
+
+  return {
+    apiVersion: API_VERSION,
+    scan: scan.summary,
+    scans: comparisonRecords.map((record) => record.summary).filter(Boolean),
+    comparison: buildStoredTargetDiff(comparisonRecords),
+  };
+}
+
 export function buildTargetHistoryPayload(url, records) {
   return {
     apiVersion: API_VERSION,
