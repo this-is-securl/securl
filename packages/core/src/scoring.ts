@@ -33,7 +33,29 @@ const POSTURE_WEIGHTS: Record<PostureAreaKey, number> = {
   trust: 0.05,
   ai: 0.05,
 };
-const AI_NEUTRAL_NO_SURFACE_PENALTY = 12;
+// A site with no public AI/automation surface has no AI weakness to score, so
+// the AI area is treated as fully neutral (no penalty) when nothing is detected.
+const AI_NEUTRAL_NO_SURFACE_PENALTY = 0;
+// Cap the per-area contribution of fetched-page (HTML) findings so a handful of
+// common low-severity findings (inline scripts, partial SRI) can't zero out the
+// whole content area. CSP remains the dominant content-security driver.
+const HTML_FINDINGS_PENALTY_CAP = 30;
+
+// Penalty for the non-CSP "edge" headers, weighted by the per-header severity the
+// codebase already declares in HEADER_PENALTY. This keeps the posture scorer
+// consistent with scoreAnalysis: universally-omitted low-value headers
+// (COOP/CORP/Permissions-Policy = 1 each) cost far less than genuinely important
+// ones (HSTS = 10), instead of a flat rate that punished every site equally.
+const edgeHeaderPenaltyFor = (
+  findings: SecurityHeaderResult[],
+  status: "missing" | "warning",
+) =>
+  findings
+    .filter((header) => header.status === status)
+    .reduce((sum, header) => {
+      const weights = HEADER_PENALTY[header.key] ?? { missing: 4, warning: 2 };
+      return sum + (status === "missing" ? weights.missing : weights.warning);
+    }, 0);
 
 const HOSTED_PLATFORM_SUFFIXES = [
   ".up.railway.app",
@@ -255,10 +277,11 @@ export function getPostureAreaScores(analysis: PostureScoringInput): PostureArea
   const edgeHeaderFindings = analysis.headers.filter(
     (header) => header.key !== "content-security-policy" && header.status !== "present",
   );
-  const missingHeaderCount = edgeHeaderFindings.filter((header) => header.status === "missing").length;
-  const warningHeaderCount = edgeHeaderFindings.filter((header) => header.status === "warning").length;
+  const edgeMissingPenalty = edgeHeaderPenaltyFor(edgeHeaderFindings, "missing");
+  const edgeWarningPenalty = edgeHeaderPenaltyFor(edgeHeaderFindings, "warning");
   const cspHeaderIssueCount = cspHeaderFindings.length;
   const cookieIssueCount = analysis.cookies.reduce((count, cookie) => count + cookie.issues.length, 0);
+  const htmlPenalty = Math.min(analysis.htmlSecurity.issues.length * 10, HTML_FINDINGS_PENALTY_CAP);
   const redirectPenalty = analysis.redirects.length > 1 ? Math.max(analysis.redirects.length - 1, 0) * 2 : 0;
   const availabilityPenalty = statusAvailabilityPenalty(analysis.statusCode);
   const transportPenalty = new URL(analysis.finalUrl).protocol === "https:" ? 0 : 35;
@@ -274,15 +297,15 @@ export function getPostureAreaScores(analysis: PostureScoringInput): PostureArea
   const edgePenalty =
     transportPenalty +
     certificatePenalty +
-    missingHeaderCount * 8 +
-    warningHeaderCount * 4 +
+    edgeMissingPenalty +
+    edgeWarningPenalty +
     analysis.corsSecurity.issues.length * 8 +
     availabilityPenalty +
     redirectPenalty;
 
   const contentPenalty =
     cspHeaderIssueCount * 18 +
-    analysis.htmlSecurity.issues.length * 10 +
+    htmlPenalty +
     cookieIssueCount * 6;
 
   const domainPenaltyRaw =
@@ -334,6 +357,9 @@ export function getPostureScoreDrivers(analysis: PostureScoringInput): ScoreDriv
   );
   const missingHeaderCount = edgeHeaderFindings.filter((header) => header.status === "missing").length;
   const warningHeaderCount = edgeHeaderFindings.filter((header) => header.status === "warning").length;
+  const edgeMissingPenalty = edgeHeaderPenaltyFor(edgeHeaderFindings, "missing");
+  const edgeWarningPenalty = edgeHeaderPenaltyFor(edgeHeaderFindings, "warning");
+  const htmlPenalty = Math.min(analysis.htmlSecurity.issues.length * 10, HTML_FINDINGS_PENALTY_CAP);
   const cookieIssueCount = analysis.cookies.reduce((count, cookie) => count + cookie.issues.length, 0);
   const redirectPenalty = analysis.redirects.length > 1 ? Math.max(analysis.redirects.length - 1, 0) * 2 : 0;
   const availabilityPenalty = statusAvailabilityPenalty(analysis.statusCode);
@@ -359,13 +385,13 @@ export function getPostureScoreDrivers(analysis: PostureScoringInput): ScoreDriv
   return [
     scoreDriver("edge", transportPenalty, "Plain HTTP final URL", "The final URL did not use HTTPS, which heavily reduces edge-security confidence.", "tls"),
     scoreDriver("edge", certificatePenalty, "TLS certificate or protocol issue", "The observed TLS posture was invalid, outdated, or close to expiry.", "tls"),
-    scoreDriver("edge", missingHeaderCount * 8, "Missing edge headers", `${missingHeaderCount} non-CSP browser-facing protection${missingHeaderCount === 1 ? " is" : "s are"} missing.`, "headers"),
-    scoreDriver("edge", warningHeaderCount * 4, "Weak edge header values", `${warningHeaderCount} non-CSP browser-facing protection${warningHeaderCount === 1 ? " has" : "s have"} warning-level configuration.`, "headers"),
+    scoreDriver("edge", edgeMissingPenalty, "Missing edge headers", `${missingHeaderCount} non-CSP browser-facing protection${missingHeaderCount === 1 ? " is" : "s are"} missing.`, "headers"),
+    scoreDriver("edge", edgeWarningPenalty, "Weak edge header values", `${warningHeaderCount} non-CSP browser-facing protection${warningHeaderCount === 1 ? " has" : "s have"} warning-level configuration.`, "headers"),
     scoreDriver("edge", analysis.corsSecurity.issues.length * 8, "CORS configuration findings", `${analysis.corsSecurity.issues.length} CORS finding${analysis.corsSecurity.issues.length === 1 ? "" : "s"} reduced edge confidence.`, "headers"),
     scoreDriver("edge", availabilityPenalty, "Availability status penalty", `The target returned HTTP ${analysis.statusCode}, limiting confidence in the observed posture.`, "availability"),
     scoreDriver("edge", redirectPenalty, "Redirect chain penalty", `The scan followed ${analysis.redirects.length - 1} redirect${analysis.redirects.length === 2 ? "" : "s"} before the final response.`, "headers"),
     scoreDriver("content", cspHeaderFindings.length * 18, "Content-Security-Policy gap", "CSP is missing or weak, which is the largest content-security driver.", "headers"),
-    scoreDriver("content", analysis.htmlSecurity.issues.length * 10, "HTML security findings", `${analysis.htmlSecurity.issues.length} fetched-page finding${analysis.htmlSecurity.issues.length === 1 ? "" : "s"} affected content-security confidence.`, "html"),
+    scoreDriver("content", htmlPenalty, "HTML security findings", `${analysis.htmlSecurity.issues.length} fetched-page finding${analysis.htmlSecurity.issues.length === 1 ? "" : "s"} affected content-security confidence.`, "html"),
     scoreDriver("content", cookieIssueCount * 6, "Cookie attribute findings", `${cookieIssueCount} cookie attribute finding${cookieIssueCount === 1 ? "" : "s"} affected content-security confidence.`, "cookies"),
     scoreDriver("domain", domainPenalty, "Domain and public-trust findings", `${analysis.domainSecurity.issues.length + analysis.securityTxt.issues.length + analysis.publicSignals.issues.length} domain, disclosure, or public-trust signal${analysis.domainSecurity.issues.length + analysis.securityTxt.issues.length + analysis.publicSignals.issues.length === 1 ? "" : "s"} reduced trust confidence${hostedPlatformTarget && domainPenaltyRaw > domainPenalty ? " after hosted-platform softening" : ""}.`, "dns"),
     scoreDriver("exposure", analysis.exposure.issues.length * 20, "Exposed sensitive path findings", `${analysis.exposure.issues.length} exposure finding${analysis.exposure.issues.length === 1 ? "" : "s"} had high score impact.`, "public_record"),
