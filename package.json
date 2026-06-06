@@ -33,6 +33,7 @@
     "test:server": "npm run build && node --test server/test/*.test.mjs",
     "test:app:unit": "vitest run src/lib/*.test.ts",
     "preview": "vite preview",
+    "snapshot:hero-sample": "node scripts/snapshotHeroSample.mjs",
     "start": "node server/index.mjs"
   },
   "dependencies": {
