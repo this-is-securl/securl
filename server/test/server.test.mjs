@@ -134,6 +134,24 @@ const getFreePort = () =>
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+async function waitForScanTerminal(baseUrl, scanId, { owner = SCAN_OWNER_ONE, attempts = 80 } = {}) {
+  let payload = null;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const response = await fetch(`${baseUrl}/api/scans/${scanId}`, {
+      headers: scanOwnerHeaders(owner),
+    });
+    payload = await response.json();
+    if (payload.scan?.status === "completed" || payload.scan?.status === "failed") {
+      return {
+        response,
+        payload,
+      };
+    }
+    await wait(100);
+  }
+  assert.fail(`Timed out waiting for scan ${scanId}.`);
+}
+
 const requestRawPath = (baseUrl, requestPath) =>
   new Promise((resolve, reject) => {
     const url = new URL(baseUrl);
@@ -463,6 +481,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.auth.resources.includes("GET /api/auth/api-keys"));
     assert.ok(payload.auth.resources.includes("DELETE /api/auth/api-keys/:id"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/digest"));
+    assert.ok(payload.scans.resources.includes("GET /api/scans/:id/comparison"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/export?format=json|markdown|sarif|ci-json"));
     assert.equal(payload.monitoring.enabled, true);
     assert.equal(payload.monitoring.scheduler.enabled, true);
@@ -1350,6 +1369,49 @@ test("scan collection can return target-scoped history for the same url", async 
     }
 
     assert.fail("Timed out waiting for target-scoped scan history.");
+  } finally {
+    await server.stop();
+  }
+});
+
+test("scan comparison returns direct drift against the previous completed scan", async () => {
+  const server = await startServer();
+
+  try {
+    const firstResponse = await postScan(server.baseUrl, "https://example.com");
+    const firstPayload = await firstResponse.json();
+    assert.equal(firstResponse.status, 202);
+    const firstScanId = firstPayload.scan.id;
+    await waitForScanTerminal(server.baseUrl, firstScanId);
+
+    const secondResponse = await postScan(server.baseUrl, "https://example.com");
+    const secondPayload = await secondResponse.json();
+    assert.equal(secondResponse.status, 202);
+    const secondScanId = secondPayload.scan.id;
+    await waitForScanTerminal(server.baseUrl, secondScanId);
+
+    const comparisonResponse = await fetch(`${server.baseUrl}/api/scans/${secondScanId}/comparison`, {
+      headers: scanOwnerHeaders(),
+    });
+    const comparisonPayload = await comparisonResponse.json();
+
+    assert.equal(comparisonResponse.status, 200);
+    assert.equal(comparisonPayload.apiVersion, "2026-05-14");
+    assert.equal(comparisonPayload.scan.id, secondScanId);
+    assert.deepEqual(comparisonPayload.scans.map((scan) => scan.id), [secondScanId, firstScanId]);
+    assert.equal(comparisonPayload.comparison.currentScanId, secondScanId);
+    assert.equal(comparisonPayload.comparison.previousScanId, firstScanId);
+    assert.equal(typeof comparisonPayload.comparison.diff.scoreDelta, "number");
+    assert.ok(Array.isArray(comparisonPayload.comparison.diff.summary));
+    assert.ok(Array.isArray(comparisonPayload.comparison.riskEvents));
+
+    const wrongOwnerResponse = await fetch(`${server.baseUrl}/api/scans/${secondScanId}/comparison`, {
+      headers: scanOwnerHeaders(SCAN_OWNER_TWO),
+    });
+    const wrongOwnerPayload = await wrongOwnerResponse.json();
+
+    assert.equal(wrongOwnerResponse.status, 404);
+    assert.match(wrongOwnerPayload.error, /scan not found/i);
   } finally {
     await server.stop();
   }

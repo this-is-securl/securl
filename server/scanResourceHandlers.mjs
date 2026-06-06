@@ -304,6 +304,7 @@ export async function handleScanResourceRequest({
   buildScanDigestPayload,
   buildScanEvidencePayload,
   buildScanHistoryPayload,
+  buildScanComparisonPayload,
   sendBody,
   sendJson,
   sendMethodNotAllowed,
@@ -398,6 +399,23 @@ export async function handleScanResourceRequest({
         ownerId: authState.ownerId,
       });
       sendJson(response, 200, buildScanHistoryPayload(scan, events));
+      return true;
+    }
+
+    if (resource === "comparison") {
+      if (scan.status !== "completed" || !scan.result) {
+        sendJson(response, 409, {
+          error: "Scan comparison is only available once the scan has completed.",
+        });
+        return true;
+      }
+
+      const records = await scanRepository.listPersistedRecords({
+        limit: clampLimit(requestUrl.searchParams.get("limit"), 20, 100),
+        ownerId: authState.ownerId,
+        url: scan.url,
+      });
+      sendJson(response, 200, buildScanComparisonPayload(scan, records));
       return true;
     }
 

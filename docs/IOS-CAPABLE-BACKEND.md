@@ -33,6 +33,7 @@ As of the first `0.8.3` backend step, the server now has:
 - `GET /api/scans/:id/findings`
 - `GET /api/scans/:id/evidence`
 - `GET /api/scans/:id/history`
+- `GET /api/scans/:id/comparison`
 - `POST /api/monitoring-targets`
 - `GET /api/monitoring-targets`
 - `DELETE /api/monitoring-targets/:id`
@@ -65,6 +66,7 @@ Phase 2:
 - `GET /api/scans/:id/findings`
 - `GET /api/scans/:id/evidence`
 - `GET /api/scans/:id/history`
+- `GET /api/scans/:id/comparison`
 
 Phase 3:
 
