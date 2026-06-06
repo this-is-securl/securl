@@ -138,6 +138,30 @@ test("scorePostureAnalysis grades the wider passive posture, not just core heade
   assert.equal(posture.scoreDrivers.length > 0, true);
 });
 
+test("scorePostureAnalysis caps A-level grades when domain trust is weak", () => {
+  const posture = scorePostureAnalysis(
+    createPostureAnalysis({
+      domainSecurity: {
+        issues: [
+          "SPF uses softfail; this is safer than no policy but weaker than hardfail.",
+          "DMARC is present, but the policy tag could not be interpreted.",
+          "No CAA records found.",
+          "No DNSSEC DS records detected at the domain apex.",
+          "No MTA-STS DNS policy record detected.",
+          "DMARC is published but no DKIM record was found at common selectors.",
+        ],
+      },
+    }),
+  );
+
+  assert.equal(posture.score, 89);
+  assert.equal(posture.grade, "B");
+  assert.equal(
+    posture.scoreDrivers.some((driver) => driver.label === "Weak domain trust score cap"),
+    true,
+  );
+});
+
 test("getPostureScoreDrivers explains the largest score deductions without changing the score", () => {
   const analysis = createPostureAnalysis({
     headers: [

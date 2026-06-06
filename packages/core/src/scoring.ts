@@ -112,6 +112,17 @@ const limitedAssessmentScoreCap = (kind: PostureScoringInput["assessmentLimitati
   return 64;
 };
 
+const trustWeaknessScoreCap = (areaScores: PostureAreaScore[]) => {
+  const domainArea = areaScores.find((area) => area.key === "domain");
+  if (!domainArea || domainArea.score >= 65) {
+    return null;
+  }
+
+  return {
+    cap: domainArea.score < 45 ? 79 : 89,
+  };
+};
+
 const cappedAreaScore = (
   areaKey: PostureAreaKey,
   score: number,
@@ -418,9 +429,11 @@ export function scorePostureAnalysis(analysis: PostureScoringInput): { score: nu
     areaScores.reduce((total, area) => total + area.score * POSTURE_WEIGHTS[area.key], 0),
   );
   const adjustedScore = clamp(weightedScore - breadthPenalty);
+  const trustCap = trustWeaknessScoreCap(areaScores);
+  const cappedScore = trustCap ? Math.min(adjustedScore, trustCap.cap) : adjustedScore;
   const score = analysis.assessmentLimitation.limited
-    ? Math.min(adjustedScore, limitedAssessmentScoreCap(analysis.assessmentLimitation.kind))
-    : adjustedScore;
+    ? Math.min(cappedScore, limitedAssessmentScoreCap(analysis.assessmentLimitation.kind))
+    : cappedScore;
   const drivers = getPostureScoreDrivers(analysis);
   const breadthDriver = scoreDriver(
     "overall",
@@ -438,11 +451,20 @@ export function scorePostureAnalysis(analysis: PostureScoringInput): { score: nu
         "assessment_limit",
       )
     : null;
+  const trustCapDriver = trustCap && adjustedScore > trustCap.cap
+    ? scoreDriver(
+        "overall",
+        adjustedScore - trustCap.cap,
+        "Weak domain trust score cap",
+        "Domain & Trust is weak, so the overall posture cannot be graded as A-level even when browser-facing headers are strong.",
+        "dns",
+      )
+    : null;
 
   return {
     score,
     grade: gradeForPostureScore(score, analysis.assessmentLimitation),
-    scoreDrivers: [...drivers, breadthDriver, limitedDriver]
+    scoreDrivers: [...drivers, breadthDriver, trustCapDriver, limitedDriver]
       .filter((driver): driver is ScoreDriver => Boolean(driver))
       .sort((left, right) => right.impact - left.impact)
       .slice(0, 8),

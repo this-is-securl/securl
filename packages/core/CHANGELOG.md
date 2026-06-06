@@ -6,6 +6,11 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-06-06
+
+### Changed
+- Capped A-level posture grades when Domain & Trust is weak, so strong browser-facing headers no longer mask broad DNS, email, or public-trust gaps in quiet or standard scans.
+
 ## [1.2.0] - 2026-06-04
 
 ### Added
