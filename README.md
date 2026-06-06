@@ -128,6 +128,20 @@ npm run ship
 
 `npm run ship` runs `build:hostinger` (sets `VITE_API_BASE_URL` to the production API, then builds) followed by `verify` (`scripts/verify-build.mjs`). Use this for every production deployment — `npm run build` alone does not set the production API URL.
 
+To deploy the static frontend to Hostinger over SSH, run a dry-run first:
+
+```sh
+npm run deploy:hostinger
+```
+
+If the dry-run looks right, deploy live:
+
+```sh
+npm run deploy:hostinger:live
+```
+
+The live deploy creates a remote backup, syncs `dist/` to `/home/u765511792/domains/app.securl.online/public_html/`, and smoke-checks [app.securl.online](https://app.securl.online). Railway remains backend/API-only.
+
 ### Shareable report links
 
 Completed scans are available at `/report/:scanId` via the public `GET /api/scans/:id/share` endpoint. No auth token is required to view a shared link.
@@ -176,6 +190,7 @@ Sponsorship helps fund continued work on the passive analysis engine, hosted sca
 
 - Latest published core package: `@ktbatterham/external-posture-core@1.2.0`
 - npm tag: `latest`
+- Core release checklist: [`packages/core/RELEASING.md`](packages/core/RELEASING.md)
 
 ## Docs
 

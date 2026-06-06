@@ -21,7 +21,7 @@ I scanned 25 well-known SaaS homepages last week as a sanity check. 80% had no s
 
 Everything is passive — we read what any browser would see. No active probing, no footprint on the target.
 
-Stack: React + Vite + Tailwind on the front end, Node.js backend on Railway, Supabase for auth and storage.
+Stack: React + Vite + Tailwind on the front end, Hostinger for the static sites, Node.js backend on Railway, and Postgres-backed storage for durable scan resources.
 
 Try it: https://app.securl.online
 
@@ -44,10 +44,10 @@ Q: How does the A–F grade work?
 A: Each finding has a severity weight (critical/warning/info). The score is a composite across all seven posture areas with critical findings weighted heavily. The grade band maps score to letter: A is 85+, B is 70–84, etc. The exact model is in the open source core package.
 
 Q: What's the tech stack?
-A: Scanner core in TypeScript (Node.js), React/Vite/Tailwind on the front end, Supabase for auth and storage, Railway for the API, Hostinger for the static front end.
+A: Scanner core in TypeScript (Node.js), React/Vite/Tailwind on the front end, Hostinger for the static sites, Railway for the API, and Postgres-backed storage for durable scan resources.
 
 Q: Can I self-host it?
-A: The scanner core is the extractable part. The full app has some hosted dependencies (Supabase, the Railway API). If there's interest I'd consider making the scanner core more standalone.
+A: The scanner core is the extractable part. The full app has hosted service pieces around Railway, Postgres-backed persistence, and Hostinger static delivery. If there's interest I'd consider making the scanner core more standalone.
 
 Q: What happens to scan results?
 A: Scans are stored so you can share a link and so monitoring works. We don't sell data or use results for training. Scans can be deleted.

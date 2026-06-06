@@ -123,16 +123,17 @@ When the frontend is hosted separately from the Node backend, the API now suppor
 
 Set:
 
-- `ALLOWED_ORIGINS=https://app.securl.online`
+- `ALLOWED_ORIGINS=https://app.securl.online,https://securl.online`
 
 You can provide multiple origins as a comma-separated list if needed.
 
 Example split deployment:
 
-- Hostinger frontend: `https://app.securl.online`
+- Hostinger marketing site: `https://securl.online`
+- Hostinger frontend app: `https://app.securl.online`
 - Railway backend: `https://securl-app-production.up.railway.app`
 - frontend build env: `VITE_API_BASE_URL=https://securl-app-production.up.railway.app`
-- backend runtime env: `ALLOWED_ORIGINS=https://app.securl.online`
+- backend runtime env: `ALLOWED_ORIGINS=https://app.securl.online,https://securl.online`
 
 ## Why this matters
 
