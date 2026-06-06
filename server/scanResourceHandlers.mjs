@@ -297,10 +297,15 @@ export async function handleScanResourceRequest({
   requestUrl,
   scanRepository,
   authorizeAnalysisRequest,
+  buildScanDetailPayload,
+  buildScanExportResponse,
   buildScanSummaryPayload,
   buildScanFindingsPayload,
+  buildScanDigestPayload,
   buildScanEvidencePayload,
   buildScanHistoryPayload,
+  buildScanComparisonPayload,
+  sendBody,
   sendJson,
   sendMethodNotAllowed,
   sendRepositoryUnavailable,
@@ -365,7 +370,7 @@ export async function handleScanResourceRequest({
     }
 
     if (!resource) {
-      sendJson(response, 200, { apiVersion: API_VERSION, scan });
+      sendJson(response, 200, buildScanDetailPayload(scan));
       return true;
     }
 
@@ -379,6 +384,11 @@ export async function handleScanResourceRequest({
       return true;
     }
 
+    if (resource === "digest") {
+      sendJson(response, 200, buildScanDigestPayload(scan));
+      return true;
+    }
+
     if (resource === "evidence") {
       sendJson(response, 200, buildScanEvidencePayload(scan));
       return true;
@@ -389,6 +399,45 @@ export async function handleScanResourceRequest({
         ownerId: authState.ownerId,
       });
       sendJson(response, 200, buildScanHistoryPayload(scan, events));
+      return true;
+    }
+
+    if (resource === "comparison") {
+      if (scan.status !== "completed" || !scan.result) {
+        sendJson(response, 409, {
+          error: "Scan comparison is only available once the scan has completed.",
+        });
+        return true;
+      }
+
+      const records = await scanRepository.listPersistedRecords({
+        limit: clampLimit(requestUrl.searchParams.get("limit"), 20, 100),
+        ownerId: authState.ownerId,
+        url: scan.url,
+      });
+      sendJson(response, 200, buildScanComparisonPayload(scan, records));
+      return true;
+    }
+
+    if (resource === "export") {
+      const requestedFormat = requestUrl.searchParams.get("format") || "json";
+      const exportResponse = buildScanExportResponse(scan, requestedFormat);
+      if (!exportResponse) {
+        sendJson(response, 400, {
+          error: "Unsupported export format. Use json, markdown, sarif, or ci-json.",
+        });
+        return true;
+      }
+      if (exportResponse.notReady) {
+        sendJson(response, 409, {
+          error: "Scan export is only available once the scan has completed.",
+        });
+        return true;
+      }
+      sendBody(response, 200, exportResponse.body, {
+        "Content-Type": exportResponse.contentType,
+        "Content-Disposition": `attachment; filename="${exportResponse.filename}"`,
+      });
       return true;
     }
 

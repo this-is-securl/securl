@@ -97,7 +97,7 @@ export const AuthCard = ({
       </div>
       <div className="space-y-4">
         <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.04] px-4 py-4 text-sm leading-6 text-zinc-300">
-          Sign in to keep scans, monitoring targets, and history attached to your account across browsers and future mobile clients.
+          Sign in to keep scans, monitoring targets, and history attached to your account across browsers and the iOS app.
         </div>
         <Tabs value={mode} onValueChange={(value) => setMode(value as "login" | "register")} className="space-y-4">
           <TabsList className="grid w-full grid-cols-2 rounded-xl border border-white/10 bg-zinc-950/50 p-1">

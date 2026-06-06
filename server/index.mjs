@@ -18,7 +18,11 @@ import {
   buildMonitoringSummaryPayload,
   buildMonitoringTargetView,
   buildMonitoringTargetsPayload,
+  buildScanComparisonPayload,
+  buildScanDetailPayload,
+  buildScanDigestPayload,
   buildScanEvidencePayload,
+  buildScanExportResponse,
   buildScanFindingsPayload,
   buildScanHistoryPayload,
   buildScanSummaryPayload,
@@ -388,6 +392,14 @@ const server = http.createServer(async (request, response) => {
     sendMethodNotAllowed(targetResponse, allowedMethods, apiCorsHeaders || {});
   const sendApiRateLimited = (targetResponse, retryAfterSeconds, message) =>
     sendRateLimited(targetResponse, retryAfterSeconds, message, apiCorsHeaders || {});
+  const sendApiBody = (targetResponse, statusCode, body, headers = {}) => {
+    targetResponse.writeHead(statusCode, {
+      ...(apiCorsHeaders || {}),
+      "Cache-Control": "no-store",
+      ...headers,
+    });
+    targetResponse.end(body);
+  };
   const sendApiRepositoryUnavailable = (targetResponse, error, context) => {
     log("error", "scan_repository_unavailable", {
       context,
@@ -423,6 +435,11 @@ const server = http.createServer(async (request, response) => {
   }
 
   if (requestUrl.pathname === "/api/health") {
+    if (request.method !== "GET") {
+      sendApiMethodNotAllowed(response, ["GET", "OPTIONS"]);
+      return;
+    }
+
     const payload = {
       ok: true,
       now: new Date().toISOString(),
@@ -466,6 +483,39 @@ const server = http.createServer(async (request, response) => {
     }
 
     sendApiJson(response, 200, payload);
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/ready") {
+    if (request.method !== "GET") {
+      sendApiMethodNotAllowed(response, ["GET", "OPTIONS"]);
+      return;
+    }
+
+    try {
+      await scanRepository.ping();
+      sendApiJson(response, 200, {
+        ok: true,
+        now: new Date().toISOString(),
+        storage: {
+          backend: scanRepository?.kind || scanRepositoryBackend,
+          available: true,
+        },
+      });
+    } catch (error) {
+      log("error", "readiness_check_failed", {
+        message: formatErrorMessage(error),
+        backend: scanRepository?.kind || scanRepositoryBackend,
+      });
+      sendApiJson(response, 503, {
+        ok: false,
+        now: new Date().toISOString(),
+        storage: {
+          backend: scanRepository?.kind || scanRepositoryBackend,
+          available: false,
+        },
+      });
+    }
     return;
   }
 
@@ -529,6 +579,11 @@ const server = http.createServer(async (request, response) => {
   }
 
   if (requestUrl.pathname === "/api/telemetry") {
+    if (request.method !== "GET") {
+      sendApiMethodNotAllowed(response, ["GET", "OPTIONS"]);
+      return;
+    }
+
     if (!exposeTelemetry || !isTelemetryRequestAuthorized(request)) {
       sendApiJson(response, 404, {
         error: "Telemetry is not available.",
@@ -684,8 +739,13 @@ const server = http.createServer(async (request, response) => {
       }),
       buildScanSummaryPayload,
       buildScanFindingsPayload,
+      buildScanDetailPayload,
+      buildScanExportResponse,
+      buildScanDigestPayload,
       buildScanEvidencePayload,
       buildScanHistoryPayload,
+      buildScanComparisonPayload,
+      sendBody: sendApiBody,
       sendJson: sendApiJson,
       sendMethodNotAllowed: sendApiMethodNotAllowed,
       sendRepositoryUnavailable: sendApiRepositoryUnavailable,

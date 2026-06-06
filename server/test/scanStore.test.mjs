@@ -5,6 +5,7 @@ import {
   buildScanRepositorySchemaStatements,
   createInMemoryScanRepository,
 } from "../scanRepository.mjs";
+import { buildScanHistoryPayload } from "../scanDtos.mjs";
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -40,6 +41,43 @@ test("scan repository tracks queued, running, and completed scans", async () => 
     events.map((event) => event.eventType),
     ["completed", "started", "queued"],
   );
+});
+
+test("scan history payload allowlists public event metadata", () => {
+  const payload = buildScanHistoryPayload(
+    {
+      id: "scan-1",
+      status: "completed",
+      requestedAt: "2026-06-05T00:00:00.000Z",
+      startedAt: "2026-06-05T00:00:01.000Z",
+      completedAt: "2026-06-05T00:00:02.000Z",
+    },
+    [
+      {
+        id: "event-1",
+        scanId: "scan-1",
+        eventType: "completed",
+        occurredAt: "2026-06-05T00:00:02.000Z",
+        status: "completed",
+        failureClass: null,
+        message: null,
+        metadata: {
+          grade: "A",
+          score: 98,
+          limited: false,
+          clientIp: "203.0.113.10",
+          requesterScope: "ip:203.0.113.10",
+          ownerId: "scan-owner:secret",
+        },
+      },
+    ],
+  );
+
+  assert.deepEqual(payload.events[0].metadata, {
+    score: 98,
+    grade: "A",
+    limited: false,
+  });
 });
 
 test("scan repository summarizes failed scans and newest-first ordering", async () => {

@@ -22,6 +22,8 @@
     "ship": "npm run build:hostinger && npm run verify",
     "verify:hostinger": "node scripts/verifyHostingerBuild.mjs",
     "package:hostinger": "npm run build:hostinger && npm run verify:hostinger && node scripts/packageHostingerBuild.mjs",
+    "deploy:hostinger": "node scripts/deployHostinger.mjs",
+    "deploy:hostinger:live": "node scripts/deployHostinger.mjs --live",
     "telemetry": "node scripts/fetchTelemetry.mjs",
     "telemetry:web": "node scripts/telemetryDashboard.mjs",
     "check:deploy": "node server/checkDeployReadiness.mjs",

@@ -66,6 +66,7 @@ import { analyzeWafFingerprint } from "./wafFingerprint.js";
 import type { AnalysisResult, AnalyzeTargetOptions, HtmlSecurityInfo } from "./types.js";
 
 export { buildPostureRiskEventsFromDiff, buildPostureRiskEventsFromSnapshots } from "./riskEvents.js";
+export { buildPostureDigest } from "./postureDigest.js";
 export type { PostureRiskEvent, PostureRiskEventSeverity } from "./types.js";
 
 type ScanMode = NonNullable<AnalyzeTargetOptions["scanMode"]>;

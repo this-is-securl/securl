@@ -61,3 +61,21 @@ In `multi-instance`, startup is blocked unless the rate-limit backend is distrib
 - `GET /api/health` returns `ok: true`.
 - Health payload includes deployment mode and rate-limit metadata.
 - Run one known-safe scan and verify sanitized error responses for invalid targets.
+
+## 6) Hostinger static frontend deploy
+
+The Railway service remains backend/API-only. The static app build for `app.securl.online` can be deployed to Hostinger over SSH:
+
+```sh
+npm run deploy:hostinger
+```
+
+That command builds and verifies the Hostinger frontend bundle, then performs an `rsync --dry-run` to `/home/u765511792/domains/app.securl.online/public_html/`.
+
+If the dry-run looks right, deploy live:
+
+```sh
+npm run deploy:hostinger:live
+```
+
+The live deploy creates a timestamped remote backup under `/home/u765511792/deploy-backups/`, syncs changed files, removes stale files from the remote `public_html`, and smoke-checks `https://app.securl.online`.

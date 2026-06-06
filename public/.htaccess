@@ -1,0 +1,19 @@
+Options -MultiViews
+RewriteEngine On
+RewriteBase /
+
+# SPA fallback — everything that isn't a real file/dir goes to index.html
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.html [L]
+
+# Security response headers. Mirrors server/staticServer.mjs.
+# NOT wrapped in <IfModule mod_headers.c> — on Hostinger's LiteSpeed that guard
+# evaluates false and silently skips the block. LiteSpeed honours these directly.
+Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+Header always set X-Content-Type-Options "nosniff"
+Header always set X-Frame-Options "DENY"
+Header always set Referrer-Policy "no-referrer"
+Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), browsing-topics=()"
+Header always set Cross-Origin-Opener-Policy "same-origin"
+Header always set Cross-Origin-Resource-Policy "same-origin"

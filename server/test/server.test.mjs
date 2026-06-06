@@ -134,6 +134,24 @@ const getFreePort = () =>
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+async function waitForScanTerminal(baseUrl, scanId, { owner = SCAN_OWNER_ONE, attempts = 80 } = {}) {
+  let payload = null;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const response = await fetch(`${baseUrl}/api/scans/${scanId}`, {
+      headers: scanOwnerHeaders(owner),
+    });
+    payload = await response.json();
+    if (payload.scan?.status === "completed" || payload.scan?.status === "failed") {
+      return {
+        response,
+        payload,
+      };
+    }
+    await wait(100);
+  }
+  assert.fail(`Timed out waiting for scan ${scanId}.`);
+}
+
 const requestRawPath = (baseUrl, requestPath) =>
   new Promise((resolve, reject) => {
     const url = new URL(baseUrl);
@@ -410,6 +428,38 @@ test("health endpoint returns minimal readiness data in production mode", async 
   }
 });
 
+test("health endpoint rejects unsupported methods", async () => {
+  const server = await startServer();
+
+  try {
+    const response = await fetch(`${server.baseUrl}/api/health`, {
+      method: "POST",
+    });
+    const payload = await response.json();
+    assert.equal(response.status, 405);
+    assert.equal(response.headers.get("allow"), "GET, OPTIONS");
+    assert.match(payload.error, /Method not allowed/i);
+  } finally {
+    await server.stop();
+  }
+});
+
+test("readiness endpoint reports storage availability", async () => {
+  const server = await startServer();
+
+  try {
+    const response = await fetch(`${server.baseUrl}/api/ready`);
+    const payload = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(payload.ok, true);
+    assert.ok(payload.now);
+    assert.equal(payload.storage.backend, "memory");
+    assert.equal(payload.storage.available, true);
+  } finally {
+    await server.stop();
+  }
+});
+
 test("capabilities endpoint exposes additive client feature metadata", async () => {
   const server = await startServer({
     MONITORING_SCHEDULER_ENABLED: "true",
@@ -424,9 +474,15 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.equal(payload.service.name, "SecURL API");
     assert.equal(payload.service.corePackage, "@ktbatterham/external-posture-core");
     assert.match(payload.service.coreVersion, /^\d+\.\d+\.\d+/);
+    assert.ok(payload.service.resources.includes("GET /api/ready"));
     assert.deepEqual(payload.scans.modes, ["standard", "quiet", "deep-passive"]);
     assert.equal(payload.scans.maxDurationMs.standard, 45000);
     assert.equal(payload.scans.maxDurationMs.deepPassive, 75000);
+    assert.ok(payload.auth.resources.includes("GET /api/auth/api-keys"));
+    assert.ok(payload.auth.resources.includes("DELETE /api/auth/api-keys/:id"));
+    assert.ok(payload.scans.resources.includes("GET /api/scans/:id/digest"));
+    assert.ok(payload.scans.resources.includes("GET /api/scans/:id/comparison"));
+    assert.ok(payload.scans.resources.includes("GET /api/scans/:id/export?format=json|markdown|sarif|ci-json"));
     assert.equal(payload.monitoring.enabled, true);
     assert.equal(payload.monitoring.scheduler.enabled, true);
     assert.equal(payload.monitoring.scheduler.mode, "quiet");
@@ -492,6 +548,22 @@ test("telemetry endpoint returns aggregate page-load and failure counters", asyn
     assert.equal(payload.scans.requested, 0);
     assert.equal(payload.scans.completed, 0);
     assert.equal(payload.failures.classes.invalid_target_credentials, 1);
+  } finally {
+    await server.stop();
+  }
+});
+
+test("telemetry endpoint rejects unsupported methods", async () => {
+  const server = await startServer();
+
+  try {
+    const response = await fetch(`${server.baseUrl}/api/telemetry`, {
+      method: "POST",
+    });
+    const payload = await response.json();
+    assert.equal(response.status, 405);
+    assert.equal(response.headers.get("allow"), "GET, OPTIONS");
+    assert.match(payload.error, /Method not allowed/i);
   } finally {
     await server.stop();
   }
@@ -587,6 +659,25 @@ test("telemetry event beacon records funnel events", async () => {
     assert.equal(payload.funnel.bySource["utm:launch"].share_link_copied, 1);
     assert.equal(payload.funnel.recent[0].scanId, "scan-one");
 
+    const handoffResponse = await fetch(`${server.baseUrl}/api/telemetry/event`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Origin: "https://app.securl.online",
+      },
+      body: JSON.stringify({
+        event: "handoff_started",
+        currentUrl: "https://securl.online/?utm_source=landing",
+        target: "https://example.com/",
+      }),
+    });
+    assert.equal(handoffResponse.status, 202);
+
+    const updatedTelemetryResponse = await fetch(`${server.baseUrl}/api/telemetry`);
+    const updatedPayload = await updatedTelemetryResponse.json();
+    assert.equal(updatedPayload.funnel.events.handoff_started, 1);
+    assert.equal(updatedPayload.funnel.bySource["utm:landing"].handoff_started, 1);
+
     const invalidResponse = await fetch(`${server.baseUrl}/api/telemetry/event`, {
       method: "POST",
       headers: {
@@ -648,25 +739,27 @@ test("telemetry endpoint requires an admin token when exposed in production", as
   }
 });
 
-test("api preflight allows the Hostinger frontend origin", async () => {
+test("api preflight allows the Hostinger frontend origins", async () => {
   const server = await startServer();
 
   try {
-    const response = await fetch(`${server.baseUrl}/api/scans`, {
-      method: "OPTIONS",
-      headers: {
-        Origin: "https://app.securl.online",
-        "Access-Control-Request-Method": "POST",
-        "Access-Control-Request-Headers": "content-type,x-scan-owner,authorization",
-      },
-    });
+    for (const origin of ["https://app.securl.online", "https://securl.online"]) {
+      const response = await fetch(`${server.baseUrl}/api/scans`, {
+        method: "OPTIONS",
+        headers: {
+          Origin: origin,
+          "Access-Control-Request-Method": "POST",
+          "Access-Control-Request-Headers": "content-type,x-scan-owner,authorization",
+        },
+      });
 
-    assert.equal(response.status, 204);
-    assert.equal(response.headers.get("access-control-allow-origin"), "https://app.securl.online");
-    assert.match(response.headers.get("access-control-allow-methods") || "", /POST/);
-    assert.match(response.headers.get("access-control-allow-methods") || "", /DELETE/);
-    assert.match(response.headers.get("access-control-allow-headers") || "", /X-Scan-Owner/i);
-    assert.match(response.headers.get("access-control-allow-headers") || "", /Authorization/i);
+      assert.equal(response.status, 204);
+      assert.equal(response.headers.get("access-control-allow-origin"), origin);
+      assert.match(response.headers.get("access-control-allow-methods") || "", /POST/);
+      assert.match(response.headers.get("access-control-allow-methods") || "", /DELETE/);
+      assert.match(response.headers.get("access-control-allow-headers") || "", /X-Scan-Owner/i);
+      assert.match(response.headers.get("access-control-allow-headers") || "", /Authorization/i);
+    }
   } finally {
     await server.stop();
   }
@@ -810,7 +903,8 @@ test("authenticated sessions can own scan and monitoring resources without scan-
     const monitoringPayload = await monitoringResponse.json();
     assert.equal(monitoringResponse.status, 201);
     assert.equal(monitoringPayload.apiVersion, "2026-05-14");
-    assert.match(monitoringPayload.target.ownerId, /^user:/);
+    assert.equal(monitoringPayload.target.ownerId, undefined);
+    assert.equal(monitoringPayload.target.requesterScope, undefined);
   } finally {
     await server.stop();
   }
@@ -837,6 +931,18 @@ test("authenticated users can create, use, list, and revoke API keys", async () 
     assert.equal(createKeyPayload.apiKey.name, "Local CLI");
     assert.match(createKeyPayload.token, /^securl_/);
     assert.ok(!createKeyPayload.apiKey.tokenHash);
+    assert.deepEqual(createKeyPayload.apiKey.usage, {
+      scansRequested: 0,
+      scansCompleted: 0,
+      scansFailed: 0,
+      scansQueued: 0,
+      scansRunning: 0,
+      fullReads: 0,
+      limitedReads: 0,
+      latestScanAt: null,
+      latestScanId: null,
+      latestTarget: null,
+    });
 
     const listKeysResponse = await fetch(`${server.baseUrl}/api/auth/api-keys`, {
       headers: bearerHeaders(sessionToken),
@@ -846,6 +952,7 @@ test("authenticated users can create, use, list, and revoke API keys", async () 
     assert.equal(listKeysPayload.apiKeys.length, 1);
     assert.equal(listKeysPayload.apiKeys[0].id, createKeyPayload.apiKey.id);
     assert.ok(!("token" in listKeysPayload.apiKeys[0]));
+    assert.equal(listKeysPayload.apiKeys[0].usage.scansRequested, 0);
 
     const scanResponse = await fetch(`${server.baseUrl}/api/scans`, {
       method: "POST",
@@ -865,6 +972,20 @@ test("authenticated users can create, use, list, and revoke API keys", async () 
     assert.equal(listScansResponse.status, 200);
     assert.equal(listScansPayload.scans.length, 1);
     assert.equal(listScansPayload.scans[0].id, scanPayload.scan.id);
+
+    const usedKeysResponse = await fetch(`${server.baseUrl}/api/auth/api-keys`, {
+      headers: bearerHeaders(sessionToken),
+    });
+    const usedKeysPayload = await usedKeysResponse.json();
+    assert.equal(usedKeysResponse.status, 200);
+    const usage = usedKeysPayload.apiKeys[0].usage;
+    assert.equal(usage.scansRequested, 1);
+    assert.equal(
+      usage.scansQueued + usage.scansRunning + usage.scansCompleted + usage.scansFailed,
+      1,
+    );
+    assert.equal(usage.latestScanId, scanPayload.scan.id);
+    assert.equal(usage.latestTarget, "https://example.com/");
 
     const revokeResponse = await fetch(`${server.baseUrl}/api/auth/api-keys/${createKeyPayload.apiKey.id}`, {
       method: "DELETE",
@@ -992,6 +1113,8 @@ test("monitoring targets can be created, listed, and deleted", async () => {
     assert.equal(createPayload.target.label, "Example target");
     assert.equal(createPayload.target.due, false);
     assert.equal(createPayload.target.latestScan, null);
+    assert.equal(createPayload.target.ownerId, undefined);
+    assert.equal(createPayload.target.requesterScope, undefined);
 
     const targetId = createPayload.target.id;
     const listResponse = await fetch(`${server.baseUrl}/api/monitoring-targets`, {
@@ -1001,6 +1124,8 @@ test("monitoring targets can be created, listed, and deleted", async () => {
     assert.equal(listResponse.status, 200);
     assert.equal(listPayload.targets.length, 1);
     assert.equal(listPayload.targets[0].id, targetId);
+    assert.equal(listPayload.targets[0].ownerId, undefined);
+    assert.equal(listPayload.targets[0].requesterScope, undefined);
 
     const deleteResponse = await fetch(`${server.baseUrl}/api/monitoring-targets/${targetId}`, {
       method: "DELETE",
@@ -1100,6 +1225,8 @@ test("monitoring target detail returns recent scans, comparison, and lifecycle e
         assert.equal(detailResponse.status, 200);
         assert.equal(detailPayload.target.id, createTargetPayload.target.id);
         assert.equal(detailPayload.target.url, "https://example.com/");
+        assert.equal(detailPayload.target.ownerId, undefined);
+        assert.equal(detailPayload.target.requesterScope, undefined);
         assert.ok(Array.isArray(detailPayload.scans));
         assert.ok(detailPayload.scans.length >= 2);
         assert.ok(detailPayload.comparison);
@@ -1166,6 +1293,8 @@ test("monitoring summary rolls up scoped targets and latest risk events", async 
         assert.equal(typeof summaryPayload.summary.riskEventCounts.critical, "number");
         assert.ok(Array.isArray(summaryPayload.summary.topRiskEvents));
         assert.ok(Array.isArray(target.latestRiskEvents));
+        assert.equal(target.ownerId, undefined);
+        assert.equal(target.requesterScope, undefined);
         return;
       }
 
@@ -1240,6 +1369,49 @@ test("scan collection can return target-scoped history for the same url", async 
     }
 
     assert.fail("Timed out waiting for target-scoped scan history.");
+  } finally {
+    await server.stop();
+  }
+});
+
+test("scan comparison returns direct drift against the previous completed scan", async () => {
+  const server = await startServer();
+
+  try {
+    const firstResponse = await postScan(server.baseUrl, "https://example.com");
+    const firstPayload = await firstResponse.json();
+    assert.equal(firstResponse.status, 202);
+    const firstScanId = firstPayload.scan.id;
+    await waitForScanTerminal(server.baseUrl, firstScanId);
+
+    const secondResponse = await postScan(server.baseUrl, "https://example.com");
+    const secondPayload = await secondResponse.json();
+    assert.equal(secondResponse.status, 202);
+    const secondScanId = secondPayload.scan.id;
+    await waitForScanTerminal(server.baseUrl, secondScanId);
+
+    const comparisonResponse = await fetch(`${server.baseUrl}/api/scans/${secondScanId}/comparison`, {
+      headers: scanOwnerHeaders(),
+    });
+    const comparisonPayload = await comparisonResponse.json();
+
+    assert.equal(comparisonResponse.status, 200);
+    assert.equal(comparisonPayload.apiVersion, "2026-05-14");
+    assert.equal(comparisonPayload.scan.id, secondScanId);
+    assert.deepEqual(comparisonPayload.scans.map((scan) => scan.id), [secondScanId, firstScanId]);
+    assert.equal(comparisonPayload.comparison.currentScanId, secondScanId);
+    assert.equal(comparisonPayload.comparison.previousScanId, firstScanId);
+    assert.equal(typeof comparisonPayload.comparison.diff.scoreDelta, "number");
+    assert.ok(Array.isArray(comparisonPayload.comparison.diff.summary));
+    assert.ok(Array.isArray(comparisonPayload.comparison.riskEvents));
+
+    const wrongOwnerResponse = await fetch(`${server.baseUrl}/api/scans/${secondScanId}/comparison`, {
+      headers: scanOwnerHeaders(SCAN_OWNER_TWO),
+    });
+    const wrongOwnerPayload = await wrongOwnerResponse.json();
+
+    assert.equal(wrongOwnerResponse.status, 404);
+    assert.match(wrongOwnerPayload.error, /scan not found/i);
   } finally {
     await server.stop();
   }
@@ -1446,11 +1618,20 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     }
 
     assert.equal(scanPayload.scan.status, "completed");
+    assert.ok(scanPayload.scan.result);
+    assert.equal(scanPayload.scan.id, scanId);
+    assert.equal(scanPayload.scan.ownerId, undefined);
+    assert.equal(scanPayload.scan.requesterScope, undefined);
+    assert.equal(scanPayload.scan.clientIp, undefined);
+    assert.equal(scanPayload.scan.summary, undefined);
 
     const summaryResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/summary`, {
       headers: scanOwnerHeaders(),
     });
     const findingsResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/findings`, {
+      headers: scanOwnerHeaders(),
+    });
+    const digestResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/digest`, {
       headers: scanOwnerHeaders(),
     });
     const evidenceResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/evidence`, {
@@ -1459,11 +1640,28 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     const historyResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/history`, {
       headers: scanOwnerHeaders(),
     });
+    const markdownExportResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/export?format=markdown`, {
+      headers: scanOwnerHeaders(),
+    });
+    const sarifExportResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/export?format=sarif`, {
+      headers: scanOwnerHeaders(),
+    });
+    const ciJsonExportResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/export?format=ci-json`, {
+      headers: scanOwnerHeaders(),
+    });
+    const invalidExportResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/export?format=pdf`, {
+      headers: scanOwnerHeaders(),
+    });
 
     const summaryPayload = await summaryResponse.json();
     const findingsPayload = await findingsResponse.json();
+    const digestPayload = await digestResponse.json();
     const evidencePayload = await evidenceResponse.json();
     const historyPayload = await historyResponse.json();
+    const markdownExport = await markdownExportResponse.text();
+    const sarifExport = await sarifExportResponse.json();
+    const ciJsonExport = await ciJsonExportResponse.json();
+    const invalidExportPayload = await invalidExportResponse.json();
 
     assert.equal(summaryResponse.status, 200);
     assert.equal(summaryPayload.apiVersion, "2026-05-14");
@@ -1473,6 +1671,14 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.ok(Array.isArray(findingsPayload.findings));
     assert.ok(Array.isArray(findingsPayload.strengths));
     assert.ok(Array.isArray(findingsPayload.priorityActions));
+    assert.equal(digestResponse.status, 200);
+    assert.equal(digestPayload.apiVersion, "2026-05-14");
+    assert.equal(digestPayload.scan.id, scanId);
+    assert.equal(digestPayload.digest.target.host, "example.com");
+    assert.equal(typeof digestPayload.digest.posture.score, "number");
+    assert.ok(Array.isArray(digestPayload.digest.findings.top));
+    assert.ok(Array.isArray(digestPayload.digest.posture.scoreDrivers));
+    assert.ok(Array.isArray(digestPayload.digest.intelligence.riskIndicators));
     assert.equal(evidenceResponse.status, 200);
     assert.equal(evidencePayload.apiVersion, "2026-05-14");
     assert.ok(Array.isArray(evidencePayload.evidence.headers));
@@ -1484,6 +1690,19 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.ok(Array.isArray(historyPayload.events));
     assert.ok(historyPayload.events.length >= 3);
     assert.equal(historyPayload.events[0].eventType, "completed");
+    assert.equal(markdownExportResponse.status, 200);
+    assert.match(markdownExportResponse.headers.get("content-type") || "", /text\/markdown/i);
+    assert.match(markdownExport, /^# SecURL Scan:/);
+    assert.equal(sarifExportResponse.status, 200);
+    assert.match(sarifExportResponse.headers.get("content-type") || "", /application\/sarif\+json/i);
+    assert.equal(sarifExport.version, "2.1.0");
+    assert.ok(Array.isArray(sarifExport.runs[0].results));
+    assert.equal(ciJsonExportResponse.status, 200);
+    assert.equal(ciJsonExport.apiVersion, "2026-05-14");
+    assert.equal(ciJsonExport.scan.id, scanId);
+    assert.equal(typeof ciJsonExport.posture.passed, "boolean");
+    assert.equal(invalidExportResponse.status, 400);
+    assert.match(invalidExportPayload.error, /unsupported export format/i);
   } finally {
     await server.stop();
   }

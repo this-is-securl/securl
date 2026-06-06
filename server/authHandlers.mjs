@@ -21,13 +21,34 @@ const buildPublicUser = (user) => ({
   createdAt: user.createdAt,
 });
 
-const buildPublicApiKey = (apiKey) => ({
+const emptyApiKeyUsage = () => ({
+  scansRequested: 0,
+  scansCompleted: 0,
+  scansFailed: 0,
+  scansQueued: 0,
+  scansRunning: 0,
+  fullReads: 0,
+  limitedReads: 0,
+  latestScanAt: null,
+  latestScanId: null,
+  latestTarget: null,
+});
+
+const buildPublicApiKey = (apiKey, usage = null) => ({
   id: apiKey.id,
   name: apiKey.name,
   tokenPrefix: apiKey.tokenPrefix,
   createdAt: apiKey.createdAt,
   lastUsedAt: apiKey.lastUsedAt ?? null,
+  usage: usage ?? emptyApiKeyUsage(),
 });
+
+async function buildPublicApiKeyWithUsage(scanRepository, apiKey, userId) {
+  const usage = typeof scanRepository.getApiKeyUsageSummary === "function"
+    ? await scanRepository.getApiKeyUsageSummary(apiKey.id, { userId })
+    : emptyApiKeyUsage();
+  return buildPublicApiKey(apiKey, usage);
+}
 
 const getPresentedBearerToken = (request) => {
   const candidate = request.headers.authorization;
@@ -250,8 +271,11 @@ export async function handleAuthRequest({
     if (request.method === "GET") {
       try {
         const apiKeys = await scanRepository.listApiKeysByUser(authState.user.id);
+        const publicApiKeys = await Promise.all(
+          apiKeys.map((apiKey) => buildPublicApiKeyWithUsage(scanRepository, apiKey, authState.user.id)),
+        );
         sendJson(response, 200, {
-          apiKeys: apiKeys.map(buildPublicApiKey),
+          apiKeys: publicApiKeys,
         });
       } catch (error) {
         sendRepositoryUnavailable(response, error, "api_keys_list");
@@ -271,7 +295,7 @@ export async function handleAuthRequest({
         });
 
         sendJson(response, 201, {
-          apiKey: buildPublicApiKey(apiKey),
+          apiKey: await buildPublicApiKeyWithUsage(scanRepository, apiKey, authState.user.id),
           token,
         });
       } catch (error) {
