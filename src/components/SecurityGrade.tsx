@@ -32,7 +32,7 @@ export const SecurityGrade = ({ grade, score, summary, context, actions, pulse }
 
   return (
     <div
-      className="w-full rounded-[2rem] bg-[linear-gradient(135deg,rgba(11,18,32,0.98),rgba(16,24,39,0.95))] px-7 py-7 shadow-[0_24px_64px_-32px_rgba(0,0,0,0.7)] backdrop-blur"
+      className="w-full rounded-4xl bg-[linear-gradient(135deg,rgba(11,18,32,0.98),rgba(16,24,39,0.95))] px-7 py-7 shadow-[0_24px_64px_-32px_rgba(0,0,0,0.7)] backdrop-blur-sm"
       style={{ border: `1px solid ${palette.borderColor}` }}
     >
       {context ? <div className="mb-6">{context}</div> : null}
@@ -78,7 +78,7 @@ export const SecurityGrade = ({ grade, score, summary, context, actions, pulse }
           {/* Inner labels: grade is the verdict; the number is supporting context. */}
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5">
             <span
-              className={`font-black leading-none tracking-[-0.05em] ${gradeSize}`}
+              className={`font-black leading-none tracking-tighter ${gradeSize}`}
               style={{ color: palette.textColor }}
             >
               {grade}

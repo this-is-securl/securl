@@ -35,10 +35,10 @@ const categoryConfig: Record<
 };
 
 const riskClass: Record<PassiveIntelligenceSignal["risk"], string> = {
-  attention: "border-rose-500/30 bg-rose-500/[0.10] text-rose-100",
-  watch: "border-amber-500/30 bg-amber-500/[0.10] text-amber-100",
-  neutral: "border-white/10 bg-white/[0.06] text-zinc-100",
-  positive: "border-emerald-400/25 bg-emerald-400/[0.10] text-emerald-100",
+  attention: "border-rose-500/30 bg-rose-500/10 text-rose-100",
+  watch: "border-amber-500/30 bg-amber-500/10 text-amber-100",
+  neutral: "border-white/10 bg-white/6 text-zinc-100",
+  positive: "border-emerald-400/25 bg-emerald-400/10 text-emerald-100",
 };
 
 const riskLabel: Record<PassiveIntelligenceSignal["risk"], string> = {
@@ -60,7 +60,7 @@ const sourceLabel: Record<PassiveIntelligenceSignal["source"], string> = {
 export const PassiveIntelligencePanel = ({ passiveIntelligence }: PassiveIntelligencePanelProps) => {
   if (!passiveIntelligence) {
     return (
-      <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+      <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-zinc-50">
             <Radar className="h-5 w-5 text-[#e0b286]" />
@@ -80,7 +80,7 @@ export const PassiveIntelligencePanel = ({ passiveIntelligence }: PassiveIntelli
   const positiveCount = passiveIntelligence.signals.filter((signal) => signal.risk === "positive").length;
 
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-zinc-50">
           <Radar className="h-5 w-5 text-[#e0b286]" />
@@ -126,7 +126,7 @@ export const PassiveIntelligencePanel = ({ passiveIntelligence }: PassiveIntelli
           />
         )}
 
-        <div className="rounded-[1.5rem] border border-white/10 bg-zinc-950/45 p-5">
+        <div className="rounded-3xl border border-white/10 bg-zinc-950/45 p-5">
           <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#e0b286]">Readout</p>
           <p className="mt-2 text-lg font-semibold leading-7 text-white">{passiveIntelligence.postureRead}</p>
           <div className="mt-4 grid grid-cols-1 gap-3 text-sm leading-6 text-zinc-300 md:grid-cols-3">
@@ -143,7 +143,7 @@ export const PassiveIntelligencePanel = ({ passiveIntelligence }: PassiveIntelli
               return (
                 <div
                   key={`${signal.category}-${signal.title}-${index}`}
-                  className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] px-4 py-4"
+                  className="rounded-[1.35rem] border border-white/10 bg-white/4 px-4 py-4"
                 >
                   <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
@@ -154,16 +154,16 @@ export const PassiveIntelligencePanel = ({ passiveIntelligence }: PassiveIntelli
                       <p className="mt-2 text-sm leading-6 text-zinc-300">{signal.summary}</p>
                     </div>
                     <div className="flex flex-wrap justify-start gap-2 sm:justify-end">
-                      <Badge variant="outline" className="border-white/10 bg-white/[0.06] text-zinc-100">
+                      <Badge variant="outline" className="border-white/10 bg-white/6 text-zinc-100">
                         {config.label}
                       </Badge>
                       <Badge variant="outline" className={riskClass[signal.risk]}>
                         {riskLabel[signal.risk]}
                       </Badge>
-                      <Badge variant="outline" className="border-white/10 bg-white/[0.06] text-zinc-300">
+                      <Badge variant="outline" className="border-white/10 bg-white/6 text-zinc-300">
                         {signal.confidence}
                       </Badge>
-                      <Badge variant="outline" className="border-white/[0.08] bg-white/[0.04] text-zinc-500">
+                      <Badge variant="outline" className="border-white/8 bg-white/4 text-zinc-500">
                         {sourceLabel[signal.source]}
                       </Badge>
                     </div>
@@ -174,20 +174,20 @@ export const PassiveIntelligencePanel = ({ passiveIntelligence }: PassiveIntelli
                         <TruncatedChip
                           key={item}
                           value={item}
-                          className="border-white/10 bg-white/[0.04] text-zinc-300"
+                          className="border-white/10 bg-white/4 text-zinc-300"
                           maxWidthClassName="max-w-[16rem]"
                         />
                       ))}
                     </div>
                   ) : null}
                   {signal.action ? (
-                    <p className="mt-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm leading-6 text-zinc-300">
+                    <p className="mt-3 rounded-2xl border border-white/10 bg-white/4 px-4 py-3 text-sm leading-6 text-zinc-300">
                       <span className="font-semibold text-zinc-100">Suggested check: </span>
                       {signal.action}
                     </p>
                   ) : null}
                   {signal.title.toLowerCase().includes("session replay") && (
-                    <p className="mt-3 rounded-2xl border border-rose-500/20 bg-rose-500/[0.06] px-4 py-3 text-sm leading-6 text-rose-200">
+                    <p className="mt-3 rounded-2xl border border-rose-500/20 bg-rose-500/6 px-4 py-3 text-sm leading-6 text-rose-200">
                       <span className="font-semibold text-rose-100">What this means: </span>
                       Session replay tools capture full mouse movement, clicks, scrolls, and keystrokes on your pages. Users are typically unaware. Verify consent coverage, check whether sensitive forms are masked, and confirm the vendor&apos;s data retention policy.
                     </p>

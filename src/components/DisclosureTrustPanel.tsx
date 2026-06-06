@@ -13,7 +13,7 @@ export const DisclosureTrustPanel = ({ analysis }: DisclosureTrustPanelProps) =>
   const disclosure = getDisclosurePosture(analysis);
 
   return (
-    <Card className="h-full border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="h-full border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileCheck2 className="h-5 w-5" />
@@ -21,9 +21,9 @@ export const DisclosureTrustPanel = ({ analysis }: DisclosureTrustPanelProps) =>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
-        <div className="min-w-0 rounded-[1.35rem] border border-white/10 bg-white/[0.04] p-5">
+        <div className="min-w-0 rounded-[1.35rem] border border-white/10 bg-white/4 p-5">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">Public-facing read</p>
-          <p className="mt-3 overflow-hidden break-words text-sm leading-7 text-zinc-200">{disclosure.summary}</p>
+          <p className="mt-3 overflow-hidden wrap-break-word text-sm leading-7 text-zinc-200">{disclosure.summary}</p>
         </div>
 
         <StatBox

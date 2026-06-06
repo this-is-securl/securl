@@ -11,11 +11,11 @@ interface TechnologyStackProps {
 const categoryConfig = {
   server: {
     icon: <Server className="h-4 w-4" />,
-    color: "bg-white/[0.08] text-zinc-100",
+    color: "bg-white/8 text-zinc-100",
   },
   frontend: {
     icon: <Code2 className="h-4 w-4" />,
-    color: "bg-white/[0.08] text-zinc-100",
+    color: "bg-white/8 text-zinc-100",
   },
   security: {
     icon: <Shield className="h-4 w-4" />,
@@ -34,7 +34,7 @@ const categoryConfig = {
 const categoryOrder: Array<keyof typeof categoryConfig> = ["network", "hosting", "server", "frontend", "security"];
 
 const confidenceStyles = {
-  high: "bg-white/[0.08] text-zinc-100",
+  high: "bg-white/8 text-zinc-100",
   medium: "bg-zinc-700/40 text-zinc-300",
   low: "bg-[#4f6676]/18 text-[#d9e4ea]",
 } as const;
@@ -42,7 +42,7 @@ const confidenceStyles = {
 export const TechnologyStack = ({ technologies }: TechnologyStackProps) => {
   if (!technologies.length) {
     return (
-      <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+      <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-zinc-50">
             <Globe className="h-5 w-5" />
@@ -64,7 +64,7 @@ export const TechnologyStack = ({ technologies }: TechnologyStackProps) => {
   }, {});
 
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-zinc-50">
           <Globe className="h-5 w-5" />
@@ -85,7 +85,7 @@ export const TechnologyStack = ({ technologies }: TechnologyStackProps) => {
                 {items.map((tech) => (
                   <div
                     key={`${tech.category}-${tech.name}-${tech.version ?? "none"}`}
-                    className="rounded-[1.25rem] border border-white/10 bg-white/[0.04] px-4 py-3"
+                    className="rounded-[1.25rem] border border-white/10 bg-white/4 px-4 py-3"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="font-medium text-zinc-50">{tech.name}</div>

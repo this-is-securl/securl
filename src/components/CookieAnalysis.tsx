@@ -17,7 +17,7 @@ const riskStyles: Record<CookieResult["risk"], string> = {
 
 export const CookieAnalysis = ({ cookies }: CookieAnalysisProps) => {
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Cookie className="h-5 w-5" />
@@ -40,7 +40,7 @@ export const CookieAnalysis = ({ cookies }: CookieAnalysisProps) => {
               </TableHeader>
               <TableBody>
                 {cookies.map((cookie) => (
-                <TableRow key={cookie.name} className="align-top border-white/10 hover:bg-white/[0.02]">
+                <TableRow key={cookie.name} className="align-top border-white/10 hover:bg-white/2">
                     <TableCell className="font-medium text-zinc-50">{cookie.name}</TableCell>
                     <TableCell className="space-y-2">
                       <div className="flex flex-wrap gap-2">
@@ -50,7 +50,7 @@ export const CookieAnalysis = ({ cookies }: CookieAnalysisProps) => {
                         <Badge variant={cookie.httpOnly ? "default" : "destructive"}>
                           HttpOnly {cookie.httpOnly ? "on" : "off"}
                         </Badge>
-                        <Badge variant={cookie.sameSite ? "outline" : "destructive"}>
+                        <Badge variant={cookie.sameSite ? "outline-solid" : "destructive"}>
                           SameSite {cookie.sameSite ?? "missing"}
                         </Badge>
                       </div>

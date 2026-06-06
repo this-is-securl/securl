@@ -28,7 +28,7 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
   const rankedAreaScores = [...areaScores].sort((left, right) => left.score - right.score);
 
   return (
-    <Card className="rounded-[2rem] border border-white/[0.09] bg-white/[0.04] shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset]">
+    <Card className="rounded-4xl border border-white/9 bg-white/4 shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset]">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-xl font-black tracking-[-0.03em] text-white">
           <BarChart3 className="h-5 w-5 text-[#d89a63]" />
@@ -58,7 +58,7 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
           />
         </div>
 
-        <div className="rounded-[1.5rem] border border-white/[0.08] bg-zinc-950/50 p-6">
+        <div className="rounded-3xl border border-white/8 bg-zinc-950/50 p-6">
           <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500 mb-4">Category scores</p>
           <div className="space-y-1">
             {rankedAreaScores.map((area, index) => {
@@ -73,11 +73,11 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
               return (
                 <div
                   key={area.key}
-                  className={`py-3 ${index < rankedAreaScores.length - 1 ? "border-b border-white/[0.05]" : ""}`}
+                  className={`py-3 ${index < rankedAreaScores.length - 1 ? "border-b border-white/5" : ""}`}
                 >
                   <div className="grid gap-2 md:grid-cols-[10rem_1fr_2.5rem] md:items-center">
                     <p className="text-sm font-medium text-zinc-300">{area.label}</p>
-                    <div className="relative h-1.5 overflow-hidden rounded-full bg-white/[0.05]">
+                    <div className="relative h-1.5 overflow-hidden rounded-full bg-white/5">
                       <div
                         className="absolute inset-y-0 left-0 rounded-full transition-all duration-700"
                         style={{ width: `${area.score}%`, background: barColor }}
@@ -88,7 +88,7 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
                     </p>
                   </div>
                   {index === 0 && (
-                    <p className="mt-1 text-[10px] text-zinc-600 md:ml-[10.5rem]">Weakest area</p>
+                    <p className="mt-1 text-[10px] text-zinc-600 md:ml-42">Weakest area</p>
                   )}
                 </div>
               );
@@ -112,7 +112,7 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
         </div>
 
         {analysis.scoreDrivers && analysis.scoreDrivers.length > 0 && (
-          <div className="rounded-[1.5rem] border border-white/[0.08] bg-zinc-950/50 p-6">
+          <div className="rounded-3xl border border-white/8 bg-zinc-950/50 p-6">
             <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500 mb-4">Score drivers</p>
             <div className="space-y-0">
               {analysis.scoreDrivers.map((driver, index) => {
@@ -123,7 +123,7 @@ export const PostureSummaryPanel = ({ analysis }: PostureSummaryPanelProps) => {
                 return (
                   <div
                     key={index}
-                    className={`py-3 ${!isLast ? "border-b border-white/[0.05]" : ""}`}
+                    className={`py-3 ${!isLast ? "border-b border-white/5" : ""}`}
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0 flex-1">

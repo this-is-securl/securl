@@ -51,7 +51,7 @@ export const CapabilityStrip = () => (
     {CAPABILITIES.map(({ icon: Icon, title, description }) => (
       <div
         key={title}
-        className="rounded-[1.2rem] border border-white/[0.07] bg-white/[0.03] p-4 transition-colors duration-200 hover:border-white/[0.13] hover:bg-white/[0.05]"
+        className="rounded-[1.2rem] border border-white/[0.07] bg-white/3 p-4 transition-colors duration-200 hover:border-white/13 hover:bg-white/5"
       >
         <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-[0.65rem] bg-zinc-700/40">
           <Icon className="h-4 w-4 text-[#d89a63]" />

@@ -23,7 +23,7 @@ export const IdentityProviderPanel = ({ identityProvider }: IdentityProviderPane
   ];
 
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <CardTitle>Identity Provider</CardTitle>
@@ -47,10 +47,10 @@ export const IdentityProviderPanel = ({ identityProvider }: IdentityProviderPane
           <div className="space-y-3">
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">Observed endpoints</p>
             <div className="space-y-2 rounded-[1.25rem] border border-white/10 bg-zinc-950/45 p-4 text-sm text-zinc-300">
-              <p className="break-words"><span className="font-semibold text-white">Issuer:</span> {identityProvider.issuer ?? "Not discovered"}</p>
-              <p className="break-words"><span className="font-semibold text-white">Authorization:</span> {identityProvider.authorizationEndpoint ?? "Not discovered"}</p>
-              <p className="break-words"><span className="font-semibold text-white">Token:</span> {identityProvider.tokenEndpoint ?? "Not discovered"}</p>
-              <p className="break-words"><span className="font-semibold text-white">End session:</span> {identityProvider.endSessionEndpoint ?? "Not discovered"}</p>
+              <p className="wrap-break-word"><span className="font-semibold text-white">Issuer:</span> {identityProvider.issuer ?? "Not discovered"}</p>
+              <p className="wrap-break-word"><span className="font-semibold text-white">Authorization:</span> {identityProvider.authorizationEndpoint ?? "Not discovered"}</p>
+              <p className="wrap-break-word"><span className="font-semibold text-white">Token:</span> {identityProvider.tokenEndpoint ?? "Not discovered"}</p>
+              <p className="wrap-break-word"><span className="font-semibold text-white">End session:</span> {identityProvider.endSessionEndpoint ?? "Not discovered"}</p>
               <p><span className="font-semibold text-white">Tenant brand:</span> {identityProvider.tenantBrand ?? "Not discovered"}</p>
               <p><span className="font-semibold text-white">Tenant region:</span> {identityProvider.tenantRegion ?? "Not discovered"}</p>
             </div>

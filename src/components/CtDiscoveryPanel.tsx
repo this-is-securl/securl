@@ -18,7 +18,7 @@ export const CtDiscoveryPanel = ({ ctDiscovery }: CtDiscoveryPanelProps) => {
   ];
 
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <CardTitle>Certificate Transparency</CardTitle>
@@ -45,7 +45,7 @@ export const CtDiscoveryPanel = ({ ctDiscovery }: CtDiscoveryPanelProps) => {
             {ctDiscovery.subdomains.length > 0 ? (
               <div className="mt-3 flex max-h-56 flex-wrap gap-2 overflow-y-auto pr-1">
                 {ctDiscovery.subdomains.map((host) => (
-                  <TruncatedChip key={host} value={host} variant="secondary" className="bg-white/10 text-zinc-100 shadow-sm" />
+                  <TruncatedChip key={host} value={host} variant="secondary" className="bg-white/10 text-zinc-100 shadow-xs" />
                 ))}
               </div>
             ) : (
@@ -74,7 +74,7 @@ export const CtDiscoveryPanel = ({ ctDiscovery }: CtDiscoveryPanelProps) => {
             {ctDiscovery.prioritizedHosts.length > 0 ? (
               <ul className="mt-3 space-y-3 text-sm text-zinc-300">
                 {ctDiscovery.prioritizedHosts.slice(0, 8).map((host) => (
-                  <li key={host.host} className="rounded-[1.1rem] border border-white/10 bg-white/[0.04] p-3">
+                  <li key={host.host} className="rounded-[1.1rem] border border-white/10 bg-white/4 p-3">
                     <div className="flex min-w-0 items-center justify-between gap-3">
                       <span className="min-w-0 truncate font-semibold text-white" title={host.host}>{host.host}</span>
                       <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">
@@ -95,7 +95,7 @@ export const CtDiscoveryPanel = ({ ctDiscovery }: CtDiscoveryPanelProps) => {
             {ctDiscovery.sampledHosts.length > 0 ? (
               <ul className="mt-3 space-y-3 text-sm text-zinc-300">
                 {ctDiscovery.sampledHosts.map((host) => (
-                  <li key={host.host} className="rounded-[1.1rem] border border-white/10 bg-white/[0.04] p-3">
+                  <li key={host.host} className="rounded-[1.1rem] border border-white/10 bg-white/4 p-3">
                     <div className="flex min-w-0 items-center justify-between gap-3">
                       <span className="min-w-0 truncate font-semibold text-white" title={host.host}>{host.host}</span>
                       <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">

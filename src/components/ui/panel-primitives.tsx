@@ -10,22 +10,22 @@ type StatBoxVariant = "default" | "critical" | "warning" | "info";
 
 const statBoxVariants: Record<StatBoxVariant, { container: string; label: string; value: string }> = {
   default: {
-    container: "border-white/[0.09] bg-white/[0.04]",
+    container: "border-white/9 bg-white/4",
     label: "text-zinc-500",
     value: "text-white",
   },
   critical: {
-    container: "border-white/[0.09] bg-white/[0.04]",
+    container: "border-white/9 bg-white/4",
     label: "text-rose-500/80",
     value: "text-white",
   },
   warning: {
-    container: "border-white/[0.09] bg-white/[0.04]",
+    container: "border-white/9 bg-white/4",
     label: "text-amber-400/80",
     value: "text-white",
   },
   info: {
-    container: "border-white/[0.09] bg-white/[0.04]",
+    container: "border-white/9 bg-white/4",
     label: "text-zinc-500",
     value: "text-white",
   },
@@ -44,7 +44,7 @@ export const StatBox = ({ label, value, note, variant = "default", className }: 
   return (
     <div
       className={cn(
-        "rounded-[1.5rem] border p-6 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),0_1px_0_rgba(255,255,255,0.04)_inset] transition-all duration-200 hover:-translate-y-px hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.6)]",
+        "rounded-3xl border p-6 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),0_1px_0_rgba(255,255,255,0.04)_inset] transition-all duration-200 hover:-translate-y-px hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.6)]",
         v.container,
         className,
       )}
@@ -64,10 +64,10 @@ export const StatBox = ({ label, value, note, variant = "default", className }: 
 type StatusAlertVariant = "success" | "warning" | "critical" | "info";
 
 const statusAlertVariants: Record<StatusAlertVariant, string> = {
-  success: "border-white/10 bg-white/[0.04] text-zinc-100",
-  warning: "border-amber-500/35 bg-amber-500/[0.08] text-amber-100",
-  critical: "border-rose-500/30 bg-rose-500/[0.08] text-rose-100",
-  info: "border-white/10 bg-white/[0.04] text-zinc-100",
+  success: "border-white/10 bg-white/4 text-zinc-100",
+  warning: "border-amber-500/35 bg-amber-500/8 text-amber-100",
+  critical: "border-rose-500/30 bg-rose-500/8 text-rose-100",
+  info: "border-white/10 bg-white/4 text-zinc-100",
 };
 
 interface StatusAlertProps {
@@ -100,19 +100,19 @@ type SignalListVariant = "success" | "neutral" | "warning";
 
 const signalListVariants: Record<SignalListVariant, { container: string; title: string; body: string; icon: string }> = {
   success: {
-    container: "border-white/10 bg-white/[0.04]",
+    container: "border-white/10 bg-white/4",
     title: "text-zinc-400",
     body: "text-zinc-200",
     icon: "text-zinc-300",
   },
   neutral: {
-    container: "border-white/10 bg-white/[0.04]",
+    container: "border-white/10 bg-white/4",
     title: "text-zinc-400",
     body: "text-zinc-200",
     icon: "text-zinc-400",
   },
   warning: {
-    container: "border-amber-500/30 bg-amber-500/[0.06]",
+    container: "border-amber-500/30 bg-amber-500/6",
     title: "text-amber-400/80",
     body: "text-amber-100",
     icon: "text-amber-400/70",
@@ -157,7 +157,7 @@ interface EmptyStateProps {
 export const EmptyState = ({ children, className }: EmptyStateProps) => (
   <div
     className={cn(
-      "rounded-[1.35rem] border border-dashed border-white/10 bg-white/[0.03] px-4 py-6 text-sm text-zinc-400",
+      "rounded-[1.35rem] border border-dashed border-white/10 bg-white/3 px-4 py-6 text-sm text-zinc-400",
       className,
     )}
   >

@@ -17,7 +17,7 @@ const statusStyles: Record<SecurityTxtInfo["status"], string> = {
 
 export const SecurityTxtPanel = ({ securityTxt }: SecurityTxtPanelProps) => {
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileSearch className="h-5 w-5" />
@@ -43,7 +43,7 @@ export const SecurityTxtPanel = ({ securityTxt }: SecurityTxtPanelProps) => {
             label="Contact"
             value={
               <div className="space-y-1 text-sm text-zinc-200">
-                {securityTxt.contact.length ? securityTxt.contact.map((item) => <p key={item} className="break-words text-zinc-200">{item}</p>) : <p className="text-zinc-400">Not listed</p>}
+                {securityTxt.contact.length ? securityTxt.contact.map((item) => <p key={item} className="wrap-break-word text-zinc-200">{item}</p>) : <p className="text-zinc-400">Not listed</p>}
               </div>
             }
           />
@@ -58,7 +58,7 @@ export const SecurityTxtPanel = ({ securityTxt }: SecurityTxtPanelProps) => {
             label="Policy"
             value={
               <div className="space-y-1 text-sm text-zinc-200">
-                <p className="break-words text-zinc-200">{securityTxt.policy}</p>
+                <p className="wrap-break-word text-zinc-200">{securityTxt.policy}</p>
               </div>
             }
           />

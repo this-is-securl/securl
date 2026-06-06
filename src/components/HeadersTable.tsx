@@ -8,8 +8,8 @@ interface HeadersTableProps {
 }
 
 const statusStyles: Record<SecurityHeaderResult["status"], string> = {
-  present: "border-white/10 bg-white/[0.08] text-zinc-100",
-  warning: "border-white/[0.10] text-zinc-300",
+  present: "border-white/10 bg-white/8 text-zinc-100",
+  warning: "border-white/10 text-zinc-300",
   missing: "border-[#7f1d1d]/35 bg-[#7f1d1d]/14 text-zinc-300",
 };
 
@@ -32,7 +32,7 @@ export const HeadersTable = ({ headers }: HeadersTableProps) => {
         </TableHeader>
         <TableBody>
           {headers.map((header) => (
-            <TableRow key={header.key} className="align-top border-white/10 hover:bg-white/[0.02]">
+            <TableRow key={header.key} className="align-top border-white/10 hover:bg-white/2">
               <TableCell className="space-y-1">
                 <div className="font-medium text-zinc-100">{header.label}</div>
                 <p className="text-xs text-zinc-400">{header.description}</p>
@@ -49,7 +49,7 @@ export const HeadersTable = ({ headers }: HeadersTableProps) => {
                 </code>
                 <p className="text-xs text-zinc-400">{header.summary}</p>
                 {header.status !== "present" && (
-                  <div className="flex gap-2 rounded-xl border border-white/[0.10] px-3 py-2 text-xs text-zinc-300">
+                  <div className="flex gap-2 rounded-xl border border-white/10 px-3 py-2 text-xs text-zinc-300">
                     <Info className="mt-0.5 h-4 w-4 shrink-0" />
                     <span>{header.recommendation}</span>
                   </div>

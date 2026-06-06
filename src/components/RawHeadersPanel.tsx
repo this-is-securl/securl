@@ -8,7 +8,7 @@ interface RawHeadersPanelProps {
 
 export const RawHeadersPanel = ({ headers }: RawHeadersPanelProps) => {
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileJson className="h-5 w-5" />

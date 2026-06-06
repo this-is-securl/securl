@@ -23,7 +23,7 @@ export const RemediationPanel = ({ remediation }: RemediationPanelProps) => {
 
   if (!remediation.length) {
     return (
-      <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+      <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Wrench className="h-5 w-5" />
@@ -50,7 +50,7 @@ export const RemediationPanel = ({ remediation }: RemediationPanelProps) => {
   };
 
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Wrench className="h-5 w-5" />
@@ -67,7 +67,7 @@ export const RemediationPanel = ({ remediation }: RemediationPanelProps) => {
               className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                 item.platform === active.platform
                   ? "bg-[#b56a2c] text-white"
-                  : "bg-white/[0.06] text-zinc-200 hover:bg-white/[0.1]"
+                  : "bg-white/6 text-zinc-200 hover:bg-white/10"
               }`}
             >
               {labels[item.platform]}
@@ -75,14 +75,14 @@ export const RemediationPanel = ({ remediation }: RemediationPanelProps) => {
           ))}
         </div>
 
-        <div className="flex flex-col gap-3 rounded-[1.35rem] border border-white/10 bg-white/[0.04] p-4">
+        <div className="flex flex-col gap-3 rounded-[1.35rem] border border-white/10 bg-white/4 p-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <h3 className="text-lg font-semibold text-zinc-50">{active.title}</h3>
               <p className="mt-1 text-sm text-zinc-300">{active.description}</p>
               <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">{active.filename}</p>
             </div>
-            <Button variant="outline" className="rounded-2xl border-white/10 bg-white/[0.04] text-zinc-100 hover:bg-white/[0.08]" onClick={copySnippet}>
+            <Button variant="outline" className="rounded-2xl border-white/10 bg-white/4 text-zinc-100 hover:bg-white/8" onClick={copySnippet}>
               <Copy className="mr-2 h-4 w-4" />
               Copy
             </Button>

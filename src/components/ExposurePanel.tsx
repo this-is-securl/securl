@@ -10,16 +10,16 @@ interface ExposurePanelProps {
 }
 
 const findingStyles = {
-  safe: "bg-white/[0.08] text-zinc-100",
+  safe: "bg-white/8 text-zinc-100",
   interesting: "bg-[#7f1d1d]/14 text-zinc-300",
-  blocked: "bg-white/[0.08] text-zinc-100",
+  blocked: "bg-white/8 text-zinc-100",
   exposed: "bg-zinc-700/40 text-zinc-300",
   error: "bg-zinc-700/40 text-zinc-300",
 } as const;
 
 export const ExposurePanel = ({ exposure }: ExposurePanelProps) => {
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FolderSearch className="h-5 w-5" />
@@ -31,7 +31,7 @@ export const ExposurePanel = ({ exposure }: ExposurePanelProps) => {
           {exposure.probes.map((probe) => {
             const status = probe.statusCode ? getHttpStatusDetails(probe.statusCode) : null;
             return (
-              <div key={probe.path} className="rounded-[1.25rem] border border-white/10 bg-white/[0.04] p-4">
+              <div key={probe.path} className="rounded-[1.25rem] border border-white/10 bg-white/4 p-4">
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div className="min-w-0">
                     <p className="font-semibold text-zinc-50">{probe.label}</p>

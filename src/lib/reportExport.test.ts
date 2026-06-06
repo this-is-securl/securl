@@ -226,19 +226,19 @@ describe("buildHtmlReport", () => {
     expect(html).toContain("&amp; special chars");
   });
 
-  it("uses green ring color for grade A", () => {
+  it("uses green ring-3 color for grade A", () => {
     const html = buildHtmlReport(makeAnalysis({ grade: "A", score: 92 }));
     expect(html).toContain("--grade:   #16a34a");
     expect(html).toContain('stroke="#16a34a"');
   });
 
-  it("uses red ring color for grade F", () => {
+  it("uses red ring-3 color for grade F", () => {
     const html = buildHtmlReport(makeAnalysis({ grade: "F", score: 35 }));
     expect(html).toContain("--grade:   #dc2626");
     expect(html).toContain('stroke="#dc2626"');
   });
 
-  it("uses grey ring color for grade U (limited assessment)", () => {
+  it("uses grey ring-3 color for grade U (limited assessment)", () => {
     const html = buildHtmlReport(makeAnalysis({
       grade: "U",
       score: 0,
@@ -247,19 +247,19 @@ describe("buildHtmlReport", () => {
     expect(html).toContain("--grade:   #94a3b8");
   });
 
-  it("SVG ring dashoffset is 0 when score is 100", () => {
+  it("SVG ring-3 dashoffset is 0 when score is 100", () => {
     const html = buildHtmlReport(makeAnalysis({ grade: "A+", score: 100 }));
     expect(html).toContain('stroke-dashoffset="0"');
   });
 
-  it("SVG ring dashoffset equals circumference when score is 0", () => {
+  it("SVG ring-3 dashoffset equals circumference when score is 0", () => {
     // circumference = 2π × 110 ≈ 691.15
     const html = buildHtmlReport(makeAnalysis({ grade: "F", score: 0 }));
     const circumference = parseFloat((2 * Math.PI * 110).toFixed(2));
     expect(html).toContain(`stroke-dashoffset="${circumference}"`);
   });
 
-  it("SVG ring dashoffset is roughly half the circumference when score is 50", () => {
+  it("SVG ring-3 dashoffset is roughly half the circumference when score is 50", () => {
     const html = buildHtmlReport(makeAnalysis({ grade: "D", score: 50 }));
     const circumference = parseFloat((2 * Math.PI * 110).toFixed(2));
     const expected = parseFloat((circumference * 0.5).toFixed(2));

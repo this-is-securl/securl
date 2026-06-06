@@ -10,7 +10,7 @@ interface CorsSecurityPanelProps {
 
 export const CorsSecurityPanel = ({ corsSecurity }: CorsSecurityPanelProps) => {
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <ArrowLeftRight className="h-5 w-5" />
@@ -34,8 +34,8 @@ export const CorsSecurityPanel = ({ corsSecurity }: CorsSecurityPanelProps) => {
                   variant="outline"
                   className={
                     corsSecurity.allowPrivateNetwork === "true"
-                      ? "border-rose-500/30 bg-rose-500/[0.08] text-rose-200"
-                      : "border-white/10 bg-white/[0.06] text-zinc-200"
+                      ? "border-rose-500/30 bg-rose-500/8 text-rose-200"
+                      : "border-white/10 bg-white/6 text-zinc-200"
                   }
                 >
                   Access-Control-Allow-Private-Network: {corsSecurity.allowPrivateNetwork}

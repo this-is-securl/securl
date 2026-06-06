@@ -64,7 +64,7 @@ interface OverviewSectionProps {
 }
 
 // ── Shared sub-card style ─────────────────────────────────────────────────────
-const subCard = "rounded-[1.75rem] border border-white/[0.09] bg-white/[0.04] px-6 py-6 shadow-[0_4px_16px_rgba(0,0,0,0.3)]";
+const subCard = "rounded-[1.75rem] border border-white/9 bg-white/4 px-6 py-6 shadow-[0_4px_16px_rgba(0,0,0,0.3)]";
 const eyebrow  = "text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500";
 const cardTitle = "mt-2 text-xl font-black tracking-[-0.03em] text-white";
 
@@ -117,7 +117,7 @@ export const OverviewSection = ({
     <div id="overview" className="space-y-8">
       {/* ── Assessment limitation banner ── */}
       {analysisData.assessmentLimitation.limited ? (
-        <div className="rounded-[1.75rem] border border-amber-500/20 bg-amber-500/[0.06] px-6 py-5">
+        <div className="rounded-[1.75rem] border border-amber-500/20 bg-amber-500/6 px-6 py-5">
           <p className={eyebrow + " text-amber-500/70"}>
             {analysisData.assessmentLimitation.title}
           </p>
@@ -128,7 +128,7 @@ export const OverviewSection = ({
       ) : null}
 
       {/* ── Main overview card ── */}
-      <div className="rounded-[2rem] border border-white/[0.09] bg-white/[0.04] p-8 shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset]">
+      <div className="rounded-4xl border border-white/9 bg-white/4 p-8 shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset]">
 
         {/* ── TOP: Ring gauge + executive verdict ── */}
         <div className="grid grid-cols-1 gap-8 lg:gap-10 xl:grid-cols-[260px_minmax(0,1fr)]">
@@ -207,7 +207,7 @@ export const OverviewSection = ({
                 {/* Scan freshness */}
                 <div className="mt-3 flex items-center justify-center gap-2">
                   {scanWasCached ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#b56a2c]/20 bg-[#b56a2c]/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#d89a63]">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#b56a2c]/20 bg-[#b56a2c]/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#d89a63]">
                       <span className="h-1.5 w-1.5 rounded-full bg-[#b56a2c]" />
                       Cached · {relativeTime(analysisData.scannedAt)}
                     </span>
@@ -219,7 +219,7 @@ export const OverviewSection = ({
                 </div>
 
                 {/* Monitoring — clean, no inner card, just a divider section */}
-                <div className="mt-6 w-full border-t border-white/[0.06] pt-5 text-left">
+                <div className="mt-6 w-full border-t border-white/6 pt-5 text-left">
                   <div className="flex items-center justify-between gap-2">
                     <p className={eyebrow}>Monitoring</p>
                     <BellRing className="h-3 w-3 text-zinc-600" />
@@ -244,13 +244,13 @@ export const OverviewSection = ({
             </div>
 
             {/* Executive verdict */}
-            <div className="rounded-[1.75rem] border border-white/[0.08] bg-zinc-950/50 p-7 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
+            <div className="rounded-[1.75rem] border border-white/8 bg-zinc-950/50 p-7 shadow-[0_4px_16px_rgba(0,0,0,0.3)]">
               <div className="flex flex-wrap items-center gap-2 mb-5">
-                <Badge variant="outline" className="border-white/[0.08] bg-white/[0.04] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-400">
+                <Badge variant="outline" className="border-white/8 bg-white/4 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-400">
                   Overall posture: {overallPostureLabel}
                 </Badge>
                 {hasTrainingSurfaceNarrative ? (
-                  <Badge variant="outline" className="border-amber-500/25 bg-amber-500/[0.08] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-amber-300">
+                  <Badge variant="outline" className="border-amber-500/25 bg-amber-500/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-amber-300">
                     Training surface
                   </Badge>
                 ) : null}
@@ -268,14 +268,14 @@ export const OverviewSection = ({
               </p>
 
               {topTakeaways.length > 0 && (
-                <div className="mt-5 border-t border-white/[0.06] pt-5">
+                <div className="mt-5 border-t border-white/6 pt-5">
                   <p className={eyebrow + " mb-3"}>What stands out</p>
                   <div className="flex flex-wrap gap-2">
                     {topTakeaways.map((takeaway) => (
                       <Badge
                         key={takeaway}
                         variant="outline"
-                        className="rounded-full border-white/[0.08] bg-white/[0.03] px-3 py-1 text-[11px] leading-5 text-zinc-300"
+                        className="rounded-full border-white/8 bg-white/3 px-3 py-1 text-[11px] leading-5 text-zinc-300"
                       >
                         {takeaway}
                       </Badge>
@@ -290,7 +290,7 @@ export const OverviewSection = ({
         {/* ── STAT TILES: left-accent rail style ── */}
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {/* Critical */}
-          <div className="group relative overflow-hidden rounded-3xl bg-white/[0.04] px-5 py-6 ring-1 ring-white/[0.06] transition-all duration-200 hover:ring-white/[0.10] hover:-translate-y-px">
+          <div className="group relative overflow-hidden rounded-3xl bg-white/4 px-5 py-6 ring-1 ring-white/6 transition-all duration-200 hover:ring-white/10 hover:-translate-y-px">
             <div className="absolute inset-y-0 left-0 w-[3px] rounded-r-[2px] bg-rose-500/70" />
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -303,7 +303,7 @@ export const OverviewSection = ({
           </div>
 
           {/* Warning */}
-          <div className="group relative overflow-hidden rounded-3xl bg-white/[0.04] px-5 py-6 ring-1 ring-white/[0.06] transition-all duration-200 hover:ring-white/[0.10] hover:-translate-y-px">
+          <div className="group relative overflow-hidden rounded-3xl bg-white/4 px-5 py-6 ring-1 ring-white/6 transition-all duration-200 hover:ring-white/10 hover:-translate-y-px">
             <div className="absolute inset-y-0 left-0 w-[3px] rounded-r-[2px] bg-amber-400/70" />
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -316,7 +316,7 @@ export const OverviewSection = ({
           </div>
 
           {/* Strengths */}
-          <div className="group relative overflow-hidden rounded-3xl bg-white/[0.04] px-5 py-6 ring-1 ring-white/[0.06] transition-all duration-200 hover:ring-white/[0.10] hover:-translate-y-px">
+          <div className="group relative overflow-hidden rounded-3xl bg-white/4 px-5 py-6 ring-1 ring-white/6 transition-all duration-200 hover:ring-white/10 hover:-translate-y-px">
             <div className="absolute inset-y-0 left-0 w-[3px] rounded-r-[2px] bg-emerald-500/70" />
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -329,7 +329,7 @@ export const OverviewSection = ({
           </div>
 
           {/* Monitoring */}
-          <div className="group relative overflow-hidden rounded-3xl bg-white/[0.04] px-5 py-6 ring-1 ring-white/[0.06] transition-all duration-200 hover:ring-white/[0.10] hover:-translate-y-px">
+          <div className="group relative overflow-hidden rounded-3xl bg-white/4 px-5 py-6 ring-1 ring-white/6 transition-all duration-200 hover:ring-white/10 hover:-translate-y-px">
             <div className="absolute inset-y-0 left-0 w-[3px] rounded-r-[2px] bg-zinc-600/60" />
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -356,12 +356,12 @@ export const OverviewSection = ({
                 <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">Directional only</span>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
-                <div className="rounded-[1.25rem] border border-white/[0.08] bg-zinc-950/50 px-4 py-4">
+                <div className="rounded-[1.25rem] border border-white/8 bg-zinc-950/50 px-4 py-4">
                   <p className={eyebrow + " mb-2"}>Why constrained</p>
                   <p className="text-base font-semibold leading-7 text-white">{analysisData.assessmentLimitation.title}</p>
                   <p className="mt-1.5 text-sm leading-relaxed text-zinc-300">{analysisData.assessmentLimitation.detail}</p>
                 </div>
-                <div className="rounded-[1.25rem] border border-white/[0.08] bg-zinc-950/50 px-4 py-4">
+                <div className="rounded-[1.25rem] border border-white/8 bg-zinc-950/50 px-4 py-4">
                   <p className={eyebrow + " mb-2"}>How to read this</p>
                   <p className="mt-1.5 text-sm leading-relaxed text-zinc-300">
                     Use this result as a transport and access-control signal, not as a full posture verdict.
@@ -386,7 +386,7 @@ export const OverviewSection = ({
                   return (
                     <div key={area.key} className="grid gap-2 md:grid-cols-[10rem_1fr_3.5rem] md:items-center">
                       <p className="text-sm font-medium text-zinc-300">{area.label}</p>
-                      <div className="relative h-1.5 overflow-hidden rounded-full bg-white/[0.05]">
+                      <div className="relative h-1.5 overflow-hidden rounded-full bg-white/5">
                         <div
                           className="absolute inset-y-0 left-0 rounded-full transition-all duration-700"
                           style={{ width: `${area.score}%`, background: barColor }}
@@ -420,7 +420,7 @@ export const OverviewSection = ({
                   return (
                     <div
                       key={`${action.area}-${action.title}`}
-                      className="flex gap-3.5 rounded-[1.25rem] border border-white/[0.08] bg-zinc-950/50 px-4 py-4"
+                      className="flex gap-3.5 rounded-[1.25rem] border border-white/8 bg-zinc-950/50 px-4 py-4"
                     >
                       <span
                         className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-black"
@@ -444,7 +444,7 @@ export const OverviewSection = ({
                 })}
               </div>
             ) : (
-              <div className="rounded-[1.25rem] border border-white/[0.08] bg-zinc-950/50 px-4 py-4 text-sm leading-relaxed text-zinc-500">
+              <div className="rounded-[1.25rem] border border-white/8 bg-zinc-950/50 px-4 py-4 text-sm leading-relaxed text-zinc-500">
                 No immediate remediation being prioritized from current public evidence.
               </div>
             )}
@@ -457,21 +457,21 @@ export const OverviewSection = ({
             <p className={eyebrow}>Scan facts</p>
             <p className={cardTitle}>Capture details</p>
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="rounded-[1.25rem] border border-white/[0.08] bg-zinc-950/50 px-4 py-4">
+              <div className="rounded-[1.25rem] border border-white/8 bg-zinc-950/50 px-4 py-4">
                 <p className={eyebrow + " mb-2"}>Scanned</p>
                 <p className="text-sm font-semibold leading-6 text-white">{new Date(analysisData.scannedAt).toLocaleString()}</p>
               </div>
-              <div className="rounded-[1.25rem] border border-white/[0.08] bg-zinc-950/50 px-4 py-4">
+              <div className="rounded-[1.25rem] border border-white/8 bg-zinc-950/50 px-4 py-4">
                 <p className={eyebrow + " mb-2"}>HTTP</p>
                 <p className="text-2xl font-black tracking-[-0.03em] text-white">{analysisData.statusCode}</p>
                 <p className="mt-0.5 text-[10px] uppercase tracking-[0.16em] text-zinc-500">{getHttpStatusDetails(analysisData.statusCode).label}</p>
               </div>
-              <div className="rounded-[1.25rem] border border-white/[0.08] bg-zinc-950/50 px-4 py-4">
+              <div className="rounded-[1.25rem] border border-white/8 bg-zinc-950/50 px-4 py-4">
                 <p className={eyebrow + " mb-2"}>Latency</p>
                 <p className="text-2xl font-black tracking-[-0.03em] text-white">{analysisData.responseTimeMs}<span className="ml-0.5 text-sm font-medium text-zinc-500">ms</span></p>
               </div>
               {analysisData.scanTiming && (
-                <div className="rounded-[1.25rem] border border-white/[0.08] bg-zinc-950/50 px-4 py-4">
+                <div className="rounded-[1.25rem] border border-white/8 bg-zinc-950/50 px-4 py-4">
                   <p className={eyebrow + " mb-2"}>Scan duration</p>
                   <p className="text-2xl font-black tracking-[-0.03em] text-white">
                     {(analysisData.scanTiming.totalMs / 1000).toFixed(1)}<span className="ml-0.5 text-sm font-medium text-zinc-500">s</span>
@@ -498,21 +498,21 @@ export const OverviewSection = ({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <Button
                 variant="outline"
-                className="h-11 w-full justify-center rounded-xl border-zinc-800 bg-white/[0.03] font-semibold text-zinc-200 hover:bg-white/[0.07] hover:border-zinc-700 transition-all duration-150"
+                className="h-11 w-full justify-center rounded-xl border-zinc-800 bg-white/3 font-semibold text-zinc-200 hover:bg-white/[0.07] hover:border-zinc-700 transition-all duration-150"
                 onClick={exportPdf}
               >
                 PDF
               </Button>
               <Button
                 variant="outline"
-                className="h-11 w-full justify-center rounded-xl border-zinc-800 bg-white/[0.03] font-semibold text-zinc-200 hover:bg-white/[0.07] hover:border-zinc-700 transition-all duration-150"
+                className="h-11 w-full justify-center rounded-xl border-zinc-800 bg-white/3 font-semibold text-zinc-200 hover:bg-white/[0.07] hover:border-zinc-700 transition-all duration-150"
                 onClick={exportMarkdown}
               >
                 Markdown
               </Button>
               <Button
                 variant="outline"
-                className="h-11 w-full justify-center rounded-xl border-zinc-800 bg-white/[0.03] font-semibold text-zinc-200 hover:bg-white/[0.07] hover:border-zinc-700 transition-all duration-150"
+                className="h-11 w-full justify-center rounded-xl border-zinc-800 bg-white/3 font-semibold text-zinc-200 hover:bg-white/[0.07] hover:border-zinc-700 transition-all duration-150"
                 onClick={exportReport}
               >
                 JSON

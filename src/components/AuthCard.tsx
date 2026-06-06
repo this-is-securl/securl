@@ -53,7 +53,7 @@ export const AuthCard = ({
           <ShieldCheck className="h-5 w-5 text-emerald-300" />
         </div>
         <div className="space-y-4">
-          <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.04] px-4 py-4">
+          <div className="rounded-[1.2rem] border border-white/10 bg-white/4 px-4 py-4">
             <div className="flex items-start gap-3">
               <div className="mt-0.5 rounded-full bg-emerald-400/12 p-2 text-emerald-300">
                 <UserRound className="h-4 w-4" />
@@ -66,10 +66,10 @@ export const AuthCard = ({
               </div>
             </div>
           </div>
-          <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.04] px-4 py-4 text-sm leading-6 text-zinc-300">
+          <div className="rounded-[1.2rem] border border-white/10 bg-white/4 px-4 py-4 text-sm leading-6 text-zinc-300">
             Saved scans, monitoring targets, and report history now follow your account instead of being tied to this browser only.
           </div>
-          <div className="flex items-center justify-between gap-3 rounded-[1.2rem] border border-white/10 bg-white/[0.04] px-4 py-4 text-xs text-zinc-400">
+          <div className="flex items-center justify-between gap-3 rounded-[1.2rem] border border-white/10 bg-white/4 px-4 py-4 text-xs text-zinc-400">
             <span>Session valid until</span>
             <span className="text-zinc-200">
               {new Date(authSession.session.expiresAt).toLocaleDateString()}
@@ -78,7 +78,7 @@ export const AuthCard = ({
           <Button
             type="button"
             variant="outline"
-            className="w-full border-white/10 bg-white/[0.04] text-zinc-100 hover:bg-white/[0.08]"
+            className="w-full border-white/10 bg-white/4 text-zinc-100 hover:bg-white/8"
             onClick={() => void signOut()}
             disabled={isSubmitting}
           >
@@ -96,13 +96,13 @@ export const AuthCard = ({
         <KeyRound className="h-5 w-5 text-[#d89a63]" />
       </div>
       <div className="space-y-4">
-        <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.04] px-4 py-4 text-sm leading-6 text-zinc-300">
+        <div className="rounded-[1.2rem] border border-white/10 bg-white/4 px-4 py-4 text-sm leading-6 text-zinc-300">
           Sign in to keep scans, monitoring targets, and history attached to your account across browsers and the iOS app.
         </div>
         <Tabs value={mode} onValueChange={(value) => setMode(value as "login" | "register")} className="space-y-4">
           <TabsList className="grid w-full grid-cols-2 rounded-xl border border-white/10 bg-zinc-950/50 p-1">
-            <TabsTrigger value="login" className="rounded-lg data-[state=active]:bg-white/[0.08]">Sign in</TabsTrigger>
-            <TabsTrigger value="register" className="rounded-lg data-[state=active]:bg-white/[0.08]">Create account</TabsTrigger>
+            <TabsTrigger value="login" className="rounded-lg data-[state=active]:bg-white/8">Sign in</TabsTrigger>
+            <TabsTrigger value="register" className="rounded-lg data-[state=active]:bg-white/8">Create account</TabsTrigger>
           </TabsList>
         </Tabs>
         <div className="space-y-3">

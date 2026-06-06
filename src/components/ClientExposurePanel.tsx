@@ -11,7 +11,7 @@ interface ClientExposurePanelProps {
 export const ClientExposurePanel = ({ htmlSecurity }: ClientExposurePanelProps) => {
   if (!htmlSecurity.clientExposureSignals.length) {
     return (
-      <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+      <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Cpu className="h-5 w-5" />
@@ -28,7 +28,7 @@ export const ClientExposurePanel = ({ htmlSecurity }: ClientExposurePanelProps) 
   }
 
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Cpu className="h-5 w-5" />
@@ -37,7 +37,7 @@ export const ClientExposurePanel = ({ htmlSecurity }: ClientExposurePanelProps) 
       </CardHeader>
       <CardContent className="space-y-4">
         {htmlSecurity.clientExposureSignals.map((signal) => (
-          <div key={`${signal.category}-${signal.title}`} className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] p-4">
+          <div key={`${signal.category}-${signal.title}`} className="rounded-[1.35rem] border border-white/10 bg-white/4 p-4">
             <div className="flex flex-wrap items-center gap-2">
               <p className="font-semibold text-zinc-50">{signal.title}</p>
               <Badge variant={signal.severity === "warning" ? "destructive" : "secondary"}>

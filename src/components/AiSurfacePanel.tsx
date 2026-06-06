@@ -17,7 +17,7 @@ export const AiSurfacePanel = ({ aiSurface }: AiSurfacePanelProps) => {
   } as const;
 
   const confidenceStyles = {
-    high: "bg-white/[0.12] text-zinc-100",
+    high: "bg-white/12 text-zinc-100",
     medium: "bg-zinc-700/40 text-zinc-300",
     low: "bg-[#4f6676]/14 text-[#d6e5ec]",
   } as const;
@@ -25,7 +25,7 @@ export const AiSurfacePanel = ({ aiSurface }: AiSurfacePanelProps) => {
   const classificationSummary = getAiSurfaceClassificationSummary(aiSurface);
 
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bot className="h-5 w-5" />
@@ -52,7 +52,7 @@ export const AiSurfacePanel = ({ aiSurface }: AiSurfacePanelProps) => {
             value={
               <div className="grid gap-3">
                 {aiSurface.vendors.map((vendor) => (
-                  <div key={`${vendor.name}-${vendor.category}`} className="rounded-[1.2rem] border border-white/10 bg-white/[0.04] px-4 py-3">
+                  <div key={`${vendor.name}-${vendor.category}`} className="rounded-[1.2rem] border border-white/10 bg-white/4 px-4 py-3">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium text-zinc-50">{vendor.name}</span>
                       <Badge variant="outline">{categoryLabel[vendor.category]}</Badge>
@@ -87,7 +87,7 @@ export const AiSurfacePanel = ({ aiSurface }: AiSurfacePanelProps) => {
                 <div className="space-y-2">
                   {aiSurface.privacySignals.length > 0 ? (
                     aiSurface.privacySignals.map((signal) => (
-                      <p key={signal} className="rounded-[1rem] border border-white/10 bg-white/[0.04] px-3 py-3 text-sm text-zinc-300">
+                      <p key={signal} className="rounded-2xl border border-white/10 bg-white/4 px-3 py-3 text-sm text-zinc-300">
                         {signal}
                       </p>
                     ))
@@ -103,7 +103,7 @@ export const AiSurfacePanel = ({ aiSurface }: AiSurfacePanelProps) => {
                 <div className="space-y-2">
                   {aiSurface.governanceSignals.length > 0 ? (
                     aiSurface.governanceSignals.map((signal) => (
-                      <p key={signal} className="rounded-[1rem] border border-white/10 bg-white/[0.04] px-3 py-3 text-sm text-zinc-300">
+                      <p key={signal} className="rounded-2xl border border-white/10 bg-white/4 px-3 py-3 text-sm text-zinc-300">
                         {signal}
                       </p>
                     ))

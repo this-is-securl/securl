@@ -23,7 +23,7 @@ export const WafFingerprintPanel = ({ wafFingerprint }: WafFingerprintPanelProps
   ];
 
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <CardTitle>WAF & Edge Fingerprint</CardTitle>
@@ -44,7 +44,7 @@ export const WafFingerprintPanel = ({ wafFingerprint }: WafFingerprintPanelProps
             {wafFingerprint.providers.length ? (
               <ul className="mt-3 space-y-3 text-sm text-zinc-300">
                 {wafFingerprint.providers.map((provider) => (
-                  <li key={`${provider.name}-${provider.evidence}`} className="rounded-[1.1rem] border border-white/10 bg-white/[0.04] p-3">
+                  <li key={`${provider.name}-${provider.evidence}`} className="rounded-[1.1rem] border border-white/10 bg-white/4 p-3">
                     <div className="flex items-center justify-between gap-3">
                       <span className="font-semibold text-white">{provider.name}</span>
                       <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">
