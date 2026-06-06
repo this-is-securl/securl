@@ -2,13 +2,24 @@
 
 ## Pre-release checklist
 
+Only release `@ktbatterham/external-posture-core` when the package itself changes. Backend-only API resources, hosted app deploy scripts, Railway settings, Hostinger static deploys, and app-only UI changes do not warrant a core package bump unless they also change files that are published from `packages/core`.
+
+Version bump guidance:
+
+- **Patch**: bug fixes, scoring calibration fixes, false-positive/false-negative corrections, dependency/runtime fixes, or docs/signalling updates intentionally worth republishing.
+- **Minor**: new exported helpers, new analysis signals, new CLI options, new report formats, new typed result fields, or additive public API changes.
+- **Major**: breaking changes to exported functions, CLI commands/options, package exports, result types, scoring semantics that consumers must handle differently, or supported Node/runtime expectations.
+
+Before deciding to bump, check what changed since the latest core tag:
+
+```sh
+git diff --name-status core-v$(node -p "require('./packages/core/package.json').version")..HEAD -- packages/core package.json package-lock.json
+```
+
 1. Update `packages/core/package.json` version.
 2. Update `packages/core/CHANGELOG.md`.
 3. Run:
-   - `npm run build:core`
-   - `npm run test:core`
-   - `npm run lint`
-   - `npm run pack:core`
+   - `npm run release:core:check`
 4. Review the dry-run tarball contents.
 5. Confirm `NPM_TOKEN` is present in GitHub repository secrets.
 

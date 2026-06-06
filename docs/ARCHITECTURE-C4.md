@@ -19,8 +19,8 @@ SecURL is an external security posture product for public web targets. It gives 
   - consumes the executive-facing report output
 - **Security analyst / engineer**
   - runs scans, reviews detailed findings, and uses technical outputs
-- **Future mobile client**
-  - will consume the same backend service model as the web client
+- **iOS companion and future mobile clients**
+  - consume the same backend service model as the web client
 - **Public target website**
   - the system being scanned
 - **DNS / trust / certificate ecosystem**
@@ -32,7 +32,7 @@ SecURL is an external security posture product for public web targets. It gives 
 flowchart LR
   user_exec["Security leader / CISO / GRC reader"]
   user_analyst["Security analyst / engineer"]
-  mobile["Future iOS / Android client"]
+  mobile["iOS companion / future Android client"]
   target["Public web target"]
   trust["DNS / TLS / CT / trust ecosystem"]
 
@@ -40,7 +40,7 @@ flowchart LR
 
   user_exec -->|"Consumes reports and posture summaries"| securl
   user_analyst -->|"Runs scans, reviews findings, exports outputs"| securl
-  mobile -->|"Will consume backend resources"| securl
+  mobile -->|"Consumes backend resources"| securl
   securl -->|"Performs passive-first external assessment"| target
   securl -->|"Reads public trust and network signals"| trust
 ```
@@ -235,7 +235,7 @@ The backend should own:
 - target history
 - comparison/diff state
 
-This is the key boundary that makes future Android and iOS companions realistic.
+This is the key boundary that makes the iOS companion and future Android clients realistic.
 
 ### Analysis boundary
 
@@ -272,7 +272,7 @@ The architecture is now materially stronger in a few important ways:
 
 Some parts are still transitional rather than final:
 
-- auth still uses the `X-Scan-Owner` model rather than real user identity
+- anonymous clients still use the transitional `X-Scan-Owner` model
 - PDF export is still browser-print-driven rather than a dedicated server-side render pipeline
 - Postgres is structurally supported, but the production durability story can still deepen
 - some UX/reporting behavior is richer than the service contract beneath it
