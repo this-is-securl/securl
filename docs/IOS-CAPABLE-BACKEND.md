@@ -1,8 +1,8 @@
-# iOS-Capable Backend Plan
+# iOS Companion Backend Notes
 
-SecURL does not need an iOS app yet, but the backend should be able to support one cleanly when we are ready.
+SecURL now has an iOS companion app, so the backend contract should stay stable for both the hosted web app and mobile clients.
 
-This document defines the service boundary we are moving toward so web, future mobile clients, and background monitoring can share the same server-owned scan model.
+This document defines the service boundary web, mobile clients, and background monitoring share through the same server-owned scan model.
 
 ## Why This Shift Matters
 
@@ -22,7 +22,7 @@ That shift matters because it gives us:
 
 ## Current Transitional State
 
-As of the first `0.8.3` backend step, the server now has:
+The current backend service exposes:
 
 - `GET /api/telemetry`
 - `GET /api/scans`
@@ -297,46 +297,21 @@ The `AnalysisResult` object is rich but too large to treat as the only client co
 
 This will help both iOS and the web app.
 
-## Operational Requirements Before 0.9.0
+## Remaining Operational Requirements
 
-- distributed rate limiting by default in public multi-instance mode
+- distributed rate limiting for public multi-instance mode
 - bounded concurrency for queued scans
 - durable scan storage
-- auth for user-owned resources
 - telemetry that survives restarts
+- deeper production persistence and retention controls
 
-## Suggested Release Path
-
-### 0.8.3
+## Completed Backend Milestones
 
 - telemetry foundation
-- in-memory scan resources
-
-### 0.8.4
-
-- persistence design
-- database schema draft
-- stored scan records
-
-### 0.8.5
-
-- async queue semantics
-- concurrency limiting
-- better scan status transitions
-
-### 0.8.6
-
+- server-owned scan resources
+- persisted scan records
+- async queue semantics and bounded concurrency
 - server-owned monitoring targets
-- shared history across clients
-
-### 0.8.7
-
-- auth and ownership
-
-### 0.8.8
-
-- mobile-friendly DTOs and response shaping
-
-### 0.9.0
-
-- backend is genuinely client-platform capable
+- auth sessions and API keys
+- mobile-friendly scan DTOs
+- direct scan comparison API
