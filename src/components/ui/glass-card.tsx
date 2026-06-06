@@ -44,7 +44,7 @@ export function GlassCard({
       {/* Top-edge inner highlight — DOM-first so content paints over it */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 rounded-3xl bg-gradient-to-b from-white/[0.07] to-transparent"
+        className="pointer-events-none absolute inset-0 rounded-3xl bg-linear-to-b from-white/[0.07] to-transparent"
       />
       {children}
     </div>

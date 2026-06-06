@@ -13,7 +13,7 @@ export const AuthSurfacePanel = ({ htmlSecurity }: AuthSurfacePanelProps) => {
 
   if (!summary.authPaths.length && !summary.passwordFormCount) {
     return (
-      <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+      <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <KeyRound className="h-5 w-5" />
@@ -36,7 +36,7 @@ export const AuthSurfacePanel = ({ htmlSecurity }: AuthSurfacePanelProps) => {
   }
 
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <KeyRound className="h-5 w-5" />

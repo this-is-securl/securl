@@ -19,7 +19,7 @@ const severityTone = {
   },
   info: {
     rail: "bg-zinc-500/50",
-    chip: "bg-white/[0.08] text-zinc-200 border-white/10",
+    chip: "bg-white/8 text-zinc-200 border-white/10",
   },
 } as const;
 
@@ -28,7 +28,7 @@ export const PriorityActionsPanel = ({ analysis }: PriorityActionsPanelProps) =>
 
   if (!actions.length) {
     return (
-      <Card className="rounded-[2rem] border border-white/[0.09] bg-white/[0.04] shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset]">
+      <Card className="rounded-4xl border border-white/9 bg-white/4 shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset]">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-xl font-black tracking-[-0.03em] text-white">
             <ListTodo className="h-5 w-5 text-[#d89a63]" />
@@ -45,7 +45,7 @@ export const PriorityActionsPanel = ({ analysis }: PriorityActionsPanelProps) =>
   }
 
   return (
-    <Card className="rounded-[2rem] border border-white/[0.09] bg-white/[0.04] shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset]">
+    <Card className="rounded-4xl border border-white/9 bg-white/4 shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset]">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-xl font-black tracking-[-0.03em] text-white">
           <ListTodo className="h-5 w-5 text-[#d89a63]" />
@@ -53,14 +53,14 @@ export const PriorityActionsPanel = ({ analysis }: PriorityActionsPanelProps) =>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="overflow-hidden rounded-[1.5rem] border border-white/[0.08] bg-zinc-950/50">
+        <div className="overflow-hidden rounded-3xl border border-white/8 bg-zinc-950/50">
           {actions.map((action, index) => {
             const tone = severityTone[action.severity];
             return (
               <div
                 key={`${action.area}-${action.title}`}
                 className={`grid gap-3 px-5 py-5 md:grid-cols-[2rem_minmax(0,1fr)_11rem] md:items-start ${
-                  index < actions.length - 1 ? "border-b border-white/[0.06]" : ""
+                  index < actions.length - 1 ? "border-b border-white/6" : ""
                 }`}
               >
                 <div className="flex items-start justify-center pt-0.5">

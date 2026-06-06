@@ -10,19 +10,19 @@ interface CrawlPanelProps {
 }
 
 const gradeStyles: Record<string, string> = {
-  "A+": "bg-white/[0.08] text-zinc-100",
-  A: "bg-white/[0.08] text-zinc-100",
+  "A+": "bg-white/8 text-zinc-100",
+  A: "bg-white/8 text-zinc-100",
   B: "bg-[#4f6676]/18 text-[#d9e4ea]",
   C: "bg-[#7f1d1d]/14 text-zinc-300",
   D: "bg-zinc-700/40 text-zinc-300",
   F: "bg-zinc-700/40 text-zinc-300",
-  Redirected: "bg-white/[0.08] text-zinc-100",
+  Redirected: "bg-white/8 text-zinc-100",
 };
 
 export const CrawlPanel = ({ crawl }: CrawlPanelProps) => {
   if (!crawl.pages.length) {
     return (
-      <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+      <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Route className="h-5 w-5" />
@@ -39,7 +39,7 @@ export const CrawlPanel = ({ crawl }: CrawlPanelProps) => {
   }
 
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Route className="h-5 w-5" />
@@ -66,7 +66,7 @@ export const CrawlPanel = ({ crawl }: CrawlPanelProps) => {
         )}
 
         {crawl.inconsistentHeaders.length > 0 && (
-          <div className="rounded-[1.25rem] border border-white/[0.10] p-4">
+          <div className="rounded-[1.25rem] border border-white/10 p-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-zinc-300">
               <GitCompareArrows className="h-4 w-4" />
               Inconsistent across routes
@@ -85,7 +85,7 @@ export const CrawlPanel = ({ crawl }: CrawlPanelProps) => {
           {crawl.pages.map((page) => {
             const status = page.statusCode ? getHttpStatusDetails(page.statusCode) : null;
             return (
-              <div key={`${page.path}-${page.label}`} className="rounded-[1.25rem] border border-white/10 bg-white/[0.04] p-4">
+              <div key={`${page.path}-${page.label}`} className="rounded-[1.25rem] border border-white/10 bg-white/4 p-4">
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div className="min-w-0">
                     <div className="flex min-w-0 items-center gap-2">
@@ -106,16 +106,16 @@ export const CrawlPanel = ({ crawl }: CrawlPanelProps) => {
                   </div>
                 </div>
                 <div className="mt-4 grid gap-3 text-sm md:grid-cols-3">
-                  <div className="rounded-[1rem] bg-zinc-950/45 p-3 text-zinc-300">
+                  <div className="rounded-2xl bg-zinc-950/45 p-3 text-zinc-300">
                     <div>Status {page.statusCode ? `${page.statusCode} ${status?.label}` : "unreachable"} · {page.responseTimeMs}ms</div>
                     {status ? (
                       <div className="mt-1 text-xs leading-5 text-zinc-400">{status.meaning}</div>
                     ) : null}
                   </div>
-                  <div className="rounded-[1rem] bg-zinc-950/45 p-3 text-zinc-300">
+                  <div className="rounded-2xl bg-zinc-950/45 p-3 text-zinc-300">
                     Missing: {!page.sameOrigin ? "not compared" : page.missingHeaders.length ? page.missingHeaders.join(", ") : "none"}
                   </div>
-                  <div className="rounded-[1rem] bg-zinc-950/45 p-3 text-zinc-300">
+                  <div className="rounded-2xl bg-zinc-950/45 p-3 text-zinc-300">
                     Warnings: {!page.sameOrigin ? "not compared" : page.warningHeaders.length ? page.warningHeaders.join(", ") : "none"}
                   </div>
                 </div>

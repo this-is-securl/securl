@@ -11,19 +11,19 @@ interface CookieAnalysisPanelProps {
 const sameSiteBadgeClass = (sameSite: "Strict" | "Lax" | "None" | "missing"): string => {
   switch (sameSite) {
     case "Strict":
-      return "border-emerald-400/30 bg-emerald-400/[0.08] text-emerald-200";
+      return "border-emerald-400/30 bg-emerald-400/8 text-emerald-200";
     case "Lax":
-      return "border-zinc-500/30 bg-zinc-500/[0.08] text-zinc-200";
+      return "border-zinc-500/30 bg-zinc-500/8 text-zinc-200";
     case "None":
-      return "border-rose-500/30 bg-rose-500/[0.08] text-rose-200";
+      return "border-rose-500/30 bg-rose-500/8 text-rose-200";
     case "missing":
-      return "border-amber-500/30 bg-amber-500/[0.08] text-amber-200";
+      return "border-amber-500/30 bg-amber-500/8 text-amber-200";
   }
 };
 
 export const CookieAnalysisPanel = ({ cookieAnalysis }: CookieAnalysisPanelProps) => {
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Cookie className="h-5 w-5" />
@@ -77,13 +77,13 @@ export const CookieAnalysisPanel = ({ cookieAnalysis }: CookieAnalysisPanelProps
                     <div className="mt-2 flex flex-wrap gap-2">
                       <Badge
                         variant="outline"
-                        className={cookie.hasSecure ? "border-emerald-400/30 bg-emerald-400/[0.08] text-emerald-200" : "border-rose-500/30 bg-rose-500/[0.08] text-rose-200"}
+                        className={cookie.hasSecure ? "border-emerald-400/30 bg-emerald-400/8 text-emerald-200" : "border-rose-500/30 bg-rose-500/8 text-rose-200"}
                       >
                         {cookie.hasSecure ? "Secure" : "No Secure"}
                       </Badge>
                       <Badge
                         variant="outline"
-                        className={cookie.hasHttpOnly ? "border-emerald-400/30 bg-emerald-400/[0.08] text-emerald-200" : "border-rose-500/30 bg-rose-500/[0.08] text-rose-200"}
+                        className={cookie.hasHttpOnly ? "border-emerald-400/30 bg-emerald-400/8 text-emerald-200" : "border-rose-500/30 bg-rose-500/8 text-rose-200"}
                       >
                         {cookie.hasHttpOnly ? "HttpOnly" : "No HttpOnly"}
                       </Badge>
@@ -94,7 +94,7 @@ export const CookieAnalysisPanel = ({ cookieAnalysis }: CookieAnalysisPanelProps
                         SameSite={cookie.sameSite}
                       </Badge>
                       {cookie.isSessionCookie && (
-                        <Badge variant="outline" className="border-zinc-500/30 bg-zinc-500/[0.08] text-zinc-300">
+                        <Badge variant="outline" className="border-zinc-500/30 bg-zinc-500/8 text-zinc-300">
                           Session
                         </Badge>
                       )}

@@ -151,7 +151,7 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
 
   if (!alerts.length && scoreSeries.length === 0) {
     return (
-      <Card className="rounded-[1.75rem] border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+      <Card className="rounded-[1.75rem] border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
             <BellRing className="h-5 w-5 text-[#d89a63]" />
@@ -168,7 +168,7 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
   }
 
   return (
-    <Card className="rounded-[1.75rem] border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="rounded-[1.75rem] border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2">
           <BellRing className="h-5 w-5 text-[#d89a63]" />
@@ -290,14 +290,14 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
                     points={sparklinePoints}
                   />
                 </svg>
-                <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-semibold text-zinc-200">
+                <div className="rounded-full border border-white/10 bg-white/4 px-3 py-2 text-sm font-semibold text-zinc-200">
                   {trendDelta > 0 ? "+" : ""}
                   {trendDelta} over window
                 </div>
               </div>
               <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-7">
                 {sparklineAxis.map((point, index) => (
-                  <div key={point.id} className="rounded-xl border border-white/10 bg-white/[0.03] px-2 py-2 text-center">
+                  <div key={point.id} className="rounded-xl border border-white/10 bg-white/3 px-2 py-2 text-center">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
                       {index === 0 ? "Start" : point.label}
                     </p>
@@ -310,7 +310,7 @@ export const MonitoringPanel = ({ analysis, diff, history }: MonitoringPanelProp
         </div>
 
         {alerts.length ? (
-          <div className="overflow-hidden rounded-[1.35rem] border border-white/10 bg-white/[0.03] shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
+          <div className="overflow-hidden rounded-[1.35rem] border border-white/10 bg-white/3 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
             {alerts.map((alert, index) => (
               <div
                 key={`${alert.title}-${alert.detail}`}

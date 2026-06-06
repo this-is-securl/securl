@@ -11,7 +11,7 @@ interface RedirectChainProps {
 
 export const RedirectChain = ({ redirects, chainAnalysis }: RedirectChainProps) => {
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Route className="h-5 w-5" />
@@ -21,17 +21,17 @@ export const RedirectChain = ({ redirects, chainAnalysis }: RedirectChainProps) 
       <CardContent className="space-y-3">
         {chainAnalysis && (
           <div className="flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-zinc-300">
+            <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-zinc-300">
               {chainAnalysis.totalHops} hop{chainAnalysis.totalHops !== 1 ? "s" : ""}
             </span>
             {chainAnalysis.crossesDomain && (
-              <span className="rounded-full border border-amber-500/30 bg-amber-500/[0.08] px-3 py-1 text-amber-200">Cross-domain</span>
+              <span className="rounded-full border border-amber-500/30 bg-amber-500/8 px-3 py-1 text-amber-200">Cross-domain</span>
             )}
             {chainAnalysis.hasMixedRedirect && (
-              <span className="rounded-full border border-rose-500/30 bg-rose-500/[0.08] px-3 py-1 text-rose-200">HTTPS→HTTP hop</span>
+              <span className="rounded-full border border-rose-500/30 bg-rose-500/8 px-3 py-1 text-rose-200">HTTPS→HTTP hop</span>
             )}
             {chainAnalysis.finalUrl && (
-              <span className="max-w-full overflow-hidden break-all rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-zinc-400">
+              <span className="max-w-full overflow-hidden break-all rounded-full border border-white/10 bg-white/4 px-3 py-1 text-zinc-400">
                 Final: {chainAnalysis.finalUrl}
               </span>
             )}
@@ -52,7 +52,7 @@ export const RedirectChain = ({ redirects, chainAnalysis }: RedirectChainProps) 
         {redirects.map((hop, index) => {
           const status = getHttpStatusDetails(hop.statusCode);
           return (
-            <div key={`${hop.url}-${index}`} className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] px-4 py-3">
+            <div key={`${hop.url}-${index}`} className="rounded-[1.35rem] border border-white/10 bg-white/4 px-4 py-3">
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-zinc-100">{hop.url}</p>

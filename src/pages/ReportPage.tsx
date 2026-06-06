@@ -85,7 +85,7 @@ export function ReportPage() {
       />
 
       {/* Minimal header */}
-      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#070b14]/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-white/6 bg-[#070b14]/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
           <Link to="/" className="flex items-center gap-2 text-sm font-black tracking-[-0.03em] text-white hover:opacity-80">
             <div
@@ -96,7 +96,7 @@ export function ReportPage() {
             </div>
             Sec<span style={{ backgroundImage: "linear-gradient(135deg, #b56a2c, #d89a63)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>URL</span>
           </Link>
-          <span className="rounded-full border border-[#b56a2c]/25 bg-[#b56a2c]/[0.10] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.15em] text-[#f0d5bc]">
+          <span className="rounded-full border border-[#b56a2c]/25 bg-[#b56a2c]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.15em] text-[#f0d5bc]">
             Shared report
           </span>
           <a
@@ -117,9 +117,9 @@ export function ReportPage() {
         {currentSection && (
           <div
             key={currentSection.key}
-            className="mt-6 min-w-0 overflow-hidden rounded-[2rem] border border-white/[0.09] bg-white/[0.04] shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset] animate-in fade-in-50 slide-in-from-bottom-2 duration-500"
+            className="mt-6 min-w-0 overflow-hidden rounded-4xl border border-white/9 bg-white/4 shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset] animate-in fade-in-50 slide-in-from-bottom-2 duration-500"
           >
-            <div className="border-b border-white/[0.08] px-4 py-6 sm:px-10 sm:py-8">
+            <div className="border-b border-white/8 px-4 py-6 sm:px-10 sm:py-8">
               <div className="flex items-center gap-2.5">
                 {currentSection.icon && (
                   <currentSection.icon className="h-3.5 w-3.5 text-[#d89a63]" />

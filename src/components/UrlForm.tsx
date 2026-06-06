@@ -41,7 +41,7 @@ export const UrlForm = ({ onSubmit, isLoading, initialValue = "", scanStage = nu
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-full rounded-[1.75rem] border border-white/10 bg-white/[0.06] p-2 shadow-2xl shadow-black/20 backdrop-blur"
+      className="w-full rounded-[1.75rem] border border-white/10 bg-white/6 p-2 shadow-2xl shadow-black/20 backdrop-blur-sm"
     >
       <div className="flex flex-col gap-2 sm:gap-3 md:flex-row md:items-center">
         <div className="flex flex-1 items-center gap-3 rounded-[1.25rem] border border-white/10 bg-zinc-950/60 px-4 py-3">
@@ -67,7 +67,7 @@ export const UrlForm = ({ onSubmit, isLoading, initialValue = "", scanStage = nu
         Enter a domain or full URL. If you omit the scheme, the scanner will try HTTPS automatically.
       </p>
       {isLoading && scanStage ? (
-        <div className="mt-4 rounded-[1.2rem] border border-white/[0.10] px-4 py-3 shadow-[0_18px_36px_-28px_rgba(0,0,0,0.75)]">
+        <div className="mt-4 rounded-[1.2rem] border border-white/10 px-4 py-3 shadow-[0_18px_36px_-28px_rgba(0,0,0,0.75)]">
           <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">Live scan status</p>
@@ -85,7 +85,7 @@ export const UrlForm = ({ onSubmit, isLoading, initialValue = "", scanStage = nu
                       complete
                         ? "bg-[#d89a63]"
                         : active
-                          ? "bg-gradient-to-r from-[#7a4a1a] via-[#b56a2c] to-[#d89a63]"
+                          ? "bg-linear-to-r from-[#7a4a1a] via-[#b56a2c] to-[#d89a63]"
                           : "bg-white/10"
                     } ${active ? "shadow-[0_0_0_1px_rgba(216,154,99,0.22)]" : ""}`}
                   />

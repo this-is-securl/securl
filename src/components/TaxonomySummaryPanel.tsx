@@ -21,7 +21,7 @@ interface ThemeColumnProps {
 }
 
 const ThemeColumn = ({ title, emptyState, items }: ThemeColumnProps) => (
-  <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
+  <div className="rounded-3xl border border-white/10 bg-white/3 p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
     <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">{title}</p>
     <div className="mt-3 space-y-3">
       {items.length ? (
@@ -69,7 +69,7 @@ export const TaxonomySummaryPanel = ({ analysis }: TaxonomySummaryPanelProps) =>
   const themes = getDominantThemes(analysis);
 
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Layers3 className="h-5 w-5 text-[#d89a63]" />
@@ -77,7 +77,7 @@ export const TaxonomySummaryPanel = ({ analysis }: TaxonomySummaryPanelProps) =>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
-        <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
+        <div className="rounded-3xl border border-white/10 bg-white/3 p-5 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">Dominant read</p>
           <p className="mt-3 text-sm leading-7 text-zinc-300">{themes.summary}</p>
         </div>

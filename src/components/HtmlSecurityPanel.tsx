@@ -59,7 +59,7 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
   ];
 
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CodeXml className="h-5 w-5" />
@@ -92,7 +92,7 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
           }
         />
 
-        <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(9.75rem,1fr))]">
+        <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(9.75rem,1fr))]">
           <StatBox
             label="Page title"
             className="sm:col-span-2"
@@ -223,7 +223,7 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
             value={
               <div className="space-y-2">
                 {htmlSecurity.forms.map((form, index) => (
-                  <div key={`${form.action ?? "self"}-${index}`} className="rounded-[1.15rem] border border-white/10 bg-white/[0.04] p-3 text-sm text-zinc-200">
+                  <div key={`${form.action ?? "self"}-${index}`} className="rounded-[1.15rem] border border-white/10 bg-white/4 p-3 text-sm text-zinc-200">
                     <p>Method: {form.method}</p>
                     <p>Action: {form.action ?? "(same page)"}</p>
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -243,7 +243,7 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
             value={
               <div className="space-y-1">
                 {htmlSecurity.insecureResourceUrls.slice(0, 10).map((url) => (
-                  <p key={url} className="break-all rounded-[0.75rem] border border-rose-500/20 bg-rose-500/[0.05] px-3 py-1.5 font-mono text-xs text-rose-300">{url}</p>
+                  <p key={url} className="break-all rounded-xl border border-rose-500/20 bg-rose-500/5 px-3 py-1.5 font-mono text-xs text-rose-300">{url}</p>
                 ))}
                 {htmlSecurity.insecureResourceUrls.length > 10 && (
                   <p className="text-xs text-zinc-400">+{htmlSecurity.insecureResourceUrls.length - 10} more</p>
@@ -280,12 +280,12 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
             value={
               <div className="space-y-3">
                 {htmlSecurity.passiveLeakSignals.map((signal) => (
-                  <div key={`${signal.category}-${signal.title}`} className="rounded-[1.15rem] border border-white/10 bg-white/[0.04] p-4 text-sm text-zinc-200">
+                  <div key={`${signal.category}-${signal.title}`} className="rounded-[1.15rem] border border-white/10 bg-white/4 p-4 text-sm text-zinc-200">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-semibold text-zinc-50">{signal.title}</p>
                       <Badge
                         variant="secondary"
-                        className={signal.severity === "warning" ? "bg-zinc-700/40 text-zinc-300" : "bg-white/[0.08] text-zinc-100"}
+                        className={signal.severity === "warning" ? "bg-zinc-700/40 text-zinc-300" : "bg-white/8 text-zinc-100"}
                       >
                         {signal.severity}
                       </Badge>
@@ -310,12 +310,12 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
               <div className="space-y-3">
                 {htmlSecurity.libraryRiskSignals.length ? (
                   htmlSecurity.libraryRiskSignals.map((signal) => (
-                    <div key={`${signal.packageName}-${signal.version}`} className="rounded-[1.15rem] border border-white/10 bg-white/[0.04] p-4 text-sm text-zinc-200">
+                    <div key={`${signal.packageName}-${signal.version}`} className="rounded-[1.15rem] border border-white/10 bg-white/4 p-4 text-sm text-zinc-200">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-semibold text-zinc-50">
                           {signal.packageName} {signal.version}
                         </p>
-                        <Badge variant="secondary" className="bg-white/[0.08] text-zinc-100">{signal.confidence} confidence</Badge>
+                        <Badge variant="secondary" className="bg-white/8 text-zinc-100">{signal.confidence} confidence</Badge>
                         <Badge variant="secondary" className="bg-zinc-700/40 text-zinc-300">
                           {signal.vulnerabilities.length} advisor{signal.vulnerabilities.length === 1 ? "y" : "ies"}
                         </Badge>
@@ -324,7 +324,7 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
                       <p className="mt-1 break-all text-xs text-zinc-400">{signal.sourceUrl}</p>
                       <div className="mt-3 space-y-2">
                         {signal.vulnerabilities.map((item) => (
-                          <div key={item.id} className="rounded-[1rem] border border-white/10 bg-zinc-950/45 px-3 py-2">
+                          <div key={item.id} className="rounded-2xl border border-white/10 bg-zinc-950/45 px-3 py-2">
                             <p className="font-medium text-zinc-50">
                               {item.id}
                               {item.aliases.length ? ` • ${item.aliases.join(", ")}` : ""}
@@ -337,7 +337,7 @@ export const HtmlSecurityPanel = ({ htmlSecurity }: HtmlSecurityPanelProps) => {
                     </div>
                   ))
                 ) : (
-                  <div className="rounded-[1.15rem] border border-white/10 bg-white/[0.04] p-4 text-sm text-zinc-300">
+                  <div className="rounded-[1.15rem] border border-white/10 bg-white/4 p-4 text-sm text-zinc-300">
                     Explicitly versioned client libraries were detected, but no matching OSV advisories were returned.
                   </div>
                 )}

@@ -108,7 +108,7 @@ const getHistoryLead = (diff: HistoryDiff | null, trendDelta: number, trendCount
 export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
   if (!history.length) {
     return (
-      <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+      <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <History className="h-5 w-5 text-[#d89a63]" />
@@ -219,7 +219,7 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
   }));
 
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <History className="h-5 w-5 text-[#d89a63]" />
@@ -301,7 +301,7 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
               </svg>
               <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-8">
                 {timelineBadges.map((point) => (
-                  <div key={point.id} className="rounded-xl border border-white/10 bg-white/[0.03] px-2 py-2 text-center">
+                  <div key={point.id} className="rounded-xl border border-white/10 bg-white/3 px-2 py-2 text-center">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">{point.label}</p>
                     <p className="mt-1 text-sm font-semibold text-zinc-100">{point.score}</p>
                     <p className="text-[10px] uppercase tracking-[0.16em] text-zinc-400">{point.grade}</p>
@@ -313,7 +313,7 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
         </div>
 
         {diff?.summary.length ? (
-          <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.03] p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
+          <div className="rounded-[1.35rem] border border-white/10 bg-white/3 p-4 shadow-[0_18px_40px_-28px_rgba(0,0,0,0.7)]">
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">Change summary</p>
             <div className="mt-3 space-y-2 text-sm text-zinc-300">
               {diff.summary.map((item) => (
@@ -343,7 +343,7 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
                   <p className="text-xs text-zinc-400">{new Date(snapshot.scannedAt).toLocaleString()}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="bg-white/[0.1] text-zinc-100">
+                  <Badge variant="secondary" className="bg-white/10 text-zinc-100">
                     {snapshot.grade}
                   </Badge>
                   <span className="text-sm font-semibold text-zinc-200">{snapshot.score}/100</span>
@@ -352,7 +352,7 @@ export const HistoryPanel = ({ history, diff }: HistoryPanelProps) => {
               <div className="mt-3">
                 <div className="h-2 overflow-hidden rounded-full bg-white/10">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-[#7f1d1d] via-amber-500/70 to-[#22c55e] transition-all duration-700"
+                    className="h-full rounded-full bg-linear-to-r from-[#7f1d1d] via-amber-500/70 to-[#22c55e] transition-all duration-700"
                     style={{ width: `${Math.max(6, Math.min(snapshot.score, 100))}%` }}
                   />
                 </div>

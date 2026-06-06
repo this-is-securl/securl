@@ -9,10 +9,10 @@ interface CompromiseSignalsPanelProps {
 }
 
 const severityClass: Record<CompromiseIndicator["severity"], string> = {
-  critical: "border-rose-500/35 bg-rose-500/[0.10] text-rose-100",
-  warning: "border-amber-500/35 bg-amber-500/[0.10] text-amber-100",
-  watch: "border-white/10 bg-white/[0.06] text-zinc-100",
-  info: "border-white/[0.08] bg-white/[0.04] text-zinc-300",
+  critical: "border-rose-500/35 bg-rose-500/10 text-rose-100",
+  warning: "border-amber-500/35 bg-amber-500/10 text-amber-100",
+  watch: "border-white/10 bg-white/6 text-zinc-100",
+  info: "border-white/8 bg-white/4 text-zinc-300",
 };
 
 const categoryLabel: Record<CompromiseIndicator["category"], string> = {
@@ -37,7 +37,7 @@ const sourceLabel: Record<CompromiseIndicator["source"], string> = {
 export const CompromiseSignalsPanel = ({ compromiseSignals }: CompromiseSignalsPanelProps) => {
   if (!compromiseSignals) {
     return (
-      <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+      <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-zinc-50">
             <ShieldAlert className="h-5 w-5 text-[#e0b286]" />
@@ -59,7 +59,7 @@ export const CompromiseSignalsPanel = ({ compromiseSignals }: CompromiseSignalsP
   ).length;
 
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-zinc-50">
           <ShieldAlert className="h-5 w-5 text-[#e0b286]" />
@@ -117,7 +117,7 @@ export const CompromiseSignalsPanel = ({ compromiseSignals }: CompromiseSignalsP
             {compromiseSignals.indicators.map((indicator, index) => (
               <div
                 key={`${indicator.category}-${indicator.title}-${index}`}
-                className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] px-4 py-4"
+                className="rounded-[1.35rem] border border-white/10 bg-white/4 px-4 py-4"
               >
                 <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
@@ -131,10 +131,10 @@ export const CompromiseSignalsPanel = ({ compromiseSignals }: CompromiseSignalsP
                     <Badge variant="outline" className={severityClass[indicator.severity]}>
                       {indicator.severity}
                     </Badge>
-                    <Badge variant="outline" className="border-white/10 bg-white/[0.06] text-zinc-100">
+                    <Badge variant="outline" className="border-white/10 bg-white/6 text-zinc-100">
                       {categoryLabel[indicator.category]}
                     </Badge>
-                    <Badge variant="outline" className="border-white/[0.08] bg-white/[0.04] text-zinc-500">
+                    <Badge variant="outline" className="border-white/8 bg-white/4 text-zinc-500">
                       {sourceLabel[indicator.source]}
                     </Badge>
                   </div>
@@ -145,14 +145,14 @@ export const CompromiseSignalsPanel = ({ compromiseSignals }: CompromiseSignalsP
                       <TruncatedChip
                         key={item}
                         value={item}
-                        className="border-white/10 bg-white/[0.04] text-zinc-300"
+                        className="border-white/10 bg-white/4 text-zinc-300"
                         maxWidthClassName="max-w-[18rem]"
                       />
                     ))}
                   </div>
                 ) : null}
                 {indicator.action ? (
-                  <p className="mt-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm leading-6 text-zinc-300">
+                  <p className="mt-3 rounded-2xl border border-white/10 bg-white/4 px-4 py-3 text-sm leading-6 text-zinc-300">
                     <span className="font-semibold text-zinc-100">Suggested check: </span>
                     {indicator.action}
                   </p>

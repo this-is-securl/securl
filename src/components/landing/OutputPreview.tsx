@@ -50,7 +50,7 @@ const accentBorder = (severity: string) =>
   severity === "warning" ? "#d97706" : "#64748b";
 
 export const OutputPreview = () => (
-  <div className="rounded-[1.75rem] border border-white/[0.09] bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(255,255,255,0.02)_100%)] p-6 shadow-[0_32px_80px_-32px_rgba(0,0,0,0.55)] ring-1 ring-white/[0.04] sm:p-8">
+  <div className="rounded-[1.75rem] border border-white/9 bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(255,255,255,0.02)_100%)] p-6 shadow-[0_32px_80px_-32px_rgba(0,0,0,0.55)] ring-1 ring-white/4 sm:p-8">
 
     {/* Header row */}
     <div className="mb-7 flex items-center justify-between">
@@ -66,7 +66,7 @@ export const OutputPreview = () => (
           <p className="text-[11px] text-zinc-500">Example scan result</p>
         </div>
       </div>
-      <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-500">
+      <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-500">
         Sample output
       </span>
     </div>
@@ -75,7 +75,7 @@ export const OutputPreview = () => (
     <div className="mb-7 grid gap-8 sm:grid-cols-[auto_1fr] sm:items-center">
 
       {/* Ring gauge */}
-      <div className="relative mx-auto flex-shrink-0" style={{ width: RING_SIZE, height: RING_SIZE }}>
+      <div className="relative mx-auto shrink-0" style={{ width: RING_SIZE, height: RING_SIZE }}>
         <div
           className="pointer-events-none absolute inset-0 rounded-full"
           style={{ boxShadow: `0 0 72px 0 rgba(37,99,235,0.18)` }}
@@ -144,7 +144,7 @@ export const OutputPreview = () => (
         return (
           <div
             key={finding.title}
-            className="rounded-[1.1rem] border border-white/[0.07] bg-white/[0.03] p-4"
+            className="rounded-[1.1rem] border border-white/[0.07] bg-white/3 p-4"
             style={{ borderLeftColor: accentBorder(finding.severity), borderLeftWidth: 3 }}
           >
             <div className="mb-3">
@@ -159,7 +159,7 @@ export const OutputPreview = () => (
               {finding.title}
             </h4>
             <p className="text-[12px] leading-[1.55] text-zinc-400">{finding.consequence}</p>
-            <p className="mt-2 text-[11px] leading-[1.5] text-zinc-500 italic">{finding.detail}</p>
+            <p className="mt-2 text-[11px] leading-normal text-zinc-500 italic">{finding.detail}</p>
           </div>
         );
       })}

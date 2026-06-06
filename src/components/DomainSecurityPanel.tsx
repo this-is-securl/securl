@@ -17,8 +17,8 @@ const extractBimiLogoUrl = (dns: string | null | undefined): string | null => {
 const policyBadgeClass = {
   strong: "border-[#4f6676]/35 bg-[#4f6676]/12 text-[#edf3f6]",
   watch: "border-[#7f1d1d]/30 bg-[#7f1d1d]/12 text-[#f0dfcf]",
-  weak: "border-amber-500/25 bg-amber-500/[0.08] text-amber-200",
-  missing: "border-white/10 bg-white/[0.06] text-zinc-200",
+  weak: "border-amber-500/25 bg-amber-500/8 text-amber-200",
+  missing: "border-white/10 bg-white/6 text-zinc-200",
 } as const;
 
 const policyLabel = {
@@ -41,7 +41,7 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
   } as const;
 
   return (
-    <Card className="h-full border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="h-full border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Mail className="h-5 w-5" />
@@ -63,10 +63,10 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
                       variant="outline"
                       className={
                         emailPolicy.spf.allMechanism === "-all"
-                          ? "border-emerald-400/25 bg-emerald-400/[0.08] text-emerald-200"
+                          ? "border-emerald-400/25 bg-emerald-400/8 text-emerald-200"
                           : emailPolicy.spf.allMechanism === "+all"
-                          ? "border-rose-500/30 bg-rose-500/[0.08] text-rose-200"
-                          : "border-amber-500/30 bg-amber-500/[0.08] text-amber-200"
+                          ? "border-rose-500/30 bg-rose-500/8 text-rose-200"
+                          : "border-amber-500/30 bg-amber-500/8 text-amber-200"
                       }
                     >
                       {emailPolicy.spf.allMechanism}
@@ -74,7 +74,7 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
                   )}
                 </div>
                 <p>{emailPolicy.spf.summary}</p>
-                <p className="overflow-hidden break-words text-xs text-zinc-400">{domainSecurity.spf ?? "Not found"}</p>
+                <p className="overflow-hidden wrap-break-word text-xs text-zinc-400">{domainSecurity.spf ?? "Not found"}</p>
               </div>
             }
           />
@@ -87,28 +87,28 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
                     {policyLabel[emailPolicy.dmarc.status]}
                   </Badge>
                   {emailPolicy.dmarc.policy && (
-                    <Badge variant="outline" className="border-white/10 bg-white/[0.06] text-zinc-200">
+                    <Badge variant="outline" className="border-white/10 bg-white/6 text-zinc-200">
                       p={emailPolicy.dmarc.policy}
                     </Badge>
                   )}
                   {emailPolicy.dmarc.subdomainPolicy && (
-                    <Badge variant="outline" className="border-white/10 bg-white/[0.06] text-zinc-200">
+                    <Badge variant="outline" className="border-white/10 bg-white/6 text-zinc-200">
                       sp={emailPolicy.dmarc.subdomainPolicy}
                     </Badge>
                   )}
                   {emailPolicy.dmarc.pct !== null && emailPolicy.dmarc.pct !== undefined && emailPolicy.dmarc.pct < 100 && (
-                    <Badge variant="outline" className="border-amber-500/30 bg-amber-500/[0.08] text-amber-200">
+                    <Badge variant="outline" className="border-amber-500/30 bg-amber-500/8 text-amber-200">
                       pct={emailPolicy.dmarc.pct}%
                     </Badge>
                   )}
                   {emailPolicy.dmarc.reporting ? (
-                    <Badge variant="outline" className="border-emerald-400/25 bg-emerald-400/[0.08] text-emerald-200">Reporting on</Badge>
+                    <Badge variant="outline" className="border-emerald-400/25 bg-emerald-400/8 text-emerald-200">Reporting on</Badge>
                   ) : emailPolicy.dmarc.policy && (
-                    <Badge variant="outline" className="border-amber-500/30 bg-amber-500/[0.08] text-amber-200">No rua reporting</Badge>
+                    <Badge variant="outline" className="border-amber-500/30 bg-amber-500/8 text-amber-200">No rua reporting</Badge>
                   )}
                 </div>
                 <p>{emailPolicy.dmarc.summary}</p>
-                <p className="overflow-hidden break-words text-xs text-zinc-400">{domainSecurity.dmarc ?? "Not found"}</p>
+                <p className="overflow-hidden wrap-break-word text-xs text-zinc-400">{domainSecurity.dmarc ?? "Not found"}</p>
               </div>
             }
           />
@@ -119,7 +119,7 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
             label="MX records"
             value={
               <div className="space-y-2 text-sm leading-6 text-zinc-200">
-                {domainSecurity.mxRecords.length ? domainSecurity.mxRecords.map((record) => <p key={record} className="overflow-hidden break-words">{record}</p>) : <p>None</p>}
+                {domainSecurity.mxRecords.length ? domainSecurity.mxRecords.map((record) => <p key={record} className="overflow-hidden wrap-break-word">{record}</p>) : <p>None</p>}
               </div>
             }
           />
@@ -127,7 +127,7 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
             label="CAA records"
             value={
               <div className="space-y-2 text-sm leading-6 text-zinc-200">
-                {domainSecurity.caaRecords.length ? domainSecurity.caaRecords.map((record) => <p key={record} className="overflow-hidden break-words">{record}</p>) : <p>None</p>}
+                {domainSecurity.caaRecords.length ? domainSecurity.caaRecords.map((record) => <p key={record} className="overflow-hidden wrap-break-word">{record}</p>) : <p>None</p>}
               </div>
             }
           />
@@ -140,7 +140,7 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
               <p>Status: {domainSecurity.dnssec.status === "signed" ? "Signed" : domainSecurity.dnssec.status === "not_signed" ? "Not signed" : "Unknown"}</p>
               {domainSecurity.dnssec.dsRecords.length ? (
                 domainSecurity.dnssec.dsRecords.map((record) => (
-                  <p key={record} className="overflow-hidden break-words">{record}</p>
+                  <p key={record} className="overflow-hidden wrap-break-word">{record}</p>
                 ))
               ) : (
                 <p>No DS records detected.</p>
@@ -153,8 +153,8 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
           label="MTA-STS"
           value={
             <div className="space-y-2 text-sm leading-6 text-zinc-200">
-              <p className="overflow-hidden break-words">DNS: {domainSecurity.mtaSts.dns ?? "Not found"}</p>
-              {domainSecurity.mtaSts.policyUrl && <p className="overflow-hidden break-words">Policy URL: {domainSecurity.mtaSts.policyUrl}</p>}
+              <p className="overflow-hidden wrap-break-word">DNS: {domainSecurity.mtaSts.dns ?? "Not found"}</p>
+              {domainSecurity.mtaSts.policyUrl && <p className="overflow-hidden wrap-break-word">Policy URL: {domainSecurity.mtaSts.policyUrl}</p>}
               {domainSecurity.mtaSts.policy && (
                 <CodeBlock>{domainSecurity.mtaSts.policy}</CodeBlock>
               )}
@@ -168,7 +168,7 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
             value={
               <div className="space-y-2 text-sm leading-6 text-zinc-200">
                 <p>{domainSecurity.tlsRpt?.summary ?? "No TLS-RPT reporting record was detected."}</p>
-                <p className="overflow-hidden break-words text-xs text-zinc-400">
+                <p className="overflow-hidden wrap-break-word text-xs text-zinc-400">
                   {domainSecurity.tlsRpt?.dns ?? "Not found"}
                 </p>
               </div>
@@ -185,13 +185,13 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
                     <img
                       src={logoUrl}
                       alt="BIMI brand logo"
-                      className="mb-2 h-12 w-12 rounded-lg border border-white/10 bg-white/[0.04] object-contain p-1"
+                      className="mb-2 h-12 w-12 rounded-lg border border-white/10 bg-white/4 object-contain p-1"
                       onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                     />
                   );
                 })()}
                 <p>{domainSecurity.bimi?.summary ?? "No BIMI record was detected at the default selector."}</p>
-                <p className="overflow-hidden break-words text-xs text-zinc-400">
+                <p className="overflow-hidden wrap-break-word text-xs text-zinc-400">
                   {domainSecurity.bimi?.dns ?? "Not found"}
                 </p>
               </div>
@@ -200,12 +200,12 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
         </div>
 
         {domainSecurity.emailDeliverabilityScore && (
-          <div className="rounded-[1.5rem] border border-white/10 bg-zinc-950/45 p-5">
+          <div className="rounded-3xl border border-white/10 bg-zinc-950/45 p-5">
             <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#e0b286]">Email deliverability score</p>
             <div className="mt-3 flex items-end gap-4">
-              <p className="text-5xl font-black tracking-[-0.05em] text-white">{domainSecurity.emailDeliverabilityScore.score}</p>
+              <p className="text-5xl font-black tracking-tighter text-white">{domainSecurity.emailDeliverabilityScore.score}</p>
               <p className="mb-1 text-lg font-black text-zinc-400">/100</p>
-              <span className="mb-1 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-1 text-sm font-bold text-zinc-100">
+              <span className="mb-1 rounded-xl border border-white/10 bg-white/6 px-3 py-1 text-sm font-bold text-zinc-100">
                 {domainSecurity.emailDeliverabilityScore.grade}
               </span>
             </div>
@@ -213,7 +213,7 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
               {Object.entries(domainSecurity.emailDeliverabilityScore.breakdown)
                 .filter(([, pts]) => pts > 0)
                 .map(([label, pts]) => (
-                  <span key={label} className="rounded-full border border-emerald-400/20 bg-emerald-400/[0.08] px-3 py-1 text-xs text-emerald-200">
+                  <span key={label} className="rounded-full border border-emerald-400/20 bg-emerald-400/8 px-3 py-1 text-xs text-emerald-200">
                     {label} +{pts}
                   </span>
                 ))}
@@ -248,22 +248,22 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
               <div className="space-y-3 text-sm leading-6 text-zinc-200">
                 <div className="flex flex-wrap gap-2">
                   {domainSecurity.spfDetail.hasPlusAll && (
-                    <Badge variant="outline" className="border-rose-500/30 bg-rose-500/[0.08] text-rose-200">⚠ +all (open relay risk)</Badge>
+                    <Badge variant="outline" className="border-rose-500/30 bg-rose-500/8 text-rose-200">⚠ +all (open relay risk)</Badge>
                   )}
                   {domainSecurity.spfDetail.hasTildeAll && (
-                    <Badge variant="outline" className="border-amber-500/30 bg-amber-500/[0.08] text-amber-200">~all (softfail)</Badge>
+                    <Badge variant="outline" className="border-amber-500/30 bg-amber-500/8 text-amber-200">~all (softfail)</Badge>
                   )}
                   {domainSecurity.spfDetail.hasMinusAll && (
-                    <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/[0.08] text-emerald-200">-all (reject)</Badge>
+                    <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/8 text-emerald-200">-all (reject)</Badge>
                   )}
                   {domainSecurity.spfDetail.hasQuestionAll && (
-                    <Badge variant="outline" className="border-amber-500/30 bg-amber-500/[0.08] text-amber-200">?all (neutral — weak)</Badge>
+                    <Badge variant="outline" className="border-amber-500/30 bg-amber-500/8 text-amber-200">?all (neutral — weak)</Badge>
                   )}
                   {domainSecurity.spfDetail.exceedsLookupLimit && (
-                    <Badge variant="outline" className="border-rose-500/30 bg-rose-500/[0.08] text-rose-200">Exceeds 10-lookup limit</Badge>
+                    <Badge variant="outline" className="border-rose-500/30 bg-rose-500/8 text-rose-200">Exceeds 10-lookup limit</Badge>
                   )}
                   {domainSecurity.spfDetail.isOverlyPermissive && (
-                    <Badge variant="outline" className="border-rose-500/30 bg-rose-500/[0.08] text-rose-200">Overly permissive</Badge>
+                    <Badge variant="outline" className="border-rose-500/30 bg-rose-500/8 text-rose-200">Overly permissive</Badge>
                   )}
                 </div>
                 <p className="text-zinc-400">

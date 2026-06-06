@@ -69,7 +69,7 @@ const HeroPreviewCard = () => (
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
           <span
-            className="font-black leading-none tracking-[-0.05em]"
+            className="font-black leading-none tracking-tighter"
             style={{ fontSize: 62, color: MINI_COLOR }}
           >
             B
@@ -211,7 +211,7 @@ const Index = () => {
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
 
         {/* ── Hero card ─────────────────────────────────────────────────── */}
-        <section className="rounded-[2.5rem] border border-white/[0.09] bg-white/[0.04] p-6 shadow-[0_48px_120px_-40px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.05)_inset] backdrop-blur-md sm:p-8 lg:p-10">
+        <section className="rounded-[2.5rem] border border-white/9 bg-white/4 p-6 shadow-[0_48px_120px_-40px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.05)_inset] backdrop-blur-md sm:p-8 lg:p-10">
           <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1.3fr_0.7fr] lg:items-start">
 
             {/* Left: headline + form */}
@@ -222,14 +222,14 @@ const Index = () => {
                     href="https://securl.online"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-full border border-[#b56a2c]/30 bg-[#b56a2c]/[0.12] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[#f0d5bc] transition-colors hover:bg-[#b56a2c]/20"
+                    className="inline-flex items-center gap-2 rounded-full border border-[#b56a2c]/30 bg-[#b56a2c]/12 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[#f0d5bc] transition-colors hover:bg-[#b56a2c]/20"
                   >
                     <Sparkles className="h-3.5 w-3.5" />
                     SecURL
                   </a>
                   <div
                     title={[coreLabel, buildLabel, appVersionLabel].filter(Boolean).join(" / ")}
-                    className="inline-flex cursor-default items-center gap-1.5 rounded-full border border-white/[0.12] bg-white/[0.05] px-2.5 py-0.5 text-[10px] font-semibold tracking-[0.12em] text-zinc-400 transition-colors hover:text-zinc-200"
+                    className="inline-flex cursor-default items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-2.5 py-0.5 text-[10px] font-semibold tracking-[0.12em] text-zinc-400 transition-colors hover:text-zinc-200"
                   >
                     <span>v{__CORE_VERSION__}</span>
                   </div>
@@ -268,10 +268,10 @@ const Index = () => {
                       type="button"
                       onClick={() => void openRecentScan(scan)}
                       disabled={isLoading}
-                      className={`rounded-[1.2rem] border px-4 py-3 text-left shadow-sm transition duration-300 ${
+                      className={`rounded-[1.2rem] border px-4 py-3 text-left shadow-xs transition duration-300 ${
                         activeRecentScanUrl === (scan.id ?? scan.url)
-                          ? "border-[#b56a2c]/45 bg-[#b56a2c]/[0.12] shadow-[0_18px_36px_-28px_rgba(181,106,44,0.35)]"
-                          : "border-white/10 bg-zinc-950/45 hover:-translate-y-0.5 hover:border-[#b56a2c]/25 hover:bg-white/[0.08]"
+                          ? "border-[#b56a2c]/45 bg-[#b56a2c]/12 shadow-[0_18px_36px_-28px_rgba(181,106,44,0.35)]"
+                          : "border-white/10 bg-zinc-950/45 hover:-translate-y-0.5 hover:border-[#b56a2c]/25 hover:bg-white/8"
                       } ${isLoading ? "cursor-wait" : ""}`}
                     >
                       <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
@@ -313,7 +313,7 @@ const Index = () => {
               <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">
                 Report workspace
               </span>
-              <span className="h-px flex-1 bg-white/[0.06]" />
+              <span className="h-px flex-1 bg-white/6" />
             </div>
             <div className="space-y-10">
               <div className="space-y-2">
@@ -329,7 +329,7 @@ const Index = () => {
                         });
                         toast.success("Link copied to clipboard");
                       }}
-                      className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-semibold text-zinc-400 transition hover:border-[#b56a2c]/30 hover:bg-[#b56a2c]/10 hover:text-[#d89a63]"
+                      className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-zinc-400 transition hover:border-[#b56a2c]/30 hover:bg-[#b56a2c]/10 hover:text-[#d89a63]"
                       title="Copy shareable link"
                     >
                       <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -349,9 +349,9 @@ const Index = () => {
               {activeSection ? (
                 <div
                   key={activeSection.key}
-                  className="min-w-0 overflow-hidden rounded-[2rem] border border-white/[0.09] bg-white/[0.04] shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset] animate-in fade-in-50 slide-in-from-bottom-2 duration-500"
+                  className="min-w-0 overflow-hidden rounded-4xl border border-white/9 bg-white/4 shadow-[0_40px_96px_-24px_rgba(0,0,0,0.75),0_1px_0_rgba(255,255,255,0.07)_inset] animate-in fade-in-50 slide-in-from-bottom-2 duration-500"
                 >
-                  <div className="border-b border-white/[0.08] px-4 py-6 sm:px-10 sm:py-8">
+                  <div className="border-b border-white/8 px-4 py-6 sm:px-10 sm:py-8">
                     <div className="flex items-center gap-2.5">
                       {activeSection.icon && (
                         <activeSection.icon className="h-3.5 w-3.5 text-[#d89a63]" />
@@ -400,11 +400,11 @@ const Index = () => {
             </section>
 
             {/* 2 — Differentiation band */}
-            <section className="rounded-[1.75rem] border border-white/[0.08] bg-white/[0.03] px-4 py-8 text-center shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] sm:px-8 sm:py-14">
+            <section className="rounded-[1.75rem] border border-white/8 bg-white/3 px-4 py-8 text-center shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] sm:px-8 sm:py-14">
               <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-500">
                 Why SecURL
               </p>
-              <h2 className="text-3xl font-black tracking-[-0.05em] text-white sm:text-4xl lg:text-[3.25rem] lg:leading-[1.1]">
+              <h2 className="text-3xl font-black tracking-tighter text-white sm:text-4xl lg:text-[3.25rem] lg:leading-[1.1]">
                 Security tools give you data.
                 <br />
                 <span className="text-[#d89a63]">SecURL gives you a read.</span>
@@ -459,13 +459,13 @@ const Index = () => {
 
               <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
                 {/* Left: recent scans + monitoring */}
-                <div className="rounded-[1.7rem] border border-white/10 bg-white/[0.04] p-4 sm:p-5">
+                <div className="rounded-[1.7rem] border border-white/10 bg-white/4 p-4 sm:p-5">
                   {!isAuthenticated ? (
-                    <div className="mb-4 rounded-[1.25rem] border border-[#b56a2c]/25 bg-[#b56a2c]/[0.08] px-4 py-3 text-sm leading-6 text-[#f0d5bc]">
+                    <div className="mb-4 rounded-[1.25rem] border border-[#b56a2c]/25 bg-[#b56a2c]/8 px-4 py-3 text-sm leading-6 text-[#f0d5bc]">
                       Signed-out mode keeps recent scans and monitoring in this browser only.
                     </div>
                   ) : (
-                    <div className="mb-4 rounded-[1.25rem] border border-emerald-400/20 bg-emerald-400/[0.08] px-4 py-3 text-sm leading-6 text-emerald-200">
+                    <div className="mb-4 rounded-[1.25rem] border border-emerald-400/20 bg-emerald-400/8 px-4 py-3 text-sm leading-6 text-emerald-200">
                       Account mode is active — scans and monitoring targets follow{" "}
                       <span className="font-semibold text-white">{authSession?.user.email}</span>.
                     </div>
@@ -486,10 +486,10 @@ const Index = () => {
                                 type="button"
                                 onClick={() => void openRecentScan(scan)}
                                 disabled={isLoading}
-                                className={`rounded-[1.2rem] border px-4 py-3 text-left shadow-sm transition duration-300 ${
+                                className={`rounded-[1.2rem] border px-4 py-3 text-left shadow-xs transition duration-300 ${
                                   activeRecentScanUrl === (scan.id ?? scan.url)
-                                    ? "border-[#b56a2c]/45 bg-[#b56a2c]/[0.12]"
-                                    : "border-white/10 bg-zinc-950/45 hover:border-[#b56a2c]/25 hover:bg-white/[0.08]"
+                                    ? "border-[#b56a2c]/45 bg-[#b56a2c]/12"
+                                    : "border-white/10 bg-zinc-950/45 hover:border-[#b56a2c]/25 hover:bg-white/8"
                                 } ${isLoading ? "cursor-wait" : ""}`}
                               >
                                 <div className="flex items-center justify-between gap-3">
@@ -529,7 +529,7 @@ const Index = () => {
                     </div>
                   ) : (
                     <div className="flex items-start gap-3">
-                      <Activity className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#d89a63]" />
+                      <Activity className="mt-0.5 h-4 w-4 shrink-0 text-[#d89a63]" />
                       <div>
                         <p className="text-sm font-semibold text-zinc-200">Monitoring & drift tracking</p>
                         <p className="mt-1 text-xs leading-5 text-zinc-400">
@@ -556,7 +556,7 @@ const Index = () => {
             </section>
 
             {/* 5 — iOS app */}
-            <section className="rounded-[1.75rem] border border-white/[0.08] bg-white/[0.03] px-4 py-8 shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] sm:px-8 sm:py-10">
+            <section className="rounded-[1.75rem] border border-white/8 bg-white/3 px-4 py-8 shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] sm:px-8 sm:py-10">
               <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:justify-between sm:text-left">
                 <div className="space-y-1.5">
                   <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#d89a63]">

@@ -24,7 +24,7 @@ export const ReportSectionNav = ({ sections, activeKey, onChange }: ReportSectio
           value={activeKey}
           onValueChange={(v) => onChange(v as ReportWorkspaceSectionKey)}
         >
-          <SelectTrigger className="h-auto w-full rounded-[1.5rem] border-white/[0.09] bg-white/[0.04] px-4 py-3 text-left ring-offset-0 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)] focus:ring-1 focus:ring-[#b56a2c]/50 focus:ring-offset-0 backdrop-blur sm:px-5 sm:py-4">
+          <SelectTrigger className="h-auto w-full rounded-3xl border-white/9 bg-white/4 px-4 py-3 text-left ring-offset-0 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)] focus:ring-1 focus:ring-[#b56a2c]/50 focus:ring-offset-0 backdrop-blur-sm sm:px-5 sm:py-4">
             {activeSection ? (
               <div className="flex min-w-0 items-center gap-3">
                 <activeSection.icon className="h-5 w-5 shrink-0 text-[#d89a63]" />
@@ -41,14 +41,14 @@ export const ReportSectionNav = ({ sections, activeKey, onChange }: ReportSectio
               <span className="text-sm text-zinc-400">Choose section</span>
             )}
           </SelectTrigger>
-          <SelectContent className="rounded-2xl border-white/[0.1] bg-[#0b1220] text-zinc-100 shadow-2xl backdrop-blur">
+          <SelectContent className="rounded-2xl border-white/10 bg-[#0b1220] text-zinc-100 shadow-2xl backdrop-blur-sm">
             {sections.map((section) => {
               const Icon = section.icon;
               return (
                 <SelectItem
                   key={section.key}
                   value={section.key}
-                  className="rounded-xl py-3 pl-3 pr-3 focus:bg-white/[0.08] focus:text-white"
+                  className="rounded-xl py-3 pl-3 pr-3 focus:bg-white/8 focus:text-white"
                 >
                   <div className="flex items-center gap-2 sm:gap-3">
                     <Icon
@@ -73,7 +73,7 @@ export const ReportSectionNav = ({ sections, activeKey, onChange }: ReportSectio
 
       {/* ── Desktop: horizontal pill tab strip ── */}
       <div className="hidden lg:block">
-        <div className="overflow-x-auto rounded-[1.75rem] border border-white/[0.08] bg-zinc-950/50 p-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
+        <div className="overflow-x-auto rounded-[1.75rem] border border-white/8 bg-zinc-950/50 p-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
           <div className="flex min-w-max gap-0.5">
             {sections.map((section) => {
               const active = section.key === activeKey;
@@ -87,7 +87,7 @@ export const ReportSectionNav = ({ sections, activeKey, onChange }: ReportSectio
                     "group flex items-center gap-2 rounded-[1.25rem] px-4 py-2.5 text-left transition-all duration-150",
                     active
                       ? "bg-zinc-700/40 shadow-[0_0_0_1px_rgba(181,106,44,0.3)_inset]"
-                      : "hover:bg-white/[0.04]",
+                      : "hover:bg-white/4",
                   )}
                 >
                   <Icon
@@ -110,7 +110,7 @@ export const ReportSectionNav = ({ sections, activeKey, onChange }: ReportSectio
                         "rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums transition-colors",
                         active
                           ? "bg-[#b56a2c]/20 text-[#f0d5bc]"
-                          : "bg-white/[0.05] text-zinc-500 group-hover:text-zinc-400",
+                          : "bg-white/5 text-zinc-500 group-hover:text-zinc-400",
                       )}
                     >
                       {section.badge}

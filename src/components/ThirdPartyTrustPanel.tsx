@@ -9,7 +9,7 @@ interface ThirdPartyTrustPanelProps {
 }
 
 const riskStyles = {
-  low: "bg-white/[0.08] text-zinc-100",
+  low: "bg-white/8 text-zinc-100",
   medium: "bg-[#7f1d1d]/14 text-zinc-300",
   high: "bg-zinc-700/40 text-zinc-300",
 } as const;
@@ -39,7 +39,7 @@ export const ThirdPartyTrustPanel = ({ thirdPartyTrust }: ThirdPartyTrustPanelPr
     thirdPartyTrust.totalProviders === 0 ? "Minimal" : thirdPartyTrust.totalProviders <= 5 ? "Moderate" : "Broad";
 
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Boxes className="h-5 w-5" />
@@ -65,7 +65,7 @@ export const ThirdPartyTrustPanel = ({ thirdPartyTrust }: ThirdPartyTrustPanelPr
             value={
               <div className="grid gap-3">
                 {highlightedProviders.map((provider) => (
-                  <div key={provider.domain} className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] px-4 py-3">
+                  <div key={provider.domain} className="rounded-[1.35rem] border border-white/10 bg-white/4 px-4 py-3">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium text-zinc-50">{provider.name}</span>
                       <Badge variant="outline">{categoryLabel[provider.category]}</Badge>

@@ -10,17 +10,17 @@ interface ApiSurfacePanelProps {
 }
 
 const styles = {
-  absent: "bg-white/[0.08] text-zinc-200",
+  absent: "bg-white/8 text-zinc-200",
   public: "bg-zinc-700/40 text-zinc-300",
-  restricted: "bg-white/[0.08] text-zinc-100",
+  restricted: "bg-white/8 text-zinc-100",
   interesting: "bg-[#7f1d1d]/14 text-zinc-300",
-  fallback: "bg-white/[0.08] text-zinc-100",
+  fallback: "bg-white/8 text-zinc-100",
   error: "bg-zinc-700/40 text-zinc-300",
 } as const;
 
 export const ApiSurfacePanel = ({ apiSurface }: ApiSurfacePanelProps) => {
   return (
-    <Card className="border-white/10 bg-white/[0.04] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
+    <Card className="border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Boxes className="h-5 w-5" />
@@ -32,7 +32,7 @@ export const ApiSurfacePanel = ({ apiSurface }: ApiSurfacePanelProps) => {
           {apiSurface.probes.map((probe) => {
             const status = probe.statusCode ? getHttpStatusDetails(probe.statusCode) : null;
             return (
-              <div key={probe.path} className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] p-4">
+              <div key={probe.path} className="rounded-[1.35rem] border border-white/10 bg-white/4 p-4">
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div className="min-w-0">
                     <p className="font-semibold text-zinc-50">{probe.label}</p>
