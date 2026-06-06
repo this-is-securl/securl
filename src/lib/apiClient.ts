@@ -12,6 +12,7 @@ import type {
   MonitoringTargetResponse,
   MonitoringTargetsResponse,
   ScansResponse,
+  ScanComparisonResponse,
   ScanEvidenceResponse,
   ScanFindingsResponse,
   ScanHistoryResponse,
@@ -498,6 +499,13 @@ export const getScanHistory = async (scanId: string, scanOwnerToken: string) => 
     headers: await buildRequestAuthHeaders({ scanOwnerToken, requireScanOwner: true }),
   });
   return readJsonResponse<ScanHistoryResponse>(response);
+};
+
+export const getScanComparison = async (scanId: string) => {
+  const response = await fetch(buildApiUrl(`/api/scans/${encodeURIComponent(scanId)}/comparison`), {
+    headers: await buildRequestAuthHeaders({ requireScanOwner: true }),
+  });
+  return readJsonResponse<ScanComparisonResponse>(response);
 };
 
 export const getMonitoringTargets = async () => {

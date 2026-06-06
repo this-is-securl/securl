@@ -1,4 +1,4 @@
-import type { AnalysisResult, HistoryDiff } from "@/types/analysis";
+import type { AnalysisResult, HistoryDiff, PostureRiskEvent } from "@/types/analysis";
 
 export type ApiScanStatus = "queued" | "running" | "completed" | "failed";
 
@@ -164,12 +164,19 @@ export interface TargetHistoryComparison {
   currentScanId: string;
   previousScanId: string;
   diff: HistoryDiff | null;
+  riskEvents: PostureRiskEvent[];
 }
 
 export interface TargetHistoryResponse extends VersionedApiResponse {
   target: {
     url: string;
   };
+  scans: ApiScanSummary[];
+  comparison: TargetHistoryComparison | null;
+}
+
+export interface ScanComparisonResponse extends VersionedApiResponse {
+  scan: ApiScanSummary;
   scans: ApiScanSummary[];
   comparison: TargetHistoryComparison | null;
 }

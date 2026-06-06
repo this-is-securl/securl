@@ -3,7 +3,13 @@ import { toast } from "sonner";
 import type { AnalysisResult } from "@/types/analysis";
 import { getAreaScores } from "@/lib/posture";
 import type { ReportWorkspaceSectionKey } from "@/lib/reportWorkspace";
-import { analyzeTargetWithMetadata, ApiClientError, getSavedScan, recordTelemetryEvent } from "@/lib/apiClient";
+import {
+  analyzeTargetWithMetadata,
+  ApiClientError,
+  getSavedScan,
+  getScanComparison,
+  recordTelemetryEvent,
+} from "@/lib/apiClient";
 import type { RecentScan } from "@/lib/scanWorkspace";
 
 import { useRecentScans } from "./useRecentScans";
@@ -74,6 +80,7 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
     historyDiff,
     loadHistory,
     addHistorySnapshot,
+    applyServerComparison,
     clearHistoryState,
   } = useScanHistory();
 
@@ -157,12 +164,29 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
     void syncMonitoredTarget();
   };
 
+  const refreshServerComparison = async (scanId: string, result: AnalysisResult) => {
+    try {
+      const comparison = await getScanComparison(scanId);
+      startTransition(() => {
+        applyServerComparison(comparison, result);
+      });
+    } catch (error) {
+      if (error instanceof ApiClientError && [404, 409].includes(error.status)) {
+        return;
+      }
+      console.warn("Unable to load server-backed scan comparison.", error);
+    }
+  };
+
   const analyzeUrl = async (url: string, setAsCurrent = true) => {
     setCurrentScanId(null);
     recordTelemetryEvent("scan_started", { target: url, mode: "standard" });
     const payload = await analyzeTargetWithMetadata(url);
     setCurrentScanId(payload.scanId);
     persistAnalysis(payload.result, setAsCurrent, payload.fromCache);
+    if (setAsCurrent) {
+      void refreshServerComparison(payload.scanId, payload.result);
+    }
     recordTelemetryEvent("scan_completed", {
       target: payload.result.url,
       scanId: payload.scanId,
@@ -218,6 +242,8 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
         setCurrentScanWasCached(false);
         addHistorySnapshot(payload.scan.result, true);
       });
+      setCurrentScanId(scan.id);
+      void refreshServerComparison(scan.id, payload.scan.result);
       recordTelemetryEvent("report_viewed", {
         target: payload.scan.result.url,
         scanId: scan.id,
