@@ -213,7 +213,7 @@ test("scorePostureAnalysis keeps calibrated profile grades stable", () => {
           issues: ["adtech", "session replay"],
         },
       }),
-      expected: { score: 67, grade: "D" },
+      expected: { score: 69, grade: "D" },
     },
     {
       name: "blocked edge response",
@@ -233,6 +233,31 @@ test("scorePostureAnalysis keeps calibrated profile grades stable", () => {
     assert.equal(result.score, profile.expected.score, profile.name);
     assert.equal(result.grade, profile.expected.grade, profile.name);
   }
+});
+
+test("posture edge scoring weights missing headers by severity, not a flat rate", () => {
+  const edgeScore = (headers) =>
+    getPostureAreaScores(createPostureAnalysis({ headers })).find((area) => area.key === "edge").score;
+
+  // The three universally-omitted, low-value headers (1 pt each in HEADER_PENALTY).
+  const trivialGaps = edgeScore([
+    { key: "strict-transport-security", status: "present" },
+    { key: "content-security-policy", status: "present" },
+    { key: "permissions-policy", status: "missing" },
+    { key: "cross-origin-opener-policy", status: "missing" },
+    { key: "cross-origin-resource-policy", status: "missing" },
+  ]);
+  // A single missing HSTS — a genuinely important edge header (10 pts).
+  const hstsGap = edgeScore([
+    { key: "strict-transport-security", status: "missing" },
+    { key: "content-security-policy", status: "present" },
+  ]);
+
+  // The old flat-rate bug scored three trivial gaps at 24 and one HSTS gap at 8 —
+  // backwards. Severity weighting puts them at 3 and 10 respectively.
+  assert.equal(trivialGaps, 97);
+  assert.equal(hstsGap, 90);
+  assert.equal(trivialGaps > hstsGap, true);
 });
 
 test("scorePostureAnalysis softens domain-trust penalties for known hosted app subdomains", () => {
@@ -274,7 +299,7 @@ test("scorePostureAnalysis softens domain-trust penalties for known hosted app s
   assert.equal(hostedPlatform.score > ownedDomain.score, true);
 });
 
-test("getPostureAreaScores treats absent AI surface as strong-neutral rather than perfect", () => {
+test("getPostureAreaScores treats absent AI surface as fully neutral", () => {
   const areas = getPostureAreaScores(
     createPostureAnalysis({
       aiSurface: {
@@ -285,8 +310,10 @@ test("getPostureAreaScores treats absent AI surface as strong-neutral rather tha
     }),
   );
 
+  // No public AI/automation surface is not a weakness, so the AI area is neutral
+  // (no penalty) rather than carrying a standing deduction.
   const ai = areas.find((area) => area.key === "ai");
-  assert.equal(ai?.score, 88);
+  assert.equal(ai?.score, 100);
   assert.equal(ai?.status, "strong");
 });
 
