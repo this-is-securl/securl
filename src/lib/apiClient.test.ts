@@ -340,4 +340,55 @@ describe("api client URL helpers", () => {
       },
     });
   });
+
+  it("fetches scan comparison through the authenticated account scope", async () => {
+    window.sessionStorage.setItem("secure-header-insight:auth-session", JSON.stringify({
+      token: "session-token-123",
+      user: {
+        id: "user-1",
+        email: "keith@example.com",
+        displayName: "Keith",
+        createdAt: "2026-05-12T00:00:00.000Z",
+      },
+      session: {
+        createdAt: "2026-05-12T00:00:00.000Z",
+        expiresAt: "2026-06-12T00:00:00.000Z",
+      },
+    }));
+
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      apiVersion: "2026-05-14",
+      scan: {
+        id: "scan-2",
+        status: "completed",
+        url: "https://example.com/",
+        mode: "standard",
+        requestedAt: "2026-05-12T00:00:00.000Z",
+        startedAt: "2026-05-12T00:00:01.000Z",
+        completedAt: "2026-05-12T00:00:02.000Z",
+        failureClass: null,
+        error: null,
+        score: 73,
+        grade: "C",
+        limited: false,
+        limitedKind: null,
+        title: "Example",
+        mainRisk: "Risk",
+        findingsCount: 3,
+        scanTiming: null,
+      },
+      scans: [],
+      comparison: null,
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { getScanComparison } = await import("./apiClient");
+    await getScanComparison("scan-2");
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/scans/scan-2/comparison", {
+      headers: {
+        Authorization: "Bearer session-token-123",
+      },
+    });
+  });
 });
