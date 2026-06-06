@@ -1,5 +1,15 @@
 import { API_VERSION } from "./scanDtos.mjs";
 
+export const RESULT_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+export const RESULT_CACHE_STARTED_AT_MS = Date.now();
+
+export function getDeploymentScopedResultCacheAgeMs(
+  nowMs = Date.now(),
+  startedAtMs = RESULT_CACHE_STARTED_AT_MS,
+) {
+  return Math.max(0, Math.min(RESULT_CACHE_TTL_MS, nowMs - startedAtMs));
+}
+
 export function parseScanResourcePath(requestPath) {
   const match = requestPath.match(/^\/api\/scans\/([^/]+)(?:\/([^/]+))?$/);
   if (!match) {
@@ -215,12 +225,13 @@ export async function handleScanCollectionRequest({
     const validatedTarget = await assertPublicHttpUrl(target);
 
     // Result TTL cache — serve a recent successful scan rather than re-hitting a target
-    // that may block repeated scanner requests (CDN/WAF bot protection).
-    const RESULT_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+    // that may block repeated scanner requests (CDN/WAF bot protection). Scope it to
+    // the current server process so scoring releases cannot reuse pre-deploy results.
+    const resultCacheMaxAgeMs = getDeploymentScopedResultCacheAgeMs();
     const cachedScan = mode === "deep-passive"
       ? null
       : await scanRepository
-        .getRecentSuccessfulScan({ url: validatedTarget.toString(), mode, maxAgeMs: RESULT_CACHE_TTL_MS })
+        .getRecentSuccessfulScan({ url: validatedTarget.toString(), mode, maxAgeMs: resultCacheMaxAgeMs })
         .catch(() => null); // cache miss on error — fall through to live scan
     if (cachedScan?.result) {
       try {
@@ -237,6 +248,7 @@ export async function handleScanCollectionRequest({
           cachedScanId: cachedScan.id,
           newScanId: scan.id,
           clientIp: authState.clientIp,
+          cacheMaxAgeMs: resultCacheMaxAgeMs,
         });
         sendJson(response, 202, {
           apiVersion: API_VERSION,

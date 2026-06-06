@@ -1,5 +1,5 @@
 Contact: mailto:ktbatterham@me.com
 Expires: 2027-05-05T00:00:00.000Z
-Canonical: https://securl-app-production.up.railway.app/.well-known/security.txt
+Canonical: https://app.securl.online/.well-known/security.txt
 Preferred-Languages: en
 Policy: https://github.com/ktbatterham/external-posture-insight/security/policy
