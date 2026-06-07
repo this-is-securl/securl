@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { targetForPrivacy } from "./privacy.mjs";
 
 export function createTelemetryTracker({ storagePath = "" } = {}) {
   const persistence = storagePath ? "file" : "memory";
@@ -379,7 +380,7 @@ function sanitizeRecentFailure(value) {
   return {
     occurredAt: sanitizeTelemetryText(value.occurredAt, 40) || new Date().toISOString(),
     class: failureClass,
-    target: sanitizeTelemetryText(value.target, 240),
+    target: sanitizeTelemetryText(targetForPrivacy(value.target), 240),
     message: sanitizeTelemetryText(value.message, 240),
     source: sanitizeTelemetryText(value.source, 80),
   };
@@ -409,7 +410,7 @@ function sanitizeFunnelEvent(value) {
     occurredAt: sanitizeTelemetryText(value.occurredAt, 40) || new Date().toISOString(),
     event,
     source: normalizeTrafficSource(value.source),
-    target: sanitizeTelemetryText(value.target, 160),
+    target: sanitizeTelemetryText(targetForPrivacy(value.target), 160),
     scanId: sanitizeTelemetryText(value.scanId, 80),
     format: sanitizeTelemetryText(value.format, 40),
     mode: sanitizeTelemetryText(value.mode, 40),

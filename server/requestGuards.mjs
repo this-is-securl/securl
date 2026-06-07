@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import dns from "node:dns/promises";
 import net from "node:net";
 import { promisify } from "node:util";
+import { hashClientIp, redactRequesterScope } from "./privacy.mjs";
 
 const scryptAsync = promisify(crypto.scrypt);
 const USER_API_KEY_PREFIX = "securl_";
@@ -121,7 +122,7 @@ async function getRequesterScope({ clientIp, presentedApiKey, apiKey, apiKeyFing
   if (apiKey && presentedApiKey) {
     return `api-key:${await tokenFingerprint(presentedApiKey, apiKeyFingerprintSalt)}`;
   }
-  return `ip:${clientIp || "unknown"}`;
+  return `ip:${hashClientIp(clientIp)}`;
 }
 
 function getPresentedUserApiKey({ presentedApiKey, presentedBearerToken }) {
@@ -316,8 +317,8 @@ export function createRequestGuards({
     telemetry.recordTargetRateLimited();
     telemetry.recordFailure("target_rate_limited");
     recordAbuseSignal("target_quota_exceeded", {
-      clientIp,
-      requesterScope,
+      clientIpHash: hashClientIp(clientIp),
+      requesterScope: redactRequesterScope(requesterScope),
       targetHost,
       path: requestPath,
     }, {
@@ -367,7 +368,7 @@ export function createRequestGuards({
       telemetry.recordAuthRejected();
       telemetry.recordFailure("auth_rejected");
       recordAbuseSignal("session_token_rejected", {
-        clientIp,
+        clientIpHash: hashClientIp(clientIp),
         path: requestPath,
       }, {
         abuseSignalBuckets,
@@ -385,7 +386,7 @@ export function createRequestGuards({
       telemetry.recordAuthRejected();
       telemetry.recordFailure("auth_rejected");
       recordAbuseSignal("user_api_key_rejected", {
-        clientIp,
+        clientIpHash: hashClientIp(clientIp),
         path: requestPath,
       }, {
         abuseSignalBuckets,
@@ -417,7 +418,7 @@ export function createRequestGuards({
         telemetry.recordRequesterRateLimited();
         telemetry.recordFailure("requester_rate_limited");
         recordAbuseSignal("rate_limit_exceeded", {
-          clientIp,
+          clientIpHash: hashClientIp(clientIp),
           requesterScope: sessionScope,
           path: requestPath,
         }, {
@@ -460,7 +461,7 @@ export function createRequestGuards({
         telemetry.recordRequesterRateLimited();
         telemetry.recordFailure("requester_rate_limited");
         recordAbuseSignal("rate_limit_exceeded", {
-          clientIp,
+          clientIpHash: hashClientIp(clientIp),
           requesterScope: apiKeyScope,
           path: requestPath,
         }, {
@@ -488,7 +489,7 @@ export function createRequestGuards({
       telemetry.recordAuthRejected();
       telemetry.recordFailure("auth_rejected");
       recordAbuseSignal("api_key_rejected", {
-        clientIp,
+        clientIpHash: hashClientIp(clientIp),
         path: requestPath,
       }, {
         abuseSignalBuckets,
@@ -514,8 +515,8 @@ export function createRequestGuards({
       telemetry.recordAuthRejected();
       telemetry.recordFailure("auth_rejected");
       recordAbuseSignal("scan_owner_missing", {
-        clientIp,
-        requesterScope,
+        clientIpHash: hashClientIp(clientIp),
+        requesterScope: redactRequesterScope(requesterScope),
         path: requestPath,
       }, {
         abuseSignalBuckets,
@@ -538,8 +539,8 @@ export function createRequestGuards({
       telemetry.recordRequesterRateLimited();
       telemetry.recordFailure("requester_rate_limited");
       recordAbuseSignal("rate_limit_exceeded", {
-        clientIp,
-        requesterScope,
+        clientIpHash: hashClientIp(clientIp),
+        requesterScope: redactRequesterScope(requesterScope),
         path: requestPath,
       }, {
         abuseSignalBuckets,

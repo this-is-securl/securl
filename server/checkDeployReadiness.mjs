@@ -111,6 +111,10 @@ if (!env.AUTH_TOKEN_FINGERPRINT_SALT) {
   warnings.push("AUTH_TOKEN_FINGERPRINT_SALT is not set. Use a deployment-specific secret before handling real user accounts.");
 }
 
+if (!env.PRIVACY_HASH_SALT) {
+  warnings.push("PRIVACY_HASH_SALT is not set. Use a deployment-specific secret for client IP, telemetry target, and rate-limit key hashing.");
+}
+
 if (!env.API_KEY_FINGERPRINT_SALT) {
   warnings.push("API_KEY_FINGERPRINT_SALT is not set. Use a deployment-specific secret before relying on API-key fingerprinting in production.");
 }

@@ -332,7 +332,7 @@ const Index = () => {
                       onClick={() => {
                         navigator.clipboard.writeText(`${window.location.origin}/report/${currentScanId}`);
                         recordTelemetryEvent("share_link_copied", {
-                          target: analysisData.url,
+                          target: analysisData.finalUrl ?? analysisData.normalizedUrl,
                           scanId: currentScanId,
                         });
                         toast.success("Link copied to clipboard");

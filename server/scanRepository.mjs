@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { Pool } from "pg";
+import { hashClientIp } from "./privacy.mjs";
 
 export function buildScanRepositorySchemaStatements(schema = "public") {
   const qualifiedTable = `${schema}.scans`;
@@ -575,6 +576,7 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       );
     },
     async createScan({ url, mode, requesterScope, clientIp, ownerId = null }) {
+      const clientIpHash = hashClientIp(clientIp);
       const scan = {
         id: crypto.randomUUID(),
         ownerId,
@@ -582,7 +584,7 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
         url,
         mode,
         requesterScope,
-        clientIp,
+        clientIp: clientIpHash,
         requestedAt: new Date().toISOString(),
         startedAt: null,
         completedAt: null,
@@ -1062,6 +1064,7 @@ export function createPostgresScanRepository({
       })));
     },
     async createScan({ url, mode, requesterScope, clientIp, ownerId = null }) {
+      const clientIpHash = hashClientIp(clientIp);
       const scan = {
         id: crypto.randomUUID(),
         ownerId,
@@ -1069,7 +1072,7 @@ export function createPostgresScanRepository({
         url,
         mode,
         requesterScope,
-        clientIp,
+        clientIp: clientIpHash,
         requestedAt: new Date().toISOString(),
         startedAt: null,
         completedAt: null,

@@ -50,7 +50,7 @@ export const CookieAnalysis = ({ cookies }: CookieAnalysisProps) => {
                         <Badge variant={cookie.httpOnly ? "default" : "destructive"}>
                           HttpOnly {cookie.httpOnly ? "on" : "off"}
                         </Badge>
-                        <Badge variant={cookie.sameSite ? "outline-solid" : "destructive"}>
+                        <Badge variant={cookie.sameSite ? "outline" : "destructive"}>
                           SameSite {cookie.sameSite ?? "missing"}
                         </Badge>
                       </div>

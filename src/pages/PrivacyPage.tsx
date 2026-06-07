@@ -13,7 +13,7 @@ export function PrivacyPage() {
           Privacy Policy
         </h1>
         <p className="mb-10 text-sm text-zinc-500">
-          Last updated: May 2026
+          Last updated: June 2026
         </p>
 
         <div className="space-y-8 text-sm leading-7">
@@ -23,8 +23,9 @@ export function PrivacyPage() {
               SecURL analyses the external security posture of websites and web services. You
               provide a URL, our service checks it using publicly observable signals — HTTP
               response headers, TLS configuration, DNS records, certificate metadata, and
-              related data — and returns a score and grade. No credentials, no login, and no
-              access to anything that isn't already visible from the public internet.
+              related data — and returns a score and grade. No target credentials and no
+              special access are required; SecURL only analyses information visible from
+              the public internet.
             </p>
           </section>
 
@@ -32,45 +33,61 @@ export function PrivacyPage() {
             <h2 className="mb-3 text-base font-medium text-white">Data we process</h2>
             <p>
               When you scan a URL, that URL is sent to our servers to perform the analysis.
-              We do not store URLs or scan results against any personal identity. Scan
-              results returned to the app are stored locally on your device only and are
-              not transmitted back to us.
+              We store scan records, monitored targets, scan status, summary data, and the
+              resulting report so you can reopen history, compare changes, and use monitoring
+              across the web app, API, and companion apps.
             </p>
             <p className="mt-4">
               To allow you to retrieve your own scans and prevent abuse, each installation
-              of the app generates an anonymous random identifier. This identifier is stored
-              on your device and sent with scan requests. It contains no personal information
-              and cannot be linked to you.
+              of the app generates a random scan-owner token. The token is stored on your
+              device and sent with scan requests. On our servers it is stored as a salted
+              fingerprint rather than the original token.
+            </p>
+            <p className="mt-4">
+              If you create an account, we collect your email address, optional display name,
+              password hash, session records, API key fingerprints, saved scans, and monitored
+              targets. API keys and sessions are stored as one-way fingerprints; the original
+              secret is only shown to you when it is created.
+            </p>
+            <p className="mt-4">
+              We also collect minimal operational telemetry such as page-load counts, traffic
+              source categories, funnel events, scan timing, failure classes, and rate-limit
+              counters. We hash or truncate identifiers used for abuse prevention and avoid
+              storing full target paths or query strings in telemetry.
             </p>
           </section>
 
           <section>
-            <h2 className="mb-3 text-base font-medium text-white">Data we do not collect</h2>
+            <h2 className="mb-3 text-base font-medium text-white">What we do not collect</h2>
             <p>
-              We do not collect your name, email address, location, device identifiers, or
-              any other personal information. We do not require an account. We do not use
-              advertising or tracking SDKs. We do not sell, share, or transfer any data to
-              third parties for marketing purposes.
+              We do not collect credentials for the sites you scan. We do not require an
+              account for basic scanning. We do not use advertising SDKs, sell personal data,
+              or share data with third parties for marketing purposes.
             </p>
           </section>
 
           <section>
             <h2 className="mb-3 text-base font-medium text-white">Infrastructure</h2>
             <p>
-              The SecURL backend runs on Railway. Standard server logs may capture IP
-              addresses and request metadata for a limited period for operational purposes
-              such as debugging and abuse prevention. These logs are not used for
-              profiling and are not retained long-term.
+              The SecURL backend runs on Railway with durable storage for account-backed
+              scans and monitoring. Static web pages are hosted separately. Operational logs
+              may include request metadata, hashed client identifiers, target origins, and
+              failure details for debugging, reliability, and abuse prevention. These logs
+              are not used for advertising or profiling.
             </p>
           </section>
 
           <section>
-            <h2 className="mb-3 text-base font-medium text-white">Your data on device</h2>
+            <h2 className="mb-3 text-base font-medium text-white">Your data and sharing</h2>
             <p>
-              Scan history, monitored targets, and your anonymous scan token are stored
-              locally on your device using standard app storage. This data never leaves
-              your device except as described above. Uninstalling the app removes all
-              locally stored data.
+              Anonymous scan-owner tokens are stored locally in your browser or app. Browser
+              account sessions are stored in session storage and are cleared when you sign
+              out or the session expires. Companion apps may keep local scan history for
+              offline access.
+            </p>
+            <p className="mt-4">
+              If you copy or open a shared report link, the completed scan can be viewed by
+              anyone who has that link. Shared report links do not require an account.
             </p>
           </section>
 
