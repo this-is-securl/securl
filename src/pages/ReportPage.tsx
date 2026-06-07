@@ -23,7 +23,7 @@ export function ReportPage() {
       else {
         setResult(data);
         recordTelemetryEvent("shared_report_viewed", {
-          target: data.url,
+          target: data.finalUrl ?? data.normalizedUrl,
           scanId,
         });
       }

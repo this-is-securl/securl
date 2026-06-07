@@ -39,6 +39,12 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
       summary: domainSecurity.dmarc ? "DMARC is present, but this older snapshot does not include parsed policy detail." : "No DMARC record was detected.",
     },
   } as const;
+  const spfAllMechanism = "allMechanism" in emailPolicy.spf ? emailPolicy.spf.allMechanism : null;
+  const dmarcPolicy = "policy" in emailPolicy.dmarc ? emailPolicy.dmarc.policy : null;
+  const dmarcSubdomainPolicy =
+    "subdomainPolicy" in emailPolicy.dmarc ? emailPolicy.dmarc.subdomainPolicy : null;
+  const dmarcPct = "pct" in emailPolicy.dmarc ? emailPolicy.dmarc.pct : null;
+  const dmarcReporting = "reporting" in emailPolicy.dmarc ? emailPolicy.dmarc.reporting : null;
 
   return (
     <Card className="h-full border-white/10 bg-white/4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.65)]">
@@ -58,18 +64,18 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
                   <Badge variant="outline" className={policyBadgeClass[emailPolicy.spf.status]}>
                     {policyLabel[emailPolicy.spf.status]}
                   </Badge>
-                  {emailPolicy.spf.allMechanism && (
+                  {spfAllMechanism && (
                     <Badge
                       variant="outline"
                       className={
-                        emailPolicy.spf.allMechanism === "-all"
+                        spfAllMechanism === "-all"
                           ? "border-emerald-400/25 bg-emerald-400/8 text-emerald-200"
-                          : emailPolicy.spf.allMechanism === "+all"
+                          : spfAllMechanism === "+all"
                           ? "border-rose-500/30 bg-rose-500/8 text-rose-200"
                           : "border-amber-500/30 bg-amber-500/8 text-amber-200"
                       }
                     >
-                      {emailPolicy.spf.allMechanism}
+                      {spfAllMechanism}
                     </Badge>
                   )}
                 </div>
@@ -86,24 +92,24 @@ export const DomainSecurityPanel = ({ domainSecurity }: DomainSecurityPanelProps
                   <Badge variant="outline" className={policyBadgeClass[emailPolicy.dmarc.status]}>
                     {policyLabel[emailPolicy.dmarc.status]}
                   </Badge>
-                  {emailPolicy.dmarc.policy && (
+                  {dmarcPolicy && (
                     <Badge variant="outline" className="border-white/10 bg-white/6 text-zinc-200">
-                      p={emailPolicy.dmarc.policy}
+                      p={dmarcPolicy}
                     </Badge>
                   )}
-                  {emailPolicy.dmarc.subdomainPolicy && (
+                  {dmarcSubdomainPolicy && (
                     <Badge variant="outline" className="border-white/10 bg-white/6 text-zinc-200">
-                      sp={emailPolicy.dmarc.subdomainPolicy}
+                      sp={dmarcSubdomainPolicy}
                     </Badge>
                   )}
-                  {emailPolicy.dmarc.pct !== null && emailPolicy.dmarc.pct !== undefined && emailPolicy.dmarc.pct < 100 && (
+                  {dmarcPct !== null && dmarcPct !== undefined && dmarcPct < 100 && (
                     <Badge variant="outline" className="border-amber-500/30 bg-amber-500/8 text-amber-200">
-                      pct={emailPolicy.dmarc.pct}%
+                      pct={dmarcPct}%
                     </Badge>
                   )}
-                  {emailPolicy.dmarc.reporting ? (
+                  {dmarcReporting ? (
                     <Badge variant="outline" className="border-emerald-400/25 bg-emerald-400/8 text-emerald-200">Reporting on</Badge>
-                  ) : emailPolicy.dmarc.policy && (
+                  ) : dmarcPolicy && (
                     <Badge variant="outline" className="border-amber-500/30 bg-amber-500/8 text-amber-200">No rua reporting</Badge>
                   )}
                 </div>

@@ -6,6 +6,7 @@ import {
   createInMemoryScanRepository,
 } from "../scanRepository.mjs";
 import { buildScanHistoryPayload } from "../scanDtos.mjs";
+import { hashClientIp } from "../privacy.mjs";
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -19,6 +20,8 @@ test("scan repository tracks queued, running, and completed scans", async () => 
   });
 
   assert.equal(scan.status, "queued");
+  assert.equal(scan.clientIp, hashClientIp("127.0.0.1"));
+  assert.notEqual(scan.clientIp, "127.0.0.1");
 
   await repository.markRunning(scan.id);
   await repository.markCompleted(scan.id, {

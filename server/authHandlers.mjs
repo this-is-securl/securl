@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { promisify } from "node:util";
+import { hashClientIp, hashPrivacyValue } from "./privacy.mjs";
 
 const scryptAsync = promisify(crypto.scrypt);
 const DEFAULT_SESSION_TTL_DAYS = 30;
@@ -169,7 +170,7 @@ async function checkAuthAttemptRateLimit({
   }
 
   const clientIp = getClientIp(request, { trustProxy, isLocalHostname, isPrivateAddress }) || "unknown";
-  const rateLimitState = await authRateLimiter.check(`auth:${clientIp}:${emailScope}`);
+  const rateLimitState = await authRateLimiter.check(`auth:${hashClientIp(clientIp)}:${hashPrivacyValue(emailScope, { prefix: "email" })}`);
   if (!rateLimitState.limited) {
     return true;
   }

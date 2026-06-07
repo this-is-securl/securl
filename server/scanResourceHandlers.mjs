@@ -1,4 +1,5 @@
 import { API_VERSION } from "./scanDtos.mjs";
+import { hashClientIp, redactRequesterScope, targetForPrivacy } from "./privacy.mjs";
 
 export const RESULT_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 export const RESULT_CACHE_STARTED_AT_MS = Date.now();
@@ -45,19 +46,24 @@ export async function runQueuedScan({
   formatErrorMessage,
   log,
 }) {
+  const safeTarget = targetForPrivacy(validatedTarget);
+  const safeClientIp = hashClientIp(authState.clientIp);
+  const safeRequesterScope = redactRequesterScope(authState.requesterScope);
+
   try {
     await scanRepository.markRunning(scan.id);
   } catch (error) {
     telemetry.recordFailure("scan_repository_failure", {
-      target: validatedTarget.toString(),
+      target: safeTarget,
       message: formatErrorMessage(error),
       source: "scan_state_mark_running",
     });
     log("error", "scan_resource_state_failed", {
       stage: "mark_running",
       message: formatErrorMessage(error),
-      clientIp: authState.clientIp,
-      target: validatedTarget.toString(),
+      clientIpHash: safeClientIp,
+      requesterScope: safeRequesterScope,
+      targetOrigin: safeTarget,
       scanId: scan.id,
     });
     return;
@@ -74,7 +80,7 @@ export async function runQueuedScan({
   } catch (error) {
     const failureClass = classifyScanFailure(error);
     telemetry.recordFailure(failureClass, {
-      target: validatedTarget.toString(),
+      target: safeTarget,
       message: normalizeScanErrorMessage(error),
       source: "scan_analysis",
     });
@@ -82,22 +88,24 @@ export async function runQueuedScan({
       await scanRepository.markFailed(scan.id, failureClass, normalizeScanErrorMessage(error));
     } catch (repositoryError) {
       telemetry.recordFailure("scan_repository_failure", {
-        target: validatedTarget.toString(),
+        target: safeTarget,
         message: formatErrorMessage(repositoryError),
         source: "scan_state_mark_failed",
       });
       log("error", "scan_resource_state_failed", {
         stage: "mark_failed",
         message: formatErrorMessage(repositoryError),
-        clientIp: authState.clientIp,
-        target: validatedTarget.toString(),
+        clientIpHash: safeClientIp,
+        requesterScope: safeRequesterScope,
+        targetOrigin: safeTarget,
         scanId: scan.id,
       });
     }
     log("warn", "scan_resource_failed", {
       message: formatErrorMessage(error),
-      clientIp: authState.clientIp,
-      target: validatedTarget.toString(),
+      clientIpHash: safeClientIp,
+      requesterScope: safeRequesterScope,
+      targetOrigin: safeTarget,
       scanId: scan.id,
     });
     return;
@@ -107,15 +115,16 @@ export async function runQueuedScan({
     await scanRepository.markCompleted(scan.id, result);
   } catch (error) {
     telemetry.recordFailure("scan_repository_failure", {
-      target: validatedTarget.toString(),
+      target: safeTarget,
       message: formatErrorMessage(error),
       source: "scan_state_mark_completed",
     });
     log("error", "scan_resource_state_failed", {
       stage: "mark_completed",
       message: formatErrorMessage(error),
-      clientIp: authState.clientIp,
-      target: validatedTarget.toString(),
+      clientIpHash: safeClientIp,
+      requesterScope: safeRequesterScope,
+      targetOrigin: safeTarget,
       scanId: scan.id,
     });
   }
@@ -244,10 +253,11 @@ export async function handleScanCollectionRequest({
         });
         const completedScan = await scanRepository.markCompleted(scan.id, cachedScan.result);
         log("info", "scan_result_cache_hit", {
-          target: validatedTarget.toString(),
+          targetOrigin: targetForPrivacy(validatedTarget),
           cachedScanId: cachedScan.id,
           newScanId: scan.id,
-          clientIp: authState.clientIp,
+          clientIpHash: hashClientIp(authState.clientIp),
+          requesterScope: redactRequesterScope(authState.requesterScope),
           cacheMaxAgeMs: resultCacheMaxAgeMs,
         });
         sendJson(response, 202, {

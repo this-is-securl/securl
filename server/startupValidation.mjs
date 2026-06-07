@@ -129,6 +129,12 @@ export function enforceStartupConfiguration({
     });
   }
 
+  if (isProduction && !process.env.PRIVACY_HASH_SALT) {
+    log("warn", "default_privacy_hash_salt", {
+      message: "Set PRIVACY_HASH_SALT to a deployment-specific secret so persisted privacy hashes cannot be correlated across deployments.",
+    });
+  }
+
   if (process.env.MONITORING_SCHEDULER_ENABLED === "true" && scanRepositoryBackend !== "postgres") {
     log("warn", "monitoring_scheduler_without_durable_store", {
       message: "Backend-owned monitoring sweeps are enabled, but scan storage is memory-backed and will reset on restart.",

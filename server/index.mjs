@@ -40,6 +40,7 @@ import { createScanScheduler } from "./scanScheduler.mjs";
 import { createStaticHandler } from "./staticServer.mjs";
 import { enforceStartupConfiguration, initializeScanRepository } from "./startupValidation.mjs";
 import { classifyTrafficSource, classifyScanFailure, createTelemetryTracker } from "./telemetry.mjs";
+import { hashClientIp, redactRequesterScope, targetOriginForPrivacy } from "./privacy.mjs";
 import {
   analyzeUrl,
   formatErrorMessage,
@@ -240,47 +241,15 @@ const log = (level, event, details = {}) => {
   console.log(line);
 };
 
-// Avoid persisting raw client IPs in scan logs; a salted hash still lets us
-// correlate activity for abuse investigation without storing the address itself.
-function hashClientIpForLog(clientIp) {
-  if (!clientIp || clientIp === "unknown") {
-    return "unknown";
-  }
-  return crypto
-    .createHash("sha256")
-    .update(`${TELEMETRY_VISITOR_SALT}:${clientIp}`)
-    .digest("hex")
-    .slice(0, 16);
-}
-
-// Log only the target origin (scheme + host); the full URL path/query can carry
-// session tokens or other sensitive data we should not retain in logs.
-function targetOriginForLog(validatedTarget) {
-  try {
-    return validatedTarget.origin;
-  } catch {
-    return "invalid-target";
-  }
-}
-
-// Anonymous requester scopes embed the raw client IP ("ip:1.2.3.4"); hash that
-// component so the scope stays stable as a correlation key without logging the IP.
-function requesterScopeForLog(requesterScope) {
-  if (typeof requesterScope === "string" && requesterScope.startsWith("ip:")) {
-    return `ip:${hashClientIpForLog(requesterScope.slice(3))}`;
-  }
-  return requesterScope;
-}
-
 async function runScanAnalysis({ validatedTarget, mode, clientIp, requesterScope }) {
   const startedAt = Date.now();
   const maxScanDurationMs = mode === "deep-passive" ? DEEP_PASSIVE_SCAN_TIMEOUT_MS : SCAN_TIMEOUT_MS;
-  const clientIpHash = hashClientIpForLog(clientIp);
-  const targetOrigin = targetOriginForLog(validatedTarget);
+  const clientIpHash = hashClientIp(clientIp);
+  const targetOrigin = targetOriginForPrivacy(validatedTarget) || "invalid-target";
   telemetry.recordScanRequested({ mode });
   log("info", "analysis_requested", {
     clientIpHash,
-    requesterScope: requesterScopeForLog(requesterScope),
+    requesterScope: redactRequesterScope(requesterScope),
     targetOrigin,
     mode,
     maxScanDurationMs,
@@ -292,7 +261,7 @@ async function runScanAnalysis({ validatedTarget, mode, clientIp, requesterScope
   telemetry.recordScanCompleted(result);
   log("info", "analysis_completed", {
     clientIpHash,
-    requesterScope: requesterScopeForLog(requesterScope),
+    requesterScope: redactRequesterScope(requesterScope),
     targetOrigin,
     mode,
     durationMs: Date.now() - startedAt,

@@ -42,6 +42,9 @@ const scanLifecycleStages = [
 
 export type ScanLifecycleStage = (typeof scanLifecycleStages)[number];
 
+const telemetryTargetForResult = (result: AnalysisResult | null | undefined) =>
+  result?.finalUrl ?? result?.normalizedUrl ?? null;
+
 export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: string | null } = {}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null);
@@ -50,7 +53,7 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
   const [scanStage, setScanStage] = useState<ScanLifecycleStage | null>(null);
   const [currentScanId, setCurrentScanId] = useState<string | null>(null);
   const autoScanRanRef = useRef(false);
-  const analyzeUrlRef = useRef<(url: string, setAsCurrent?: boolean) => Promise<AnalysisResult>>();
+  const analyzeUrlRef = useRef<((url: string, setAsCurrent?: boolean) => Promise<AnalysisResult>) | null>(null);
   const stageTimeoutsRef = useRef<number[]>([]);
   const areaScores = analysisData ? getAreaScores(analysisData) : [];
 
@@ -188,13 +191,13 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
       void refreshServerComparison(payload.scanId, payload.result);
     }
     recordTelemetryEvent("scan_completed", {
-      target: payload.result.url,
+      target: telemetryTargetForResult(payload.result),
       scanId: payload.scanId,
       mode: "standard",
     });
     if (setAsCurrent) {
       recordTelemetryEvent("report_viewed", {
-        target: payload.result.url,
+        target: telemetryTargetForResult(payload.result),
         scanId: payload.scanId,
       });
     }
@@ -245,7 +248,7 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
       setCurrentScanId(scan.id);
       void refreshServerComparison(scan.id, payload.scan.result);
       recordTelemetryEvent("report_viewed", {
-        target: payload.scan.result.url,
+        target: telemetryTargetForResult(payload.scan.result),
         scanId: scan.id,
       });
       toast.success(`Reopened ${payload.scan.result.host}.`);
@@ -347,7 +350,7 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
     saveCurrentAsMonitored: async (cadence: "daily" | "weekly") => {
       await saveCurrentAsMonitored(cadence, analysisData);
       recordTelemetryEvent("monitoring_saved", {
-        target: analysisData?.url ?? null,
+        target: telemetryTargetForResult(analysisData),
         scanId: currentScanId,
         mode: cadence,
       });
@@ -356,15 +359,15 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
     runTargetScan,
     runDueScans,
     exportReport: () => {
-      recordTelemetryEvent("export_clicked", { target: analysisData?.url ?? null, scanId: currentScanId, format: "json" });
+      recordTelemetryEvent("export_clicked", { target: telemetryTargetForResult(analysisData), scanId: currentScanId, format: "json" });
       exportReportJson(analysisData);
     },
     exportMarkdown: () => {
-      recordTelemetryEvent("export_clicked", { target: analysisData?.url ?? null, scanId: currentScanId, format: "markdown" });
+      recordTelemetryEvent("export_clicked", { target: telemetryTargetForResult(analysisData), scanId: currentScanId, format: "markdown" });
       exportReportMarkdown(analysisData, historyDiff);
     },
     exportPdf: () => {
-      recordTelemetryEvent("export_clicked", { target: analysisData?.url ?? null, scanId: currentScanId, format: "pdf" });
+      recordTelemetryEvent("export_clicked", { target: telemetryTargetForResult(analysisData), scanId: currentScanId, format: "pdf" });
       exportReportPdf(analysisData, historyDiff);
     },
   };
