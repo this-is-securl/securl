@@ -67,6 +67,11 @@ import type { AnalysisResult, AnalyzeTargetOptions, HtmlSecurityInfo } from "./t
 
 export { buildPostureRiskEventsFromDiff, buildPostureRiskEventsFromSnapshots } from "./riskEvents.js";
 export { buildPostureDigest } from "./postureDigest.js";
+export {
+  buildPostureDriftReport,
+  buildPostureDriftReportFromDiff,
+  buildPostureDriftReportFromSnapshots,
+} from "./postureDrift.js";
 export type { PostureRiskEvent, PostureRiskEventSeverity } from "./types.js";
 
 type ScanMode = NonNullable<AnalyzeTargetOptions["scanMode"]>;

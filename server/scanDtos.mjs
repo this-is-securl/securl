@@ -1,6 +1,6 @@
 import { buildHistoryDiffFromSnapshots, snapshotFromAnalysis } from "../packages/core/dist/historyDiff.js";
 import { buildPostureDigest } from "../packages/core/dist/postureDigest.js";
-import { buildPostureRiskEventsFromSnapshots } from "../packages/core/dist/riskEvents.js";
+import { buildPostureDriftReportFromDiff } from "../packages/core/dist/postureDrift.js";
 
 export const API_VERSION = "2026-05-14";
 export const SCAN_EXPORT_FORMATS = ["json", "markdown", "sarif", "ci-json"];
@@ -228,7 +228,7 @@ export function buildScanExportResponse(scan, format = "json") {
   };
 }
 
-function buildStoredTargetDiff(records) {
+function buildStoredTargetDrift(records) {
   const completedWithResults = normalizeArray(records).filter((scan) => scan?.status === "completed" && scan?.result);
   if (completedWithResults.length < 2) {
     return null;
@@ -238,12 +238,27 @@ function buildStoredTargetDiff(records) {
   const currentSnapshot = snapshotFromAnalysis(current.result);
   const previousSnapshot = snapshotFromAnalysis(previous.result);
   const diff = buildHistoryDiffFromSnapshots(currentSnapshot, previousSnapshot);
+  const report = buildPostureDriftReportFromDiff(currentSnapshot, previousSnapshot, diff);
 
   return {
     currentScanId: current.id,
     previousScanId: previous.id,
-    diff,
-    riskEvents: buildPostureRiskEventsFromSnapshots(currentSnapshot, previousSnapshot, diff),
+    report,
+  };
+}
+
+function buildStoredTargetDiff(records) {
+  const drift = buildStoredTargetDrift(records);
+  if (!drift) {
+    return null;
+  }
+
+  return {
+    currentScanId: drift.currentScanId,
+    previousScanId: drift.previousScanId,
+    diff: drift.report.diff,
+    riskEvents: drift.report.riskEvents,
+    drift: drift.report.summary,
   };
 }
 
@@ -391,6 +406,26 @@ export function buildScanComparisonPayload(scan, records) {
     scan: scan.summary,
     scans: comparisonRecords.map((record) => record.summary).filter(Boolean),
     comparison: buildStoredTargetDiff(comparisonRecords),
+  };
+}
+
+export function buildScanDriftPayload(scan, records) {
+  const completedRecords = normalizeArray(records).filter((record) => record?.status === "completed" && record?.result);
+  const currentIndex = completedRecords.findIndex((record) => record.id === scan.id);
+  const comparisonRecords = currentIndex >= 0
+    ? completedRecords.slice(currentIndex, currentIndex + 2)
+    : completedRecords.slice(0, 2);
+  const drift = buildStoredTargetDrift(comparisonRecords);
+
+  return {
+    apiVersion: API_VERSION,
+    scan: scan.summary,
+    scans: comparisonRecords.map((record) => record.summary).filter(Boolean),
+    drift: drift ? {
+      currentScanId: drift.currentScanId,
+      previousScanId: drift.previousScanId,
+      ...drift.report,
+    } : null,
   };
 }
 

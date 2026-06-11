@@ -127,6 +127,21 @@ console.log(riskEvents);
 
 Risk events include score regressions, grade drops, new critical findings, certificates nearing expiry, security header regressions, WAF signal removals, new CT priority hosts, identity-provider changes, and new third-party or AI vendors.
 
+Version `1.3.0+` also includes a higher-level posture drift report for monitoring and alerting surfaces that need one stable payload with the diff, risk events, changed areas, severity counts, and an overall direction.
+
+```js
+import {
+  buildPostureDriftReportFromSnapshots,
+} from "@ktbatterham/external-posture-core/posture-drift";
+
+const drift = buildPostureDriftReportFromSnapshots(
+  currentSnapshot,
+  previousSnapshot,
+);
+
+console.log(drift.summary.direction, drift.summary.changedAreas);
+```
+
 Runnable examples are included in [`examples/`](./examples):
 
 ```bash
@@ -230,11 +245,13 @@ Primary exports:
 - `buildHistoryDiffFromSnapshots(current, previous)` - build a structured diff between scans.
 - `buildPostureRiskEventsFromSnapshots(current, previous, diff)` - classify scan changes into alert-friendly risk events.
 - `buildPostureDigest(result)` - reduce a full scan result to a compact API/mobile-friendly digest.
+- `buildPostureDriftReportFromSnapshots(current, previous)` - produce a complete scan-to-scan drift report for monitoring, alerting, and history views.
 
 Package subpath exports:
 
 - `@ktbatterham/external-posture-core/history-diff`
 - `@ktbatterham/external-posture-core/posture-digest`
+- `@ktbatterham/external-posture-core/posture-drift`
 - `@ktbatterham/external-posture-core/risk-events`
 - `@ktbatterham/external-posture-core/types`
 

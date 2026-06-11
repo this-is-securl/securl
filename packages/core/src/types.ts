@@ -214,6 +214,51 @@ export interface PostureRiskEvent {
   metadata: Record<string, unknown>;
 }
 
+export type PostureDriftDirection = "improved" | "regressed" | "changed" | "unchanged";
+export type PostureDriftSeverity = "none" | PostureRiskEventSeverity;
+export type PostureDriftArea =
+  | "score"
+  | "grade"
+  | "status"
+  | "certificate"
+  | "headers"
+  | "findings"
+  | "third_party"
+  | "ai"
+  | "identity"
+  | "waf"
+  | "ct";
+
+export interface PostureDriftSnapshotSummary {
+  finalUrl: string;
+  host: string;
+  scannedAt: string;
+  score: number;
+  grade: string;
+  statusCode: number;
+}
+
+export interface PostureDriftSummary {
+  direction: PostureDriftDirection;
+  severity: PostureDriftSeverity;
+  scoreDelta: number | null;
+  gradeChanged: boolean;
+  hasRegression: boolean;
+  hasImprovement: boolean;
+  eventCounts: Record<PostureRiskEventSeverity, number>;
+  changedAreas: PostureDriftArea[];
+  topEvents: PostureRiskEvent[];
+  summary: string[];
+}
+
+export interface PostureDriftReport {
+  current: PostureDriftSnapshotSummary;
+  previous: PostureDriftSnapshotSummary;
+  diff: HistoryDiff;
+  riskEvents: PostureRiskEvent[];
+  summary: PostureDriftSummary;
+}
+
 export type SecurityTxtStatus = "present_valid" | "present_expired" | "present_incomplete" | "missing";
 
 export interface SecurityTxtInfo {

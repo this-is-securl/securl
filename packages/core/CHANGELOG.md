@@ -6,6 +6,12 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-06-11
+
+### Added
+- Added posture drift reports that combine history diffs, risk events, severity counts, changed areas, and overall drift direction into one stable monitoring payload.
+- Added the `@ktbatterham/external-posture-core/posture-drift` package export for clients building history, monitoring, or alerting workflows.
+
 ## [1.2.1] - 2026-06-06
 
 ### Changed

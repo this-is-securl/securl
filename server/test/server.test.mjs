@@ -482,6 +482,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.auth.resources.includes("DELETE /api/auth/api-keys/:id"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/digest"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/comparison"));
+    assert.ok(payload.scans.resources.includes("GET /api/scans/:id/drift"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/export?format=json|markdown|sarif|ci-json"));
     assert.equal(payload.monitoring.enabled, true);
     assert.equal(payload.monitoring.scheduler.enabled, true);
@@ -1233,6 +1234,8 @@ test("monitoring target detail returns recent scans, comparison, and lifecycle e
         assert.equal(detailPayload.comparison.currentScanId, detailPayload.scans[0].id);
         assert.equal(detailPayload.comparison.previousScanId, detailPayload.scans[1].id);
         assert.ok(Array.isArray(detailPayload.comparison.riskEvents));
+        assert.ok(detailPayload.comparison.drift);
+        assert.equal(typeof detailPayload.comparison.drift.direction, "string");
         assert.ok(Array.isArray(detailPayload.events));
         assert.ok(detailPayload.events.some((event) => event.eventType === "queued"));
         assert.ok(detailPayload.events.some((event) => event.eventType === "completed"));
@@ -1404,6 +1407,21 @@ test("scan comparison returns direct drift against the previous completed scan",
     assert.equal(typeof comparisonPayload.comparison.diff.scoreDelta, "number");
     assert.ok(Array.isArray(comparisonPayload.comparison.diff.summary));
     assert.ok(Array.isArray(comparisonPayload.comparison.riskEvents));
+    assert.ok(comparisonPayload.comparison.drift);
+    assert.equal(typeof comparisonPayload.comparison.drift.direction, "string");
+
+    const driftResponse = await fetch(`${server.baseUrl}/api/scans/${secondScanId}/drift`, {
+      headers: scanOwnerHeaders(),
+    });
+    const driftPayload = await driftResponse.json();
+
+    assert.equal(driftResponse.status, 200);
+    assert.equal(driftPayload.apiVersion, "2026-05-14");
+    assert.equal(driftPayload.scan.id, secondScanId);
+    assert.equal(driftPayload.drift.currentScanId, secondScanId);
+    assert.equal(driftPayload.drift.previousScanId, firstScanId);
+    assert.equal(typeof driftPayload.drift.summary.direction, "string");
+    assert.ok(Array.isArray(driftPayload.drift.riskEvents));
 
     const wrongOwnerResponse = await fetch(`${server.baseUrl}/api/scans/${secondScanId}/comparison`, {
       headers: scanOwnerHeaders(SCAN_OWNER_TWO),

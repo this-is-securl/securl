@@ -327,6 +327,7 @@ export async function handleScanResourceRequest({
   buildScanEvidencePayload,
   buildScanHistoryPayload,
   buildScanComparisonPayload,
+  buildScanDriftPayload,
   sendBody,
   sendJson,
   sendMethodNotAllowed,
@@ -438,6 +439,23 @@ export async function handleScanResourceRequest({
         url: scan.url,
       });
       sendJson(response, 200, buildScanComparisonPayload(scan, records));
+      return true;
+    }
+
+    if (resource === "drift") {
+      if (scan.status !== "completed" || !scan.result) {
+        sendJson(response, 409, {
+          error: "Scan drift is only available once the scan has completed.",
+        });
+        return true;
+      }
+
+      const records = await scanRepository.listPersistedRecords({
+        limit: clampLimit(requestUrl.searchParams.get("limit"), 20, 100),
+        ownerId: authState.ownerId,
+        url: scan.url,
+      });
+      sendJson(response, 200, buildScanDriftPayload(scan, records));
       return true;
     }
 
