@@ -1,6 +1,6 @@
 {
   "name": "@ktbatterham/external-posture-core",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "type": "module",
   "description": "Passive external security posture analysis engine for SecURL.",
   "author": {
@@ -52,6 +52,10 @@
     "./posture-digest": {
       "types": "./dist/postureDigest.d.ts",
       "default": "./dist/postureDigest.js"
+    },
+    "./posture-drift": {
+      "types": "./dist/postureDrift.d.ts",
+      "default": "./dist/postureDrift.js"
     }
   },
   "files": [
