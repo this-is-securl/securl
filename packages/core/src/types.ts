@@ -114,6 +114,7 @@ export interface ScanIssue {
   source: IssueSource;
   owasp: OwaspCategory[];
   mitre: MitreRelevance[];
+  evidence?: ScanEvidenceReference[];
 }
 
 export interface RemediationSnippet {
@@ -122,6 +123,54 @@ export interface RemediationSnippet {
   description: string;
   filename: string;
   snippet: string;
+}
+
+export type ScanEvidenceKind =
+  | "header"
+  | "tls"
+  | "cookie"
+  | "redirect"
+  | "dns"
+  | "html"
+  | "probe"
+  | "public_record"
+  | "score_driver";
+
+export interface ScanEvidenceReference {
+  kind: ScanEvidenceKind;
+  label: string;
+  observed: string | null;
+  expected?: string;
+  url?: string;
+  source?: ScoreDriver["source"] | IssueSource | "derived";
+}
+
+export type RemediationOwner = "app" | "edge" | "dns" | "identity" | "third_party";
+export type RemediationEffort = "low" | "medium" | "high";
+export type RemediationImpact = "low" | "medium" | "high";
+
+export interface RemediationPlanItem {
+  id: string;
+  priority: number;
+  title: string;
+  detail: string;
+  owner: RemediationOwner;
+  effort: RemediationEffort;
+  impact: RemediationImpact;
+  action: string;
+  verify: string;
+  scoreImpact: number | null;
+  relatedFindings: string[];
+  evidence: ScanEvidenceReference[];
+}
+
+export interface RemediationPlan {
+  generatedAt: string;
+  summary: string;
+  totalActions: number;
+  highImpactActions: number;
+  quickWins: number;
+  items: RemediationPlanItem[];
 }
 
 export interface CrawlPageResult {
@@ -769,6 +818,7 @@ export interface AnalysisResult {
   issues: ScanIssue[];
   strengths: string[];
   remediation: RemediationSnippet[];
+  remediationPlan?: RemediationPlan;
   crawl: CrawlSummary;
   securityTxt: SecurityTxtInfo;
   domainSecurity: DomainSecurityInfo;

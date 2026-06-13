@@ -6,6 +6,12 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-06-13
+
+### Added
+- Added structured finding evidence references and a remediation plan builder for prioritized, owner-aware fix guidance.
+- Added the `@ktbatterham/external-posture-core/remediation-plan` package export for clients that want to build fix plans from scan results.
+
 ## [1.3.0] - 2026-06-11
 
 ### Added

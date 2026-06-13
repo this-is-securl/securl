@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { performance } from "node:perf_hooks";
 import test from "node:test";
 import { analyzeInfrastructure } from "../dist/infrastructure.js";
+import { DNS_LOOKUP_TIMEOUT_MS } from "../dist/scannerConfig.js";
 
 test("analyzeInfrastructure infers providers from passive DNS, reverse DNS, headers, and stack evidence", async () => {
   const result = await analyzeInfrastructure(
@@ -60,7 +61,10 @@ test("analyzeInfrastructure bounds slow passive DNS lookups", async () => {
 
   const elapsedMs = performance.now() - startedAt;
 
-  assert.ok(elapsedMs < 3_500, `expected DNS enrichment to time out quickly, took ${elapsedMs}ms`);
+  assert.ok(
+    elapsedMs < DNS_LOOKUP_TIMEOUT_MS * 4,
+    `expected DNS enrichment to time out quickly, took ${elapsedMs}ms`,
+  );
   assert.deepEqual(result.addresses, []);
   assert.deepEqual(result.cnameTargets, []);
   assert.deepEqual(result.reverseDns, []);

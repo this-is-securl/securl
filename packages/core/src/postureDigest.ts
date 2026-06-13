@@ -71,6 +71,23 @@ export function buildPostureDigest(analysis: AnalysisResult, { findingLimit = 8 
       bySeverity: countIssuesBySeverity(issues),
       top: topIssues(issues, findingLimit),
     },
+    remediationPlan: analysis.remediationPlan ? {
+      summary: analysis.remediationPlan.summary,
+      totalActions: analysis.remediationPlan.totalActions,
+      highImpactActions: analysis.remediationPlan.highImpactActions,
+      quickWins: analysis.remediationPlan.quickWins,
+      topActions: normalizeArray(analysis.remediationPlan.items).slice(0, 5).map((item) => ({
+        id: item.id,
+        priority: item.priority,
+        title: item.title,
+        owner: item.owner,
+        effort: item.effort,
+        impact: item.impact,
+        action: item.action,
+        verify: item.verify,
+        relatedFindings: item.relatedFindings,
+      })),
+    } : null,
     controls: {
       headers: {
         total: normalizeArray(analysis.headers).length,
