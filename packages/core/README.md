@@ -167,8 +167,30 @@ console.log({
   grade: digest.posture.grade,
   score: digest.posture.score,
   topFindings: digest.findings.top,
+  topFixes: digest.remediationPlan?.topActions,
   riskIndicators: digest.intelligence.riskIndicators,
 });
+```
+
+### 6. Evidence-backed remediation plans
+
+Version `1.4.0+` includes a remediation plan helper that turns score drivers and findings into prioritized, owner-aware fix guidance. Findings can also carry structured evidence references so clients can show why a finding was raised.
+
+```js
+import {
+  attachIssueEvidence,
+  buildPostureRemediationPlan,
+} from "@ktbatterham/external-posture-core/remediation-plan";
+
+const resultWithEvidence = attachIssueEvidence(result);
+const remediationPlan = buildPostureRemediationPlan(resultWithEvidence);
+
+console.log(remediationPlan.items.map((item) => ({
+  title: item.title,
+  owner: item.owner,
+  impact: item.impact,
+  action: item.action,
+})));
 ```
 
 ## Package trust and release signals
@@ -246,12 +268,15 @@ Primary exports:
 - `buildPostureRiskEventsFromSnapshots(current, previous, diff)` - classify scan changes into alert-friendly risk events.
 - `buildPostureDigest(result)` - reduce a full scan result to a compact API/mobile-friendly digest.
 - `buildPostureDriftReportFromSnapshots(current, previous)` - produce a complete scan-to-scan drift report for monitoring, alerting, and history views.
+- `buildPostureRemediationPlan(result)` - generate prioritized, owner-aware remediation actions from findings and score drivers.
+- `attachIssueEvidence(result)` - add structured evidence references to findings without changing their existing fields.
 
 Package subpath exports:
 
 - `@ktbatterham/external-posture-core/history-diff`
 - `@ktbatterham/external-posture-core/posture-digest`
 - `@ktbatterham/external-posture-core/posture-drift`
+- `@ktbatterham/external-posture-core/remediation-plan`
 - `@ktbatterham/external-posture-core/risk-events`
 - `@ktbatterham/external-posture-core/types`
 

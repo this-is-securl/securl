@@ -314,6 +314,7 @@ export function buildScanFindingsPayload(scan) {
     findings: normalizeArray(result.issues),
     strengths: normalizeArray(result.strengths),
     priorityActions: normalizeArray(result.executiveSummary?.takeaways),
+    remediationPlan: result.remediationPlan ?? null,
   };
 }
 

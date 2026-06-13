@@ -58,6 +58,7 @@ import {
 import { normalizeDiscoveredPath, rankDiscoveredPaths } from "./path-discovery.js";
 import { buildPassiveIntelligence, emptyPassiveIntelligence } from "./passive-intelligence.js";
 import { analyzeRedirectChain } from "./redirectChain.js";
+import { attachIssueEvidence, buildPostureRemediationPlan } from "./postureRemediation.js";
 import { scoreAnalysis, scorePostureAnalysis, summarizePostureGrade } from "./scoring.js";
 import { fetchSecurityTxt } from "./security-txt.js";
 import { detectTechnologies } from "./technology-detection.js";
@@ -72,6 +73,11 @@ export {
   buildPostureDriftReportFromDiff,
   buildPostureDriftReportFromSnapshots,
 } from "./postureDrift.js";
+export {
+  attachIssueEvidence,
+  buildIssueEvidence,
+  buildPostureRemediationPlan,
+} from "./postureRemediation.js";
 export type { PostureRiskEvent, PostureRiskEventSeverity } from "./types.js";
 
 type ScanMode = NonNullable<AnalyzeTargetOptions["scanMode"]>;
@@ -516,7 +522,7 @@ async function buildLimitedResult(
     strengths: [],
   }));
 
-  return {
+  const limitedResult: AnalysisResult = {
     inputUrl: input,
     normalizedUrl: normalizedInput.toString(),
     finalUrl: normalizedInput.toString(),
@@ -589,7 +595,7 @@ async function buildLimitedResult(
         failure.kind === "service_unavailable"
           ? "Availability or reachability issues prevented a normal posture assessment."
           : "TLS trust or certificate issues prevented a normal posture assessment.",
-      posture: "weak",
+      posture: "weak" as const,
       takeaways: [
         failure.detail,
         domainSecurity.issues.length > 0
@@ -629,6 +635,12 @@ async function buildLimitedResult(
       strengths: [],
       summary: "Edge-protection fingerprinting was not completed because the primary response could not be fetched cleanly.",
     },
+  };
+
+  const evidenceResult = attachIssueEvidence(limitedResult);
+  return {
+    ...evidenceResult,
+    remediationPlan: buildPostureRemediationPlan(evidenceResult),
   };
 }
 
@@ -1120,9 +1132,14 @@ function buildTimedOutEnrichmentResult(
     },
   };
 
-  return {
+  const timedOutResultWithSummary = {
     ...timedOutResult,
     executiveSummary: buildExecutiveSummary(timedOutResult),
+  };
+  const evidenceResult = attachIssueEvidence(timedOutResultWithSummary);
+  return {
+    ...evidenceResult,
+    remediationPlan: buildPostureRemediationPlan(evidenceResult),
   };
 }
 
@@ -1192,9 +1209,15 @@ export async function analyzeUrl(input: string, options: AnalyzeTargetOptions = 
     },
   };
 
-  return {
+  const resultWithSummary = {
     ...scoredResult,
     executiveSummary: buildExecutiveSummary(scoredResult),
+  };
+  const resultWithEvidence = attachIssueEvidence(resultWithSummary);
+
+  return {
+    ...resultWithEvidence,
+    remediationPlan: buildPostureRemediationPlan(resultWithEvidence),
   };
 }
 

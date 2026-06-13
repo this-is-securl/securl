@@ -48,6 +48,13 @@ export function buildCapabilitiesPayload({
     scans: {
       modes: ["standard", "quiet", "deep-passive"],
       statuses: ["queued", "running", "completed", "failed"],
+      features: [
+        "executive-summary",
+        "finding-evidence",
+        "remediation-plan",
+        "posture-digest",
+        "posture-drift",
+      ],
       maxDurationMs: {
         standard: scanTimeoutMs,
         quiet: scanTimeoutMs,

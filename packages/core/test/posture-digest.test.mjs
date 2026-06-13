@@ -61,6 +61,28 @@ function buildAnalysis(overrides = {}) {
     ],
     strengths: [],
     remediation: [],
+    remediationPlan: {
+      summary: "1 prioritized remediation action generated from score drivers and findings.",
+      totalActions: 1,
+      highImpactActions: 1,
+      quickWins: 0,
+      items: [
+        {
+          id: "content-security-policy-gap",
+          priority: 1,
+          title: "Content-Security-Policy gap",
+          detail: "CSP is weak.",
+          owner: "edge",
+          effort: "medium",
+          impact: "high",
+          action: "Tighten the CSP.",
+          verify: "Rescan the target.",
+          scoreImpact: 18,
+          relatedFindings: ["CSP allows unsafe inline script"],
+          evidence: [],
+        },
+      ],
+    },
     crawl: { pages: [] },
     securityTxt: { status: "missing", contact: [] },
     domainSecurity: {
@@ -151,6 +173,8 @@ test("posture digest condenses scan results for API consumers", () => {
   assert.equal(digest.posture.score, 86);
   assert.equal(digest.findings.total, 2);
   assert.equal(digest.findings.bySeverity.warning, 1);
+  assert.equal(digest.remediationPlan.totalActions, 1);
+  assert.equal(digest.remediationPlan.topActions[0].owner, "edge");
   assert.equal(digest.controls.headers.missing, 1);
   assert.equal(digest.controls.headers.warning, 1);
   assert.equal(digest.controls.tls.issuer, "Example CA");
