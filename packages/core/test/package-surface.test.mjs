@@ -26,6 +26,8 @@ test("package surface exports expected public functions", async () => {
   assert.equal(typeof postureDrift.buildPostureDriftReportFromSnapshots, "function");
   assert.equal(typeof pkg.buildPostureRemediationPlan, "function");
   assert.equal(typeof remediationPlan.buildPostureRemediationPlan, "function");
+  assert.equal(typeof pkg.buildPostureEvidenceSummary, "function");
+  assert.equal(typeof remediationPlan.buildPostureEvidenceSummary, "function");
   assert.equal(typeof pkg.formatErrorMessage, "function");
 });
 

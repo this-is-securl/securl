@@ -315,6 +315,7 @@ export function buildScanFindingsPayload(scan) {
     strengths: normalizeArray(result.strengths),
     priorityActions: normalizeArray(result.executiveSummary?.takeaways),
     remediationPlan: result.remediationPlan ?? null,
+    evidenceSummary: result.evidenceSummary ?? null,
   };
 }
 
@@ -377,6 +378,7 @@ export function buildScanEvidencePayload(scan) {
       ctDiscovery: result.ctDiscovery ?? null,
       wafFingerprint: result.wafFingerprint ?? null,
       crawl: result.crawl ?? null,
+      evidenceSummary: result.evidenceSummary ?? null,
     },
   };
 }

@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   attachIssueEvidence,
+  buildPostureEvidenceSummary,
   buildPostureRemediationPlan,
 } from "../dist/index.js";
 
@@ -142,4 +143,19 @@ test("buildPostureRemediationPlan does not connect broad domain text to header f
 
   assert.equal(plan.items[0].title, "Domain and public-trust findings");
   assert.deepEqual(plan.items[0].relatedFindings, []);
+});
+
+test("buildPostureEvidenceSummary condenses score drivers and finding evidence", () => {
+  const result = attachIssueEvidence(buildAnalysis());
+  const summary = buildPostureEvidenceSummary(result);
+
+  assert.equal(summary.totalEvidenceReferences, 2);
+  assert.equal(summary.byKind.score_driver, 1);
+  assert.equal(summary.byKind.header, 1);
+  assert.equal(summary.observedCount, 1);
+  assert.equal(summary.derivedCount, 1);
+  assert.equal(summary.scoreDriverEvidence[0].scoreImpact, 12);
+  assert.equal(summary.findingEvidence[0].relatedFinding, "Content-Security-Policy is missing");
+  assert.equal(summary.topEvidence[0].label, "Content-Security-Policy gap");
+  assert.match(summary.summary, /2 evidence references/);
 });

@@ -193,6 +193,20 @@ console.log(remediationPlan.items.map((item) => ({
 })));
 ```
 
+Version `1.5.0+` includes a compact evidence summary for API, mobile, and report clients that need to explain why a scan scored the way it did without walking the full result object.
+
+```js
+import { buildPostureEvidenceSummary } from "securl/evidence-summary";
+
+const evidenceSummary = buildPostureEvidenceSummary(resultWithEvidence);
+
+console.log({
+  total: evidenceSummary.totalEvidenceReferences,
+  observed: evidenceSummary.observedCount,
+  topEvidence: evidenceSummary.topEvidence,
+});
+```
+
 ## Package trust and release signals
 
 - public source repository with package code under `packages/core`
@@ -270,6 +284,7 @@ Primary exports:
 - `buildPostureDriftReportFromSnapshots(current, previous)` - produce a complete scan-to-scan drift report for monitoring, alerting, and history views.
 - `buildPostureRemediationPlan(result)` - generate prioritized, owner-aware remediation actions from findings and score drivers.
 - `attachIssueEvidence(result)` - add structured evidence references to findings without changing their existing fields.
+- `buildPostureEvidenceSummary(result)` - produce compact evidence metadata for API, mobile, report, and explainability surfaces.
 
 Package subpath exports:
 

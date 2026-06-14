@@ -43,6 +43,16 @@ export interface CapabilitiesResponse extends VersionedApiResponse {
   scans: {
     modes: Array<"standard" | "quiet" | "deep-passive">;
     statuses: ApiScanStatus[];
+    features: string[];
+    scoring: {
+      model: string;
+      version: string;
+      gradeScale: string[];
+      scoreRange: {
+        min: number;
+        max: number;
+      };
+    };
     maxDurationMs: {
       standard: number;
       quiet: number;
@@ -122,6 +132,8 @@ export interface ScanFindingsResponse extends VersionedApiResponse {
   findings: AnalysisResult["issues"];
   strengths: AnalysisResult["strengths"];
   priorityActions: string[];
+  remediationPlan: AnalysisResult["remediationPlan"] | null;
+  evidenceSummary: AnalysisResult["evidenceSummary"] | null;
 }
 
 export interface ScanEvidenceResponse extends VersionedApiResponse {
@@ -146,6 +158,7 @@ export interface ScanEvidenceResponse extends VersionedApiResponse {
     ctDiscovery: AnalysisResult["ctDiscovery"] | null;
     wafFingerprint: AnalysisResult["wafFingerprint"] | null;
     crawl: AnalysisResult["crawl"] | null;
+    evidenceSummary: AnalysisResult["evidenceSummary"] | null;
   } | null;
 }
 
