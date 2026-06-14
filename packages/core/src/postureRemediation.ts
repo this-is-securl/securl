@@ -12,6 +12,11 @@ import type {
   SecurityHeaderResult,
 } from "./types.js";
 
+import type {
+  PostureEvidenceSummary,
+  PostureEvidenceSummaryReference,
+} from "./types.js";
+
 const normalizeArray = <T>(value: T[] | undefined | null): T[] => (Array.isArray(value) ? value : []);
 
 const HEADER_AREA_KEYS = new Set(["edge", "content"]);
@@ -72,6 +77,10 @@ function evidenceKindForScoreSource(source: ScoreDriver["source"]): ScanEvidence
   if (source === "html") return "html";
   if (source === "public_record") return "public_record";
   return "score_driver";
+}
+
+function incrementCount<T extends string>(counts: Partial<Record<T, number>>, key: T) {
+  counts[key] = (counts[key] ?? 0) + 1;
 }
 
 function headerEvidenceForIssue(issue: ScanIssue, headers: SecurityHeaderResult[]): ScanEvidenceReference[] {
@@ -170,6 +179,73 @@ export function attachIssueEvidence(analysis: AnalysisResult): AnalysisResult {
       ...issue,
       evidence: buildIssueEvidence(issue, analysis),
     })),
+  };
+}
+
+function rankEvidence(left: PostureEvidenceSummaryReference, right: PostureEvidenceSummaryReference) {
+  const impactDelta = (right.scoreImpact ?? -1) - (left.scoreImpact ?? -1);
+  if (impactDelta !== 0) return impactDelta;
+  const severityRank = { critical: 0, warning: 1, info: 2 };
+  const severityDelta = (severityRank[left.severity ?? "info"] ?? 2) - (severityRank[right.severity ?? "info"] ?? 2);
+  if (severityDelta !== 0) return severityDelta;
+  return left.label.localeCompare(right.label);
+}
+
+export function buildPostureEvidenceSummary(
+  analysis: AnalysisResult,
+  { limit = 12 } = {},
+): PostureEvidenceSummary {
+  const scoreDriverEvidence = normalizeArray(analysis.scoreDrivers)
+    .filter((driver) => driver.impact > 0)
+    .map((driver) => ({
+      kind: evidenceKindForScoreSource(driver.source),
+      label: driver.label,
+      observed: driver.detail,
+      source: driver.source,
+      areaLabel: driver.areaLabel,
+      scoreImpact: driver.impact,
+    }));
+
+  const findingEvidence = normalizeArray(analysis.issues).flatMap((issue) => {
+    const evidence = normalizeArray(issue.evidence).length ? normalizeArray(issue.evidence) : buildIssueEvidence(issue, analysis);
+    return evidence.map((reference) => ({
+      ...reference,
+      relatedFinding: issue.title,
+      severity: issue.severity,
+      scoreImpact: null,
+    }));
+  });
+
+  const allEvidence: PostureEvidenceSummaryReference[] = [
+    ...scoreDriverEvidence,
+    ...findingEvidence,
+  ];
+  const byKind: Partial<Record<ScanEvidenceKind, number>> = {};
+  const bySource: Record<string, number> = {};
+
+  for (const reference of allEvidence) {
+    incrementCount(byKind, reference.kind);
+    incrementCount(bySource, String(reference.source ?? "unknown"));
+  }
+
+  const observedKinds = new Set<ScanEvidenceKind>(["header", "tls", "cookie", "redirect", "dns", "html", "public_record"]);
+  const observedCount = allEvidence.filter((reference) => observedKinds.has(reference.kind)).length;
+  const derivedCount = allEvidence.length - observedCount;
+
+  return {
+    generatedAt: new Date().toISOString(),
+    summary: allEvidence.length
+      ? `${allEvidence.length} evidence reference${allEvidence.length === 1 ? "" : "s"} explain the main score drivers and findings.`
+      : "No structured evidence references were generated for this scan.",
+    totalEvidenceReferences: allEvidence.length,
+    byKind,
+    bySource,
+    observedCount,
+    derivedCount,
+    topEvidence: [...allEvidence].sort(rankEvidence).slice(0, limit),
+    scoreDriverEvidence: scoreDriverEvidence.slice(0, limit),
+    findingEvidence: findingEvidence.sort(rankEvidence).slice(0, limit),
+    limitation: analysis.assessmentLimitation ?? null,
   };
 }
 

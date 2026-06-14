@@ -10,7 +10,7 @@ import {
 import { getAreaScores } from "@/lib/posture";
 import type { AnalysisResult, HistoryDiff } from "@/types/analysis";
 import type { ApiScanSummary, ScanComparisonResponse } from "@/types/api";
-import { snapshotFromAnalysis } from "@ktbatterham/external-posture-core/history-diff";
+import { snapshotFromAnalysis } from "securl/history-diff";
 
 const hostFromUrl = (url: string) => {
   try {

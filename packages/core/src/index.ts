@@ -58,7 +58,7 @@ import {
 import { normalizeDiscoveredPath, rankDiscoveredPaths } from "./path-discovery.js";
 import { buildPassiveIntelligence, emptyPassiveIntelligence } from "./passive-intelligence.js";
 import { analyzeRedirectChain } from "./redirectChain.js";
-import { attachIssueEvidence, buildPostureRemediationPlan } from "./postureRemediation.js";
+import { attachIssueEvidence, buildPostureEvidenceSummary, buildPostureRemediationPlan } from "./postureRemediation.js";
 import { scoreAnalysis, scorePostureAnalysis, summarizePostureGrade } from "./scoring.js";
 import { fetchSecurityTxt } from "./security-txt.js";
 import { detectTechnologies } from "./technology-detection.js";
@@ -76,6 +76,7 @@ export {
 export {
   attachIssueEvidence,
   buildIssueEvidence,
+  buildPostureEvidenceSummary,
   buildPostureRemediationPlan,
 } from "./postureRemediation.js";
 export type { PostureRiskEvent, PostureRiskEventSeverity } from "./types.js";
@@ -638,9 +639,11 @@ async function buildLimitedResult(
   };
 
   const evidenceResult = attachIssueEvidence(limitedResult);
+  const remediationPlan = buildPostureRemediationPlan(evidenceResult);
   return {
     ...evidenceResult,
-    remediationPlan: buildPostureRemediationPlan(evidenceResult),
+    remediationPlan,
+    evidenceSummary: buildPostureEvidenceSummary({ ...evidenceResult, remediationPlan }),
   };
 }
 
@@ -1137,9 +1140,11 @@ function buildTimedOutEnrichmentResult(
     executiveSummary: buildExecutiveSummary(timedOutResult),
   };
   const evidenceResult = attachIssueEvidence(timedOutResultWithSummary);
+  const remediationPlan = buildPostureRemediationPlan(evidenceResult);
   return {
     ...evidenceResult,
-    remediationPlan: buildPostureRemediationPlan(evidenceResult),
+    remediationPlan,
+    evidenceSummary: buildPostureEvidenceSummary({ ...evidenceResult, remediationPlan }),
   };
 }
 
@@ -1214,10 +1219,12 @@ export async function analyzeUrl(input: string, options: AnalyzeTargetOptions = 
     executiveSummary: buildExecutiveSummary(scoredResult),
   };
   const resultWithEvidence = attachIssueEvidence(resultWithSummary);
+  const remediationPlan = buildPostureRemediationPlan(resultWithEvidence);
 
   return {
     ...resultWithEvidence,
-    remediationPlan: buildPostureRemediationPlan(resultWithEvidence),
+    remediationPlan,
+    evidenceSummary: buildPostureEvidenceSummary({ ...resultWithEvidence, remediationPlan }),
   };
 }
 
