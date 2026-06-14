@@ -1,10 +1,10 @@
 import {
   buildHistoryDiffFromSnapshots,
   snapshotFromAnalysis,
-} from "@ktbatterham/external-posture-core/history-diff";
+} from "securl/history-diff";
 import {
   buildPostureRiskEventsFromSnapshots,
-} from "@ktbatterham/external-posture-core/risk-events";
+} from "securl/risk-events";
 
 const [currentPath, previousPath] = process.argv.slice(2);
 

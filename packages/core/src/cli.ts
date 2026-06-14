@@ -31,30 +31,27 @@ type ParsedArgs =
       failIfScoreBelow: number | null;
     };
 
-const usage = `External Posture Insight CLI
+const usage = `SecURL CLI
 
 Usage:
-  epi scan <target...> [--format json|markdown|summary|sarif|ci-json] [--baseline <report.json>] [--output <file>] [--quiet|--deep-passive] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
-  epi compare <current-report.json> <baseline-report.json> [--format json|markdown|summary|sarif|ci-json] [--output <file>] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
-  external-posture-insight scan <target...> [...]
-  external-posture-insight compare <current-report.json> <baseline-report.json> [...]
-  external-posture-insight --help
+  securl scan <target...> [--format json|markdown|summary|sarif|ci-json] [--baseline <report.json>] [--output <file>] [--quiet|--deep-passive] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
+  securl compare <current-report.json> <baseline-report.json> [--format json|markdown|summary|sarif|ci-json] [--output <file>] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
 
 Examples:
-  npx @ktbatterham/external-posture-core scan example.com
-  npx @ktbatterham/external-posture-core scan example.com github.com bbc.co.uk
-  npx @ktbatterham/external-posture-core scan https://example.com --format markdown
-  npx @ktbatterham/external-posture-core scan example.com --format sarif --output findings.sarif
-  npx @ktbatterham/external-posture-core scan example.com --format ci-json --output ci.json
-  npx @ktbatterham/external-posture-core scan example.com --format json --output report.json
-  npx @ktbatterham/external-posture-core scan example.com --quiet
-  npx @ktbatterham/external-posture-core scan example.com --deep-passive
-  npx @ktbatterham/external-posture-core scan example.com --baseline previous-report.json
-  npx @ktbatterham/external-posture-core scan example.com --baseline previous-report.json --fail-on-regression
-  npx @ktbatterham/external-posture-core scan example.com github.com --fail-on warning
-  npx @ktbatterham/external-posture-core scan example.com github.com --fail-if-score-below 75
-  npx @ktbatterham/external-posture-core compare current-report.json baseline-report.json
-  npx @ktbatterham/external-posture-core compare current-report.json baseline-report.json --format sarif --fail-on critical
+  npx securl scan example.com
+  npx securl scan example.com github.com bbc.co.uk
+  npx securl scan https://example.com --format markdown
+  npx securl scan example.com --format sarif --output findings.sarif
+  npx securl scan example.com --format ci-json --output ci.json
+  npx securl scan example.com --format json --output report.json
+  npx securl scan example.com --quiet
+  npx securl scan example.com --deep-passive
+  npx securl scan example.com --baseline previous-report.json
+  npx securl scan example.com --baseline previous-report.json --fail-on-regression
+  npx securl scan example.com github.com --fail-on warning
+  npx securl scan example.com github.com --fail-if-score-below 75
+  npx securl compare current-report.json baseline-report.json
+  npx securl compare current-report.json baseline-report.json --format sarif --fail-on critical
 
 Scan modes:
   default scan   Fetches the primary response plus bounded passive enrichment: HTML, DNS/mail, CT, OSV, exposure, CORS, API-surface, and public trust signals.
@@ -181,7 +178,7 @@ const parseArgs = (argv: string[]): ParsedArgs => {
 
   if (command === "scan") {
     if (!positionals.length) {
-      throw new Error("Missing target. Usage: external-posture-insight scan <target...>");
+      throw new Error("Missing target. Usage: securl scan <target...>");
     }
     if (positionals.length > 1 && baselinePath) {
       throw new Error("Baseline comparison is only supported for a single target scan. Use the compare command for saved reports.");
@@ -205,7 +202,7 @@ const parseArgs = (argv: string[]): ParsedArgs => {
 
   const [currentPath, compareBaselinePath] = positionals;
   if (!currentPath || !compareBaselinePath) {
-    throw new Error("Missing report paths. Usage: external-posture-insight compare <current-report.json> <baseline-report.json>");
+    throw new Error("Missing report paths. Usage: securl compare <current-report.json> <baseline-report.json>");
   }
 
   return {
@@ -315,7 +312,7 @@ const formatBatchSummary = (analyses: AnalysisResult[]) => {
 
 const formatMarkdown = (analysis: AnalysisResult, diff: HistoryDiff | null = null) =>
   [
-    `# External Posture Insight: ${analysis.host}`,
+    `# SecURL: ${analysis.host}`,
     "",
     `- Final URL: ${analysis.finalUrl}`,
     `- Scanned: ${new Date(analysis.scannedAt).toISOString()}`,
@@ -372,7 +369,7 @@ const formatBatchMarkdown = (analyses: AnalysisResult[]) => {
   const weakest = [...analyses].sort((left, right) => left.score - right.score).slice(0, 3);
 
   return [
-    "# External Posture Insight Batch Scan",
+    "# SecURL Batch Scan",
     "",
     `- Targets scanned: ${analyses.length}`,
     `- Average score: ${averageScore}/100`,
@@ -586,8 +583,8 @@ const buildSarifLog = (
       {
         tool: {
           driver: {
-            name: "External Posture Insight",
-            informationUri: "https://www.npmjs.com/package/@ktbatterham/external-posture-core",
+            name: "SecURL",
+            informationUri: "https://www.npmjs.com/package/securl",
             rules: [...rules.values()],
           },
         },
@@ -644,7 +641,7 @@ const renderComparisonOutput = (
   }
   if (format === "markdown") {
     return `${[
-      `# External Posture Insight Comparison: ${current.host}`,
+      `# SecURL Comparison: ${current.host}`,
       "",
       `- Current: ${current.finalUrl}`,
       `- Baseline: ${baseline.finalUrl}`,

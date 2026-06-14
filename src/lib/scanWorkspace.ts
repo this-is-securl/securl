@@ -1,4 +1,4 @@
-import { buildHistoryDiff, snapshotFromAnalysis } from "@ktbatterham/external-posture-core/history-diff";
+import { buildHistoryDiff, snapshotFromAnalysis } from "securl/history-diff";
 import type { AnalysisResult, HistoryDiff, HistorySnapshot } from "@/types/analysis";
 
 export const RECENT_SCANS_KEY = "secure-header-insight:recent-scans";

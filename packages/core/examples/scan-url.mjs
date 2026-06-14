@@ -1,4 +1,4 @@
-import { analyzeUrl } from "@ktbatterham/external-posture-core";
+import { analyzeUrl } from "securl";
 
 const target = process.argv[2] ?? "https://example.com";
 const result = await analyzeUrl(target, {

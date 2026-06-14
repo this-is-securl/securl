@@ -472,7 +472,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.equal(response.status, 200);
     assert.equal(payload.apiVersion, "2026-05-14");
     assert.equal(payload.service.name, "SecURL API");
-    assert.equal(payload.service.corePackage, "@ktbatterham/external-posture-core");
+    assert.equal(payload.service.corePackage, "securl");
     assert.match(payload.service.coreVersion, /^\d+\.\d+\.\d+/);
     assert.ok(payload.service.resources.includes("GET /api/ready"));
     assert.deepEqual(payload.scans.modes, ["standard", "quiet", "deep-passive"]);

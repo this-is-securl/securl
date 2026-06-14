@@ -1,10 +1,10 @@
-name: Publish Core Package
+name: Publish SecURL Package
 
 on:
   workflow_dispatch:
   push:
     tags:
-      - "core-v*"
+      - "securl-v*"
 
 jobs:
   publish:
@@ -39,7 +39,7 @@ jobs:
           npm run build:core
           npm run test:core
 
-      - name: Publish core package
+      - name: Publish SecURL package
         run: npm publish ./packages/core --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
