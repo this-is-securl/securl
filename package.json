@@ -26,6 +26,7 @@
     "deploy:hostinger:live": "node scripts/deployHostinger.mjs --live",
     "telemetry": "node scripts/fetchTelemetry.mjs",
     "telemetry:web": "node scripts/telemetryDashboard.mjs",
+    "package:signals": "node scripts/fetchPackageSignals.mjs",
     "check:deploy": "node server/checkDeployReadiness.mjs",
     "pack:core": "npm pack --dry-run ./packages/core",
     "release:package:check": "npm run build:core && npm run typecheck:core:strict && npm run test:core && npm run lint && npm run pack:core",

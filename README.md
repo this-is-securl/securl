@@ -188,9 +188,10 @@ Sponsorship helps fund continued work on the passive analysis engine, hosted sca
 
 ## Package status
 
-- Latest published package: none under the `securl` name yet
-- Next prepared package: `securl@1.4.1`
+- Latest published package: `securl@1.4.1`
+- Previous package name: `@ktbatterham/external-posture-core` is deprecated in favour of `securl`
 - npm tag: `latest`
+- Package signal check: `npm run package:signals`
 - Core release checklist: [`packages/core/RELEASING.md`](packages/core/RELEASING.md)
 
 ## Docs
@@ -202,6 +203,7 @@ For the deeper operational and architecture material, go straight to:
 - [Public deploy checklist](docs/PUBLIC-DEPLOY-CHECKLIST.md)
 - [iOS-capable backend notes](docs/IOS-CAPABLE-BACKEND.md)
 - [Abuse and alerting notes](docs/ABUSE-ALERTING.md)
+- [Package signal tracking](docs/PACKAGE-SIGNALS.md)
 - [Reverse proxy verification](docs/REVERSE-PROXY-VERIFICATION.md)
 - [OWASP/MITRE self-review](docs/OWASP-MITRE-SELF-REVIEW.md)
 
