@@ -179,6 +179,9 @@ const html = String.raw`<!doctype html>
         const funnelEvents = entries(data.funnel?.events);
         const funnelSources = entries(Object.fromEntries(entries(data.funnel?.bySource).map(([source, events]) => [source, Object.values(events || {}).reduce((sum, count) => sum + Number(count || 0), 0)])));
         const limitedKinds = entries(data.scans?.limitedReadKinds);
+        const scanSources = entries(data.scans?.engagement?.sources);
+        const scanChannels = entries(data.scans?.engagement?.channels);
+        const repeatTargets = Array.isArray(data.scans?.engagement?.repeatTargets) ? data.scans.engagement.repeatTargets.slice(0, 8) : [];
         const failureClasses = entries(data.failures?.classes);
         const recentFailures = Array.isArray(data.failures?.recent) ? data.failures.recent.slice(0, 8) : [];
         content.innerHTML =
@@ -186,6 +189,7 @@ const html = String.raw`<!doctype html>
             splitCard("Page loads", fmt(data.pageLoads), fmt(data.visitors?.today?.pageLoads), "Total is all persisted page-load telemetry; today is the current UTC day.") +
             splitCard("Unique visitors", fmt(data.visitors?.unique), fmt(data.visitors?.today?.uniqueVisitors), "Unique count is based on the hashed IP and user-agent visitor key.", "good") +
             card("Scans completed", fmt(data.scans?.completed) + "/" + fmt(data.scans?.requested), fmt(data.scans?.fullReads) + " full reads, " + fmt(data.scans?.limitedReads) + " limited reads.", "good") +
+            card("Scan uniqueness", fmt(data.scans?.engagement?.uniqueRequesters) + " / " + fmt(data.scans?.engagement?.uniqueTargets), fmt(data.scans?.engagement?.uniqueClients) + " unique scan clients. Requesters / targets separates repeat testing from wider use.", "good") +
             card("Failures", fmt(failureTotal), fmt(data.failures?.requesterRateLimited) + " requester limits, " + fmt(data.failures?.targetRateLimited) + " target limits.", failureTotal ? "bad" : "warn") +
           '</div>' +
           '<div class="two">' +
@@ -204,11 +208,18 @@ const html = String.raw`<!doctype html>
               row("Core average", ms(data.scans?.timing?.core?.averageMs)) +
               row("Enrichment average", ms(data.scans?.timing?.enrichment?.averageMs)) +
             '</div>' +
+            '<div class="card"><div class="kicker">Scan engagement</div><h2>Who is actually using scans</h2>' +
+              (scanChannels.length ? '<div class="detail">Channels</div>' + scanChannels.map(([k, v]) => row(sourceLabel(k), fmt(v))).join("") : '<p class="detail">No scan channel data yet.</p>') +
+              (scanSources.length ? '<div class="detail">Sources</div>' + scanSources.slice(0, 6).map(([k, v]) => row(sourceLabel(k), fmt(v))).join("") : '') +
+            '</div>' +
           '</div>' +
           '<div class="three">' +
             '<div class="card"><div class="kicker">Today</div><h2>' + (data.visitors?.today?.date || "Today") + '</h2>' + (todaySources.length ? todaySources.map(([k, v]) => row(sourceLabel(k), fmt(v))).join("") : '<p class="detail">No visits today.</p>') + '</div>' +
             '<div class="card"><div class="kicker">Limited reads</div><h2>' + fmt(data.scans?.limitedReads) + ' total</h2>' + (limitedKinds.length ? limitedKinds.map(([k, v]) => row(k, fmt(v))).join("") : '<p class="detail">No limited-read buckets recorded.</p>') + '</div>' +
             '<div class="card"><div class="kicker">Failure classes</div><h2>' + fmt(failureClasses.reduce((s, e) => s + e[1], 0)) + ' classified</h2>' + (failureClasses.length ? failureClasses.map(([k, v]) => row(k, fmt(v))).join("") : '<p class="detail">No classified failures recorded.</p>') + '</div>' +
+          '</div>' +
+          '<div class="card" style="margin-top:22px"><div class="kicker">Repeat scan targets</div><h2>Concentration check</h2>' +
+            (repeatTargets.length ? repeatTargets.map((item) => row(item.target, fmt(item.count))).join("") : '<p class="detail">No target concentration data yet.</p>') +
           '</div>' +
           '<div class="card" style="margin-top:22px"><div class="kicker">Recent failures</div><h2>What needs explaining</h2>' +
             (recentFailures.length ? recentFailures.map(event).join("") : '<p class="detail">No recent failure details recorded yet. New failures will include target, class, and a sanitized reason.</p>') +

@@ -556,6 +556,39 @@ test("telemetry endpoint returns aggregate page-load and failure counters", asyn
   }
 });
 
+test("telemetry endpoint separates scan engagement from raw scan volume", async () => {
+  const server = await startServer();
+
+  try {
+    const scanResponse = await postScan(server.baseUrl, "https://example.com", {
+      headers: {
+        Referer: "https://securl.online/",
+        "User-Agent": "TelemetryScanTest/1.0",
+      },
+    });
+    const scanPayload = await scanResponse.json();
+    assert.equal(scanResponse.status, 202);
+    await waitForScanTerminal(server.baseUrl, scanPayload.scan.id);
+
+    const telemetryResponse = await fetch(`${server.baseUrl}/api/telemetry`);
+    const payload = await telemetryResponse.json();
+
+    assert.equal(telemetryResponse.status, 200);
+    assert.equal(payload.scans.requested, 1);
+    assert.equal(payload.scans.completed, 1);
+    assert.equal(payload.scans.engagement.uniqueRequesters, 1);
+    assert.equal(payload.scans.engagement.uniqueClients, 1);
+    assert.equal(payload.scans.engagement.uniqueTargets, 1);
+    assert.equal(Object.values(payload.scans.engagement.sources).reduce((sum, count) => sum + count, 0), 1);
+    assert.equal(payload.scans.engagement.channels.browser_owner, 1);
+    assert.equal(payload.scans.engagement.repeatTargets[0].target, "https://example.com");
+    assert.equal(payload.scans.engagement.recent[0].target, "https://example.com");
+    assert.equal(payload.scans.engagement.recent[0].channel, "browser_owner");
+  } finally {
+    await server.stop();
+  }
+});
+
 test("telemetry endpoint rejects unsupported methods", async () => {
   const server = await startServer();
 

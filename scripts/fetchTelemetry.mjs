@@ -57,10 +57,37 @@ const main = async () => {
   console.log(`Scans`);
   console.log(`  Requested: ${telemetry.scans?.requested ?? 0}`);
   console.log(`  Completed: ${telemetry.scans?.completed ?? 0}`);
+  console.log(`  Unique requesters: ${telemetry.scans?.engagement?.uniqueRequesters ?? 0}`);
+  console.log(`  Unique clients: ${telemetry.scans?.engagement?.uniqueClients ?? 0}`);
+  console.log(`  Unique targets: ${telemetry.scans?.engagement?.uniqueTargets ?? 0}`);
   console.log(`  Full reads: ${telemetry.scans?.fullReads ?? 0}`);
   console.log(`  Limited reads: ${telemetry.scans?.limitedReads ?? 0}`);
   console.log(`  Timed out: ${telemetry.scans?.timedOut ?? 0}`);
   console.log(`  Average total time: ${formatMs(telemetry.scans?.timing?.total?.averageMs)}`);
+  const scanChannels = Object.entries(telemetry.scans?.engagement?.channels || {})
+    .sort(([, left], [, right]) => right - left);
+  if (scanChannels.length) {
+    console.log("  Channels:");
+    for (const [channel, count] of scanChannels) {
+      console.log(`    - ${channel}: ${count}`);
+    }
+  }
+  const scanSources = Object.entries(telemetry.scans?.engagement?.sources || {})
+    .sort(([, left], [, right]) => right - left)
+    .slice(0, 8);
+  if (scanSources.length) {
+    console.log("  Sources:");
+    for (const [source, count] of scanSources) {
+      console.log(`    - ${source}: ${count}`);
+    }
+  }
+  const repeatTargets = telemetry.scans?.engagement?.repeatTargets || [];
+  if (repeatTargets.length) {
+    console.log("  Repeat targets:");
+    for (const item of repeatTargets.slice(0, 5)) {
+      console.log(`    - ${item.target}: ${item.count}`);
+    }
+  }
   console.log("");
   console.log(`Funnel`);
   const funnelEvents = Object.entries(telemetry.funnel?.events || {})
