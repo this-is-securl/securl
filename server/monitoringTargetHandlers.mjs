@@ -191,6 +191,7 @@ export async function handleMonitoringTargetItemRequest({
   authorizeAnalysisRequest,
   readJsonBody,
   getRequestedScanMode,
+  buildScanTelemetryContext = null,
   checkTargetQuota,
   runScanAnalysis,
   enqueueScan,
@@ -268,6 +269,9 @@ export async function handleMonitoringTargetItemRequest({
 
       const body = await readJsonBody(request);
       const mode = getRequestedScanMode(body?.mode);
+      const telemetryContext = typeof buildScanTelemetryContext === "function"
+        ? buildScanTelemetryContext({ request, body, authState, channel: "monitoring_manual" })
+        : { channel: "monitoring_manual" };
       const targetQuota = await checkTargetQuota({
         requesterScope: authState.requesterScope,
         target: target.url,
@@ -315,6 +319,7 @@ export async function handleMonitoringTargetItemRequest({
           normalizeScanErrorMessage,
           formatErrorMessage,
           log,
+          telemetryContext,
       });
       return true;
     }

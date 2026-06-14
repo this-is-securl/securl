@@ -45,6 +45,7 @@ export async function runQueuedScan({
   normalizeScanErrorMessage,
   formatErrorMessage,
   log,
+  telemetryContext = {},
 }) {
   const safeTarget = targetForPrivacy(validatedTarget);
   const safeClientIp = hashClientIp(authState.clientIp);
@@ -76,6 +77,7 @@ export async function runQueuedScan({
       mode,
       clientIp: authState.clientIp,
       requesterScope: authState.requesterScope,
+      telemetryContext,
     });
   } catch (error) {
     const failureClass = classifyScanFailure(error);
@@ -137,6 +139,7 @@ export async function handleScanCollectionRequest({
   scanRepository,
   authorizeAnalysisRequest,
   readJsonBody,
+  buildScanTelemetryContext = null,
   getRequestedScanMode,
   checkTargetQuota,
   assertPublicHttpUrl,
@@ -219,6 +222,9 @@ export async function handleScanCollectionRequest({
     const body = await readJsonBody(request);
     const target = typeof body.url === "string" ? body.url : "";
     const mode = getRequestedScanMode(body.mode);
+    const telemetryContext = typeof buildScanTelemetryContext === "function"
+      ? buildScanTelemetryContext({ request, body, authState })
+      : {};
 
     const targetQuota = await checkTargetQuota({
       requesterScope: authState.requesterScope,
@@ -252,6 +258,15 @@ export async function handleScanCollectionRequest({
           clientIp: authState.clientIp,
         });
         const completedScan = await scanRepository.markCompleted(scan.id, cachedScan.result);
+        telemetry.recordScanRequested({
+          mode,
+          target: validatedTarget,
+          requesterKey: authState.requesterScope,
+          clientKey: telemetryContext.clientKey || authState.clientIp,
+          source: telemetryContext.source,
+          channel: telemetryContext.channel,
+        });
+        telemetry.recordScanCompleted(cachedScan.result);
         log("info", "scan_result_cache_hit", {
           targetOrigin: targetForPrivacy(validatedTarget),
           cachedScanId: cachedScan.id,
@@ -302,6 +317,7 @@ export async function handleScanCollectionRequest({
         normalizeScanErrorMessage,
         formatErrorMessage,
         log,
+        telemetryContext,
     });
   } catch (error) {
     telemetry.recordFailure(classifyScanFailure(error));
