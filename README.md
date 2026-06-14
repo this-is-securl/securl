@@ -188,7 +188,8 @@ Sponsorship helps fund continued work on the passive analysis engine, hosted sca
 
 ## Package status
 
-- Latest published core package: `@ktbatterham/external-posture-core@1.4.1`
+- Latest published core package: `@ktbatterham/external-posture-core@1.4.0`
+- Next prepared core package: `@ktbatterham/external-posture-core@1.4.1`
 - npm tag: `latest`
 - Core release checklist: [`packages/core/RELEASING.md`](packages/core/RELEASING.md)
 
