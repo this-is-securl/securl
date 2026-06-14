@@ -3,7 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/%40ktbatterham%2Fexternal-posture-core)](https://www.npmjs.com/package/@ktbatterham/external-posture-core)
 [![npm package](https://img.shields.io/badge/npm-package-red)](https://www.npmjs.com/package/@ktbatterham/external-posture-core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![Core package checks](https://github.com/ktbatterham/external-posture-insight/actions/workflows/core-package-checks.yml/badge.svg)](https://github.com/ktbatterham/external-posture-insight/actions/workflows/core-package-checks.yml)
+[![Core package checks](https://github.com/this-is-securl/securl/actions/workflows/core-package-checks.yml/badge.svg)](https://github.com/this-is-securl/securl/actions/workflows/core-package-checks.yml)
 
 **The passive security posture engine behind SecURL.**
 
@@ -26,7 +26,7 @@ Use it when you need a fast outside-in read on a public web service:
   ·
   <a href="https://apps.apple.com/app/securl/id6774322464"><strong>Get the iOS app</strong></a>
   ·
-  <a href="https://github.com/ktbatterham/external-posture-insight"><strong>View the source</strong></a>
+  <a href="https://github.com/this-is-securl/securl"><strong>View the source</strong></a>
 </p>
 
 ## Quick Start
