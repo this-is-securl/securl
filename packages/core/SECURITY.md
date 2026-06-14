@@ -2,7 +2,7 @@
 
 This package is published from the public source repository:
 
-- `https://github.com/ktbatterham/external-posture-insight`
+- `https://github.com/this-is-securl/securl`
 
 ## Reporting a vulnerability
 
@@ -20,7 +20,7 @@ Please avoid filing public issues for security-sensitive reports.
 - GitHub Actions release workflow
 - npm provenance enabled at publish time
 - no install scripts
-- one runtime dependency (`cheerio`)
+- one runtime dependency (`node-html-parser`)
 
 ## Scope note
 

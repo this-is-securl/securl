@@ -6,6 +6,11 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-06-14
+
+### Changed
+- Refreshed package metadata and trust documentation after moving the source repository to `this-is-securl/securl`.
+
 ## [1.4.0] - 2026-06-13
 
 ### Added
