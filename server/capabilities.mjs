@@ -51,10 +51,20 @@ export function buildCapabilitiesPayload({
       features: [
         "executive-summary",
         "finding-evidence",
+        "evidence-summary",
         "remediation-plan",
         "posture-digest",
         "posture-drift",
       ],
+      scoring: {
+        model: "weighted-passive-posture",
+        version: "2026-06-14",
+        gradeScale: ["A+", "A", "B", "C", "D", "F", "U"],
+        scoreRange: {
+          min: 0,
+          max: 100,
+        },
+      },
       maxDurationMs: {
         standard: scanTimeoutMs,
         quiet: scanTimeoutMs,

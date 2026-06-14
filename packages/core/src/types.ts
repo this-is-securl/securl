@@ -173,6 +173,27 @@ export interface RemediationPlan {
   items: RemediationPlanItem[];
 }
 
+export interface PostureEvidenceSummaryReference extends ScanEvidenceReference {
+  areaLabel?: string;
+  relatedFinding?: string;
+  severity?: Exclude<Severity, "good">;
+  scoreImpact?: number | null;
+}
+
+export interface PostureEvidenceSummary {
+  generatedAt: string;
+  summary: string;
+  totalEvidenceReferences: number;
+  byKind: Partial<Record<ScanEvidenceKind, number>>;
+  bySource: Record<string, number>;
+  observedCount: number;
+  derivedCount: number;
+  topEvidence: PostureEvidenceSummaryReference[];
+  scoreDriverEvidence: PostureEvidenceSummaryReference[];
+  findingEvidence: PostureEvidenceSummaryReference[];
+  limitation: AssessmentLimitation | null;
+}
+
 export interface CrawlPageResult {
   label: string;
   path: string;
@@ -819,6 +840,7 @@ export interface AnalysisResult {
   strengths: string[];
   remediation: RemediationSnippet[];
   remediationPlan?: RemediationPlan;
+  evidenceSummary?: PostureEvidenceSummary;
   crawl: CrawlSummary;
   securityTxt: SecurityTxtInfo;
   domainSecurity: DomainSecurityInfo;

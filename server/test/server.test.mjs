@@ -477,7 +477,11 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.service.resources.includes("GET /api/ready"));
     assert.deepEqual(payload.scans.modes, ["standard", "quiet", "deep-passive"]);
     assert.ok(payload.scans.features.includes("finding-evidence"));
+    assert.ok(payload.scans.features.includes("evidence-summary"));
     assert.ok(payload.scans.features.includes("remediation-plan"));
+    assert.equal(payload.scans.scoring.model, "weighted-passive-posture");
+    assert.equal(payload.scans.scoring.version, "2026-06-14");
+    assert.deepEqual(payload.scans.scoring.scoreRange, { min: 0, max: 100 });
     assert.equal(payload.scans.maxDurationMs.standard, 45000);
     assert.equal(payload.scans.maxDurationMs.deepPassive, 75000);
     assert.ok(payload.auth.resources.includes("GET /api/auth/api-keys"));
@@ -1726,6 +1730,8 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.ok(Array.isArray(findingsPayload.priorityActions));
     assert.ok(findingsPayload.remediationPlan);
     assert.ok(Array.isArray(findingsPayload.remediationPlan.items));
+    assert.ok(findingsPayload.evidenceSummary);
+    assert.equal(typeof findingsPayload.evidenceSummary.totalEvidenceReferences, "number");
     assert.ok(
       findingsPayload.findings.every((finding) => Array.isArray(finding.evidence)),
     );
@@ -1737,6 +1743,8 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.ok(Array.isArray(digestPayload.digest.findings.top));
     assert.ok(digestPayload.digest.remediationPlan);
     assert.ok(Array.isArray(digestPayload.digest.remediationPlan.topActions));
+    assert.ok(digestPayload.digest.evidence);
+    assert.equal(typeof digestPayload.digest.evidence.totalEvidenceReferences, "number");
     assert.ok(Array.isArray(digestPayload.digest.posture.scoreDrivers));
     assert.ok(Array.isArray(digestPayload.digest.intelligence.riskIndicators));
     assert.equal(evidenceResponse.status, 200);
@@ -1744,6 +1752,7 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.ok(Array.isArray(evidencePayload.evidence.headers));
     assert.ok(Array.isArray(evidencePayload.evidence.cookies));
     assert.ok(Array.isArray(evidencePayload.evidence.redirects));
+    assert.ok(evidencePayload.evidence.evidenceSummary);
     assert.equal(historyResponse.status, 200);
     assert.equal(historyPayload.apiVersion, "2026-05-14");
     assert.equal(historyPayload.scan.id, scanId);

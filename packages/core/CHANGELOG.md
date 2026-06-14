@@ -6,6 +6,13 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-06-14
+
+### Added
+- Added `buildPostureEvidenceSummary()` for compact, API/mobile-friendly evidence metadata that explains score drivers and findings without requiring clients to inspect the full scan payload.
+- Added the `securl/evidence-summary` package export for consumers that want the evidence summary helper directly.
+- Added `evidenceSummary` to completed analysis results and posture digests.
+
 ## [1.4.1] - 2026-06-14
 
 ### Changed
