@@ -1,6 +1,6 @@
 {
-  "name": "@ktbatterham/external-posture-core",
-  "version": "1.4.1",
+  "name": "securl",
+  "version": "1.5.0",
   "type": "module",
   "description": "Passive external security posture analysis engine for SecURL.",
   "author": {
@@ -22,6 +22,7 @@
   "types": "./dist/index.d.ts",
   "main": "./dist/index.js",
   "bin": {
+    "securl": "dist/cli.js",
     "epi": "dist/cli.js",
     "external-posture-insight": "dist/cli.js"
   },
@@ -58,6 +59,10 @@
       "default": "./dist/postureDrift.js"
     },
     "./remediation-plan": {
+      "types": "./dist/postureRemediation.d.ts",
+      "default": "./dist/postureRemediation.js"
+    },
+    "./evidence-summary": {
       "types": "./dist/postureRemediation.d.ts",
       "default": "./dist/postureRemediation.js"
     }

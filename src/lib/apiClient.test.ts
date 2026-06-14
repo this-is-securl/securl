@@ -79,7 +79,7 @@ describe("api client URL helpers", () => {
       service: {
         name: "SecURL API",
         appVersion: "1.0.1",
-        corePackage: "@ktbatterham/external-posture-core",
+        corePackage: "securl",
         coreVersion: "1.0.1",
         serveFrontend: false,
       },

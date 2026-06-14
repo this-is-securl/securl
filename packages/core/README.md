@@ -1,13 +1,13 @@
-# @ktbatterham/external-posture-core
+# securl
 
-[![npm version](https://img.shields.io/npm/v/%40ktbatterham%2Fexternal-posture-core)](https://www.npmjs.com/package/@ktbatterham/external-posture-core)
-[![npm package](https://img.shields.io/badge/npm-package-red)](https://www.npmjs.com/package/@ktbatterham/external-posture-core)
+[![npm version](https://img.shields.io/npm/v/securl)](https://www.npmjs.com/package/securl)
+[![npm package](https://img.shields.io/badge/npm-package-red)](https://www.npmjs.com/package/securl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![Core package checks](https://github.com/this-is-securl/securl/actions/workflows/core-package-checks.yml/badge.svg)](https://github.com/this-is-securl/securl/actions/workflows/core-package-checks.yml)
+[![SecURL package checks](https://github.com/this-is-securl/securl/actions/workflows/core-package-checks.yml/badge.svg)](https://github.com/this-is-securl/securl/actions/workflows/core-package-checks.yml)
 
 **The passive security posture engine behind SecURL.**
 
-`@ktbatterham/external-posture-core` is the reusable scanner engine behind [SecURL](https://securl.online), a posture-first external security review tool for public web targets.
+`securl` is the reusable scanner engine behind [SecURL](https://securl.online), a posture-first external security review tool for public web targets.
 
 It is designed for passive, low-noise assessment rather than active exploitation or broad reconnaissance. The engine turns public web signals into structured JSON, Markdown, SARIF, and CI-friendly output.
 
@@ -34,14 +34,14 @@ Use it when you need a fast outside-in read on a public web service:
 Run a scan without installing:
 
 ```bash
-npx @ktbatterham/external-posture-core scan example.com
+npx securl scan example.com
 ```
 
-Install globally for the short `epi` command:
+Install globally for the `securl` command:
 
 ```bash
-npm install -g @ktbatterham/external-posture-core
-epi scan example.com
+npm install -g securl
+securl scan example.com
 ```
 
 Prefer the hosted report workspace? Use [app.securl.online](https://app.securl.online). For the product overview, start at [securl.online](https://securl.online). Prefer mobile? Install [SecURL on the App Store](https://apps.apple.com/app/securl/id6774322464).
@@ -51,7 +51,7 @@ Prefer the hosted report workspace? Use [app.securl.online](https://app.securl.o
 ### 1. Quick CLI posture check
 
 ```bash
-npx @ktbatterham/external-posture-core scan https://example.com --format summary
+npx securl scan https://example.com --format summary
 ```
 
 Example summary output:
@@ -65,7 +65,7 @@ example.com  A  93/100  2 findings
 Fail the job when a target drops below a minimum score or introduces warning-level findings:
 
 ```bash
-npx @ktbatterham/external-posture-core scan https://example.com \
+npx securl scan https://example.com \
   --quiet \
   --format ci-json \
   --fail-if-score-below 75 \
@@ -75,7 +75,7 @@ npx @ktbatterham/external-posture-core scan https://example.com \
 Compare a new scan with a saved baseline:
 
 ```bash
-npx @ktbatterham/external-posture-core scan https://example.com \
+npx securl scan https://example.com \
   --baseline ./security-baseline.json \
   --fail-on-regression
 ```
@@ -83,7 +83,7 @@ npx @ktbatterham/external-posture-core scan https://example.com \
 ### 3. Node.js SDK scan
 
 ```js
-import { analyzeUrl } from "@ktbatterham/external-posture-core";
+import { analyzeUrl } from "securl";
 
 const result = await analyzeUrl("https://example.com", {
   scanMode: "quiet",
@@ -108,10 +108,10 @@ Version `1.1.0+` includes helpers for turning two scan snapshots into alert-frie
 import {
   buildHistoryDiffFromSnapshots,
   snapshotFromAnalysis,
-} from "@ktbatterham/external-posture-core/history-diff";
+} from "securl/history-diff";
 import {
   buildPostureRiskEventsFromSnapshots,
-} from "@ktbatterham/external-posture-core/risk-events";
+} from "securl/risk-events";
 
 const currentSnapshot = snapshotFromAnalysis(currentReport);
 const previousSnapshot = snapshotFromAnalysis(previousReport);
@@ -132,7 +132,7 @@ Version `1.3.0+` also includes a higher-level posture drift report for monitorin
 ```js
 import {
   buildPostureDriftReportFromSnapshots,
-} from "@ktbatterham/external-posture-core/posture-drift";
+} from "securl/posture-drift";
 
 const drift = buildPostureDriftReportFromSnapshots(
   currentSnapshot,
@@ -154,8 +154,8 @@ node examples/risk-events.mjs current-report.json previous-report.json
 Version `1.2.0+` includes a digest helper for turning a full scan result into a smaller, stable summary payload.
 
 ```js
-import { analyzeUrl } from "@ktbatterham/external-posture-core";
-import { buildPostureDigest } from "@ktbatterham/external-posture-core/posture-digest";
+import { analyzeUrl } from "securl";
+import { buildPostureDigest } from "securl/posture-digest";
 
 const result = await analyzeUrl("https://example.com", {
   scanMode: "quiet",
@@ -180,7 +180,7 @@ Version `1.4.0+` includes a remediation plan helper that turns score drivers and
 import {
   attachIssueEvidence,
   buildPostureRemediationPlan,
-} from "@ktbatterham/external-posture-core/remediation-plan";
+} from "securl/remediation-plan";
 
 const resultWithEvidence = attachIssueEvidence(result);
 const remediationPlan = buildPostureRemediationPlan(resultWithEvidence);
@@ -191,6 +191,20 @@ console.log(remediationPlan.items.map((item) => ({
   impact: item.impact,
   action: item.action,
 })));
+```
+
+Version `1.5.0+` includes a compact evidence summary for API, mobile, and report clients that need to explain why a scan scored the way it did without walking the full result object.
+
+```js
+import { buildPostureEvidenceSummary } from "securl/evidence-summary";
+
+const evidenceSummary = buildPostureEvidenceSummary(resultWithEvidence);
+
+console.log({
+  total: evidenceSummary.totalEvidenceReferences,
+  observed: evidenceSummary.observedCount,
+  topEvidence: evidenceSummary.topEvidence,
+});
 ```
 
 ## Package trust and release signals
@@ -209,7 +223,7 @@ Security disclosure guidance:
 
 ## Safety model
 
-External Posture Insight is passive-first and production-conscious, but it is not magic invisibility dust. A standard scan may make DNS queries, perform TLS handshakes, fetch the target page, follow redirects, query third-party public datasets such as Certificate Transparency / OSV, and run a small set of low-noise HTTP checks. It does not attempt exploitation, brute forcing, authentication bypass, form submission, fuzzing, password testing, or vulnerability exploitation.
+SecURL is passive-first and production-conscious, but it is not magic invisibility dust. A standard scan may make DNS queries, perform TLS handshakes, fetch the target page, follow redirects, query third-party public datasets such as Certificate Transparency / OSV, and run a small set of low-noise HTTP checks. It does not attempt exploitation, brute forcing, authentication bypass, form submission, fuzzing, password testing, or vulnerability exploitation.
 
 Use it only against systems you own or are authorized to assess. Results are heuristic and should be treated as decision support, not a formal penetration test or compliance attestation.
 
@@ -228,12 +242,12 @@ Use it only against systems you own or are authorized to assess. Results are heu
 
 This package is published and consumable from npm:
 
-- [`@ktbatterham/external-posture-core`](https://www.npmjs.com/package/@ktbatterham/external-posture-core)
+- [`securl`](https://www.npmjs.com/package/securl)
 - Product site: [securl.online](https://securl.online)
 - Live scanner: [app.securl.online](https://app.securl.online)
 - iOS app: [SecURL on the App Store](https://apps.apple.com/app/securl/id6774322464)
 
-It is also used by the External Posture Insight app from the local workspace during development.
+It is also used by the SecURL app from the local workspace during development.
 
 ## Release workflow
 
@@ -248,7 +262,7 @@ Recommended release flow:
 1. update the version in `packages/core/package.json`
 2. run `npm run test:core`
 3. run `npm run pack:core`
-4. create and push a tag like `core-v0.1.1`
+4. create and push a tag like `securl-v1.4.1`
 5. let the publish workflow release the package
 
 See also:
@@ -270,15 +284,16 @@ Primary exports:
 - `buildPostureDriftReportFromSnapshots(current, previous)` - produce a complete scan-to-scan drift report for monitoring, alerting, and history views.
 - `buildPostureRemediationPlan(result)` - generate prioritized, owner-aware remediation actions from findings and score drivers.
 - `attachIssueEvidence(result)` - add structured evidence references to findings without changing their existing fields.
+- `buildPostureEvidenceSummary(result)` - produce compact evidence metadata for API, mobile, report, and explainability surfaces.
 
 Package subpath exports:
 
-- `@ktbatterham/external-posture-core/history-diff`
-- `@ktbatterham/external-posture-core/posture-digest`
-- `@ktbatterham/external-posture-core/posture-drift`
-- `@ktbatterham/external-posture-core/remediation-plan`
-- `@ktbatterham/external-posture-core/risk-events`
-- `@ktbatterham/external-posture-core/types`
+- `securl/history-diff`
+- `securl/posture-digest`
+- `securl/posture-drift`
+- `securl/remediation-plan`
+- `securl/risk-events`
+- `securl/types`
 
 ## CLI
 
@@ -287,18 +302,18 @@ The package includes a pipe-friendly CLI:
 Scan multiple targets in one run:
 
 ```bash
-npx @ktbatterham/external-posture-core scan example.com github.com bbc.co.uk
-epi scan example.com github.com bbc.co.uk
+npx securl scan example.com github.com bbc.co.uk
+securl scan example.com github.com bbc.co.uk
 ```
 
 Available output formats:
 
 ```bash
-npx @ktbatterham/external-posture-core scan example.com --format summary
-npx @ktbatterham/external-posture-core scan example.com --format json
-npx @ktbatterham/external-posture-core scan example.com --format markdown
-npx @ktbatterham/external-posture-core scan example.com --format sarif
-npx @ktbatterham/external-posture-core scan example.com --format ci-json
+npx securl scan example.com --format summary
+npx securl scan example.com --format json
+npx securl scan example.com --format markdown
+npx securl scan example.com --format sarif
+npx securl scan example.com --format ci-json
 ```
 
 The CLI writes machine-readable report output to stdout, and lightweight multi-target progress to stderr only when running interactively. This keeps JSON/SARIF output pipe-friendly.
@@ -306,9 +321,9 @@ The CLI writes machine-readable report output to stdout, and lightweight multi-t
 Scan modes:
 
 ```bash
-npx @ktbatterham/external-posture-core scan example.com
-npx @ktbatterham/external-posture-core scan example.com --quiet
-npx @ktbatterham/external-posture-core scan example.com --deep-passive
+npx securl scan example.com
+npx securl scan example.com --quiet
+npx securl scan example.com --deep-passive
 ```
 
 - default scan: primary response plus bounded passive enrichment, including HTML, DNS/mail, Certificate Transparency, OSV, exposure, CORS, API-surface, and public trust signals.
@@ -318,10 +333,10 @@ npx @ktbatterham/external-posture-core scan example.com --deep-passive
 CI policy modes:
 
 ```bash
-npx @ktbatterham/external-posture-core scan example.com github.com --fail-on warning
-npx @ktbatterham/external-posture-core scan example.com --baseline previous-report.json --fail-on-regression
-npx @ktbatterham/external-posture-core scan example.com github.com --fail-if-score-below 75
-npx @ktbatterham/external-posture-core compare current-report.json baseline-report.json --fail-on critical --fail-on-regression
+npx securl scan example.com github.com --fail-on warning
+npx securl scan example.com --baseline previous-report.json --fail-on-regression
+npx securl scan example.com github.com --fail-if-score-below 75
+npx securl compare current-report.json baseline-report.json --fail-on critical --fail-on-regression
 ```
 
 - `--fail-on` sets exit code `1` when findings at or above the selected severity are present.
@@ -331,20 +346,20 @@ npx @ktbatterham/external-posture-core compare current-report.json baseline-repo
 Write results to a file:
 
 ```bash
-npx @ktbatterham/external-posture-core scan example.com --format json --output report.json
+npx securl scan example.com --format json --output report.json
 ```
 
 Compare against a previously saved JSON report:
 
 ```bash
-npx @ktbatterham/external-posture-core scan example.com --baseline previous-report.json
+npx securl scan example.com --baseline previous-report.json
 ```
 
 Compare two saved reports directly:
 
 ```bash
-npx @ktbatterham/external-posture-core compare current-report.json baseline-report.json
-npx @ktbatterham/external-posture-core compare current-report.json baseline-report.json --format sarif
+npx securl compare current-report.json baseline-report.json
+npx securl compare current-report.json baseline-report.json --format sarif
 ```
 
 Batch scans return:
@@ -380,7 +395,7 @@ Direct report comparison returns:
 Show usage:
 
 ```bash
-npx @ktbatterham/external-posture-core --help
+npx securl --help
 ```
 
 ### `analyzeUrl(url)`
@@ -388,7 +403,7 @@ npx @ktbatterham/external-posture-core --help
 Run a full posture analysis for a public target.
 
 ```js
-import { analyzeUrl } from "@ktbatterham/external-posture-core";
+import { analyzeUrl } from "securl";
 
 const result = await analyzeUrl("https://example.com");
 console.log(result.score, result.grade);
@@ -412,7 +427,7 @@ When a baseline report is supplied to the CLI, summary and Markdown output appen
 Run passive HTML/content analysis against a fetched HTML document.
 
 ```js
-import { analyzeHtmlDocument } from "@ktbatterham/external-posture-core";
+import { analyzeHtmlDocument } from "securl";
 
 const htmlSecurity = analyzeHtmlDocument("https://example.com", "<html>...</html>");
 console.log(htmlSecurity.clientExposureSignals);

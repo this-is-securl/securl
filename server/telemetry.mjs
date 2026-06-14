@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { targetForPrivacy } from "./privacy.mjs";
+import { hashPrivacyValue, targetForPrivacy } from "./privacy.mjs";
 
 export function createTelemetryTracker({ storagePath = "" } = {}) {
   const persistence = storagePath ? "file" : "memory";
@@ -13,6 +13,14 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     sourceBuckets: {},
     scansRequested: 0,
     scansCompleted: 0,
+    scanRequesterKeys: new Set(),
+    scanClientKeys: new Set(),
+    scanTargetOrigins: new Set(),
+    scanSourceBuckets: {},
+    scanChannelBuckets: {},
+    scanTargetBuckets: {},
+    scanDays: {},
+    recentScans: [],
     fullReads: 0,
     limitedReads: 0,
     quietModeScans: 0,
@@ -35,6 +43,9 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
   const serializeState = () => ({
     ...state,
     visitorKeys: [...state.visitorKeys],
+    scanRequesterKeys: [...state.scanRequesterKeys],
+    scanClientKeys: [...state.scanClientKeys],
+    scanTargetOrigins: [...state.scanTargetOrigins],
     visitorDays: Object.fromEntries(
       Object.entries(state.visitorDays).map(([date, bucket]) => [
         date,
@@ -42,6 +53,19 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
           pageLoads: bucket.pageLoads,
           visitorKeys: [...bucket.visitorKeys],
           sourceBuckets: { ...(bucket.sourceBuckets || {}) },
+        },
+      ]),
+    ),
+    scanDays: Object.fromEntries(
+      Object.entries(state.scanDays).map(([date, bucket]) => [
+        date,
+        {
+          requested: bucket.requested,
+          requesterKeys: [...bucket.requesterKeys],
+          clientKeys: [...bucket.clientKeys],
+          targetOrigins: [...bucket.targetOrigins],
+          sourceBuckets: { ...(bucket.sourceBuckets || {}) },
+          channelBuckets: { ...(bucket.channelBuckets || {}) },
         },
       ]),
     ),
@@ -68,6 +92,31 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     state.sourceBuckets = { ...(value.sourceBuckets || {}) };
     state.scansRequested = Number.isFinite(value.scansRequested) ? value.scansRequested : state.scansRequested;
     state.scansCompleted = Number.isFinite(value.scansCompleted) ? value.scansCompleted : state.scansCompleted;
+    state.scanRequesterKeys = new Set(Array.isArray(value.scanRequesterKeys) ? value.scanRequesterKeys : []);
+    state.scanClientKeys = new Set(Array.isArray(value.scanClientKeys) ? value.scanClientKeys : []);
+    state.scanTargetOrigins = new Set(Array.isArray(value.scanTargetOrigins) ? value.scanTargetOrigins : []);
+    state.scanSourceBuckets = { ...(value.scanSourceBuckets || {}) };
+    state.scanChannelBuckets = { ...(value.scanChannelBuckets || {}) };
+    state.scanTargetBuckets = { ...(value.scanTargetBuckets || {}) };
+    state.scanDays = Object.fromEntries(
+      Object.entries(value.scanDays || {}).map(([date, bucket]) => [
+        date,
+        {
+          requested: Number.isFinite(bucket?.requested) ? bucket.requested : 0,
+          requesterKeys: new Set(Array.isArray(bucket?.requesterKeys) ? bucket.requesterKeys : []),
+          clientKeys: new Set(Array.isArray(bucket?.clientKeys) ? bucket.clientKeys : []),
+          targetOrigins: new Set(Array.isArray(bucket?.targetOrigins) ? bucket.targetOrigins : []),
+          sourceBuckets: { ...(bucket?.sourceBuckets || {}) },
+          channelBuckets: { ...(bucket?.channelBuckets || {}) },
+        },
+      ]),
+    );
+    state.recentScans = Array.isArray(value.recentScans)
+      ? value.recentScans
+        .map(sanitizeRecentScan)
+        .filter(Boolean)
+        .slice(-40)
+      : state.recentScans;
     state.fullReads = Number.isFinite(value.fullReads) ? value.fullReads : state.fullReads;
     state.limitedReads = Number.isFinite(value.limitedReads) ? value.limitedReads : state.limitedReads;
     state.quietModeScans = Number.isFinite(value.quietModeScans) ? value.quietModeScans : state.quietModeScans;
@@ -145,10 +194,32 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     }
     return state.funnelDays[dateKey];
   };
+  const getScanDayBucket = (dateKey) => {
+    if (!state.scanDays[dateKey]) {
+      state.scanDays[dateKey] = {
+        requested: 0,
+        requesterKeys: new Set(),
+        clientKeys: new Set(),
+        targetOrigins: new Set(),
+        sourceBuckets: {},
+        channelBuckets: {},
+      };
+    }
+    return state.scanDays[dateKey];
+  };
   const serializeDayBucket = (date, bucket) => ({
     date,
     pageLoads: bucket.pageLoads,
     uniqueVisitors: bucket.visitorKeys.size,
+  });
+  const serializeScanDayBucket = (date, bucket) => ({
+    date,
+    requested: bucket.requested,
+    uniqueRequesters: bucket.requesterKeys.size,
+    uniqueClients: bucket.clientKeys.size,
+    uniqueTargets: bucket.targetOrigins.size,
+    sources: { ...(bucket.sourceBuckets || {}) },
+    channels: { ...(bucket.channelBuckets || {}) },
   });
   const pushMetric = (values, value, maxValues = 200) => {
     if (!Number.isFinite(value) || value < 0) {
@@ -193,6 +264,12 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     state.recentFunnelEvents.push(event);
     if (state.recentFunnelEvents.length > 40) {
       state.recentFunnelEvents.splice(0, state.recentFunnelEvents.length - 40);
+    }
+  };
+  const pushRecentScan = (scan) => {
+    state.recentScans.push(scan);
+    if (state.recentScans.length > 40) {
+      state.recentScans.splice(0, state.recentScans.length - 40);
     }
   };
 
@@ -244,11 +321,59 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       persist();
       return true;
     },
-    recordScanRequested({ mode }) {
+    recordScanRequested({
+      mode,
+      source = "unknown",
+      channel = "unknown",
+      requesterKey = null,
+      clientKey = null,
+      target = null,
+      now = new Date(),
+    } = {}) {
+      const normalizedSource = normalizeTrafficSource(source);
+      const normalizedChannel = normalizeScanChannel(channel);
+      const targetOrigin = targetForPrivacy(target);
+      const safeRequesterKey = hashPrivacyValue(requesterKey, { prefix: "req", length: 16 });
+      const safeClientKey = hashPrivacyValue(clientKey, { prefix: "client", length: 16 });
       state.scansRequested += 1;
       if (mode === "quiet") {
         state.quietModeScans += 1;
       }
+      incrementBucket(state.scanSourceBuckets, normalizedSource);
+      incrementBucket(state.scanChannelBuckets, normalizedChannel);
+      if (targetOrigin) {
+        state.scanTargetOrigins.add(targetOrigin);
+        incrementBucket(state.scanTargetBuckets, targetOrigin);
+      }
+      if (safeRequesterKey !== "unknown") {
+        state.scanRequesterKeys.add(safeRequesterKey);
+      }
+      if (safeClientKey !== "unknown") {
+        state.scanClientKeys.add(safeClientKey);
+      }
+      const dateKey = now.toISOString().slice(0, 10);
+      const dayBucket = getScanDayBucket(dateKey);
+      dayBucket.requested += 1;
+      incrementBucket(dayBucket.sourceBuckets, normalizedSource);
+      incrementBucket(dayBucket.channelBuckets, normalizedChannel);
+      if (targetOrigin) {
+        dayBucket.targetOrigins.add(targetOrigin);
+      }
+      if (safeRequesterKey !== "unknown") {
+        dayBucket.requesterKeys.add(safeRequesterKey);
+      }
+      if (safeClientKey !== "unknown") {
+        dayBucket.clientKeys.add(safeClientKey);
+      }
+      pushRecentScan({
+        occurredAt: now.toISOString(),
+        target: targetOrigin,
+        mode,
+        source: normalizedSource,
+        channel: normalizedChannel,
+        requesterKey: safeRequesterKey,
+        clientKey: safeClientKey,
+      });
       persist();
     },
     recordScanCompleted(result) {
@@ -293,6 +418,11 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         .sort(([left], [right]) => left.localeCompare(right))
         .slice(-14)
         .map(([date, bucket]) => serializeDayBucket(date, bucket));
+      const recentScanDays = Object.entries(state.scanDays)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .slice(-14)
+        .map(([date, bucket]) => serializeScanDayBucket(date, bucket));
+      const todayScanBucket = getScanDayBucket(todayKey);
       return {
         startedAt: state.startedAt,
         persistence,
@@ -332,6 +462,20 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         scans: {
           requested: state.scansRequested,
           completed: state.scansCompleted,
+          engagement: {
+            sources: { ...state.scanSourceBuckets },
+            channels: { ...state.scanChannelBuckets },
+            uniqueRequesters: state.scanRequesterKeys.size,
+            uniqueClients: state.scanClientKeys.size,
+            uniqueTargets: state.scanTargetOrigins.size,
+            today: serializeScanDayBucket(todayKey, todayScanBucket),
+            recentDays: recentScanDays,
+            repeatTargets: Object.entries(state.scanTargetBuckets)
+              .sort(([, left], [, right]) => right - left)
+              .slice(0, 10)
+              .map(([target, count]) => ({ target, count })),
+            recent: [...state.recentScans].reverse(),
+          },
           fullReads: state.fullReads,
           limitedReads: state.limitedReads,
           quietMode: state.quietModeScans,
@@ -386,6 +530,24 @@ function sanitizeRecentFailure(value) {
   };
 }
 
+function sanitizeRecentScan(value) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  const occurredAt = sanitizeTelemetryText(value.occurredAt, 40) || new Date().toISOString();
+  const channel = normalizeScanChannel(value.channel);
+  const source = normalizeTrafficSource(value.source);
+  return {
+    occurredAt,
+    target: sanitizeTelemetryText(targetForPrivacy(value.target), 240),
+    mode: sanitizeTelemetryText(value.mode, 40) || "standard",
+    source,
+    channel,
+    requesterKey: sanitizeTelemetryText(value.requesterKey, 80),
+    clientKey: sanitizeTelemetryText(value.clientKey, 80),
+  };
+}
+
 const FUNNEL_EVENT_NAMES = new Set([
   "scan_started",
   "handoff_started",
@@ -422,6 +584,11 @@ export function normalizeTrafficSource(source) {
   return /^[a-z0-9_:-]{1,40}$/.test(value) ? value : "unknown";
 }
 
+export function normalizeScanChannel(channel) {
+  const value = String(channel || "unknown").trim().toLowerCase().replace(/[^a-z0-9_-]/g, "_");
+  return /^[a-z0-9_-]{1,40}$/.test(value) ? value : "unknown";
+}
+
 export function classifyTrafficSource({ referrer = "", currentUrl = "" } = {}) {
   const explicitSource = readUtmSource(currentUrl);
   if (explicitSource) {
@@ -439,7 +606,7 @@ export function classifyTrafficSource({ referrer = "", currentUrl = "" } = {}) {
     return "unknown";
   }
 
-  if (!host || host === "app.securl.online" || host.endsWith(".securl.online")) {
+  if (!host || host === "securl.online" || host === "app.securl.online" || host.endsWith(".securl.online")) {
     return "internal";
   }
   if (host === "news.ycombinator.com" || host === "ycombinator.com") {

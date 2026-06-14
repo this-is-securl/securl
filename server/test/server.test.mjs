@@ -472,12 +472,16 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.equal(response.status, 200);
     assert.equal(payload.apiVersion, "2026-05-14");
     assert.equal(payload.service.name, "SecURL API");
-    assert.equal(payload.service.corePackage, "@ktbatterham/external-posture-core");
+    assert.equal(payload.service.corePackage, "securl");
     assert.match(payload.service.coreVersion, /^\d+\.\d+\.\d+/);
     assert.ok(payload.service.resources.includes("GET /api/ready"));
     assert.deepEqual(payload.scans.modes, ["standard", "quiet", "deep-passive"]);
     assert.ok(payload.scans.features.includes("finding-evidence"));
+    assert.ok(payload.scans.features.includes("evidence-summary"));
     assert.ok(payload.scans.features.includes("remediation-plan"));
+    assert.equal(payload.scans.scoring.model, "weighted-passive-posture");
+    assert.equal(payload.scans.scoring.version, "2026-06-14");
+    assert.deepEqual(payload.scans.scoring.scoreRange, { min: 0, max: 100 });
     assert.equal(payload.scans.maxDurationMs.standard, 45000);
     assert.equal(payload.scans.maxDurationMs.deepPassive, 75000);
     assert.ok(payload.auth.resources.includes("GET /api/auth/api-keys"));
@@ -551,6 +555,39 @@ test("telemetry endpoint returns aggregate page-load and failure counters", asyn
     assert.equal(payload.scans.requested, 0);
     assert.equal(payload.scans.completed, 0);
     assert.equal(payload.failures.classes.invalid_target_credentials, 1);
+  } finally {
+    await server.stop();
+  }
+});
+
+test("telemetry endpoint separates scan engagement from raw scan volume", async () => {
+  const server = await startServer();
+
+  try {
+    const scanResponse = await postScan(server.baseUrl, "https://example.com", {
+      headers: {
+        Referer: "https://securl.online/",
+        "User-Agent": "TelemetryScanTest/1.0",
+      },
+    });
+    const scanPayload = await scanResponse.json();
+    assert.equal(scanResponse.status, 202);
+    await waitForScanTerminal(server.baseUrl, scanPayload.scan.id);
+
+    const telemetryResponse = await fetch(`${server.baseUrl}/api/telemetry`);
+    const payload = await telemetryResponse.json();
+
+    assert.equal(telemetryResponse.status, 200);
+    assert.equal(payload.scans.requested, 1);
+    assert.equal(payload.scans.completed, 1);
+    assert.equal(payload.scans.engagement.uniqueRequesters, 1);
+    assert.equal(payload.scans.engagement.uniqueClients, 1);
+    assert.equal(payload.scans.engagement.uniqueTargets, 1);
+    assert.equal(Object.values(payload.scans.engagement.sources).reduce((sum, count) => sum + count, 0), 1);
+    assert.equal(payload.scans.engagement.channels.browser_owner, 1);
+    assert.equal(payload.scans.engagement.repeatTargets[0].target, "https://example.com");
+    assert.equal(payload.scans.engagement.recent[0].target, "https://example.com");
+    assert.equal(payload.scans.engagement.recent[0].channel, "browser_owner");
   } finally {
     await server.stop();
   }
@@ -1693,6 +1730,8 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.ok(Array.isArray(findingsPayload.priorityActions));
     assert.ok(findingsPayload.remediationPlan);
     assert.ok(Array.isArray(findingsPayload.remediationPlan.items));
+    assert.ok(findingsPayload.evidenceSummary);
+    assert.equal(typeof findingsPayload.evidenceSummary.totalEvidenceReferences, "number");
     assert.ok(
       findingsPayload.findings.every((finding) => Array.isArray(finding.evidence)),
     );
@@ -1704,6 +1743,8 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.ok(Array.isArray(digestPayload.digest.findings.top));
     assert.ok(digestPayload.digest.remediationPlan);
     assert.ok(Array.isArray(digestPayload.digest.remediationPlan.topActions));
+    assert.ok(digestPayload.digest.evidence);
+    assert.equal(typeof digestPayload.digest.evidence.totalEvidenceReferences, "number");
     assert.ok(Array.isArray(digestPayload.digest.posture.scoreDrivers));
     assert.ok(Array.isArray(digestPayload.digest.intelligence.riskIndicators));
     assert.equal(evidenceResponse.status, 200);
@@ -1711,6 +1752,7 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.ok(Array.isArray(evidencePayload.evidence.headers));
     assert.ok(Array.isArray(evidencePayload.evidence.cookies));
     assert.ok(Array.isArray(evidencePayload.evidence.redirects));
+    assert.ok(evidencePayload.evidence.evidenceSummary);
     assert.equal(historyResponse.status, 200);
     assert.equal(historyPayload.apiVersion, "2026-05-14");
     assert.equal(historyPayload.scan.id, scanId);

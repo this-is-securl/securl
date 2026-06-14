@@ -1,7 +1,7 @@
 # SecURL
 
-[![npm version](https://img.shields.io/npm/v/%40ktbatterham%2Fexternal-posture-core)](https://www.npmjs.com/package/@ktbatterham/external-posture-core)
-[![npm package](https://img.shields.io/badge/npm-package-red)](https://www.npmjs.com/package/@ktbatterham/external-posture-core)
+[![npm version](https://img.shields.io/npm/v/securl)](https://www.npmjs.com/package/securl)
+[![npm package](https://img.shields.io/badge/npm-package-red)](https://www.npmjs.com/package/securl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Sponsor](https://img.shields.io/badge/Sponsor-SecURL-0f766e)](https://github.com/sponsors/ktbatterham)
 [![Follow on X](https://img.shields.io/badge/X-%40ThisIsSecURL-111827)](https://x.com/ThisIsSecURL)
@@ -20,7 +20,7 @@ It is built for low-noise review of headers, TLS, cookies, redirects, DNS/email 
   ·
   <a href="https://apps.apple.com/app/securl/id6774322464"><strong>Download the iOS app</strong></a>
   ·
-  <a href="https://www.npmjs.com/package/@ktbatterham/external-posture-core"><strong>Use the npm package</strong></a>
+  <a href="https://www.npmjs.com/package/securl"><strong>Use the npm package</strong></a>
   ·
   <a href="https://x.com/ThisIsSecURL"><strong>Follow @ThisIsSecURL</strong></a>
   ·
@@ -36,14 +36,14 @@ Use the hosted scanner if you want the quickest feel for the product:
 - [securl.online](https://securl.online) — product and landing page
 - [app.securl.online](https://app.securl.online) — live scanner and report workspace
 - [SecURL on the App Store](https://apps.apple.com/app/securl/id6774322464) — iOS companion app
-- [`@ktbatterham/external-posture-core`](https://www.npmjs.com/package/@ktbatterham/external-posture-core) — reusable CLI and Node engine
+- [`securl`](https://www.npmjs.com/package/securl) — reusable CLI and Node engine
 
 Follow product notes and practical posture write-ups at [@ThisIsSecURL on X](https://x.com/ThisIsSecURL) and [Dev.to/thisissecurl](https://dev.to/thisissecurl).
 
 Or run the engine directly:
 
 ```sh
-npx @ktbatterham/external-posture-core scan example.com
+npx securl scan example.com
 ```
 
 ## Why SecURL
@@ -96,16 +96,16 @@ Prefer mobile? Install [SecURL on the App Store](https://apps.apple.com/app/secu
 ### CLI
 
 ```sh
-npx @ktbatterham/external-posture-core scan example.com
-npx @ktbatterham/external-posture-core scan example.com --format markdown --output report.md
-npx @ktbatterham/external-posture-core compare current-report.json previous-report.json
+npx securl scan example.com
+npx securl scan example.com --format markdown --output report.md
+npx securl compare current-report.json previous-report.json
 ```
 
 Global install:
 
 ```sh
-npm install -g @ktbatterham/external-posture-core
-epi scan example.com
+npm install -g securl
+securl scan example.com
 ```
 
 ### Local development
@@ -152,7 +152,7 @@ SecURL now has a clean split between:
 
 - static frontend client
 - Node backend API
-- reusable scanner core package in [`packages/core`](packages/core)
+- reusable SecURL package in [`packages/core`](packages/core)
 
 That makes it much easier to:
 
@@ -188,8 +188,10 @@ Sponsorship helps fund continued work on the passive analysis engine, hosted sca
 
 ## Package status
 
-- Latest published core package: `@ktbatterham/external-posture-core@1.4.1`
+- Latest published package: `securl@1.5.0`
+- Previous package name: `@ktbatterham/external-posture-core` is deprecated in favour of `securl`
 - npm tag: `latest`
+- Package signal check: `npm run package:signals`
 - Core release checklist: [`packages/core/RELEASING.md`](packages/core/RELEASING.md)
 
 ## Docs
@@ -201,6 +203,7 @@ For the deeper operational and architecture material, go straight to:
 - [Public deploy checklist](docs/PUBLIC-DEPLOY-CHECKLIST.md)
 - [iOS-capable backend notes](docs/IOS-CAPABLE-BACKEND.md)
 - [Abuse and alerting notes](docs/ABUSE-ALERTING.md)
+- [Package signal tracking](docs/PACKAGE-SIGNALS.md)
 - [Reverse proxy verification](docs/REVERSE-PROXY-VERIFICATION.md)
 - [OWASP/MITRE self-review](docs/OWASP-MITRE-SELF-REVIEW.md)
 

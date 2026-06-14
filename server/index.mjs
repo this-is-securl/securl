@@ -208,6 +208,26 @@ function buildVisitorKey(request) {
     .digest("hex");
 }
 
+function classifyAuthChannel(authState) {
+  if (authState?.authMode === "api-key") return "api_key";
+  if (authState?.authMode === "session") return "session";
+  if (authState?.authMode === "scan-owner") return "browser_owner";
+  if (authState?.clientIp === "monitoring-scheduler") return "monitoring_scheduler";
+  return authState?.authMode || "anonymous";
+}
+
+function buildScanTelemetryContext({ request = null, body = {}, authState = {}, channel = null } = {}) {
+  const referrer = typeof body.referrer === "string"
+    ? body.referrer
+    : String(request?.headers?.referer || request?.headers?.origin || "");
+  const currentUrl = typeof body.currentUrl === "string" ? body.currentUrl : "";
+  return {
+    source: classifyTrafficSource({ referrer, currentUrl }),
+    channel: channel || classifyAuthChannel(authState),
+    clientKey: request ? buildVisitorKey(request) : authState.clientIp || null,
+  };
+}
+
 function isTelemetryRequestAuthorized(request) {
   if (!isProduction) {
     return true;
@@ -242,12 +262,19 @@ const log = (level, event, details = {}) => {
   console.log(line);
 };
 
-async function runScanAnalysis({ validatedTarget, mode, clientIp, requesterScope }) {
+async function runScanAnalysis({ validatedTarget, mode, clientIp, requesterScope, telemetryContext = {} }) {
   const startedAt = Date.now();
   const maxScanDurationMs = mode === "deep-passive" ? DEEP_PASSIVE_SCAN_TIMEOUT_MS : SCAN_TIMEOUT_MS;
   const clientIpHash = hashClientIp(clientIp);
   const targetOrigin = targetOriginForPrivacy(validatedTarget) || "invalid-target";
-  telemetry.recordScanRequested({ mode });
+  telemetry.recordScanRequested({
+    mode,
+    target: validatedTarget,
+    requesterKey: requesterScope,
+    clientKey: telemetryContext.clientKey || clientIp,
+    source: telemetryContext.source,
+    channel: telemetryContext.channel,
+  });
   log("info", "analysis_requested", {
     clientIpHash,
     requesterScope: redactRequesterScope(requesterScope),
@@ -598,6 +625,7 @@ const server = http.createServer(async (request, response) => {
         sendRateLimitedResponse: sendApiRateLimited,
       }),
       readJsonBody,
+      buildScanTelemetryContext,
       getRequestedScanMode,
       checkTargetQuota: (options) => checkTargetQuota({
         ...options,
@@ -632,6 +660,7 @@ const server = http.createServer(async (request, response) => {
         sendRateLimitedResponse: sendApiRateLimited,
       }),
       readJsonBody,
+      buildScanTelemetryContext,
       assertPublicHttpUrl,
       buildMonitoringTargetView,
       buildMonitoringTargetsPayload,
@@ -677,6 +706,7 @@ const server = http.createServer(async (request, response) => {
       }),
       readJsonBody,
       getRequestedScanMode,
+      buildScanTelemetryContext,
       checkTargetQuota: (options) => checkTargetQuota({
         ...options,
         sendRateLimitedResponse: sendApiRateLimited,
@@ -790,6 +820,7 @@ monitoringScheduler = createMonitoringScheduler({
     scanRepository,
     runScanAnalysis,
     telemetry,
+    telemetryContext: { source: "internal", channel: "monitoring_scheduler", clientKey: "monitoring-scheduler" },
     classifyScanFailure,
     normalizeScanErrorMessage,
     formatErrorMessage,

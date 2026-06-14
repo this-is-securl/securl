@@ -1,10 +1,17 @@
 # Changelog
 
-All notable changes to `@ktbatterham/external-posture-core` will be documented in this file.
+All notable changes to `securl` will be documented in this file.
 
 The format is based on Keep a Changelog and this package follows Semantic Versioning once published.
 
 ## [Unreleased]
+
+## [1.5.0] - 2026-06-14
+
+### Added
+- Added `buildPostureEvidenceSummary()` for compact, API/mobile-friendly evidence metadata that explains score drivers and findings without requiring clients to inspect the full scan payload.
+- Added the `securl/evidence-summary` package export for consumers that want the evidence summary helper directly.
+- Added `evidenceSummary` to completed analysis results and posture digests.
 
 ## [1.4.1] - 2026-06-14
 
@@ -15,13 +22,13 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ### Added
 - Added structured finding evidence references and a remediation plan builder for prioritized, owner-aware fix guidance.
-- Added the `@ktbatterham/external-posture-core/remediation-plan` package export for clients that want to build fix plans from scan results.
+- Added the `securl/remediation-plan` package export for clients that want to build fix plans from scan results.
 
 ## [1.3.0] - 2026-06-11
 
 ### Added
 - Added posture drift reports that combine history diffs, risk events, severity counts, changed areas, and overall drift direction into one stable monitoring payload.
-- Added the `@ktbatterham/external-posture-core/posture-drift` package export for clients building history, monitoring, or alerting workflows.
+- Added the `securl/posture-drift` package export for clients building history, monitoring, or alerting workflows.
 
 ## [1.2.1] - 2026-06-06
 
@@ -32,7 +39,7 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ### Added
 - Added `buildPostureDigest()` for producing compact, API/mobile-friendly summaries from full scan results.
-- Added the `@ktbatterham/external-posture-core/posture-digest` package export for consumers that want the digest helper without importing the wider SDK surface.
+- Added the `securl/posture-digest` package export for consumers that want the digest helper without importing the wider SDK surface.
 
 ## [1.1.1] - 2026-06-02
 
@@ -44,7 +51,7 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ### Added
 - Added posture risk event classification helpers for scan history diffs, including score, grade, certificate, security-header, WAF, CT-host, third-party, AI-vendor, identity-provider, and new critical-finding changes.
-- Added the `@ktbatterham/external-posture-core/risk-events` package export for consumers that want to build monitoring or alerting workflows from scan comparisons.
+- Added the `securl/risk-events` package export for consumers that want to build monitoring or alerting workflows from scan comparisons.
 
 ### Changed
 - Added `currentGrade` to `HistoryDiff` so consumers can render grade movement without carrying a separate current snapshot.

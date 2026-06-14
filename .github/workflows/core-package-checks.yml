@@ -1,4 +1,4 @@
-name: Core Package Checks
+name: SecURL Package Checks
 
 on:
   push:
@@ -27,7 +27,7 @@ jobs:
       - name: Audit production dependencies
         run: npm audit --omit=dev
 
-      - name: Build core package
+      - name: Build SecURL package
         run: npm run build:core
 
       - name: Run core tests

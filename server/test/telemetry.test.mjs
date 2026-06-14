@@ -11,8 +11,24 @@ test("telemetry tracker records aggregate counts", () => {
   telemetry.recordPageLoad({ visitorKey: "visitor-one", now: new Date("2026-05-15T08:00:00Z"), source: "hacker_news" });
   telemetry.recordPageLoad({ visitorKey: "visitor-one", now: new Date("2026-05-15T09:00:00Z"), source: "reddit" });
   telemetry.recordPageLoad({ visitorKey: "visitor-two", now: new Date("2026-05-15T10:00:00Z"), source: "hacker_news" });
-  telemetry.recordScanRequested({ mode: "standard" });
-  telemetry.recordScanRequested({ mode: "quiet" });
+  telemetry.recordScanRequested({
+    mode: "standard",
+    source: "direct",
+    channel: "browser_owner",
+    requesterKey: "scan-owner-one",
+    clientKey: "visitor-one",
+    target: "https://example.com/path?secret=hidden",
+    now: new Date("2026-05-15T11:00:00Z"),
+  });
+  telemetry.recordScanRequested({
+    mode: "quiet",
+    source: "utm:landing",
+    channel: "api_key",
+    requesterKey: "api-key-one",
+    clientKey: "visitor-two",
+    target: "https://example.com/other",
+    now: new Date("2026-05-15T12:00:00Z"),
+  });
   telemetry.recordScanCompleted({
     assessmentLimitation: { limited: false },
     scanTiming: { totalMs: 1000, coreMs: 250, enrichmentMs: 750, timedOut: false },
@@ -59,6 +75,20 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.trafficSources.pageLoads.reddit, 1);
   assert.equal(snapshot.scans.requested, 2);
   assert.equal(snapshot.scans.completed, 2);
+  assert.equal(snapshot.scans.engagement.uniqueRequesters, 2);
+  assert.equal(snapshot.scans.engagement.uniqueClients, 2);
+  assert.equal(snapshot.scans.engagement.uniqueTargets, 1);
+  assert.equal(snapshot.scans.engagement.sources.direct, 1);
+  assert.equal(snapshot.scans.engagement.sources["utm:landing"], 1);
+  assert.equal(snapshot.scans.engagement.channels.browser_owner, 1);
+  assert.equal(snapshot.scans.engagement.channels.api_key, 1);
+  assert.equal(snapshot.scans.engagement.recentDays.at(-1).date, "2026-05-15");
+  assert.equal(snapshot.scans.engagement.recentDays.at(-1).uniqueTargets, 1);
+  assert.equal(snapshot.scans.engagement.repeatTargets[0].target, "https://example.com");
+  assert.equal(snapshot.scans.engagement.repeatTargets[0].count, 2);
+  assert.equal(snapshot.scans.engagement.recent.length, 2);
+  assert.equal(snapshot.scans.engagement.recent[0].target, "https://example.com");
+  assert.equal(snapshot.scans.engagement.recent[0].channel, "api_key");
   assert.equal(snapshot.scans.fullReads, 1);
   assert.equal(snapshot.scans.limitedReads, 1);
   assert.equal(snapshot.scans.quietMode, 1);
@@ -94,7 +124,15 @@ test("telemetry tracker can persist counters to disk", () => {
   try {
     const first = createTelemetryTracker({ storagePath });
     first.recordPageLoad({ visitorKey: "visitor-one", now: new Date("2026-05-15T08:00:00Z"), source: "reddit" });
-    first.recordScanRequested({ mode: "quiet" });
+    first.recordScanRequested({
+      mode: "quiet",
+      source: "reddit",
+      channel: "browser_owner",
+      requesterKey: "scan-owner-one",
+      clientKey: "visitor-one",
+      target: "https://example.com/path?token=secret",
+      now: new Date("2026-05-15T09:00:00Z"),
+    });
     first.recordFunnelEvent({ event: "report_viewed", source: "reddit", target: "https://example.com/path?token=secret" });
     first.recordFailure("requester_rate_limited", {
       target: "https://example.com/path?token=secret",
@@ -112,6 +150,12 @@ test("telemetry tracker can persist counters to disk", () => {
     assert.equal(snapshot.trafficSources.pageLoads.reddit, 1);
     assert.equal(snapshot.scans.requested, 1);
     assert.equal(snapshot.scans.quietMode, 1);
+    assert.equal(snapshot.scans.engagement.sources.reddit, 1);
+    assert.equal(snapshot.scans.engagement.channels.browser_owner, 1);
+    assert.equal(snapshot.scans.engagement.uniqueRequesters, 1);
+    assert.equal(snapshot.scans.engagement.uniqueClients, 1);
+    assert.equal(snapshot.scans.engagement.uniqueTargets, 1);
+    assert.equal(snapshot.scans.engagement.recent[0].target, "https://example.com");
     assert.equal(snapshot.funnel.events.report_viewed, 1);
     assert.equal(snapshot.funnel.bySource.reddit.report_viewed, 1);
     assert.equal(snapshot.funnel.recent[0].target, "https://example.com");
@@ -130,6 +174,7 @@ test("traffic source classification groups common public launch channels", () =>
   assert.equal(classifyTrafficSource({ referrer: "https://news.ycombinator.com/item?id=123" }), "hacker_news");
   assert.equal(classifyTrafficSource({ referrer: "https://www.reddit.com/r/netsec/comments/example" }), "reddit");
   assert.equal(classifyTrafficSource({ referrer: "https://github.com/ktbatterham/external-posture-insight" }), "github");
+  assert.equal(classifyTrafficSource({ referrer: "https://securl.online/" }), "internal");
   assert.equal(classifyTrafficSource({ referrer: "https://app.securl.online/" }), "internal");
   assert.equal(
     classifyTrafficSource({ currentUrl: "https://app.securl.online/?utm_source=show_hn" }),
