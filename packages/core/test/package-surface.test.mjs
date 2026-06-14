@@ -33,8 +33,8 @@ test("package surface includes a working CLI help entrypoint", async () => {
   await access(new URL("../dist/cli.js", import.meta.url));
   const { stdout } = await execFile(process.execPath, [new URL("../dist/cli.js", import.meta.url).pathname, "--help"]);
 
-  assert.match(stdout, /External Posture Insight CLI/);
-  assert.match(stdout, /epi scan <target\.\.\.>/);
+  assert.match(stdout, /SecURL CLI/);
+  assert.match(stdout, /securl scan <target\.\.\.>/);
   assert.match(stdout, /scan <target\.\.\.>/);
   assert.match(stdout, /--baseline/);
   assert.match(stdout, /json\|markdown\|summary\|sarif\|ci-json/);
@@ -51,6 +51,7 @@ test("package surface includes a working CLI help entrypoint", async () => {
 test("package surface exposes both long and short CLI binary names", async () => {
   const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 
+  assert.equal(packageJson.bin.securl, "dist/cli.js");
   assert.equal(packageJson.bin.epi, "dist/cli.js");
   assert.equal(packageJson.bin["external-posture-insight"], "dist/cli.js");
 });

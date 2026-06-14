@@ -1,5 +1,5 @@
 {
-  "name": "external-posture-insight-app",
+  "name": "securl-workspace",
   "private": true,
   "version": "1.0.1",
   "type": "module",
@@ -28,7 +28,8 @@
     "telemetry:web": "node scripts/telemetryDashboard.mjs",
     "check:deploy": "node server/checkDeployReadiness.mjs",
     "pack:core": "npm pack --dry-run ./packages/core",
-    "release:core:check": "npm run build:core && npm run typecheck:core:strict && npm run test:core && npm run lint && npm run pack:core",
+    "release:package:check": "npm run build:core && npm run typecheck:core:strict && npm run test:core && npm run lint && npm run pack:core",
+    "release:core:check": "npm run release:package:check",
     "test:core": "npm run build:core && node --test packages/core/test/*.test.mjs",
     "test:server": "npm run build && node --test server/test/*.test.mjs",
     "test:app:unit": "vitest run src/lib/*.test.ts --pool=threads --maxWorkers=1",

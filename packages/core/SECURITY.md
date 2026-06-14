@@ -1,4 +1,4 @@
-# Security Policy for `@ktbatterham/external-posture-core`
+# Security Policy for `securl`
 
 This package is published from the public source repository:
 
