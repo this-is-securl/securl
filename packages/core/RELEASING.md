@@ -1,8 +1,8 @@
-# Releasing `@ktbatterham/external-posture-core`
+# Releasing `securl`
 
 ## Pre-release checklist
 
-Only release `@ktbatterham/external-posture-core` when the package itself changes. Backend-only API resources, hosted app deploy scripts, Railway settings, Hostinger static deploys, and app-only UI changes do not warrant a core package bump unless they also change files that are published from `packages/core`.
+Only release `securl` when the package itself changes. Backend-only API resources, hosted app deploy scripts, Railway settings, Hostinger static deploys, and app-only UI changes do not warrant a core package bump unless they also change files that are published from `packages/core`.
 
 Version bump guidance:
 
@@ -10,10 +10,10 @@ Version bump guidance:
 - **Minor**: new exported helpers, new analysis signals, new CLI options, new report formats, new typed result fields, or additive public API changes.
 - **Major**: breaking changes to exported functions, CLI commands/options, package exports, result types, scoring semantics that consumers must handle differently, or supported Node/runtime expectations.
 
-Before deciding to bump, check what changed since the latest core tag:
+Before deciding to bump, check what changed since the latest package tag:
 
 ```sh
-git diff --name-status core-v$(node -p "require('./packages/core/package.json').version")..HEAD -- packages/core package.json package-lock.json
+git diff --name-status securl-v$(node -p "require('./packages/core/package.json').version")..HEAD -- packages/core package.json package-lock.json
 ```
 
 1. Update `packages/core/package.json` version.
@@ -26,7 +26,7 @@ git diff --name-status core-v$(node -p "require('./packages/core/package.json').
 ## Release steps
 
 1. Commit the version/changelog update.
-2. Tag the release using `core-v<version>`, for example `core-v0.1.0`.
+2. Tag the release using `securl-v<version>`, for example `securl-v1.4.1`.
 3. Push the tag.
 4. Let `.github/workflows/publish-core-package.yml` publish the package.
 

@@ -1,1 +1,1 @@
-export * from "@ktbatterham/external-posture-core";
+export * from "securl";

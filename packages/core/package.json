@@ -1,6 +1,6 @@
 {
-  "name": "@ktbatterham/external-posture-core",
-  "version": "1.4.0",
+  "name": "securl",
+  "version": "1.4.1",
   "type": "module",
   "description": "Passive external security posture analysis engine for SecURL.",
   "author": {
@@ -10,11 +10,11 @@
   "homepage": "https://securl.online",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ktbatterham/external-posture-insight.git",
+    "url": "git+https://github.com/this-is-securl/securl.git",
     "directory": "packages/core"
   },
   "bugs": {
-    "url": "https://github.com/ktbatterham/external-posture-insight/issues"
+    "url": "https://github.com/this-is-securl/securl/issues"
   },
   "engines": {
     "node": ">=22"
@@ -22,6 +22,7 @@
   "types": "./dist/index.d.ts",
   "main": "./dist/index.js",
   "bin": {
+    "securl": "dist/cli.js",
     "epi": "dist/cli.js",
     "external-posture-insight": "dist/cli.js"
   },
