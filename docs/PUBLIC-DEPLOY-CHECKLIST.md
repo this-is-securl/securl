@@ -67,7 +67,7 @@ In `multi-instance`, startup is blocked unless the rate-limit backend is distrib
 npm run deploy:railway -- --message "Deploy SecURL backend <version or commit>"
 ```
 
-The Railway service currently has no connected GitHub source (`source.repo` is `null`), so GitHub merges do not auto-deploy until the Railway dashboard is reconnected to `this-is-securl/securl` on `main` or a GitHub deploy workflow is added with a Railway token.
+The Railway service currently has no connected GitHub source (`source.repo` is `null`). The repo includes a guarded `Deploy Railway Backend` workflow, but it only performs deployments when a repository secret named `RAILWAY_TOKEN` is configured. Until then, use the CLI command above.
 
 ## 6) Hostinger static frontend deploy
 

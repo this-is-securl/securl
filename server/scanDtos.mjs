@@ -2,6 +2,7 @@ import { buildHistoryDiffFromSnapshots, snapshotFromAnalysis } from "../packages
 import { buildExposureBrief } from "../packages/core/dist/exposureBrief.js";
 import { buildPostureDigest } from "../packages/core/dist/postureDigest.js";
 import { buildPostureDriftReportFromDiff } from "../packages/core/dist/postureDrift.js";
+import { buildVendorExposureBrief } from "../packages/core/dist/vendorExposure.js";
 
 export const API_VERSION = "2026-05-14";
 export const SCAN_EXPORT_FORMATS = ["json", "markdown", "sarif", "ci-json"];
@@ -349,6 +350,22 @@ export function buildScanBriefPayload(scan) {
       completedAt: scan.completedAt,
     },
     brief: result ? result.exposureBrief ?? buildExposureBrief(result) : null,
+  };
+}
+
+export function buildScanVendorsPayload(scan) {
+  const result = scan.result;
+  return {
+    apiVersion: API_VERSION,
+    scan: {
+      id: scan.id,
+      status: scan.status,
+      url: scan.url,
+      mode: scan.mode,
+      requestedAt: scan.requestedAt,
+      completedAt: scan.completedAt,
+    },
+    vendors: result ? result.vendorExposure ?? buildVendorExposureBrief(result) : null,
   };
 }
 

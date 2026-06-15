@@ -253,6 +253,43 @@ export interface ExposureBrief {
   limitation: AssessmentLimitation | null;
 }
 
+export type VendorExposureRisk = "low" | "medium" | "high";
+
+export interface VendorExposureProvider {
+  name: string;
+  domain: string;
+  category: ThirdPartyProvider["category"];
+  risk: ThirdPartyProvider["risk"];
+  evidence: string;
+  reviewPriority: "routine" | "review" | "urgent";
+  dataFlow: "content_delivery" | "telemetry" | "user_interaction" | "payment" | "security" | "ai" | "unknown";
+  action: string;
+}
+
+export interface VendorExposureBrief {
+  generatedAt: string;
+  risk: VendorExposureRisk;
+  summary: string;
+  counts: {
+    totalProviders: number;
+    highRiskProviders: number;
+    mediumRiskProviders: number;
+    sessionReplayProviders: number;
+    analyticsProviders: number;
+    aiProviders: number;
+    paymentProviders: number;
+    supportProviders: number;
+    missingSriScripts: number;
+  };
+  providers: VendorExposureProvider[];
+  highPriorityProviders: VendorExposureProvider[];
+  issues: string[];
+  strengths: string[];
+  nextActions: string[];
+  collectionBoundary: string;
+  limitation: AssessmentLimitation | null;
+}
+
 export interface CrawlPageResult {
   label: string;
   path: string;
@@ -901,6 +938,7 @@ export interface AnalysisResult {
   remediationPlan?: RemediationPlan;
   evidenceSummary?: PostureEvidenceSummary;
   exposureBrief?: ExposureBrief;
+  vendorExposure?: VendorExposureBrief;
   crawl: CrawlSummary;
   securityTxt: SecurityTxtInfo;
   domainSecurity: DomainSecurityInfo;

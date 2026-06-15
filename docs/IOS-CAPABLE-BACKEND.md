@@ -33,6 +33,7 @@ The current backend service exposes:
 - `GET /api/scans/:id/findings`
 - `GET /api/scans/:id/digest`
 - `GET /api/scans/:id/brief`
+- `GET /api/scans/:id/vendors`
 - `GET /api/scans/:id/evidence`
 - `GET /api/scans/:id/history`
 - `GET /api/scans/:id/comparison`
@@ -69,6 +70,7 @@ Phase 2:
 - `GET /api/scans/:id/findings`
 - `GET /api/scans/:id/digest`
 - `GET /api/scans/:id/brief`
+- `GET /api/scans/:id/vendors`
 - `GET /api/scans/:id/evidence`
 - `GET /api/scans/:id/history`
 - `GET /api/scans/:id/comparison`

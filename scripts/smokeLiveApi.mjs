@@ -81,6 +81,7 @@ function assertCapabilities(payload) {
     "GET /api/scans/:id/findings",
     "GET /api/scans/:id/digest",
     "GET /api/scans/:id/brief",
+    "GET /api/scans/:id/vendors",
     "GET /api/scans/:id/evidence",
     "GET /api/scans/:id/history",
     "GET /api/scans/:id/comparison",
@@ -93,7 +94,7 @@ function assertCapabilities(payload) {
     }
   }
 
-  for (const feature of ["evidence-summary", "posture-digest", "posture-drift", "exposure-brief"]) {
+  for (const feature of ["evidence-summary", "posture-digest", "posture-drift", "exposure-brief", "vendor-exposure"]) {
     if (!features.includes(feature)) {
       throw new Error(`Capabilities missing scan feature: ${feature}`);
     }
@@ -168,6 +169,7 @@ async function main() {
     ["findings", `/api/scans/${encodeURIComponent(scanId)}/findings`, ownerHeaders],
     ["digest", `/api/scans/${encodeURIComponent(scanId)}/digest`, ownerHeaders],
     ["brief", `/api/scans/${encodeURIComponent(scanId)}/brief`, ownerHeaders],
+    ["vendors", `/api/scans/${encodeURIComponent(scanId)}/vendors`, ownerHeaders],
     ["evidence", `/api/scans/${encodeURIComponent(scanId)}/evidence`, ownerHeaders],
     ["history", `/api/scans/${encodeURIComponent(scanId)}/history`, ownerHeaders],
     ["comparison", `/api/scans/${encodeURIComponent(scanId)}/comparison`, ownerHeaders],
@@ -187,6 +189,9 @@ async function main() {
     }
     if (label === "brief" && !payload.brief) {
       throw new Error("Brief endpoint returned an empty exposure brief");
+    }
+    if (label === "vendors" && !payload.vendors) {
+      throw new Error("Vendors endpoint returned an empty vendor exposure brief");
     }
     if (label === "evidence" && !payload.evidence) {
       throw new Error("Evidence endpoint returned an empty evidence payload");

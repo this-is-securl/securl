@@ -1,0 +1,55 @@
+name: Deploy Railway Backend
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["SecURL Package Checks"]
+    types: [completed]
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Railway token availability
+        id: token
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          if [ -n "$RAILWAY_TOKEN" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "RAILWAY_TOKEN is not configured; skipping Railway deploy."
+          fi
+
+      - name: Checkout
+        if: steps.token.outputs.available == 'true'
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+
+      - name: Setup Node
+        if: steps.token.outputs.available == 'true'
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.token.outputs.available == 'true'
+        run: npm ci
+
+      - name: Install Railway CLI
+        if: steps.token.outputs.available == 'true'
+        run: npm install -g @railway/cli
+
+      - name: Deploy and smoke-check Railway backend
+        if: steps.token.outputs.available == 'true'
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: npm run deploy:railway -- --message "Deploy SecURL backend ${GITHUB_SHA::7}"
