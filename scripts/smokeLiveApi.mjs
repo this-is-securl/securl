@@ -81,6 +81,10 @@ function assertCapabilities(payload) {
     "GET /api/scans/:id/findings",
     "GET /api/scans/:id/digest",
     "GET /api/scans/:id/evidence",
+    "GET /api/scans/:id/history",
+    "GET /api/scans/:id/comparison",
+    "GET /api/scans/:id/drift",
+    "GET /api/scans/:id/export?format=json|markdown|sarif|ci-json",
     "GET /api/scans/:id/share",
   ]) {
     if (!resources.includes(resource)) {
@@ -164,6 +168,8 @@ async function main() {
     ["digest", `/api/scans/${encodeURIComponent(scanId)}/digest`, ownerHeaders],
     ["evidence", `/api/scans/${encodeURIComponent(scanId)}/evidence`, ownerHeaders],
     ["history", `/api/scans/${encodeURIComponent(scanId)}/history`, ownerHeaders],
+    ["comparison", `/api/scans/${encodeURIComponent(scanId)}/comparison`, ownerHeaders],
+    ["drift", `/api/scans/${encodeURIComponent(scanId)}/drift`, ownerHeaders],
     ["share", `/api/scans/${encodeURIComponent(scanId)}/share`, {}],
   ];
 
@@ -183,6 +189,30 @@ async function main() {
     if (label === "share" && !payload.scan?.result) {
       throw new Error("Share endpoint returned an empty scan result");
     }
+  }
+
+  const exportChecks = [
+    ["json export", "json", "application/json"],
+    ["markdown export", "markdown", "text/markdown"],
+    ["sarif export", "sarif", "application/sarif+json"],
+    ["ci-json export", "ci-json", "application/json"],
+  ];
+
+  for (const [label, format, expectedContentType] of exportChecks) {
+    const { response, text } = await fetchText(`${baseUrl}/api/scans/${encodeURIComponent(scanId)}/export?format=${format}`, {
+      headers: ownerHeaders,
+    });
+    if (response.status !== 200) {
+      throw new Error(`${label} failed with HTTP ${response.status}: ${text.slice(0, 240)}`);
+    }
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes(expectedContentType)) {
+      throw new Error(`${label} returned unexpected content-type: ${contentType || "missing"}`);
+    }
+    if (!text.trim()) {
+      throw new Error(`${label} returned an empty body`);
+    }
+    console.log(`${label}: ok`);
   }
 
   console.log("");

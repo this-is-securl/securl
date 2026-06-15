@@ -52,6 +52,8 @@ Smoke-check the live API contract with:
 npm run smoke:api
 ```
 
+The smoke command checks health, readiness, capabilities, scan creation, scan detail resources, comparison/drift resources, export formats, and the public share resource.
+
 Optional overrides:
 
 ```sh
