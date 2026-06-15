@@ -28,6 +28,7 @@ import {
   buildScanFindingsPayload,
   buildScanHistoryPayload,
   buildScanSummaryPayload,
+  buildScanVendorsPayload,
   buildTargetHistoryPayload,
 } from "./scanDtos.mjs";
 import {
@@ -744,6 +745,7 @@ const server = http.createServer(async (request, response) => {
       buildScanExportResponse,
       buildScanDigestPayload,
       buildScanBriefPayload,
+      buildScanVendorsPayload,
       buildScanEvidencePayload,
       buildScanHistoryPayload,
       buildScanComparisonPayload,

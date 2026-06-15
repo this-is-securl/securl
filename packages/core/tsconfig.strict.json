@@ -26,6 +26,7 @@
     "src/scoring.ts",
     "src/security-txt.ts",
     "src/technology-detection.ts",
+    "src/vendorExposure.ts",
     "src/wafFingerprint.ts",
     "src/htmlInsights.ts",
     "src/surfaceEnrichment.ts"

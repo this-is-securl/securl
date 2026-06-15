@@ -480,6 +480,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.scans.features.includes("evidence-summary"));
     assert.ok(payload.scans.features.includes("remediation-plan"));
     assert.ok(payload.scans.features.includes("exposure-brief"));
+    assert.ok(payload.scans.features.includes("vendor-exposure"));
     assert.equal(payload.scans.scoring.model, "weighted-passive-posture");
     assert.equal(payload.scans.scoring.version, "2026-06-14");
     assert.deepEqual(payload.scans.scoring.scoreRange, { min: 0, max: 100 });
@@ -489,6 +490,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.auth.resources.includes("DELETE /api/auth/api-keys/:id"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/digest"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/brief"));
+    assert.ok(payload.scans.resources.includes("GET /api/scans/:id/vendors"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/comparison"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/drift"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/export?format=json|markdown|sarif|ci-json"));
@@ -1696,6 +1698,9 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     const briefResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/brief`, {
       headers: scanOwnerHeaders(),
     });
+    const vendorsResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/vendors`, {
+      headers: scanOwnerHeaders(),
+    });
     const evidenceResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/evidence`, {
       headers: scanOwnerHeaders(),
     });
@@ -1719,6 +1724,7 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     const findingsPayload = await findingsResponse.json();
     const digestPayload = await digestResponse.json();
     const briefPayload = await briefResponse.json();
+    const vendorsPayload = await vendorsResponse.json();
     const evidencePayload = await evidenceResponse.json();
     const historyPayload = await historyResponse.json();
     const markdownExport = await markdownExportResponse.text();
@@ -1760,6 +1766,13 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.equal(typeof briefPayload.brief.summary, "string");
     assert.ok(Array.isArray(briefPayload.brief.topRisks));
     assert.ok(Array.isArray(briefPayload.brief.nextActions));
+    assert.equal(vendorsResponse.status, 200);
+    assert.equal(vendorsPayload.apiVersion, "2026-05-14");
+    assert.equal(vendorsPayload.scan.id, scanId);
+    assert.ok(vendorsPayload.vendors);
+    assert.equal(typeof vendorsPayload.vendors.summary, "string");
+    assert.ok(Array.isArray(vendorsPayload.vendors.providers));
+    assert.ok(Array.isArray(vendorsPayload.vendors.nextActions));
     assert.equal(evidenceResponse.status, 200);
     assert.equal(evidencePayload.apiVersion, "2026-05-14");
     assert.ok(Array.isArray(evidencePayload.evidence.headers));

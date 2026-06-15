@@ -2,6 +2,7 @@ import { URL } from "node:url";
 import { scanTls } from "./certificate.js";
 import { buildCompromiseSignals, emptyCompromiseSignals } from "./compromiseSignals.js";
 import { buildExposureBrief } from "./exposureBrief.js";
+import { buildVendorExposureBrief } from "./vendorExposure.js";
 import { parseSetCookie } from "./cookie-analysis.js";
 import { analyzeCookieHeaders } from "./cookieAnalysis.js";
 import { fetchCtDiscovery } from "./ctDiscovery.js";
@@ -649,6 +650,7 @@ async function buildLimitedResult(
   return {
     ...resultWithRemediation,
     exposureBrief: buildExposureBrief(resultWithRemediation),
+    vendorExposure: buildVendorExposureBrief(resultWithRemediation),
   };
 }
 
@@ -1154,6 +1156,7 @@ function buildTimedOutEnrichmentResult(
   return {
     ...resultWithRemediation,
     exposureBrief: buildExposureBrief(resultWithRemediation),
+    vendorExposure: buildVendorExposureBrief(resultWithRemediation),
   };
 }
 
@@ -1238,6 +1241,7 @@ export async function analyzeUrl(input: string, options: AnalyzeTargetOptions = 
   return {
     ...resultWithRemediation,
     exposureBrief: buildExposureBrief(resultWithRemediation),
+    vendorExposure: buildVendorExposureBrief(resultWithRemediation),
   };
 }
 
@@ -1245,6 +1249,7 @@ export const analyzeTarget = analyzeUrl;
 export { formatErrorMessage };
 export { buildCompromiseSignals, emptyCompromiseSignals } from "./compromiseSignals.js";
 export { buildExposureBrief } from "./exposureBrief.js";
+export { buildVendorExposureBrief } from "./vendorExposure.js";
 export { analyzeInfrastructure } from "./infrastructure.js";
 export { buildHistoryDiff, buildHistoryDiffFromSnapshots, snapshotFromAnalysis } from "./historyDiff.js";
 export {
