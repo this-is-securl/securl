@@ -36,8 +36,6 @@ function deploymentStatus(deploymentId) {
     SERVICE_ID,
     "--environment",
     ENVIRONMENT_ID,
-    "--project",
-    PROJECT_ID,
   ], { capture: true });
   const deployments = JSON.parse(raw);
   return deployments.find((deployment) => deployment.id === deploymentId)?.status || "UNKNOWN";
