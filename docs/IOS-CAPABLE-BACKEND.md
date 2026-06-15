@@ -31,9 +31,12 @@ The current backend service exposes:
 - `GET /api/scans/:id`
 - `GET /api/scans/:id/summary`
 - `GET /api/scans/:id/findings`
+- `GET /api/scans/:id/digest`
+- `GET /api/scans/:id/brief`
 - `GET /api/scans/:id/evidence`
 - `GET /api/scans/:id/history`
 - `GET /api/scans/:id/comparison`
+- `GET /api/scans/:id/drift`
 - `POST /api/monitoring-targets`
 - `GET /api/monitoring-targets`
 - `DELETE /api/monitoring-targets/:id`
@@ -64,6 +67,8 @@ Phase 2:
 
 - `GET /api/scans/:id/summary`
 - `GET /api/scans/:id/findings`
+- `GET /api/scans/:id/digest`
+- `GET /api/scans/:id/brief`
 - `GET /api/scans/:id/evidence`
 - `GET /api/scans/:id/history`
 - `GET /api/scans/:id/comparison`

@@ -80,6 +80,7 @@ function assertCapabilities(payload) {
     "GET /api/scans/:id/summary",
     "GET /api/scans/:id/findings",
     "GET /api/scans/:id/digest",
+    "GET /api/scans/:id/brief",
     "GET /api/scans/:id/evidence",
     "GET /api/scans/:id/history",
     "GET /api/scans/:id/comparison",
@@ -92,7 +93,7 @@ function assertCapabilities(payload) {
     }
   }
 
-  for (const feature of ["evidence-summary", "posture-digest", "posture-drift"]) {
+  for (const feature of ["evidence-summary", "posture-digest", "posture-drift", "exposure-brief"]) {
     if (!features.includes(feature)) {
       throw new Error(`Capabilities missing scan feature: ${feature}`);
     }
@@ -166,6 +167,7 @@ async function main() {
     ["summary", `/api/scans/${encodeURIComponent(scanId)}/summary`, ownerHeaders],
     ["findings", `/api/scans/${encodeURIComponent(scanId)}/findings`, ownerHeaders],
     ["digest", `/api/scans/${encodeURIComponent(scanId)}/digest`, ownerHeaders],
+    ["brief", `/api/scans/${encodeURIComponent(scanId)}/brief`, ownerHeaders],
     ["evidence", `/api/scans/${encodeURIComponent(scanId)}/evidence`, ownerHeaders],
     ["history", `/api/scans/${encodeURIComponent(scanId)}/history`, ownerHeaders],
     ["comparison", `/api/scans/${encodeURIComponent(scanId)}/comparison`, ownerHeaders],
@@ -182,6 +184,9 @@ async function main() {
     console.log(`${label}: ok`);
     if (label === "digest" && !payload.digest) {
       throw new Error("Digest endpoint returned an empty digest");
+    }
+    if (label === "brief" && !payload.brief) {
+      throw new Error("Brief endpoint returned an empty exposure brief");
     }
     if (label === "evidence" && !payload.evidence) {
       throw new Error("Evidence endpoint returned an empty evidence payload");

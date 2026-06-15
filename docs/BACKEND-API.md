@@ -18,6 +18,7 @@ This project now treats the backend as a real scan service boundary rather than 
 - `GET /api/scans/:id/summary`
 - `GET /api/scans/:id/findings`
 - `GET /api/scans/:id/digest`
+- `GET /api/scans/:id/brief`
 - `GET /api/scans/:id/evidence`
 - `GET /api/scans/:id/history`
 - `GET /api/scans/:id/comparison`
@@ -44,7 +45,7 @@ Runtime controls:
 
 `GET /api/scans/:id/comparison` returns the completed scan summary, the previous completed scan summary for the same URL and owner when available, and the same diff/risk-event payload used by target history and monitoring detail views.
 
-`GET /api/scans/:id/digest` returns a compact posture digest for lightweight clients. `GET /api/scans/:id/drift` returns the same drift/risk-event analysis used for monitoring when previous scans exist. Export resources return machine-readable JSON, Markdown, SARIF, or CI JSON once the scan is complete.
+`GET /api/scans/:id/digest` returns a compact posture digest for lightweight clients. `GET /api/scans/:id/brief` returns a concise exposure brief for mobile, CLI, and report clients that need the highest-priority public entry points, trust gaps, abuse indicators, and next actions without loading the full evidence payload. `GET /api/scans/:id/drift` returns the same drift/risk-event analysis used for monitoring when previous scans exist. Export resources return machine-readable JSON, Markdown, SARIF, or CI JSON once the scan is complete.
 
 Smoke-check the live API contract with:
 
@@ -52,7 +53,7 @@ Smoke-check the live API contract with:
 npm run smoke:api
 ```
 
-The smoke command checks health, readiness, capabilities, scan creation, scan detail resources, comparison/drift resources, export formats, and the public share resource.
+The smoke command checks health, readiness, capabilities, scan creation, scan detail resources, digest/brief/evidence resources, comparison/drift resources, export formats, and the public share resource.
 
 Optional overrides:
 

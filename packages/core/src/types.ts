@@ -194,6 +194,65 @@ export interface PostureEvidenceSummary {
   limitation: AssessmentLimitation | null;
 }
 
+export type ExposureBriefLevel = "low" | "medium" | "high" | "critical" | "unknown";
+
+export type ExposureBriefCategory =
+  | "entry_point"
+  | "trust_gap"
+  | "abuse_signal"
+  | "sensitive_exposure"
+  | "third_party"
+  | "identity"
+  | "ai"
+  | "infrastructure";
+
+export type ExposureBriefSource =
+  | "headers"
+  | "tls"
+  | "cookies"
+  | "dns"
+  | "html"
+  | "public_record"
+  | "third_party"
+  | "ai"
+  | "ct"
+  | "api"
+  | "exposure"
+  | "derived";
+
+export interface ExposureBriefItem {
+  title: string;
+  detail: string;
+  severity: "info" | "watch" | "warning" | "critical";
+  category: ExposureBriefCategory;
+  confidence: IssueConfidence;
+  source: ExposureBriefSource;
+  evidence: string[];
+  action: string | null;
+}
+
+export interface ExposureBrief {
+  generatedAt: string;
+  exposureLevel: ExposureBriefLevel;
+  summary: string;
+  counts: {
+    publicEntryPoints: number;
+    sensitiveExposures: number;
+    trustGaps: number;
+    abuseIndicators: number;
+    thirdPartyProviders: number;
+    highRiskThirdParties: number;
+    aiVendors: number;
+    ctPriorityHosts: number;
+  };
+  topRisks: ExposureBriefItem[];
+  publicEntryPoints: ExposureBriefItem[];
+  trustGaps: ExposureBriefItem[];
+  nextActions: string[];
+  collectionBoundary: string;
+  limitation: AssessmentLimitation | null;
+}
+
 export interface CrawlPageResult {
   label: string;
   path: string;
@@ -841,6 +900,7 @@ export interface AnalysisResult {
   remediation: RemediationSnippet[];
   remediationPlan?: RemediationPlan;
   evidenceSummary?: PostureEvidenceSummary;
+  exposureBrief?: ExposureBrief;
   crawl: CrawlSummary;
   securityTxt: SecurityTxtInfo;
   domainSecurity: DomainSecurityInfo;

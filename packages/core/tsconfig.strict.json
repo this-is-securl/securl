@@ -13,6 +13,7 @@
     "src/cookie-analysis.ts",
     "src/ctDiscovery.ts",
     "src/domain-security.ts",
+    "src/exposureBrief.ts",
     "src/header-analysis.ts",
     "src/historyDiff.ts",
     "src/html-extraction.ts",

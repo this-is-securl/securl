@@ -1,4 +1,5 @@
 import { buildHistoryDiffFromSnapshots, snapshotFromAnalysis } from "../packages/core/dist/historyDiff.js";
+import { buildExposureBrief } from "../packages/core/dist/exposureBrief.js";
 import { buildPostureDigest } from "../packages/core/dist/postureDigest.js";
 import { buildPostureDriftReportFromDiff } from "../packages/core/dist/postureDrift.js";
 
@@ -332,6 +333,22 @@ export function buildScanDigestPayload(scan) {
       completedAt: scan.completedAt,
     },
     digest: result ? buildPostureDigest(result) : null,
+  };
+}
+
+export function buildScanBriefPayload(scan) {
+  const result = scan.result;
+  return {
+    apiVersion: API_VERSION,
+    scan: {
+      id: scan.id,
+      status: scan.status,
+      url: scan.url,
+      mode: scan.mode,
+      requestedAt: scan.requestedAt,
+      completedAt: scan.completedAt,
+    },
+    brief: result ? result.exposureBrief ?? buildExposureBrief(result) : null,
   };
 }
 

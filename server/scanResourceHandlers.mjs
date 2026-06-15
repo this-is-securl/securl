@@ -340,6 +340,7 @@ export async function handleScanResourceRequest({
   buildScanSummaryPayload,
   buildScanFindingsPayload,
   buildScanDigestPayload,
+  buildScanBriefPayload,
   buildScanEvidencePayload,
   buildScanHistoryPayload,
   buildScanComparisonPayload,
@@ -425,6 +426,11 @@ export async function handleScanResourceRequest({
 
     if (resource === "digest") {
       sendJson(response, 200, buildScanDigestPayload(scan));
+      return true;
+    }
+
+    if (resource === "brief") {
+      sendJson(response, 200, buildScanBriefPayload(scan));
       return true;
     }
 
