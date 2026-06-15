@@ -17,9 +17,12 @@ This project now treats the backend as a real scan service boundary rather than 
 - `GET /api/scans/:id`
 - `GET /api/scans/:id/summary`
 - `GET /api/scans/:id/findings`
+- `GET /api/scans/:id/digest`
 - `GET /api/scans/:id/evidence`
 - `GET /api/scans/:id/history`
 - `GET /api/scans/:id/comparison`
+- `GET /api/scans/:id/drift`
+- `GET /api/scans/:id/export?format=json|markdown|sarif|ci-json`
 - `GET /api/scans/:id/share` (public — no auth required)
 
 `POST /api/scans` accepts an optional `mode`:
@@ -40,6 +43,20 @@ Runtime controls:
 - `MONITORING_SCAN_MODE`: scan mode for scheduled monitoring sweeps, default `quiet`.
 
 `GET /api/scans/:id/comparison` returns the completed scan summary, the previous completed scan summary for the same URL and owner when available, and the same diff/risk-event payload used by target history and monitoring detail views.
+
+`GET /api/scans/:id/digest` returns a compact posture digest for lightweight clients. `GET /api/scans/:id/drift` returns the same drift/risk-event analysis used for monitoring when previous scans exist. Export resources return machine-readable JSON, Markdown, SARIF, or CI JSON once the scan is complete.
+
+Smoke-check the live API contract with:
+
+```sh
+npm run smoke:api
+```
+
+Optional overrides:
+
+```sh
+npm run smoke:api -- --base-url=https://securl-app-production.up.railway.app --target=https://securl.online --mode=quiet
+```
 
 ## Current monitoring resources
 
