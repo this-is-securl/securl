@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2026-06-15 — core 1.8.0
 
 ### Added
 
@@ -10,7 +10,11 @@
 
 ### Verified
 
-- Pending current release QA.
+- `npm run build:core`
+- `node --test packages/core/test/action-plan.test.mjs packages/core/test/package-surface.test.mjs`
+- `npm run test:server`
+- `npm run release:package:check`
+- GitHub `verify-core` on PR #278.
 
 ## 2026-05-27 — app 1.0.0 / core 1.0.0
 
