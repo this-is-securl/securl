@@ -1,6 +1,6 @@
 {
   "name": "securl",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "type": "module",
   "description": "Passive external security posture scanner for public URLs and web services.",
   "author": {
@@ -77,6 +77,10 @@
     "./action-plan": {
       "types": "./dist/actionPlan.d.ts",
       "default": "./dist/actionPlan.js"
+    },
+    "./live-certificate": {
+      "types": "./dist/certificate.d.ts",
+      "default": "./dist/certificate.js"
     }
   },
   "files": [

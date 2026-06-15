@@ -12,6 +12,7 @@ export function buildCapabilitiesPayload({
   deepPassiveScanTimeoutMs,
   scanConcurrency,
   monitoringScheduler,
+  notifications,
   serveFrontend,
 } = {}) {
   return {
@@ -26,6 +27,7 @@ export function buildCapabilitiesPayload({
         "GET /api/health",
         "GET /api/ready",
         "GET /api/capabilities",
+        "GET /api/certificates/live?url=:url",
       ],
     },
     auth: {
@@ -58,6 +60,7 @@ export function buildCapabilitiesPayload({
         "exposure-brief",
         "vendor-exposure",
         "action-plan",
+        "scan-events",
       ],
       scoring: {
         model: "weighted-passive-posture",
@@ -91,6 +94,16 @@ export function buildCapabilitiesPayload({
         "GET /api/scans/:id/drift",
         "GET /api/scans/:id/export?format=json|markdown|sarif|ci-json",
         "GET /api/scans/:id/share",
+        "GET /api/scans/:id/events",
+      ],
+    },
+    certificates: {
+      features: [
+        "live-certificate",
+        "tls-handshake-only",
+      ],
+      resources: [
+        "GET /api/certificates/live?url=:url",
       ],
     },
     monitoring: {
@@ -109,6 +122,19 @@ export function buildCapabilitiesPayload({
         "GET /api/monitoring-targets/:id",
         "POST /api/monitoring-targets/:id/run",
         "DELETE /api/monitoring-targets/:id",
+      ],
+    },
+    notifications: {
+      providers: ["apns"],
+      enabled: Boolean(notifications?.enabled),
+      features: [
+        "device-registration",
+        "monitoring-drift-push",
+      ],
+      resources: [
+        "GET /api/notification-devices",
+        "POST /api/notification-devices",
+        "DELETE /api/notification-devices/:id",
       ],
     },
     exports: {

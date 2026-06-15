@@ -244,6 +244,36 @@ test("scan repository can upsert and delete monitoring targets", async () => {
   assert.equal((await repository.listMonitoringTargets({ ownerId: "scan-owner:test" })).length, 0);
 });
 
+test("scan repository stores push devices without exposing raw tokens in public lists", async () => {
+  const repository = createInMemoryScanRepository();
+  const token = "a".repeat(64);
+
+  const saved = await repository.upsertPushDevice({
+    platform: "ios",
+    token,
+    appId: "online.securl.app",
+    environment: "sandbox",
+    requesterScope: "ip:test",
+    ownerId: "scan-owner:test",
+  });
+
+  assert.equal(saved.platform, "ios");
+  assert.equal(saved.token, undefined);
+  assert.equal(saved.tokenPrefix, "aaaaaaaa...");
+
+  const listed = await repository.listPushDevices({ ownerId: "scan-owner:test" });
+  assert.equal(listed.length, 1);
+  assert.equal(listed[0].token, undefined);
+  assert.equal(listed[0].tokenPrefix, "aaaaaaaa...");
+
+  const secrets = await repository.listPushDeviceSecrets({ ownerId: "scan-owner:test" });
+  assert.equal(secrets.length, 1);
+  assert.equal(secrets[0].token, token);
+
+  assert.equal(await repository.disablePushDevice(saved.id, { ownerId: "scan-owner:test" }), true);
+  assert.equal((await repository.listPushDevices({ ownerId: "scan-owner:test" })).length, 0);
+});
+
 test("completed scans sync matching monitoring targets", async () => {
   const repository = createInMemoryScanRepository();
   await repository.upsertMonitoringTarget({
@@ -321,6 +351,7 @@ test("scan repository schema statements create the scans table and scoped indexe
   assert.ok(statements.some((statement) => /create table if not exists public\.users/i.test(statement)));
   assert.ok(statements.some((statement) => /create table if not exists public\.auth_sessions/i.test(statement)));
   assert.ok(statements.some((statement) => /create table if not exists public\.api_keys/i.test(statement)));
+  assert.ok(statements.some((statement) => /create table if not exists public\.push_devices/i.test(statement)));
   const scansStatement = statements.find((statement) => /create table if not exists public\.scans/i.test(statement));
   assert.ok(scansStatement);
   assert.match(scansStatement, /owner_id text null/i);
@@ -336,4 +367,6 @@ test("scan repository schema statements create the scans table and scoped indexe
   assert.ok(statements.some((statement) => /auth_sessions_user_idx/i.test(statement)));
   assert.ok(statements.some((statement) => /api_keys_user_created_idx/i.test(statement)));
   assert.ok(statements.some((statement) => /api_keys_active_token_hash_idx/i.test(statement)));
+  assert.ok(statements.some((statement) => /push_devices_owner_updated_idx/i.test(statement)));
+  assert.ok(statements.some((statement) => /push_devices_scope_token_uidx/i.test(statement)));
 });

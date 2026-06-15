@@ -201,6 +201,7 @@ export async function handleMonitoringTargetItemRequest({
   normalizeScanErrorMessage,
   formatErrorMessage,
   log,
+  notificationService = null,
   sendJson,
   sendMethodNotAllowed,
   sendRepositoryUnavailable,
@@ -320,6 +321,7 @@ export async function handleMonitoringTargetItemRequest({
           formatErrorMessage,
           log,
           telemetryContext,
+          notificationService,
       });
       return true;
     }

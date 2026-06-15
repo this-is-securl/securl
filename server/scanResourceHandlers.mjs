@@ -33,6 +33,86 @@ function clampLimit(value, fallback = 20, max = 100) {
   return Math.min(max, Math.max(1, Math.floor(parsed)));
 }
 
+function writeSse(response, event, data) {
+  response.write(`event: ${event}\n`);
+  response.write(`data: ${JSON.stringify(data)}\n\n`);
+}
+
+async function streamScanEvents({
+  request,
+  response,
+  scanRepository,
+  scan,
+  ownerId,
+  requesterScope,
+  intervalMs = 1500,
+}) {
+  response.writeHead(200, {
+    "Content-Type": "text/event-stream; charset=utf-8",
+    "Cache-Control": "no-store, no-transform",
+    Connection: "keep-alive",
+    "X-Accel-Buffering": "no",
+  });
+  response.write(": connected\n\n");
+
+  const sent = new Set();
+  let closed = false;
+  let timer = null;
+  const close = () => {
+    closed = true;
+    if (timer) {
+      clearInterval(timer);
+    }
+    response.end();
+  };
+
+  request.once("close", () => {
+    closed = true;
+    if (timer) {
+      clearInterval(timer);
+    }
+  });
+
+  const sendPending = async () => {
+    if (closed) {
+      return;
+    }
+    const events = await scanRepository.listScanEvents(scan.id, {
+      ownerId,
+      requesterScope,
+    });
+    for (const event of [...events].reverse()) {
+      if (sent.has(event.id)) {
+        continue;
+      }
+      sent.add(event.id);
+      writeSse(response, event.eventType || "scan_event", event);
+    }
+
+    const latest = await scanRepository.getScan(scan.id, {
+      ownerId,
+      requesterScope,
+    });
+    if (latest?.status === "completed" || latest?.status === "failed") {
+      writeSse(response, "scan_terminal", {
+        id: latest.id,
+        status: latest.status,
+        completedAt: latest.completedAt,
+        grade: latest.summary?.grade ?? null,
+        score: latest.summary?.score ?? null,
+        failureClass: latest.failureClass ?? null,
+      });
+      close();
+    }
+  };
+
+  timer = setInterval(() => {
+    void sendPending().catch(() => close());
+  }, intervalMs);
+  timer.unref?.();
+  await sendPending().catch(() => close());
+}
+
 export async function runQueuedScan({
   scan,
   validatedTarget,
@@ -46,6 +126,7 @@ export async function runQueuedScan({
   formatErrorMessage,
   log,
   telemetryContext = {},
+  notificationService = null,
 }) {
   const safeTarget = targetForPrivacy(validatedTarget);
   const safeClientIp = hashClientIp(authState.clientIp);
@@ -114,7 +195,14 @@ export async function runQueuedScan({
   }
 
   try {
-    await scanRepository.markCompleted(scan.id, result);
+    const completedScan = await scanRepository.markCompleted(scan.id, result);
+    if (notificationService && completedScan) {
+      await notificationService.notifyMonitoringScanCompleted({
+        completedScan,
+        result,
+        telemetryContext,
+      });
+    }
   } catch (error) {
     telemetry.recordFailure("scan_repository_failure", {
       target: safeTarget,
@@ -154,6 +242,7 @@ export async function handleScanCollectionRequest({
   enqueueScan,
   formatErrorMessage,
   log,
+  notificationService = null,
   requireScanOwner = false,
 }) {
   if (request.method === "GET") {
@@ -318,6 +407,7 @@ export async function handleScanCollectionRequest({
         formatErrorMessage,
         log,
         telemetryContext,
+        notificationService,
     });
   } catch (error) {
     telemetry.recordFailure(classifyScanFailure(error));
@@ -438,6 +528,18 @@ export async function handleScanResourceRequest({
 
     if (resource === "vendors") {
       sendJson(response, 200, buildScanVendorsPayload(scan));
+      return true;
+    }
+
+    if (resource === "events") {
+      await streamScanEvents({
+        request,
+        response,
+        scanRepository,
+        scan,
+        ownerId: authState.ownerId,
+        requesterScope: authState.ownerId ? null : authState.requesterScope,
+      });
       return true;
     }
 

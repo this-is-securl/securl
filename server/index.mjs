@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath, URL } from "node:url";
 import { createCorsPolicy, resolveAllowedOrigins } from "./cors.mjs";
 import { buildCapabilitiesPayload } from "./capabilities.mjs";
+import { handleLiveCertificateRequest } from "./certificateHandlers.mjs";
 import { createRateLimiter } from "./rateLimiter.mjs";
 import { sendJson, sendMethodNotAllowed, sendRateLimited } from "./httpResponses.mjs";
 import {
@@ -37,7 +38,12 @@ import {
   handleMonitoringTargetCollectionRequest,
   handleMonitoringTargetItemRequest,
 } from "./monitoringTargetHandlers.mjs";
+import {
+  handlePushDeviceCollectionRequest,
+  handlePushDeviceItemRequest,
+} from "./pushDeviceHandlers.mjs";
 import { createMonitoringScheduler } from "./monitoringScheduler.mjs";
+import { createNotificationService } from "./notificationService.mjs";
 import { handleAuthRequest, resolveAuthenticatedApiKey, resolveAuthenticatedSession } from "./authHandlers.mjs";
 import { handleScanCollectionRequest, handleScanResourceRequest, runQueuedScan } from "./scanResourceHandlers.mjs";
 import { createScanScheduler } from "./scanScheduler.mjs";
@@ -201,6 +207,7 @@ const telemetry = createTelemetryTracker({ storagePath: TELEMETRY_STORAGE_PATH }
 let scanRepository;
 let scanScheduler;
 let monitoringScheduler;
+let notificationService;
 
 function buildVisitorKey(request) {
   const clientIp = getClientIp(request, { trustProxy, isLocalHostname, isPrivateAddress });
@@ -479,6 +486,11 @@ const server = http.createServer(async (request, response) => {
         limit: MONITORING_SWEEP_LIMIT,
         lastSweep: null,
       };
+      payload.notifications = notificationService?.snapshot?.() || {
+        enabled: false,
+        provider: "apns",
+        topicConfigured: false,
+      };
       payload.serveFrontend = serveFrontend;
     }
 
@@ -532,6 +544,7 @@ const server = http.createServer(async (request, response) => {
       deepPassiveScanTimeoutMs: DEEP_PASSIVE_SCAN_TIMEOUT_MS,
       scanConcurrency: SCAN_CONCURRENCY,
       monitoringScheduler: monitoringScheduler?.snapshot?.(),
+      notifications: notificationService?.snapshot?.(),
       serveFrontend,
     }));
     return;
@@ -646,6 +659,7 @@ const server = http.createServer(async (request, response) => {
       enqueueScan: (job) => scanScheduler.enqueue(job),
       formatErrorMessage,
       log,
+      notificationService,
       requireScanOwner: true,
     });
     return;
@@ -673,6 +687,67 @@ const server = http.createServer(async (request, response) => {
       classifyScanFailure,
       normalizeScanErrorMessage,
       telemetry,
+    });
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/notification-devices") {
+    await handlePushDeviceCollectionRequest({
+      request,
+      response,
+      requestUrl,
+      scanRepository,
+      authorizeAnalysisRequest: (options) => withAuthResolvers({
+        ...options,
+        sendJsonResponse: sendApiJson,
+        sendRateLimitedResponse: sendApiRateLimited,
+      }),
+      readJsonBody,
+      sendJson: sendApiJson,
+      sendMethodNotAllowed: sendApiMethodNotAllowed,
+      sendRepositoryUnavailable: sendApiRepositoryUnavailable,
+    });
+    return;
+  }
+
+  if (requestUrl.pathname.startsWith("/api/notification-devices/")) {
+    await handlePushDeviceItemRequest({
+      request,
+      response,
+      requestUrl,
+      scanRepository,
+      authorizeAnalysisRequest: (options) => withAuthResolvers({
+        ...options,
+        sendJsonResponse: sendApiJson,
+        sendRateLimitedResponse: sendApiRateLimited,
+      }),
+      sendJson: sendApiJson,
+      sendMethodNotAllowed: sendApiMethodNotAllowed,
+      sendRepositoryUnavailable: sendApiRepositoryUnavailable,
+    });
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/certificates/live") {
+    await handleLiveCertificateRequest({
+      request,
+      response,
+      requestUrl,
+      authorizeAnalysisRequest: (options) => withAuthResolvers({
+        ...options,
+        sendJsonResponse: sendApiJson,
+        sendRateLimitedResponse: sendApiRateLimited,
+      }),
+      assertPublicHttpUrl,
+      checkTargetQuota: (options) => checkTargetQuota({
+        ...options,
+        sendRateLimitedResponse: sendApiRateLimited,
+      }),
+      classifyScanFailure,
+      normalizeScanErrorMessage,
+      telemetry,
+      sendJson: sendApiJson,
+      sendMethodNotAllowed: sendApiMethodNotAllowed,
     });
     return;
   }
@@ -722,6 +797,7 @@ const server = http.createServer(async (request, response) => {
       normalizeScanErrorMessage,
       formatErrorMessage,
       log,
+      notificationService,
       sendJson: sendApiJson,
       sendMethodNotAllowed: sendApiMethodNotAllowed,
       sendRepositoryUnavailable: sendApiRepositoryUnavailable,
@@ -817,6 +893,10 @@ scanScheduler = createScanScheduler({
   log,
 });
 await scanScheduler.recoverStaleRunningScans();
+notificationService = createNotificationService({
+  scanRepository,
+  log,
+});
 monitoringScheduler = createMonitoringScheduler({
   enabled: MONITORING_SCHEDULER_ENABLED,
   intervalMs: MONITORING_SWEEP_INTERVAL_MS,
@@ -831,6 +911,7 @@ monitoringScheduler = createMonitoringScheduler({
     normalizeScanErrorMessage,
     formatErrorMessage,
     log,
+    notificationService,
   }),
   mode: MONITORING_SCAN_MODE,
   limit: MONITORING_SWEEP_LIMIT,

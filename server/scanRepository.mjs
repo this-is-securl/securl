@@ -9,6 +9,7 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
   const qualifiedUsersTable = `${schema}.users`;
   const qualifiedSessionsTable = `${schema}.auth_sessions`;
   const qualifiedApiKeysTable = `${schema}.api_keys`;
+  const qualifiedPushDevicesTable = `${schema}.push_devices`;
   return [
     `create schema if not exists ${schema}`,
     `create table if not exists ${qualifiedUsersTable} (
@@ -36,6 +37,20 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
       created_at timestamptz not null,
       last_used_at timestamptz null,
       revoked_at timestamptz null
+    )`,
+    `create table if not exists ${qualifiedPushDevicesTable} (
+      id uuid primary key,
+      owner_id text null,
+      requester_scope text not null,
+      platform text not null,
+      token text not null,
+      token_hash text not null,
+      app_id text null,
+      environment text not null,
+      created_at timestamptz not null,
+      updated_at timestamptz not null,
+      last_seen_at timestamptz not null,
+      disabled_at timestamptz null
     )`,
     `create table if not exists ${qualifiedTable} (
       id uuid primary key,
@@ -84,6 +99,9 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
     `create index if not exists auth_sessions_expires_idx on ${qualifiedSessionsTable} (expires_at)`,
     `create index if not exists api_keys_user_created_idx on ${qualifiedApiKeysTable} (user_id, created_at desc)`,
     `create index if not exists api_keys_active_token_hash_idx on ${qualifiedApiKeysTable} (token_hash) where revoked_at is null`,
+    `create index if not exists push_devices_owner_updated_idx on ${qualifiedPushDevicesTable} (owner_id, updated_at desc) where disabled_at is null`,
+    `create index if not exists push_devices_requester_updated_idx on ${qualifiedPushDevicesTable} (requester_scope, updated_at desc) where disabled_at is null`,
+    `create unique index if not exists push_devices_scope_token_uidx on ${qualifiedPushDevicesTable} (coalesce(owner_id, ''), requester_scope, token_hash)`,
   ];
 }
 
@@ -246,6 +264,40 @@ export function buildApiKeyRecord({
   };
 }
 
+export function buildPushDeviceRecord({
+  id = crypto.randomUUID(),
+  ownerId = null,
+  requesterScope,
+  platform = "ios",
+  token,
+  tokenHash,
+  appId = null,
+  environment = "production",
+  createdAt = new Date().toISOString(),
+  updatedAt = createdAt,
+  lastSeenAt = createdAt,
+  disabledAt = null,
+}) {
+  return {
+    id,
+    ownerId,
+    requesterScope,
+    platform,
+    token,
+    tokenHash,
+    appId,
+    environment,
+    createdAt,
+    updatedAt,
+    lastSeenAt,
+    disabledAt,
+  };
+}
+
+export function hashPushToken(token) {
+  return crypto.createHash("sha256").update(String(token)).digest("hex");
+}
+
 function buildApiKeyUsageSummary(scans = []) {
   const counters = {
     queued: 0,
@@ -402,6 +454,46 @@ function hydrateApiKeyFromRow(row) {
   };
 }
 
+function hydratePushDeviceFromRow(row) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    ownerId: row.owner_id,
+    requesterScope: row.requester_scope,
+    platform: row.platform,
+    token: row.token,
+    tokenHash: row.token_hash,
+    appId: row.app_id,
+    environment: row.environment,
+    createdAt: row.created_at?.toISOString?.() ?? row.created_at,
+    updatedAt: row.updated_at?.toISOString?.() ?? row.updated_at,
+    lastSeenAt: row.last_seen_at?.toISOString?.() ?? row.last_seen_at,
+    disabledAt: row.disabled_at?.toISOString?.() ?? row.disabled_at,
+  };
+}
+
+function publicPushDevice(device) {
+  if (!device) {
+    return null;
+  }
+  return {
+    id: device.id,
+    ownerId: device.ownerId,
+    requesterScope: device.requesterScope,
+    platform: device.platform,
+    tokenPrefix: `${String(device.token || "").slice(0, 8)}...`,
+    appId: device.appId,
+    environment: device.environment,
+    createdAt: device.createdAt,
+    updatedAt: device.updatedAt,
+    lastSeenAt: device.lastSeenAt,
+    disabledAt: device.disabledAt,
+  };
+}
+
 function matchesScope(scan, { requesterScope = null, ownerId = null } = {}) {
   if (!scan) {
     return false;
@@ -429,6 +521,8 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
   const authSessionsByTokenHash = new Map();
   const apiKeys = new Map();
   const apiKeysByTokenHash = new Map();
+  const pushDevices = new Map();
+  const pushDeviceOrder = [];
 
   const touchOrder = (id) => {
     const index = order.indexOf(id);
@@ -451,6 +545,14 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       monitoringOrder.splice(index, 1);
     }
     monitoringOrder.unshift(id);
+  };
+
+  const touchPushDeviceOrder = (id) => {
+    const index = pushDeviceOrder.indexOf(id);
+    if (index >= 0) {
+      pushDeviceOrder.splice(index, 1);
+    }
+    pushDeviceOrder.unshift(id);
   };
 
   return {
@@ -574,6 +676,70 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       return buildApiKeyUsageSummary(
         [...scans.values()].filter((scan) => scan.ownerId === ownerId && scan.requesterScope === requesterScope),
       );
+    },
+    async upsertPushDevice({ platform = "ios", token, appId = null, environment = "production", requesterScope, ownerId = null }) {
+      const tokenHash = hashPushToken(token);
+      const existing = [...pushDevices.values()].find((device) =>
+        device.tokenHash === tokenHash && device.ownerId === ownerId && device.requesterScope === requesterScope,
+      );
+      const now = new Date().toISOString();
+      if (existing) {
+        existing.platform = platform;
+        existing.token = token;
+        existing.appId = appId;
+        existing.environment = environment;
+        existing.updatedAt = now;
+        existing.lastSeenAt = now;
+        existing.disabledAt = null;
+        touchPushDeviceOrder(existing.id);
+        return publicPushDevice(existing);
+      }
+      const device = buildPushDeviceRecord({
+        ownerId,
+        requesterScope,
+        platform,
+        token,
+        tokenHash,
+        appId,
+        environment,
+      });
+      pushDevices.set(device.id, device);
+      touchPushDeviceOrder(device.id);
+      return publicPushDevice(device);
+    },
+    async listPushDevices({ requesterScope = null, ownerId = null, includeDisabled = false, limit = 50 } = {}) {
+      const scoped = pushDeviceOrder
+        .map((id) => pushDevices.get(id))
+        .filter((device) => {
+          if (!device) return false;
+          if (!includeDisabled && device.disabledAt) return false;
+          if (ownerId && device.ownerId !== ownerId) return false;
+          if (!ownerId && requesterScope && device.requesterScope !== requesterScope) return false;
+          return true;
+        })
+        .slice(0, Math.max(1, limit));
+      return scoped.map(publicPushDevice);
+    },
+    async listPushDeviceSecrets({ requesterScope = null, ownerId = null, limit = 50 } = {}) {
+      return pushDeviceOrder
+        .map((id) => pushDevices.get(id))
+        .filter((device) => {
+          if (!device || device.disabledAt) return false;
+          if (ownerId && device.ownerId !== ownerId) return false;
+          if (!ownerId && requesterScope && device.requesterScope !== requesterScope) return false;
+          return true;
+        })
+        .slice(0, Math.max(1, limit))
+        .map((device) => ({ ...device }));
+    },
+    async disablePushDevice(id, { requesterScope = null, ownerId = null } = {}) {
+      const device = pushDevices.get(id);
+      if (!device) return false;
+      if (ownerId && device.ownerId !== ownerId) return false;
+      if (!ownerId && requesterScope && device.requesterScope !== requesterScope) return false;
+      device.disabledAt = new Date().toISOString();
+      touchPushDeviceOrder(id);
+      return true;
     },
     async createScan({ url, mode, requesterScope, clientIp, ownerId = null }) {
       const clientIpHash = hashClientIp(clientIp);
@@ -872,6 +1038,7 @@ export function createPostgresScanRepository({
   const usersTable = `${schema}.users`;
   const sessionsTable = `${schema}.auth_sessions`;
   const apiKeysTable = `${schema}.api_keys`;
+  const pushDevicesTable = `${schema}.push_devices`;
   const schemaStatements = buildScanRepositorySchemaStatements(schema);
 
   const repository = {
@@ -1062,6 +1229,132 @@ export function createPostgresScanRepository({
         completedAt: row.completed_at?.toISOString?.() ?? row.completed_at,
         summary: row.summary ?? null,
       })));
+    },
+    async upsertPushDevice({ platform = "ios", token, appId = null, environment = "production", requesterScope, ownerId = null }) {
+      const tokenHash = hashPushToken(token);
+      const now = new Date().toISOString();
+      const existingFilters = [];
+      const existingParams = [];
+      if (ownerId) {
+        existingParams.push(ownerId);
+        existingFilters.push(`owner_id = $${existingParams.length}`);
+      } else {
+        existingParams.push(requesterScope);
+        existingFilters.push(`requester_scope = $${existingParams.length}`);
+      }
+      existingParams.push(tokenHash);
+      existingFilters.push(`token_hash = $${existingParams.length}`);
+      const existing = await pool.query(
+        `select * from ${pushDevicesTable} where ${existingFilters.join(" and ")} limit 1`,
+        existingParams,
+      );
+      if (existing.rows[0]) {
+        const { rows } = await pool.query(
+          `update ${pushDevicesTable}
+           set platform = $2,
+               token = $3,
+               app_id = $4,
+               environment = $5,
+               updated_at = $6::timestamptz,
+               last_seen_at = $6::timestamptz,
+               disabled_at = null
+           where id = $1
+           returning *`,
+          [existing.rows[0].id, platform, token, appId, environment, now],
+        );
+        return publicPushDevice(hydratePushDeviceFromRow(rows[0]));
+      }
+
+      const device = buildPushDeviceRecord({
+        ownerId,
+        requesterScope,
+        platform,
+        token,
+        tokenHash,
+        appId,
+        environment,
+        createdAt: now,
+        updatedAt: now,
+        lastSeenAt: now,
+      });
+      const { rows } = await pool.query(
+        `insert into ${pushDevicesTable}
+          (id, owner_id, requester_scope, platform, token, token_hash, app_id, environment, created_at, updated_at, last_seen_at, disabled_at)
+         values
+          ($1, $2, $3, $4, $5, $6, $7, $8, $9::timestamptz, $10::timestamptz, $11::timestamptz, $12::timestamptz)
+         returning *`,
+        [
+          device.id,
+          device.ownerId,
+          device.requesterScope,
+          device.platform,
+          device.token,
+          device.tokenHash,
+          device.appId,
+          device.environment,
+          device.createdAt,
+          device.updatedAt,
+          device.lastSeenAt,
+          device.disabledAt,
+        ],
+      );
+      return publicPushDevice(hydratePushDeviceFromRow(rows[0]));
+    },
+    async listPushDevices({ requesterScope = null, ownerId = null, includeDisabled = false, limit = 50 } = {}) {
+      const filters = [];
+      const params = [];
+      if (!includeDisabled) {
+        filters.push("disabled_at is null");
+      }
+      if (ownerId) {
+        params.push(ownerId);
+        filters.push(`owner_id = $${params.length}`);
+      } else if (requesterScope) {
+        params.push(requesterScope);
+        filters.push(`requester_scope = $${params.length}`);
+      }
+      params.push(Math.max(1, limit));
+      const where = filters.length ? `where ${filters.join(" and ")}` : "";
+      const { rows } = await pool.query(
+        `select * from ${pushDevicesTable} ${where} order by updated_at desc limit $${params.length}`,
+        params,
+      );
+      return rows.map(hydratePushDeviceFromRow).filter(Boolean).map(publicPushDevice);
+    },
+    async listPushDeviceSecrets({ requesterScope = null, ownerId = null, limit = 50 } = {}) {
+      const filters = ["disabled_at is null"];
+      const params = [];
+      if (ownerId) {
+        params.push(ownerId);
+        filters.push(`owner_id = $${params.length}`);
+      } else if (requesterScope) {
+        params.push(requesterScope);
+        filters.push(`requester_scope = $${params.length}`);
+      }
+      params.push(Math.max(1, limit));
+      const { rows } = await pool.query(
+        `select * from ${pushDevicesTable} where ${filters.join(" and ")} order by updated_at desc limit $${params.length}`,
+        params,
+      );
+      return rows.map(hydratePushDeviceFromRow).filter(Boolean);
+    },
+    async disablePushDevice(id, { requesterScope = null, ownerId = null } = {}) {
+      const filters = ["id = $1"];
+      const params = [id, new Date().toISOString()];
+      if (ownerId) {
+        params.push(ownerId);
+        filters.push(`owner_id = $${params.length}`);
+      } else if (requesterScope) {
+        params.push(requesterScope);
+        filters.push(`requester_scope = $${params.length}`);
+      }
+      const result = await pool.query(
+        `update ${pushDevicesTable}
+         set disabled_at = $2::timestamptz
+         where ${filters.join(" and ")}`,
+        params,
+      );
+      return result.rowCount > 0;
     },
     async createScan({ url, mode, requesterScope, clientIp, ownerId = null }) {
       const clientIpHash = hashClientIp(clientIp);

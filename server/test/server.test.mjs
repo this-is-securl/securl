@@ -475,6 +475,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.equal(payload.service.corePackage, "securl");
     assert.match(payload.service.coreVersion, /^\d+\.\d+\.\d+/);
     assert.ok(payload.service.resources.includes("GET /api/ready"));
+    assert.ok(payload.service.resources.includes("GET /api/certificates/live?url=:url"));
     assert.deepEqual(payload.scans.modes, ["standard", "quiet", "deep-passive"]);
     assert.ok(payload.scans.features.includes("finding-evidence"));
     assert.ok(payload.scans.features.includes("evidence-summary"));
@@ -482,6 +483,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.scans.features.includes("exposure-brief"));
     assert.ok(payload.scans.features.includes("vendor-exposure"));
     assert.ok(payload.scans.features.includes("action-plan"));
+    assert.ok(payload.scans.features.includes("scan-events"));
     assert.equal(payload.scans.scoring.model, "weighted-passive-posture");
     assert.equal(payload.scans.scoring.version, "2026-06-14");
     assert.deepEqual(payload.scans.scoring.scoreRange, { min: 0, max: 100 });
@@ -493,6 +495,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/brief"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/vendors"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/action-plan"));
+    assert.ok(payload.scans.resources.includes("GET /api/scans/:id/events"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/comparison"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/drift"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/export?format=json|markdown|sarif|ci-json"));
@@ -502,7 +505,31 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.equal(payload.monitoring.scheduler.intervalMs, 60000);
     assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-summary"));
     assert.ok(payload.monitoring.resources.includes("POST /api/monitoring-targets/:id/run"));
+    assert.ok(payload.certificates.resources.includes("GET /api/certificates/live?url=:url"));
+    assert.ok(payload.certificates.features.includes("live-certificate"));
+    assert.ok(payload.notifications.resources.includes("POST /api/notification-devices"));
+    assert.equal(payload.notifications.enabled, false);
     assert.equal(payload.safety.passiveFirst, true);
+  } finally {
+    await server.stop();
+  }
+});
+
+test("live certificate endpoint validates HTTPS targets before doing a cheap TLS read", async () => {
+  const server = await startServer();
+
+  try {
+    const missingOwnerResponse = await fetch(`${server.baseUrl}/api/certificates/live?url=https://example.com`);
+    const missingOwnerPayload = await missingOwnerResponse.json();
+    assert.equal(missingOwnerResponse.status, 401);
+    assert.match(missingOwnerPayload.error, /scan owner token/i);
+
+    const httpResponse = await fetch(`${server.baseUrl}/api/certificates/live?url=http://example.com`, {
+      headers: scanOwnerHeaders(),
+    });
+    const httpPayload = await httpResponse.json();
+    assert.equal(httpResponse.status, 400);
+    assert.match(httpPayload.error, /HTTPS URL/i);
   } finally {
     await server.stop();
   }
@@ -1114,6 +1141,57 @@ test("scan resources start empty and return 404 for unknown ids", async () => {
   }
 });
 
+test("notification devices can be registered, listed, and disabled without echoing raw APNs tokens", async () => {
+  const server = await startServer();
+  const apnsToken = "a".repeat(64);
+
+  try {
+    const invalidResponse = await fetch(`${server.baseUrl}/api/notification-devices`, {
+      method: "POST",
+      headers: scanOwnerJsonHeaders(),
+      body: JSON.stringify({ apnsToken: "not-a-token" }),
+    });
+    const invalidPayload = await invalidResponse.json();
+    assert.equal(invalidResponse.status, 400);
+    assert.match(invalidPayload.error, /APNs device token/i);
+
+    const createResponse = await fetch(`${server.baseUrl}/api/notification-devices`, {
+      method: "POST",
+      headers: scanOwnerJsonHeaders(),
+      body: JSON.stringify({
+        apnsToken,
+        platform: "ios",
+        environment: "sandbox",
+        appId: "online.securl.app",
+      }),
+    });
+    const createPayload = await createResponse.json();
+    assert.equal(createResponse.status, 201);
+    assert.equal(createPayload.apiVersion, "2026-05-14");
+    assert.equal(createPayload.device.token, undefined);
+    assert.equal(createPayload.device.tokenPrefix, "aaaaaaaa...");
+    assert.equal(createPayload.device.environment, "sandbox");
+
+    const listResponse = await fetch(`${server.baseUrl}/api/notification-devices`, {
+      headers: scanOwnerHeaders(),
+    });
+    const listPayload = await listResponse.json();
+    assert.equal(listResponse.status, 200);
+    assert.equal(listPayload.devices.length, 1);
+    assert.equal(listPayload.devices[0].token, undefined);
+
+    const deleteResponse = await fetch(`${server.baseUrl}/api/notification-devices/${createPayload.device.id}`, {
+      method: "DELETE",
+      headers: scanOwnerHeaders(),
+    });
+    const deletePayload = await deleteResponse.json();
+    assert.equal(deleteResponse.status, 200);
+    assert.equal(deletePayload.deleted, true);
+  } finally {
+    await server.stop();
+  }
+});
+
 test("monitoring targets require the same browser owner token as scan resources", async () => {
   const server = await startServer();
 
@@ -1712,6 +1790,9 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     const historyResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/history`, {
       headers: scanOwnerHeaders(),
     });
+    const eventsResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/events`, {
+      headers: scanOwnerHeaders(),
+    });
     const markdownExportResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/export?format=markdown`, {
       headers: scanOwnerHeaders(),
     });
@@ -1733,6 +1814,7 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     const actionPlanPayload = await actionPlanResponse.json();
     const evidencePayload = await evidenceResponse.json();
     const historyPayload = await historyResponse.json();
+    const eventsText = await eventsResponse.text();
     const markdownExport = await markdownExportResponse.text();
     const sarifExport = await sarifExportResponse.json();
     const ciJsonExport = await ciJsonExportResponse.json();
@@ -1798,6 +1880,10 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.ok(Array.isArray(historyPayload.events));
     assert.ok(historyPayload.events.length >= 3);
     assert.equal(historyPayload.events[0].eventType, "completed");
+    assert.equal(eventsResponse.status, 200);
+    assert.match(eventsResponse.headers.get("content-type") || "", /text\/event-stream/i);
+    assert.match(eventsText, /event: completed/);
+    assert.match(eventsText, /event: scan_terminal/);
     assert.equal(markdownExportResponse.status, 200);
     assert.match(markdownExportResponse.headers.get("content-type") || "", /text\/markdown/i);
     assert.match(markdownExport, /^# SecURL Scan:/);
