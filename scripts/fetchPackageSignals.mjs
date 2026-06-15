@@ -122,9 +122,60 @@ const runGitHubCodeSearch = (query) => {
   }
 };
 
-const fetchGitHubSignals = () => {
-  const current = runGitHubCodeSearch('"securl"');
-  const legacy = runGitHubCodeSearch('"@ktbatterham/external-posture-core"');
+const getRawGitHubUrl = (row) => {
+  const match = String(row.url || "").match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+)$/);
+  if (!match) return "";
+  const [, owner, repo, ref, path] = match;
+  return `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${path}`;
+};
+
+const packageJsonDependsOn = (packageJson, packageName) => {
+  const dependencyFields = [
+    "dependencies",
+    "devDependencies",
+    "peerDependencies",
+    "optionalDependencies",
+  ];
+  for (const field of dependencyFields) {
+    if (Object.hasOwn(packageJson?.[field] || {}, packageName)) {
+      return true;
+    }
+  }
+
+  const bundled = packageJson?.bundledDependencies || packageJson?.bundleDependencies;
+  return Array.isArray(bundled) && bundled.includes(packageName);
+};
+
+const filterDependencyMentions = async (rows, packageName) => {
+  if (!rows) return null;
+  const filtered = [];
+  for (const row of rows) {
+    if (!String(row.path || "").endsWith("package.json")) {
+      continue;
+    }
+    const rawUrl = getRawGitHubUrl(row);
+    if (!rawUrl) {
+      continue;
+    }
+    try {
+      const packageJson = await fetchJson(rawUrl);
+      if (packageJsonDependsOn(packageJson, packageName)) {
+        filtered.push(row);
+      }
+    } catch {
+      // Best-effort public code signal: skip files that disappear, are too large,
+      // or are not valid package.json documents.
+    }
+  }
+  return filtered;
+};
+
+const fetchGitHubSignals = async () => {
+  const current = await filterDependencyMentions(runGitHubCodeSearch('"securl"'), "securl");
+  const legacy = await filterDependencyMentions(
+    runGitHubCodeSearch('"@ktbatterham/external-posture-core"'),
+    "@ktbatterham/external-posture-core",
+  );
 
   return {
     current,
@@ -190,8 +241,8 @@ const printGitHubSignals = (githubSignals) => {
   }
 
   const groups = [
-    ["securl package.json mentions", githubSignals.current],
-    ["legacy package.json mentions", githubSignals.legacy],
+    ["securl package.json dependency mentions", githubSignals.current],
+    ["legacy package.json dependency mentions", githubSignals.legacy],
   ];
 
   for (const [label, rows] of groups) {
@@ -235,7 +286,7 @@ const collectPackageSignals = async (packageConfig) => {
 const main = async () => {
   const json = process.argv.includes("--json");
   const packages = await Promise.all(PACKAGES.map(collectPackageSignals));
-  const github = fetchGitHubSignals();
+  const github = await fetchGitHubSignals();
   const generatedAt = new Date().toISOString();
 
   if (json) {

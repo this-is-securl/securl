@@ -12,7 +12,7 @@ Use:
 - npm public download counts for the deprecated `@ktbatterham/external-posture-core` package
 - npm package metadata, provenance, signatures, dependency count, maintainer count, and install-script checks
 - Socket package health pages
-- public GitHub `package.json` mentions where GitHub code search is available
+- public GitHub `package.json` dependency mentions where GitHub code search is available
 - hosted backend telemetry for scans that go through the SecURL API
 
 Do not use:
@@ -37,7 +37,7 @@ For machine-readable output:
 node scripts/fetchPackageSignals.mjs --json
 ```
 
-The script reads public npm registry/download metadata for both package names. If the GitHub CLI is authenticated, it also runs a best-effort public code search for `package.json` mentions.
+The script reads public npm registry/download metadata for both package names. If the GitHub CLI is authenticated, it also runs a best-effort public code search for `package.json` dependency mentions. It intentionally searches dependency-key style entries such as `"securl":` so unrelated projects that merely happen to be named `securl` are not counted as adoption.
 
 Hosted product/API telemetry remains separate:
 
@@ -54,7 +54,7 @@ npm downloads are directional, not identity. They can include CI, cache misses, 
 The useful trend is consistency over time:
 
 - `securl` downloads rising while the old scoped package declines
-- public repos beginning to reference `securl`
+- public repos beginning to depend on `securl`
 - Socket/npm trust signals staying clean
 - no install scripts and minimal dependency surface remaining true
 - hosted scan telemetry showing real external API usage, not only owner smoke tests
