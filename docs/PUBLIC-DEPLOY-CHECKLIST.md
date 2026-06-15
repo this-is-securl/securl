@@ -61,6 +61,13 @@ In `multi-instance`, startup is blocked unless the rate-limit backend is distrib
 - `GET /api/health` returns `ok: true`.
 - Health payload includes deployment mode and rate-limit metadata.
 - Run one known-safe scan and verify sanitized error responses for invalid targets.
+- For the Railway backend, deploy and smoke-check the current checkout with:
+
+```sh
+npm run deploy:railway -- --message "Deploy SecURL backend <version or commit>"
+```
+
+The Railway service currently has no connected GitHub source (`source.repo` is `null`), so GitHub merges do not auto-deploy until the Railway dashboard is reconnected to `this-is-securl/securl` on `main` or a GitHub deploy workflow is added with a Railway token.
 
 ## 6) Hostinger static frontend deploy
 
