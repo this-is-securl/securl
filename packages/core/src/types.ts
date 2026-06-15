@@ -290,6 +290,51 @@ export interface VendorExposureBrief {
   limitation: AssessmentLimitation | null;
 }
 
+export type ActionPlanTheme =
+  | "browser_hardening"
+  | "transport"
+  | "domain_trust"
+  | "public_exposure"
+  | "vendor_risk"
+  | "identity"
+  | "availability"
+  | "monitoring";
+
+export interface ActionPlanItem {
+  id: string;
+  priority: number;
+  title: string;
+  whyNow: string;
+  action: string;
+  verify: string;
+  owner: RemediationOwner;
+  effort: RemediationEffort;
+  impact: RemediationImpact;
+  scoreImpact: number | null;
+  confidence: IssueConfidence;
+  theme: ActionPlanTheme;
+  evidence: ScanEvidenceReference[];
+  relatedFindings: string[];
+  source: "remediation" | "score_driver" | "exposure_brief" | "vendor_exposure";
+}
+
+export interface ActionPlan {
+  generatedAt: string;
+  summary: string;
+  posture: {
+    score: number;
+    grade: string;
+    limited: boolean;
+    mainRisk: string | null;
+  };
+  totalActions: number;
+  highImpactActions: number;
+  quickWins: number;
+  items: ActionPlanItem[];
+  nextReview: string;
+  limitation: AssessmentLimitation | null;
+}
+
 export interface CrawlPageResult {
   label: string;
   path: string;
@@ -939,6 +984,7 @@ export interface AnalysisResult {
   evidenceSummary?: PostureEvidenceSummary;
   exposureBrief?: ExposureBrief;
   vendorExposure?: VendorExposureBrief;
+  actionPlan?: ActionPlan;
   crawl: CrawlSummary;
   securityTxt: SecurityTxtInfo;
   domainSecurity: DomainSecurityInfo;

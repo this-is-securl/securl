@@ -57,6 +57,7 @@ export function buildCapabilitiesPayload({
         "posture-drift",
         "exposure-brief",
         "vendor-exposure",
+        "action-plan",
       ],
       scoring: {
         model: "weighted-passive-posture",
@@ -83,6 +84,7 @@ export function buildCapabilitiesPayload({
         "GET /api/scans/:id/digest",
         "GET /api/scans/:id/brief",
         "GET /api/scans/:id/vendors",
+        "GET /api/scans/:id/action-plan",
         "GET /api/scans/:id/evidence",
         "GET /api/scans/:id/history",
         "GET /api/scans/:id/comparison",

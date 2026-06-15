@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Added core `buildActionPlan(result)` support and the `securl/action-plan` package export for prioritized owner/effort/impact-ranked fix actions.
+- Added `GET /api/scans/:id/action-plan` as an additive backend resource for web, mobile, CLI, and report clients that need a compact next-actions payload.
+- Added consumer API map documentation covering stable product resources and when to use full scan reads.
+
+### Verified
+
+- Pending current release QA.
+
 ## 2026-05-27 — app 1.0.0 / core 1.0.0
 
 ### Added

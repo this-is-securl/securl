@@ -1,5 +1,6 @@
 import { URL } from "node:url";
 import { scanTls } from "./certificate.js";
+import { buildActionPlan } from "./actionPlan.js";
 import { buildCompromiseSignals, emptyCompromiseSignals } from "./compromiseSignals.js";
 import { buildExposureBrief } from "./exposureBrief.js";
 import { buildVendorExposureBrief } from "./vendorExposure.js";
@@ -647,10 +648,14 @@ async function buildLimitedResult(
     remediationPlan,
     evidenceSummary: buildPostureEvidenceSummary({ ...evidenceResult, remediationPlan }),
   };
-  return {
+  const resultWithBriefs = {
     ...resultWithRemediation,
     exposureBrief: buildExposureBrief(resultWithRemediation),
     vendorExposure: buildVendorExposureBrief(resultWithRemediation),
+  };
+  return {
+    ...resultWithBriefs,
+    actionPlan: buildActionPlan(resultWithBriefs),
   };
 }
 
@@ -1153,10 +1158,14 @@ function buildTimedOutEnrichmentResult(
     remediationPlan,
     evidenceSummary: buildPostureEvidenceSummary({ ...evidenceResult, remediationPlan }),
   };
-  return {
+  const resultWithBriefs = {
     ...resultWithRemediation,
     exposureBrief: buildExposureBrief(resultWithRemediation),
     vendorExposure: buildVendorExposureBrief(resultWithRemediation),
+  };
+  return {
+    ...resultWithBriefs,
+    actionPlan: buildActionPlan(resultWithBriefs),
   };
 }
 
@@ -1238,16 +1247,21 @@ export async function analyzeUrl(input: string, options: AnalyzeTargetOptions = 
     remediationPlan,
     evidenceSummary: buildPostureEvidenceSummary({ ...resultWithEvidence, remediationPlan }),
   };
-  return {
+  const resultWithBriefs = {
     ...resultWithRemediation,
     exposureBrief: buildExposureBrief(resultWithRemediation),
     vendorExposure: buildVendorExposureBrief(resultWithRemediation),
+  };
+  return {
+    ...resultWithBriefs,
+    actionPlan: buildActionPlan(resultWithBriefs),
   };
 }
 
 export const analyzeTarget = analyzeUrl;
 export { formatErrorMessage };
 export { buildCompromiseSignals, emptyCompromiseSignals } from "./compromiseSignals.js";
+export { buildActionPlan } from "./actionPlan.js";
 export { buildExposureBrief } from "./exposureBrief.js";
 export { buildVendorExposureBrief } from "./vendorExposure.js";
 export { analyzeInfrastructure } from "./infrastructure.js";

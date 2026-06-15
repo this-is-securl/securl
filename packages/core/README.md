@@ -174,6 +174,26 @@ console.log({
 });
 ```
 
+### 6. Prioritized action plans
+
+Version `1.8.0+` includes an action-plan helper for client surfaces that need to show what to fix first without reinterpreting the full scan result.
+
+```ts
+import { analyzeUrl, buildActionPlan } from "securl";
+
+const result = await analyzeUrl("https://example.com");
+const actionPlan = buildActionPlan(result);
+
+console.log({
+  grade: actionPlan.posture.grade,
+  mainRisk: actionPlan.posture.mainRisk,
+  highImpactActions: actionPlan.highImpactActions,
+  firstAction: actionPlan.items[0],
+});
+```
+
+Action-plan items include owner, effort, impact, confidence, score impact where available, evidence references, and verification guidance.
+
 ### 6. Evidence-backed remediation plans
 
 Version `1.4.0+` includes a remediation plan helper that turns score drivers and findings into prioritized, owner-aware fix guidance. Findings can also carry structured evidence references so clients can show why a finding was raised.
@@ -283,6 +303,7 @@ Primary exports:
 - `buildHistoryDiffFromSnapshots(current, previous)` - build a structured diff between scans.
 - `buildPostureRiskEventsFromSnapshots(current, previous, diff)` - classify scan changes into alert-friendly risk events.
 - `buildPostureDigest(result)` - reduce a full scan result to a compact API/mobile-friendly digest.
+- `buildActionPlan(result)` - turn remediation, score drivers, exposure, and vendor context into prioritized fix actions.
 - `buildPostureDriftReportFromSnapshots(current, previous)` - produce a complete scan-to-scan drift report for monitoring, alerting, and history views.
 - `buildPostureRemediationPlan(result)` - generate prioritized, owner-aware remediation actions from findings and score drivers.
 - `attachIssueEvidence(result)` - add structured evidence references to findings without changing their existing fields.
@@ -292,6 +313,7 @@ Package subpath exports:
 
 - `securl/history-diff`
 - `securl/posture-digest`
+- `securl/action-plan`
 - `securl/posture-drift`
 - `securl/remediation-plan`
 - `securl/risk-events`

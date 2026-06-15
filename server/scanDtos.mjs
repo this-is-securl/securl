@@ -1,4 +1,5 @@
 import { buildHistoryDiffFromSnapshots, snapshotFromAnalysis } from "../packages/core/dist/historyDiff.js";
+import { buildActionPlan } from "../packages/core/dist/actionPlan.js";
 import { buildExposureBrief } from "../packages/core/dist/exposureBrief.js";
 import { buildPostureDigest } from "../packages/core/dist/postureDigest.js";
 import { buildPostureDriftReportFromDiff } from "../packages/core/dist/postureDrift.js";
@@ -366,6 +367,22 @@ export function buildScanVendorsPayload(scan) {
       completedAt: scan.completedAt,
     },
     vendors: result ? result.vendorExposure ?? buildVendorExposureBrief(result) : null,
+  };
+}
+
+export function buildScanActionPlanPayload(scan) {
+  const result = scan.result;
+  return {
+    apiVersion: API_VERSION,
+    scan: {
+      id: scan.id,
+      status: scan.status,
+      url: scan.url,
+      mode: scan.mode,
+      requestedAt: scan.requestedAt,
+      completedAt: scan.completedAt,
+    },
+    actionPlan: result ? result.actionPlan ?? buildActionPlan(result) : null,
   };
 }
 
