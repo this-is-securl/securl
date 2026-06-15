@@ -85,6 +85,24 @@ export interface CertificateResult {
   issues: string[];
 }
 
+export interface LiveCertificateChainEntry {
+  subject: string | null;
+  issuer: string | null;
+  validFrom: string | null;
+  validTo: string | null;
+  fingerprint: string | null;
+}
+
+export interface LiveCertificateResult extends CertificateResult {
+  host: string;
+  port: number;
+  checkedAt: string;
+  serialNumber: string | null;
+  keyBits: number | null;
+  keyType: string | null;
+  chain: LiveCertificateChainEntry[];
+}
+
 export interface RedirectHop {
   url: string;
   status: number;

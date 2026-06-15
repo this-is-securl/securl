@@ -1262,6 +1262,7 @@ export const analyzeTarget = analyzeUrl;
 export { formatErrorMessage };
 export { buildCompromiseSignals, emptyCompromiseSignals } from "./compromiseSignals.js";
 export { buildActionPlan } from "./actionPlan.js";
+export { scanLiveCertificate } from "./certificate.js";
 export { buildExposureBrief } from "./exposureBrief.js";
 export { buildVendorExposureBrief } from "./vendorExposure.js";
 export { analyzeInfrastructure } from "./infrastructure.js";

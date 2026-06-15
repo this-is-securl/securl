@@ -73,6 +73,7 @@ async function pollScan({ baseUrl, scanId, headers, timeoutMs }) {
 function assertCapabilities(payload) {
   const resources = payload.scans?.resources || [];
   const features = payload.scans?.features || [];
+  const serviceResources = payload.service?.resources || [];
 
   for (const resource of [
     "POST /api/scans",
@@ -83,6 +84,7 @@ function assertCapabilities(payload) {
     "GET /api/scans/:id/brief",
     "GET /api/scans/:id/vendors",
     "GET /api/scans/:id/action-plan",
+    "GET /api/scans/:id/events",
     "GET /api/scans/:id/evidence",
     "GET /api/scans/:id/history",
     "GET /api/scans/:id/comparison",
@@ -95,10 +97,23 @@ function assertCapabilities(payload) {
     }
   }
 
-  for (const feature of ["evidence-summary", "posture-digest", "posture-drift", "exposure-brief", "vendor-exposure", "action-plan"]) {
+  for (const resource of ["GET /api/certificates/live?url=:url"]) {
+    if (!serviceResources.includes(resource)) {
+      throw new Error(`Capabilities missing service resource: ${resource}`);
+    }
+  }
+
+  for (const feature of ["evidence-summary", "posture-digest", "posture-drift", "exposure-brief", "vendor-exposure", "action-plan", "scan-events"]) {
     if (!features.includes(feature)) {
       throw new Error(`Capabilities missing scan feature: ${feature}`);
     }
+  }
+
+  if (!payload.certificates?.features?.includes("live-certificate")) {
+    throw new Error("Capabilities missing live-certificate feature.");
+  }
+  if (!payload.notifications?.features?.includes("device-registration")) {
+    throw new Error("Capabilities missing notification device-registration feature.");
   }
 }
 
@@ -205,6 +220,25 @@ async function main() {
       throw new Error("Share endpoint returned an empty scan result");
     }
   }
+
+  const eventsResponse = await fetch(`${baseUrl}/api/scans/${encodeURIComponent(scanId)}/events`, {
+    headers: ownerHeaders,
+  });
+  const eventsText = await eventsResponse.text();
+  if (eventsResponse.status !== 200 || !/event: scan_terminal/.test(eventsText)) {
+    throw new Error(`Scan events stream did not reach terminal state: HTTP ${eventsResponse.status}`);
+  }
+  console.log("events: ok");
+
+  const certificate = await expectJson({
+    url: `${baseUrl}/api/certificates/live?url=${encodeURIComponent(target)}`,
+    label: "live certificate",
+    options: { headers: ownerHeaders },
+  });
+  if (!certificate.certificate || certificate.certificate.available !== true) {
+    throw new Error("Live certificate endpoint did not return certificate data.");
+  }
+  console.log(`live-certificate: ${certificate.certificate.daysRemaining ?? "unknown"} days`);
 
   const exportChecks = [
     ["json export", "json", "application/json"],

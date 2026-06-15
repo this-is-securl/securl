@@ -194,6 +194,23 @@ console.log({
 
 Action-plan items include owner, effort, impact, confidence, score impact where available, evidence references, and verification guidance.
 
+### 7. Live certificate checks
+
+Version `1.9.0+` includes a lightweight certificate helper for Cert Watch-style clients that only need the currently served TLS certificate.
+
+```ts
+import { scanLiveCertificate } from "securl/live-certificate";
+
+const certificate = await scanLiveCertificate(new URL("https://example.com"));
+
+console.log({
+  issuer: certificate.issuer,
+  daysRemaining: certificate.daysRemaining,
+  protocol: certificate.protocol,
+  chainLength: certificate.chain.length,
+});
+```
+
 ### 6. Evidence-backed remediation plans
 
 Version `1.4.0+` includes a remediation plan helper that turns score drivers and findings into prioritized, owner-aware fix guidance. Findings can also carry structured evidence references so clients can show why a finding was raised.
@@ -304,6 +321,7 @@ Primary exports:
 - `buildPostureRiskEventsFromSnapshots(current, previous, diff)` - classify scan changes into alert-friendly risk events.
 - `buildPostureDigest(result)` - reduce a full scan result to a compact API/mobile-friendly digest.
 - `buildActionPlan(result)` - turn remediation, score drivers, exposure, and vendor context into prioritized fix actions.
+- `scanLiveCertificate(url)` - perform a TLS handshake-only certificate read for lightweight cert monitoring.
 - `buildPostureDriftReportFromSnapshots(current, previous)` - produce a complete scan-to-scan drift report for monitoring, alerting, and history views.
 - `buildPostureRemediationPlan(result)` - generate prioritized, owner-aware remediation actions from findings and score drivers.
 - `attachIssueEvidence(result)` - add structured evidence references to findings without changing their existing fields.
@@ -314,6 +332,7 @@ Package subpath exports:
 - `securl/history-diff`
 - `securl/posture-digest`
 - `securl/action-plan`
+- `securl/live-certificate`
 - `securl/posture-drift`
 - `securl/remediation-plan`
 - `securl/risk-events`

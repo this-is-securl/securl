@@ -8,6 +8,7 @@ For client integration guidance, see [`CONSUMER-API-MAP.md`](CONSUMER-API-MAP.md
 
 - `GET /api/health`
 - `GET /api/capabilities`
+- `GET /api/certificates/live?url=...`
 
 `GET /api/capabilities` is public and additive. It lets web, mobile, CLI, and future SDK clients discover supported API version, scan modes, auth modes, monitoring resources, export formats, package versions, and passive-safety boundaries without relying on hard-coded assumptions.
 
@@ -23,6 +24,7 @@ For client integration guidance, see [`CONSUMER-API-MAP.md`](CONSUMER-API-MAP.md
 - `GET /api/scans/:id/brief`
 - `GET /api/scans/:id/vendors`
 - `GET /api/scans/:id/action-plan`
+- `GET /api/scans/:id/events`
 - `GET /api/scans/:id/evidence`
 - `GET /api/scans/:id/history`
 - `GET /api/scans/:id/comparison`
@@ -51,13 +53,19 @@ Runtime controls:
 
 `GET /api/scans/:id/digest` returns a compact posture digest for lightweight clients. `GET /api/scans/:id/brief` returns a concise exposure brief for mobile, CLI, and report clients that need the highest-priority public entry points, trust gaps, abuse indicators, and next actions without loading the full evidence payload. `GET /api/scans/:id/vendors` returns a compact vendor and supply-chain exposure brief covering third-party providers, visible data-flow categories, SRI gaps, priority vendors, and next actions. `GET /api/scans/:id/action-plan` returns a prioritized fix narrative that combines remediation, score drivers, exposure brief, and vendor context into owner/effort/impact-ranked actions. `GET /api/scans/:id/drift` returns the same drift/risk-event analysis used for monitoring when previous scans exist. Export resources return machine-readable JSON, Markdown, SARIF, or CI JSON once the scan is complete.
 
+`GET /api/scans/:id/events` returns a Server-Sent Events stream of scan lifecycle events and closes after `scan_terminal`. Mobile clients can use this instead of polling the full scan detail response while a scan is queued or running.
+
+## Current certificate resources
+
+`GET /api/certificates/live?url=...` performs a bounded TLS handshake only. It returns the served certificate expiry, issuer, subject, SANs, fingerprint, serial number, negotiated protocol/cipher, key hints, and observed chain without running the full posture scanner.
+
 Smoke-check the live API contract with:
 
 ```sh
 npm run smoke:api
 ```
 
-The smoke command checks health, readiness, capabilities, scan creation, scan detail resources, digest/brief/vendors/action-plan/evidence resources, comparison/drift resources, export formats, and the public share resource.
+The smoke command checks health, readiness, capabilities, scan creation, scan detail resources, digest/brief/vendors/action-plan/events/evidence resources, live certificate lookup, comparison/drift resources, export formats, and the public share resource.
 
 Optional overrides:
 
@@ -72,6 +80,23 @@ npm run smoke:api -- --base-url=https://securl-app-production.up.railway.app --t
 - `GET /api/monitoring-targets/:id`
 - `POST /api/monitoring-targets/:id/run`
 - `DELETE /api/monitoring-targets/:id`
+
+## Current notification resources
+
+- `POST /api/notification-devices`
+- `GET /api/notification-devices`
+- `DELETE /api/notification-devices/:id`
+
+`POST /api/notification-devices` registers an iOS APNs device token against the same owner boundary used for scans and monitoring targets. The backend never echoes the raw token in list responses. When `MONITORING_SCHEDULER_ENABLED=true`, scheduled monitoring scans can send APNs alerts when a registered target's grade, score, headers, certificate window, or risk events change.
+
+APNs delivery is disabled until all of these are configured:
+
+- `APNS_TEAM_ID`
+- `APNS_KEY_ID`
+- `APNS_PRIVATE_KEY`
+- `APNS_BUNDLE_ID`
+
+Without those values, device registration still works and monitoring scans continue normally, but delivery is logged as skipped.
 
 ## Current auth resources
 

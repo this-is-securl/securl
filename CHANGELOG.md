@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-06-15 — core 1.9.0
+
+### Added
+
+- Added `scanLiveCertificate(url)` and the `securl/live-certificate` package export for TLS handshake-only certificate reads.
+- Added `GET /api/certificates/live?url=...` for fast Cert Watch refreshes without running a full posture scan.
+- Added `GET /api/scans/:id/events` as an SSE lifecycle stream so clients can avoid polling scan detail while scans run.
+- Added notification-device registration resources and APNs-backed monitoring drift notification plumbing.
+
+### Changed
+
+- Extended API capabilities and live smoke coverage for mobile-oriented scan events, notifications, and live certificate resources.
+
+### Verified
+
+- `npm run build:core`
+- `node --test packages/core/test/package-surface.test.mjs server/test/scanStore.test.mjs`
+- `npm run test:server`
+- `npm run release:package:check`
+
 ## 2026-06-15 — core 1.8.0
 
 ### Added
