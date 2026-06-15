@@ -342,6 +342,7 @@ export async function handleScanResourceRequest({
   buildScanDigestPayload,
   buildScanBriefPayload,
   buildScanVendorsPayload,
+  buildScanActionPlanPayload,
   buildScanEvidencePayload,
   buildScanHistoryPayload,
   buildScanComparisonPayload,
@@ -437,6 +438,11 @@ export async function handleScanResourceRequest({
 
     if (resource === "vendors") {
       sendJson(response, 200, buildScanVendorsPayload(scan));
+      return true;
+    }
+
+    if (resource === "action-plan") {
+      sendJson(response, 200, buildScanActionPlanPayload(scan));
       return true;
     }
 

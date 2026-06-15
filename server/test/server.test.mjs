@@ -481,6 +481,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.scans.features.includes("remediation-plan"));
     assert.ok(payload.scans.features.includes("exposure-brief"));
     assert.ok(payload.scans.features.includes("vendor-exposure"));
+    assert.ok(payload.scans.features.includes("action-plan"));
     assert.equal(payload.scans.scoring.model, "weighted-passive-posture");
     assert.equal(payload.scans.scoring.version, "2026-06-14");
     assert.deepEqual(payload.scans.scoring.scoreRange, { min: 0, max: 100 });
@@ -491,6 +492,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/digest"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/brief"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/vendors"));
+    assert.ok(payload.scans.resources.includes("GET /api/scans/:id/action-plan"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/comparison"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/drift"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/export?format=json|markdown|sarif|ci-json"));
@@ -1701,6 +1703,9 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     const vendorsResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/vendors`, {
       headers: scanOwnerHeaders(),
     });
+    const actionPlanResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/action-plan`, {
+      headers: scanOwnerHeaders(),
+    });
     const evidenceResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/evidence`, {
       headers: scanOwnerHeaders(),
     });
@@ -1725,6 +1730,7 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     const digestPayload = await digestResponse.json();
     const briefPayload = await briefResponse.json();
     const vendorsPayload = await vendorsResponse.json();
+    const actionPlanPayload = await actionPlanResponse.json();
     const evidencePayload = await evidenceResponse.json();
     const historyPayload = await historyResponse.json();
     const markdownExport = await markdownExportResponse.text();
@@ -1773,6 +1779,13 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.equal(typeof vendorsPayload.vendors.summary, "string");
     assert.ok(Array.isArray(vendorsPayload.vendors.providers));
     assert.ok(Array.isArray(vendorsPayload.vendors.nextActions));
+    assert.equal(actionPlanResponse.status, 200);
+    assert.equal(actionPlanPayload.apiVersion, "2026-05-14");
+    assert.equal(actionPlanPayload.scan.id, scanId);
+    assert.ok(actionPlanPayload.actionPlan);
+    assert.equal(typeof actionPlanPayload.actionPlan.summary, "string");
+    assert.ok(Array.isArray(actionPlanPayload.actionPlan.items));
+    assert.equal(typeof actionPlanPayload.actionPlan.highImpactActions, "number");
     assert.equal(evidenceResponse.status, 200);
     assert.equal(evidencePayload.apiVersion, "2026-05-14");
     assert.ok(Array.isArray(evidencePayload.evidence.headers));
