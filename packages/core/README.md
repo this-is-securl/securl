@@ -5,11 +5,13 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![SecURL package checks](https://github.com/this-is-securl/securl/actions/workflows/core-package-checks.yml/badge.svg)](https://github.com/this-is-securl/securl/actions/workflows/core-package-checks.yml)
 
-**The passive security posture engine behind SecURL.**
+**The passive URL security posture engine behind SecURL.**
 
-`securl` is the reusable scanner engine behind [SecURL](https://securl.online), a posture-first external security review tool for public web targets.
+`securl` is the reusable scanner engine behind [SecURL](https://securl.online), a passive external security posture scanner for public URLs and web services.
 
 It is designed for passive, low-noise assessment rather than active exploitation or broad reconnaissance. The engine turns public web signals into structured JSON, Markdown, SARIF, and CI-friendly output.
+
+It is not a URL shortener. It assesses the external security posture of URLs you choose to scan.
 
 Use it when you need a fast outside-in read on a public web service:
 

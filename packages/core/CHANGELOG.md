@@ -6,6 +6,12 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-06-15
+
+### Changed
+- Tightened npm package positioning around passive URL security posture scanning and clarified that SecURL is not a URL shortener.
+- Filtered public GitHub package signals to dependency-key matches so same-name projects are not counted as adoption.
+
 ## [1.5.0] - 2026-06-14
 
 ### Added

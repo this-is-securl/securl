@@ -1,8 +1,8 @@
 {
   "name": "securl",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "type": "module",
-  "description": "Passive external security posture analysis engine for SecURL.",
+  "description": "Passive external security posture scanner for public URLs and web services.",
   "author": {
     "name": "Keith Batterham",
     "url": "https://github.com/ktbatterham"

@@ -7,11 +7,13 @@
 [![Follow on X](https://img.shields.io/badge/X-%40ThisIsSecURL-111827)](https://x.com/ThisIsSecURL)
 [![Dev.to](https://img.shields.io/badge/Dev.to-thisissecurl-0a0a0a)](https://dev.to/thisissecurl)
 
-**Public security posture, quietly interpreted.**
+**Public URL security posture, quietly interpreted.**
 
-SecURL is a passive external security posture tool for public web targets. It reads what a browser, customer, auditor, or researcher can already see, then turns that evidence into clear findings, priority actions, and exportable reports.
+SecURL is a passive external security posture scanner for public URLs and web services. It reads what a browser, customer, auditor, or researcher can already see, then turns that evidence into clear findings, priority actions, and exportable reports.
 
 It is built for low-noise review of headers, TLS, cookies, redirects, DNS/email posture, trust signals, third-party exposure, and public disclosure readiness.
+
+SecURL is not a URL shortener. It assesses the external security posture of URLs you choose to scan.
 
 <p>
   <a href="https://securl.online"><strong>Visit the SecURL site</strong></a>
@@ -188,7 +190,7 @@ Sponsorship helps fund continued work on the passive analysis engine, hosted sca
 
 ## Package status
 
-- Latest published package: `securl@1.5.0`
+- Latest published package: `securl@1.5.1`
 - Previous package name: `@ktbatterham/external-posture-core` is deprecated in favour of `securl`
 - npm tag: `latest`
 - Package signal check: `npm run package:signals`
