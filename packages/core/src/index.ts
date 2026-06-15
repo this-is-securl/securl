@@ -1,6 +1,7 @@
 import { URL } from "node:url";
 import { scanTls } from "./certificate.js";
 import { buildCompromiseSignals, emptyCompromiseSignals } from "./compromiseSignals.js";
+import { buildExposureBrief } from "./exposureBrief.js";
 import { parseSetCookie } from "./cookie-analysis.js";
 import { analyzeCookieHeaders } from "./cookieAnalysis.js";
 import { fetchCtDiscovery } from "./ctDiscovery.js";
@@ -640,10 +641,14 @@ async function buildLimitedResult(
 
   const evidenceResult = attachIssueEvidence(limitedResult);
   const remediationPlan = buildPostureRemediationPlan(evidenceResult);
-  return {
+  const resultWithRemediation = {
     ...evidenceResult,
     remediationPlan,
     evidenceSummary: buildPostureEvidenceSummary({ ...evidenceResult, remediationPlan }),
+  };
+  return {
+    ...resultWithRemediation,
+    exposureBrief: buildExposureBrief(resultWithRemediation),
   };
 }
 
@@ -1141,10 +1146,14 @@ function buildTimedOutEnrichmentResult(
   };
   const evidenceResult = attachIssueEvidence(timedOutResultWithSummary);
   const remediationPlan = buildPostureRemediationPlan(evidenceResult);
-  return {
+  const resultWithRemediation = {
     ...evidenceResult,
     remediationPlan,
     evidenceSummary: buildPostureEvidenceSummary({ ...evidenceResult, remediationPlan }),
+  };
+  return {
+    ...resultWithRemediation,
+    exposureBrief: buildExposureBrief(resultWithRemediation),
   };
 }
 
@@ -1221,16 +1230,21 @@ export async function analyzeUrl(input: string, options: AnalyzeTargetOptions = 
   const resultWithEvidence = attachIssueEvidence(resultWithSummary);
   const remediationPlan = buildPostureRemediationPlan(resultWithEvidence);
 
-  return {
+  const resultWithRemediation = {
     ...resultWithEvidence,
     remediationPlan,
     evidenceSummary: buildPostureEvidenceSummary({ ...resultWithEvidence, remediationPlan }),
+  };
+  return {
+    ...resultWithRemediation,
+    exposureBrief: buildExposureBrief(resultWithRemediation),
   };
 }
 
 export const analyzeTarget = analyzeUrl;
 export { formatErrorMessage };
 export { buildCompromiseSignals, emptyCompromiseSignals } from "./compromiseSignals.js";
+export { buildExposureBrief } from "./exposureBrief.js";
 export { analyzeInfrastructure } from "./infrastructure.js";
 export { buildHistoryDiff, buildHistoryDiffFromSnapshots, snapshotFromAnalysis } from "./historyDiff.js";
 export {
