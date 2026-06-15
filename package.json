@@ -24,6 +24,7 @@
     "package:hostinger": "npm run build:hostinger && npm run verify:hostinger && node scripts/packageHostingerBuild.mjs",
     "deploy:hostinger": "node scripts/deployHostinger.mjs",
     "deploy:hostinger:live": "node scripts/deployHostinger.mjs --live",
+    "deploy:railway": "node scripts/deployRailway.mjs",
     "telemetry": "node scripts/fetchTelemetry.mjs",
     "telemetry:web": "node scripts/telemetryDashboard.mjs",
     "package:signals": "node scripts/fetchPackageSignals.mjs",
