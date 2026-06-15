@@ -1,22 +1,10 @@
 #!/usr/bin/env node
-import { execFileSync } from "node:child_process";
 import http from "node:http";
 import { URL } from "node:url";
+import { readRailwayVariables } from "./lib/readRailwayVariables.mjs";
 
 const DEFAULT_BASE_URL = "https://securl-app-production.up.railway.app";
 const DEFAULT_PORT = 8790;
-
-function readRailwayVariables() {
-  try {
-    const raw = execFileSync("railway", ["variables", "--json"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    return JSON.parse(raw);
-  } catch {
-    return {};
-  }
-}
 
 function send(response, status, body, headers = {}) {
   response.writeHead(status, {
@@ -26,13 +14,14 @@ function send(response, status, body, headers = {}) {
   response.end(body);
 }
 
-const vars = readRailwayVariables();
+const vars = process.env.TELEMETRY_TOKEN ? {} : readRailwayVariables();
 const telemetryToken = process.env.TELEMETRY_TOKEN || vars.TELEMETRY_TOKEN || vars.ADMIN_TELEMETRY_TOKEN || "";
 const baseUrl = String(process.env.TELEMETRY_BASE_URL || vars.PUBLIC_API_BASE_URL || DEFAULT_BASE_URL).replace(/\/+$/, "");
 const port = Number(process.env.PORT || DEFAULT_PORT);
 
 if (!telemetryToken) {
-  console.error("No TELEMETRY_TOKEN found. Run `railway link`, or export TELEMETRY_TOKEN in this shell.");
+  const railwayHint = vars.__railwayReadError ? ` Railway variable lookup failed: ${vars.__railwayReadError}` : "";
+  console.error(`No TELEMETRY_TOKEN found.${railwayHint} Run \`railway login\`, or export TELEMETRY_TOKEN in this shell.`);
   process.exit(1);
 }
 

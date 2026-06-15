@@ -1,27 +1,18 @@
 #!/usr/bin/env node
-import { execFileSync } from "node:child_process";
+import { readRailwayVariables } from "./lib/readRailwayVariables.mjs";
 
 const DEFAULT_BASE_URL = "https://securl-app-production.up.railway.app";
-
-const readRailwayVariables = () => {
-  try {
-    const raw = execFileSync("railway", ["variables", "--json"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    return JSON.parse(raw);
-  } catch (error) {
-    throw new Error("Unable to read Railway variables. Is the Railway CLI installed, logged in, and linked to this project?");
-  }
-};
 
 const formatMs = (value) => `${Math.round(value || 0).toLocaleString()}ms`;
 
 const main = async () => {
-  const vars = readRailwayVariables();
-  const token = vars.TELEMETRY_TOKEN || process.env.TELEMETRY_TOKEN;
+  const vars = process.env.TELEMETRY_TOKEN ? {} : readRailwayVariables();
+  const token = process.env.TELEMETRY_TOKEN || vars.TELEMETRY_TOKEN || vars.ADMIN_TELEMETRY_TOKEN;
   if (!token) {
-    throw new Error("TELEMETRY_TOKEN was not found in Railway variables or the current shell.");
+    const railwayHint = vars.__railwayReadError
+      ? ` Railway variable lookup failed: ${vars.__railwayReadError}`
+      : "";
+    throw new Error(`TELEMETRY_TOKEN was not found in this shell or Railway variables.${railwayHint} Run \`railway login\`, or export TELEMETRY_TOKEN for this command.`);
   }
 
   const baseUrl = (process.env.TELEMETRY_BASE_URL || vars.PUBLIC_API_BASE_URL || DEFAULT_BASE_URL).replace(/\/+$/, "");

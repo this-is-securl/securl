@@ -45,6 +45,8 @@ Hosted product/API telemetry remains separate:
 npm run telemetry
 ```
 
+The telemetry command first checks `TELEMETRY_TOKEN` and `TELEMETRY_BASE_URL` from the current shell, then falls back to Railway variables. If the local Railway project is not linked, it uses the production project/service defaults. Override those defaults with `RAILWAY_PROJECT_ID`, `RAILWAY_SERVICE_ID`, and `RAILWAY_ENVIRONMENT` when checking another deployment.
+
 ## Interpretation
 
 npm downloads are directional, not identity. They can include CI, cache misses, local installs, mirrors, and automated tooling. They do not identify people, companies, private repos, or whether the package is actually used after installation.
