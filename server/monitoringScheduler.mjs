@@ -1,5 +1,7 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 const CADENCE_MS = {
+  hourly: 60 * 60 * 1000,
+  "6h": 6 * 60 * 60 * 1000,
   daily: DAY_MS,
   weekly: 7 * DAY_MS,
 };
@@ -9,7 +11,9 @@ function cadenceWindowMs(cadence) {
 }
 
 function isTargetDue(target, now = Date.now()) {
-  const baseTime = target.lastScannedAt
+  const baseTime = target.lastCheckedAt
+    ? new Date(target.lastCheckedAt).getTime()
+    : target.lastScannedAt
     ? new Date(target.lastScannedAt).getTime()
     : new Date(target.addedAt).getTime();
   return Number.isFinite(baseTime) && now >= baseTime + cadenceWindowMs(target.cadence);
@@ -30,6 +34,7 @@ function recordMatchesTarget(record, target) {
 export async function runMonitoringSweep({
   scanRepository,
   enqueueScan,
+  runCertificateCheck = null,
   mode = "quiet",
   limit = 20,
   now = Date.now(),
@@ -45,12 +50,39 @@ export async function runMonitoringSweep({
     checked: targets.length,
     due: dueTargets.length,
     queued: 0,
+    certChecked: 0,
+    certNotified: 0,
     skipped: 0,
     failed: 0,
   };
 
   for (const target of dueTargets) {
     try {
+      if ((target.kind ?? "posture") === "cert") {
+        if (typeof runCertificateCheck !== "function") {
+          result.skipped += 1;
+          log("warn", "monitoring_scheduler_skipped_cert_no_runner", {
+            targetId: target.id,
+            ownerId: target.ownerId,
+            url: target.url,
+          });
+          continue;
+        }
+
+        const outcome = await runCertificateCheck(target);
+        result.certChecked += 1;
+        if (outcome?.event) {
+          result.certNotified += 1;
+        }
+        log("info", "monitoring_scheduler_checked_cert", {
+          targetId: target.id,
+          ownerId: target.ownerId,
+          url: target.url,
+          eventType: outcome?.event?.type ?? null,
+        });
+        continue;
+      }
+
       const records = await scanRepository.listPersistedRecords({
         ownerId: target.ownerId,
         requesterScope: target.ownerId ? null : target.requesterScope,
@@ -69,7 +101,7 @@ export async function runMonitoringSweep({
 
       const scan = await scanRepository.createScan({
         url: target.url,
-        mode,
+        mode: target.mode || mode,
         requesterScope: target.requesterScope,
         ownerId: target.ownerId,
         clientIp: "monitoring-scheduler",
@@ -78,7 +110,7 @@ export async function runMonitoringSweep({
       enqueueScan({
         scan,
         validatedTarget: new URL(target.url),
-        mode,
+        mode: target.mode || mode,
         authState: {
           clientIp: "monitoring-scheduler",
           requesterScope: target.requesterScope,
@@ -91,7 +123,7 @@ export async function runMonitoringSweep({
         scanId: scan.id,
         ownerId: target.ownerId,
         url: target.url,
-        mode,
+        mode: target.mode || mode,
       });
     } catch (error) {
       result.failed += 1;
@@ -112,6 +144,7 @@ export function createMonitoringScheduler({
   intervalMs = 15 * 60 * 1000,
   scanRepository,
   enqueueScan,
+  runCertificateCheck = null,
   mode = "quiet",
   limit = 20,
   log = () => {},
@@ -135,6 +168,7 @@ export function createMonitoringScheduler({
       lastSweep = await runMonitoringSweep({
         scanRepository,
         enqueueScan,
+        runCertificateCheck,
         mode,
         limit: resolvedLimit,
         log,

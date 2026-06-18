@@ -108,7 +108,8 @@ export function buildCapabilitiesPayload({
     },
     monitoring: {
       enabled: true,
-      cadences: ["daily", "weekly"],
+      kinds: ["posture", "cert"],
+      cadences: ["hourly", "6h", "daily", "weekly"],
       scheduler: {
         enabled: Boolean(monitoringScheduler?.enabled),
         mode: monitoringScheduler?.mode ?? "quiet",
@@ -120,6 +121,7 @@ export function buildCapabilitiesPayload({
         "GET /api/monitoring-targets",
         "GET /api/monitoring-summary",
         "GET /api/monitoring-targets/:id",
+        "GET /api/monitoring-targets/:id/history",
         "POST /api/monitoring-targets/:id/run",
         "DELETE /api/monitoring-targets/:id",
       ],
@@ -130,6 +132,7 @@ export function buildCapabilitiesPayload({
       features: [
         "device-registration",
         "monitoring-drift-push",
+        "cert-event-push",
       ],
       resources: [
         "GET /api/notification-devices",
