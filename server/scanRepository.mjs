@@ -85,16 +85,27 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
       url text not null,
       label text not null,
       cadence text not null,
+      kind text not null default 'posture',
+      mode text null,
+      app_id text null,
+      cert_state jsonb null,
       added_at timestamptz not null,
-      last_scanned_at timestamptz null
+      last_scanned_at timestamptz null,
+      last_checked_at timestamptz null
     )`,
+    `alter table if exists ${qualifiedTargetsTable} add column if not exists kind text not null default 'posture'`,
+    `alter table if exists ${qualifiedTargetsTable} add column if not exists mode text null`,
+    `alter table if exists ${qualifiedTargetsTable} add column if not exists app_id text null`,
+    `alter table if exists ${qualifiedTargetsTable} add column if not exists cert_state jsonb null`,
+    `alter table if exists ${qualifiedTargetsTable} add column if not exists last_checked_at timestamptz null`,
     `create index if not exists scans_requested_at_idx on ${qualifiedTable} (requested_at desc)`,
     `create index if not exists scans_owner_requested_at_idx on ${qualifiedTable} (owner_id, requested_at desc)`,
     `create index if not exists scans_requester_requested_at_idx on ${qualifiedTable} (requester_scope, requested_at desc)`,
     `create index if not exists scan_events_scan_occurred_idx on ${qualifiedEventsTable} (scan_id, occurred_at desc)`,
     `create index if not exists monitoring_targets_owner_added_idx on ${qualifiedTargetsTable} (owner_id, added_at desc)`,
     `create index if not exists monitoring_targets_requester_added_idx on ${qualifiedTargetsTable} (requester_scope, added_at desc)`,
-    `create unique index if not exists monitoring_targets_owner_url_uidx on ${qualifiedTargetsTable} (owner_id, url)`,
+    `drop index if exists ${schema}.monitoring_targets_owner_url_uidx`,
+    `create unique index if not exists monitoring_targets_owner_url_kind_uidx on ${qualifiedTargetsTable} (coalesce(owner_id, ''), requester_scope, url, kind, coalesce(app_id, ''))`,
     `create index if not exists auth_sessions_user_idx on ${qualifiedSessionsTable} (user_id, created_at desc)`,
     `create index if not exists auth_sessions_expires_idx on ${qualifiedSessionsTable} (expires_at)`,
     `create index if not exists api_keys_user_created_idx on ${qualifiedApiKeysTable} (user_id, created_at desc)`,
@@ -191,8 +202,13 @@ export function buildMonitoringTargetRecord({
   url,
   label,
   cadence,
+  kind = "posture",
+  mode = null,
+  appId = null,
+  certState = null,
   addedAt = new Date().toISOString(),
   lastScannedAt = null,
+  lastCheckedAt = null,
 }) {
   return {
     id,
@@ -201,8 +217,13 @@ export function buildMonitoringTargetRecord({
     url,
     label,
     cadence,
+    kind,
+    mode,
+    appId,
+    certState,
     addedAt,
     lastScannedAt,
+    lastCheckedAt,
   };
 }
 
@@ -402,8 +423,13 @@ function hydrateMonitoringTargetFromRow(row) {
     url: row.url,
     label: row.label,
     cadence: row.cadence,
+    kind: row.kind ?? "posture",
+    mode: row.mode ?? null,
+    appId: row.app_id ?? null,
+    certState: row.cert_state ?? null,
     addedAt: row.added_at?.toISOString?.() ?? row.added_at,
     lastScannedAt: row.last_scanned_at?.toISOString?.() ?? row.last_scanned_at,
+    lastCheckedAt: row.last_checked_at?.toISOString?.() ?? row.last_checked_at,
   };
 }
 
@@ -707,7 +733,7 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       touchPushDeviceOrder(device.id);
       return publicPushDevice(device);
     },
-    async listPushDevices({ requesterScope = null, ownerId = null, includeDisabled = false, limit = 50 } = {}) {
+    async listPushDevices({ requesterScope = null, ownerId = null, appId = null, includeDisabled = false, limit = 50 } = {}) {
       const scoped = pushDeviceOrder
         .map((id) => pushDevices.get(id))
         .filter((device) => {
@@ -715,18 +741,20 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
           if (!includeDisabled && device.disabledAt) return false;
           if (ownerId && device.ownerId !== ownerId) return false;
           if (!ownerId && requesterScope && device.requesterScope !== requesterScope) return false;
+          if (appId && device.appId !== appId) return false;
           return true;
         })
         .slice(0, Math.max(1, limit));
       return scoped.map(publicPushDevice);
     },
-    async listPushDeviceSecrets({ requesterScope = null, ownerId = null, limit = 50 } = {}) {
+    async listPushDeviceSecrets({ requesterScope = null, ownerId = null, appId = null, limit = 50 } = {}) {
       return pushDeviceOrder
         .map((id) => pushDevices.get(id))
         .filter((device) => {
           if (!device || device.disabledAt) return false;
           if (ownerId && device.ownerId !== ownerId) return false;
           if (!ownerId && requesterScope && device.requesterScope !== requesterScope) return false;
+          if (appId && device.appId !== appId) return false;
           return true;
         })
         .slice(0, Math.max(1, limit))
@@ -821,6 +849,9 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       touchOrder(id);
       for (const target of monitoringTargets.values()) {
         if (target.ownerId !== scan.ownerId) {
+          continue;
+        }
+        if ((target.kind ?? "posture") !== "posture") {
           continue;
         }
         if (target.url !== scan.url) {
@@ -938,15 +969,36 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       }
       return [...(events.get(id) ?? [])];
     },
-    async upsertMonitoringTarget({ url, label, cadence, requesterScope, ownerId = null, lastScannedAt = null }) {
+    async upsertMonitoringTarget({
+      url,
+      label,
+      cadence,
+      requesterScope,
+      ownerId = null,
+      kind = "posture",
+      mode = null,
+      appId = null,
+      certState = null,
+      lastScannedAt = null,
+      lastCheckedAt = null,
+    }) {
       const existing = [...monitoringTargets.values()].find((target) =>
-        target.url === url && target.ownerId === ownerId && target.requesterScope === requesterScope,
+        target.url === url
+          && target.ownerId === ownerId
+          && target.requesterScope === requesterScope
+          && (target.kind ?? "posture") === kind
+          && (target.appId ?? null) === (appId ?? null),
       );
 
       if (existing) {
         existing.label = label;
         existing.cadence = cadence;
+        existing.kind = kind;
+        existing.mode = mode;
+        existing.appId = appId;
+        existing.certState = certState ?? existing.certState ?? null;
         existing.lastScannedAt = lastScannedAt ?? existing.lastScannedAt;
+        existing.lastCheckedAt = lastCheckedAt ?? existing.lastCheckedAt ?? null;
         touchMonitoringOrder(existing.id);
         return { ...existing };
       }
@@ -957,7 +1009,12 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
         url,
         label,
         cadence,
+        kind,
+        mode,
+        appId,
+        certState,
         lastScannedAt,
+        lastCheckedAt,
       });
       if (monitoringTargets.size >= MAX_MONITORING_TARGETS) {
         const oldestKey = monitoringOrder[monitoringOrder.length - 1];
@@ -968,6 +1025,22 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       }
       monitoringTargets.set(target.id, target);
       touchMonitoringOrder(target.id);
+      return { ...target };
+    },
+    async updateMonitoringTargetCertState(id, { certState, lastCheckedAt = null, requesterScope = null, ownerId = null } = {}) {
+      const target = monitoringTargets.get(id);
+      if (!target) {
+        return null;
+      }
+      if (ownerId && target.ownerId !== ownerId) {
+        return null;
+      }
+      if (!ownerId && requesterScope && target.requesterScope !== requesterScope) {
+        return null;
+      }
+      target.certState = certState ?? null;
+      target.lastCheckedAt = lastCheckedAt ?? certState?.checkedAt ?? new Date().toISOString();
+      touchMonitoringOrder(id);
       return { ...target };
     },
     async listMonitoringTargets({ requesterScope = null, ownerId = null, limit = 50 } = {}) {
@@ -1300,7 +1373,7 @@ export function createPostgresScanRepository({
       );
       return publicPushDevice(hydratePushDeviceFromRow(rows[0]));
     },
-    async listPushDevices({ requesterScope = null, ownerId = null, includeDisabled = false, limit = 50 } = {}) {
+    async listPushDevices({ requesterScope = null, ownerId = null, appId = null, includeDisabled = false, limit = 50 } = {}) {
       const filters = [];
       const params = [];
       if (!includeDisabled) {
@@ -1313,6 +1386,10 @@ export function createPostgresScanRepository({
         params.push(requesterScope);
         filters.push(`requester_scope = $${params.length}`);
       }
+      if (appId) {
+        params.push(appId);
+        filters.push(`app_id = $${params.length}`);
+      }
       params.push(Math.max(1, limit));
       const where = filters.length ? `where ${filters.join(" and ")}` : "";
       const { rows } = await pool.query(
@@ -1321,7 +1398,7 @@ export function createPostgresScanRepository({
       );
       return rows.map(hydratePushDeviceFromRow).filter(Boolean).map(publicPushDevice);
     },
-    async listPushDeviceSecrets({ requesterScope = null, ownerId = null, limit = 50 } = {}) {
+    async listPushDeviceSecrets({ requesterScope = null, ownerId = null, appId = null, limit = 50 } = {}) {
       const filters = ["disabled_at is null"];
       const params = [];
       if (ownerId) {
@@ -1330,6 +1407,10 @@ export function createPostgresScanRepository({
       } else if (requesterScope) {
         params.push(requesterScope);
         filters.push(`requester_scope = $${params.length}`);
+      }
+      if (appId) {
+        params.push(appId);
+        filters.push(`app_id = $${params.length}`);
       }
       params.push(Math.max(1, limit));
       const { rows } = await pool.query(
@@ -1520,7 +1601,7 @@ export function createPostgresScanRepository({
              set url = $1,
                  label = coalesce($2, label),
                  last_scanned_at = $3::timestamptz
-             where ${filters.join(" and ")}`,
+             where kind = 'posture' and ${filters.join(" and ")}`,
             params,
           );
         }
@@ -1678,7 +1759,19 @@ export function createPostgresScanRepository({
       );
       return rows.map(hydrateScanEventFromRow).filter(Boolean);
     },
-    async upsertMonitoringTarget({ url, label, cadence, requesterScope, ownerId = null, lastScannedAt = null }) {
+    async upsertMonitoringTarget({
+      url,
+      label,
+      cadence,
+      requesterScope,
+      ownerId = null,
+      kind = "posture",
+      mode = null,
+      appId = null,
+      certState = null,
+      lastScannedAt = null,
+      lastCheckedAt = null,
+    }) {
       const existingFilters = [];
       const existingParams = [];
       if (ownerId) {
@@ -1690,6 +1783,14 @@ export function createPostgresScanRepository({
       }
       existingParams.push(url);
       existingFilters.push(`url = $${existingParams.length}`);
+      existingParams.push(kind);
+      existingFilters.push(`kind = $${existingParams.length}`);
+      if (appId) {
+        existingParams.push(appId);
+        existingFilters.push(`app_id = $${existingParams.length}`);
+      } else {
+        existingFilters.push("app_id is null");
+      }
       const existing = await pool.query(
         `select * from ${targetsTable} where ${existingFilters.join(" and ")} limit 1`,
         existingParams,
@@ -1700,10 +1801,23 @@ export function createPostgresScanRepository({
           `update ${targetsTable}
            set label = $2,
                cadence = $3,
-               last_scanned_at = coalesce($4::timestamptz, last_scanned_at)
+               mode = $4,
+               app_id = $5,
+               cert_state = coalesce($6::jsonb, cert_state),
+               last_scanned_at = coalesce($7::timestamptz, last_scanned_at),
+               last_checked_at = coalesce($8::timestamptz, last_checked_at)
            where id = $1
            returning *`,
-          [existing.rows[0].id, label, cadence, lastScannedAt],
+          [
+            existing.rows[0].id,
+            label,
+            cadence,
+            mode,
+            appId,
+            certState ? JSON.stringify(certState) : null,
+            lastScannedAt,
+            lastCheckedAt,
+          ],
         );
         return hydrateMonitoringTargetFromRow(rows[0]);
       }
@@ -1714,13 +1828,18 @@ export function createPostgresScanRepository({
         url,
         label,
         cadence,
+        kind,
+        mode,
+        appId,
+        certState,
         lastScannedAt,
+        lastCheckedAt,
       });
       const { rows } = await pool.query(
         `insert into ${targetsTable}
-          (id, owner_id, requester_scope, url, label, cadence, added_at, last_scanned_at)
+          (id, owner_id, requester_scope, url, label, cadence, kind, mode, app_id, cert_state, added_at, last_scanned_at, last_checked_at)
          values
-          ($1, $2, $3, $4, $5, $6, $7::timestamptz, $8::timestamptz)
+          ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11::timestamptz, $12::timestamptz, $13::timestamptz)
          returning *`,
         [
           target.id,
@@ -1729,9 +1848,38 @@ export function createPostgresScanRepository({
           target.url,
           target.label,
           target.cadence,
+          target.kind,
+          target.mode,
+          target.appId,
+          target.certState ? JSON.stringify(target.certState) : null,
           target.addedAt,
           target.lastScannedAt,
+          target.lastCheckedAt,
         ],
+      );
+      return hydrateMonitoringTargetFromRow(rows[0]);
+    },
+    async updateMonitoringTargetCertState(id, { certState, lastCheckedAt = null, requesterScope = null, ownerId = null } = {}) {
+      const filters = ["id = $1"];
+      const params = [
+        id,
+        certState ? JSON.stringify(certState) : null,
+        lastCheckedAt ?? certState?.checkedAt ?? new Date().toISOString(),
+      ];
+      if (ownerId) {
+        params.push(ownerId);
+        filters.push(`owner_id = $${params.length}`);
+      } else if (requesterScope) {
+        params.push(requesterScope);
+        filters.push(`requester_scope = $${params.length}`);
+      }
+      const { rows } = await pool.query(
+        `update ${targetsTable}
+         set cert_state = $2::jsonb,
+             last_checked_at = $3::timestamptz
+         where ${filters.join(" and ")}
+         returning *`,
+        params,
       );
       return hydrateMonitoringTargetFromRow(rows[0]);
     },
