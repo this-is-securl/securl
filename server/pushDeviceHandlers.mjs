@@ -18,6 +18,56 @@ function clampLimit(value, fallback = 50, max = 100) {
   return Math.min(max, Math.max(1, Math.floor(parsed)));
 }
 
+const STALE_DEVICE_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
+const APNS_REJECTION_STATUSES = new Set(["apns_400", "apns_410"]);
+
+export function classifyDeviceHealth(device, now = Date.now()) {
+  if (device.disabledAt) {
+    return {
+      status: "disabled",
+      stale: false,
+      needsRegistration: true,
+      reason: "device_disabled",
+    };
+  }
+
+  if (APNS_REJECTION_STATUSES.has(device.lastPushStatus)) {
+    return {
+      status: "rejected",
+      stale: false,
+      needsRegistration: true,
+      reason: device.lastPushStatus,
+    };
+  }
+
+  const lastSeenTime = device.lastSeenAt ? new Date(device.lastSeenAt).getTime() : NaN;
+  const stale = !Number.isFinite(lastSeenTime) || now - lastSeenTime > STALE_DEVICE_AFTER_MS;
+  if (stale) {
+    return {
+      status: "stale",
+      stale: true,
+      needsRegistration: true,
+      reason: "last_seen_stale",
+    };
+  }
+
+  if (device.lastPushStatus === "send_failed") {
+    return {
+      status: "push_failed",
+      stale: false,
+      needsRegistration: false,
+      reason: "last_push_failed",
+    };
+  }
+
+  return {
+    status: "ready",
+    stale: false,
+    needsRegistration: false,
+    reason: null,
+  };
+}
+
 export async function handlePushDeviceCollectionRequest({
   request,
   response,
@@ -135,10 +185,25 @@ export async function handlePushDeviceHealthRequest({
       limit: clampLimit(requestUrl.searchParams.get("limit"), 100, 250),
     });
     const activeDevices = devices.filter((device) => !device.disabledAt);
+    const now = Date.now();
+    const deviceHealth = new Map(
+      activeDevices.map((device) => [device.id, classifyDeviceHealth(device, now)]),
+    );
     const byAppId = {};
+    const byStatus = {
+      ready: 0,
+      stale: 0,
+      push_failed: 0,
+      rejected: 0,
+      disabled: 0,
+    };
     for (const device of activeDevices) {
       const key = device.appId || "unknown";
       byAppId[key] = (byAppId[key] ?? 0) + 1;
+      const health = deviceHealth.get(device.id);
+      if (health?.status in byStatus) {
+        byStatus[health.status] += 1;
+      }
     }
 
     sendJson(response, 200, {
@@ -146,12 +211,20 @@ export async function handlePushDeviceHealthRequest({
       health: {
         registeredDevices: devices.length,
         activeDevices: activeDevices.length,
+        readyDevices: byStatus.ready,
+        staleDevices: byStatus.stale,
+        devicesNeedingRegistration: activeDevices.filter((device) =>
+          deviceHealth.get(device.id)?.needsRegistration,
+        ).length,
         byAppId,
+        byStatus,
+        staleAfterDays: Math.round(STALE_DEVICE_AFTER_MS / (24 * 60 * 60 * 1000)),
         lastSeenAt: activeDevices[0]?.lastSeenAt ?? null,
         lastPushAttemptedAt: activeDevices.find((device) => device.lastPushAttemptedAt)?.lastPushAttemptedAt ?? null,
         lastPushSentAt: activeDevices.find((device) => device.lastPushSentAt)?.lastPushSentAt ?? null,
       },
       devices: activeDevices.map((device) => ({
+        ...deviceHealth.get(device.id),
         id: device.id,
         platform: device.platform,
         appId: device.appId,
