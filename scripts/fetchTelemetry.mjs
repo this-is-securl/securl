@@ -104,6 +104,32 @@ const main = async () => {
     }
   }
   console.log("");
+  console.log("Client consumption");
+  const clientConsumption = telemetry.clients?.consumption || {};
+  console.log(`  Backend API events: ${clientConsumption.backendApiEvents ?? 0}`);
+  console.log(`  Today: ${clientConsumption.todayBackendApiEvents ?? 0}`);
+  console.log(`  Mobile monitoring summary reads: ${clientConsumption.monitoringMobileSummaryReads ?? 0}`);
+  console.log(`  Notification device registrations: ${clientConsumption.notificationDeviceRegistrations ?? 0}`);
+  console.log(`  Notification device health reads: ${clientConsumption.notificationDeviceHealthReads ?? 0}`);
+  console.log(`  Live certificate reads: ${clientConsumption.liveCertificateReads ?? 0}`);
+  const activeSignals = Object.entries(clientConsumption.adoptionSignals || {})
+    .filter(([, active]) => active)
+    .map(([signal]) => signal);
+  console.log(`  Active signals: ${activeSignals.length ? activeSignals.join(", ") : "none"}`);
+  const clientModes = Object.entries(clientConsumption.byMode || {})
+    .map(([mode, events]) => [
+      mode,
+      Object.values(events || {}).reduce((sum, count) => sum + Number(count || 0), 0),
+    ])
+    .filter(([, count]) => count > 0)
+    .sort(([, left], [, right]) => right - left);
+  if (clientModes.length) {
+    console.log("  Apps / modes:");
+    for (const [mode, count] of clientModes) {
+      console.log(`    - ${mode}: ${count}`);
+    }
+  }
+  console.log("");
   console.log(`Failures`);
   console.log(`  Auth rejected: ${telemetry.failures?.authRejected ?? 0}`);
   console.log(`  Requester rate limited: ${telemetry.failures?.requesterRateLimited ?? 0}`);
