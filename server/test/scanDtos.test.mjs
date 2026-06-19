@@ -11,11 +11,35 @@ function buildAnalysisResult(overrides = {}) {
     grade: "A",
     statusCode: 200,
     responseTimeMs: 120,
+    summary: "External posture is broadly sound.",
+    executiveSummary: {
+      overview: "Broadly sound with one content-security gap.",
+      mainRisk: "CSP needs tightening.",
+      posture: "mixed",
+      takeaways: ["Tighten CSP."],
+    },
+    scoreDrivers: [
+      {
+        areaKey: "content",
+        areaLabel: "Content",
+        impact: 18,
+        label: "Content-Security-Policy gap",
+        detail: "CSP is weak.",
+        source: "headers",
+      },
+    ],
     certificate: {
+      available: true,
+      valid: true,
+      authorized: true,
+      issuer: "Example CA",
       daysRemaining: 90,
+      issues: [],
     },
     thirdPartyTrust: {
       providers: [],
+      highRiskProviders: 0,
+      issues: [],
     },
     aiSurface: {
       vendors: [],
@@ -24,7 +48,7 @@ function buildAnalysisResult(overrides = {}) {
       provider: null,
     },
     wafFingerprint: {
-      providers: ["Cloudflare"],
+      providers: [{ name: "Cloudflare" }],
     },
     ctDiscovery: {
       prioritizedHosts: [],
@@ -37,6 +61,53 @@ function buildAnalysisResult(overrides = {}) {
       },
     ],
     issues: [],
+    cookies: [],
+    cookieAnalysis: {
+      issues: [],
+    },
+    redirects: [],
+    redirectChain: {
+      totalHops: 0,
+      hasMixedRedirect: false,
+      crossesDomain: false,
+      issues: [],
+    },
+    exposure: {
+      probes: [],
+      issues: [],
+    },
+    apiSurface: {
+      probes: [],
+      issues: [],
+    },
+    corsSecurity: {
+      issues: [],
+      allowCredentials: null,
+      allowedOrigin: null,
+    },
+    domainSecurity: {
+      emailDeliverabilityScore: null,
+      issues: [],
+      strengths: [],
+    },
+    securityTxt: {
+      status: "missing",
+      contact: [],
+    },
+    infrastructure: {
+      providers: [{ provider: "Cloudflare" }],
+    },
+    passiveIntelligence: {
+      postureRead: "Passive public signals look stable.",
+    },
+    compromiseSignals: {
+      posture: "stable",
+      indicators: [],
+    },
+    assessmentLimitation: {
+      limited: false,
+      kind: null,
+    },
     ...overrides,
   };
 }
@@ -165,4 +236,84 @@ test("mobile monitoring summary exposes compact posture drift for apps", () => {
   assert.ok(target.posture.topEvents.length > 0);
   assert.equal(target.changes.postureRiskEvents, 6);
   assert.equal(payload.summary.changes, target.changes.postureRiskEvents);
+});
+
+test("mobile monitoring summary includes a compact latest digest preview", () => {
+  const payload = buildMonitoringMobileSummaryPayload([
+    {
+      target: {
+        id: "target-posture-2",
+        url: "https://example.com/",
+        label: "Example posture",
+        cadence: "daily",
+        kind: "posture",
+        mode: "quiet",
+        appId: "com.ktbatterham.securl",
+        addedAt: "2026-06-19T08:00:00.000Z",
+        lastScannedAt: "2026-06-19T09:00:00.000Z",
+      },
+      records: [
+        buildCompletedRecord("scan-current", {
+          issues: [
+            {
+              severity: "warning",
+              title: "CSP allows unsafe inline script",
+              detail: "The observed CSP permits inline script execution.",
+              confidence: "high",
+              source: "observed",
+            },
+            {
+              severity: "info",
+              title: "Security.txt missing",
+              detail: "No security.txt file was found.",
+              confidence: "medium",
+              source: "heuristic",
+            },
+          ],
+          thirdPartyTrust: {
+            providers: [{ name: "Stripe" }, { name: "Plausible" }],
+            highRiskProviders: 0,
+            issues: [],
+          },
+          identityProvider: {
+            provider: "Okta",
+          },
+          compromiseSignals: {
+            posture: "review_recommended",
+            indicators: [
+              {
+                severity: "warning",
+                category: "script_anomaly",
+                title: "Suspicious inline script marker",
+                detail: "A script marker matched a review heuristic.",
+                confidence: "medium",
+              },
+            ],
+          },
+          ctDiscovery: {
+            prioritizedHosts: [{ host: "admin.example.com" }],
+          },
+          aiSurface: {
+            vendors: [{ name: "OpenAI" }],
+          },
+        }),
+      ],
+    },
+  ]);
+
+  const digest = payload.targets[0].latestDigest;
+  assert.equal(digest.scanId, "scan-current");
+  assert.equal(digest.target.host, "example.com");
+  assert.equal(digest.posture.grade, "A");
+  assert.equal(digest.posture.score, 92);
+  assert.equal(digest.posture.scoreDrivers.length, 1);
+  assert.equal(digest.findings.total, 2);
+  assert.equal(digest.findings.top.length, 2);
+  assert.equal(digest.controls.tls.daysRemaining, 90);
+  assert.deepEqual(digest.trust.thirdPartyProviders, ["Stripe", "Plausible"]);
+  assert.equal(digest.trust.identityProvider, "Okta");
+  assert.deepEqual(digest.trust.wafProviders, ["Cloudflare"]);
+  assert.equal(digest.intelligence.riskIndicators.length, 1);
+  assert.deepEqual(digest.intelligence.ctPriorityHosts, ["admin.example.com"]);
+  assert.deepEqual(digest.intelligence.aiVendors, ["OpenAI"]);
 });

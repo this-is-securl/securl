@@ -295,6 +295,64 @@ function buildMobilePostureDriftSummary(comparison) {
   };
 }
 
+function buildMobileDigestPreview(record) {
+  if (!record?.result) {
+    return null;
+  }
+
+  const digest = buildPostureDigest(record.result, { findingLimit: 3 });
+  return {
+    scanId: record.id,
+    generatedAt: digest.generatedAt,
+    target: {
+      host: digest.target.host,
+      finalUrl: digest.target.finalUrl,
+      scannedAt: digest.target.scannedAt,
+      statusCode: digest.target.statusCode,
+      responseTimeMs: digest.target.responseTimeMs,
+    },
+    posture: {
+      score: digest.posture.score,
+      grade: digest.posture.grade,
+      summary: digest.posture.summary,
+      overview: digest.posture.overview,
+      mainRisk: digest.posture.mainRisk,
+      limited: digest.posture.limited,
+      limitedKind: digest.posture.limitedKind,
+      scoreDrivers: normalizeArray(digest.posture.scoreDrivers).slice(0, 3),
+    },
+    findings: {
+      total: digest.findings.total,
+      bySeverity: digest.findings.bySeverity,
+      top: normalizeArray(digest.findings.top).slice(0, 3),
+    },
+    controls: {
+      headers: digest.controls.headers,
+      tls: {
+        available: digest.controls.tls.available,
+        valid: digest.controls.tls.valid,
+        authorized: digest.controls.tls.authorized,
+        issuer: digest.controls.tls.issuer,
+        daysRemaining: digest.controls.tls.daysRemaining,
+      },
+    },
+    trust: {
+      securityTxtStatus: digest.trust.securityTxt.status,
+      thirdPartyProviders: normalizeArray(digest.trust.thirdParty.providers).slice(0, 5),
+      highRiskThirdPartyProviders: digest.trust.thirdParty.highRiskProviders,
+      identityProvider: digest.trust.identityProvider,
+      wafProviders: normalizeArray(digest.trust.wafProviders).slice(0, 5),
+      infrastructureProviders: normalizeArray(digest.trust.infrastructureProviders).slice(0, 5),
+    },
+    intelligence: {
+      compromisePosture: digest.intelligence.compromisePosture,
+      riskIndicators: normalizeArray(digest.intelligence.riskIndicators).slice(0, 3),
+      ctPriorityHosts: normalizeArray(digest.intelligence.ctPriorityHosts).slice(0, 5),
+      aiVendors: normalizeArray(digest.intelligence.aiVendors).slice(0, 5),
+    },
+  };
+}
+
 function cadenceWindowMs(cadence) {
   if (cadence === "hourly") return 60 * 60 * 1000;
   if (cadence === "6h") return 6 * 60 * 60 * 1000;
@@ -612,6 +670,7 @@ export function buildMonitoringSummaryPayload(targetEntries = []) {
 function buildMobileTargetSummary(target, records = []) {
   const view = buildMonitoringTargetView(target, records);
   const comparison = buildStoredTargetDiff(records);
+  const latestRecord = normalizeArray(records).find((record) => record?.status === "completed" && record?.result);
   const certHistory = Array.isArray(view.cert?.history) ? view.cert.history : [];
   const certEventCount = certHistory.filter((entry) => entry?.eventType).length;
 
@@ -636,9 +695,10 @@ function buildMobileTargetSummary(target, records = []) {
           completedAt: view.latestScan.completedAt,
           findingsCount: view.latestScan.findingsCount,
           mainRisk: view.latestScan.mainRisk,
-        }
+      }
       : null,
     scoreDelta: view.scoreDelta,
+    latestDigest: view.kind === "posture" ? buildMobileDigestPreview(latestRecord) : null,
     cert: view.cert
       ? {
           reachable: view.cert.reachable ?? false,
