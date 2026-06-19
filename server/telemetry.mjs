@@ -431,6 +431,23 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         .slice(-14)
         .map(([date, bucket]) => serializeScanDayBucket(date, bucket));
       const todayScanBucket = getScanDayBucket(todayKey);
+      const todayFunnelEvents = getFunnelDayBucket(todayKey).events || {};
+      const clientConsumptionEvents = {
+        monitoringMobileSummaryReads: state.funnelEvents.monitoring_mobile_summary_read || 0,
+        notificationDeviceRegistrations: state.funnelEvents.notification_device_registered || 0,
+        notificationDeviceHealthReads: state.funnelEvents.notification_device_health_read || 0,
+        liveCertificateReads: state.funnelEvents.live_certificate_read || 0,
+      };
+      const todayClientConsumptionEvents = {
+        monitoringMobileSummaryReads: todayFunnelEvents.monitoring_mobile_summary_read || 0,
+        notificationDeviceRegistrations: todayFunnelEvents.notification_device_registered || 0,
+        notificationDeviceHealthReads: todayFunnelEvents.notification_device_health_read || 0,
+        liveCertificateReads: todayFunnelEvents.live_certificate_read || 0,
+      };
+      const clientConsumptionTotal = Object.values(clientConsumptionEvents)
+        .reduce((total, count) => total + count, 0);
+      const todayClientConsumptionTotal = Object.values(todayClientConsumptionEvents)
+        .reduce((total, count) => total + count, 0);
       return {
         startedAt: state.startedAt,
         persistence,
@@ -472,6 +489,38 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
               events: { ...bucket.events },
             })),
           recent: [...state.recentFunnelEvents].reverse(),
+        },
+        clients: {
+          consumption: {
+            backendApiEvents: clientConsumptionTotal,
+            todayBackendApiEvents: todayClientConsumptionTotal,
+            ...clientConsumptionEvents,
+            today: todayClientConsumptionEvents,
+            byMode: Object.fromEntries(
+              Object.entries(state.funnelEventsByMode)
+                .filter(([, events]) => (
+                  events.monitoring_mobile_summary_read
+                  || events.notification_device_registered
+                  || events.notification_device_health_read
+                  || events.live_certificate_read
+                ))
+                .map(([mode, events]) => [
+                  mode,
+                  {
+                    monitoringMobileSummaryReads: events.monitoring_mobile_summary_read || 0,
+                    notificationDeviceRegistrations: events.notification_device_registered || 0,
+                    notificationDeviceHealthReads: events.notification_device_health_read || 0,
+                    liveCertificateReads: events.live_certificate_read || 0,
+                  },
+                ]),
+            ),
+            adoptionSignals: {
+              mobileMonitoring: clientConsumptionEvents.monitoringMobileSummaryReads > 0,
+              pushRegistration: clientConsumptionEvents.notificationDeviceRegistrations > 0,
+              notificationHealth: clientConsumptionEvents.notificationDeviceHealthReads > 0,
+              certWatch: clientConsumptionEvents.liveCertificateReads > 0,
+            },
+          },
         },
         scans: {
           requested: state.scansRequested,
