@@ -51,6 +51,11 @@ export async function handleLiveCertificateRequest({
     }
 
     const certificate = await scanLiveCertificate(validatedTarget);
+    telemetry.recordFunnelEvent({
+      event: "live_certificate_read",
+      source: "backend_api",
+      target: validatedTarget.toString(),
+    });
     sendJson(response, 200, {
       apiVersion: API_VERSION,
       target: {

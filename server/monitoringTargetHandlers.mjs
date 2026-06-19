@@ -99,6 +99,7 @@ export async function handleMonitoringMobileSummaryRequest({
   sendJson,
   sendMethodNotAllowed,
   sendRepositoryUnavailable,
+  telemetry = null,
 }) {
   if (request.method !== "GET") {
     sendMethodNotAllowed(response, ["GET"]);
@@ -117,6 +118,10 @@ export async function handleMonitoringMobileSummaryRequest({
   }
 
   try {
+    telemetry?.recordFunnelEvent?.({
+      event: "monitoring_mobile_summary_read",
+      source: "backend_api",
+    });
     const limit = clampLimit(requestUrl.searchParams.get("limit"), 100, 250);
     const targets = await scanRepository.listMonitoringTargets({
       ownerId: authState.ownerId,

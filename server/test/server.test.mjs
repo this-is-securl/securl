@@ -1209,6 +1209,11 @@ test("notification devices can be registered, listed, and disabled without echoi
     assert.equal(healthPayload.devices[0].needsRegistration, false);
     assert.equal(healthPayload.devices[0].lastPushStatus, null);
 
+    const telemetryResponse = await fetch(`${server.baseUrl}/api/telemetry`);
+    const telemetryPayload = await telemetryResponse.json();
+    assert.equal(telemetryPayload.funnel.events.notification_device_registered, 1);
+    assert.equal(telemetryPayload.funnel.events.notification_device_health_read, 1);
+
     const deleteResponse = await fetch(`${server.baseUrl}/api/notification-devices/${createPayload.device.id}`, {
       method: "DELETE",
       headers: scanOwnerHeaders(),
@@ -1289,6 +1294,10 @@ test("monitoring targets can be created, listed, and deleted", async () => {
     assert.equal(mobileSummaryPayload.summary.postureTargets, 1);
     assert.equal(mobileSummaryPayload.targets[0].id, targetId);
     assert.equal(mobileSummaryPayload.targets[0].latestScan, null);
+
+    const telemetryResponse = await fetch(`${server.baseUrl}/api/telemetry`);
+    const telemetryPayload = await telemetryResponse.json();
+    assert.equal(telemetryPayload.funnel.events.monitoring_mobile_summary_read, 1);
 
     const deleteResponse = await fetch(`${server.baseUrl}/api/monitoring-targets/${targetId}`, {
       method: "DELETE",

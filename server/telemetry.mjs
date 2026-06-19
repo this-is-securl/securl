@@ -558,6 +558,10 @@ const FUNNEL_EVENT_NAMES = new Set([
   "share_link_copied",
   "export_clicked",
   "monitoring_saved",
+  "monitoring_mobile_summary_read",
+  "notification_device_registered",
+  "notification_device_health_read",
+  "live_certificate_read",
 ]);
 
 function sanitizeFunnelEvent(value) {

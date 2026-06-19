@@ -63,6 +63,23 @@ test("telemetry tracker records aggregate counts", () => {
     scanId: "scan-one",
     format: "pdf",
   });
+  telemetry.recordFunnelEvent({
+    event: "monitoring_mobile_summary_read",
+    source: "backend_api",
+  });
+  telemetry.recordFunnelEvent({
+    event: "notification_device_registered",
+    source: "backend_api",
+  });
+  telemetry.recordFunnelEvent({
+    event: "notification_device_health_read",
+    source: "backend_api",
+  });
+  telemetry.recordFunnelEvent({
+    event: "live_certificate_read",
+    source: "backend_api",
+    target: "https://example.com/cert",
+  });
 
   const snapshot = telemetry.snapshot();
   assert.equal(snapshot.pageLoads, 3);
@@ -109,12 +126,17 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.funnel.events.scan_started, 1);
   assert.equal(snapshot.funnel.events.handoff_started, 1);
   assert.equal(snapshot.funnel.events.export_clicked, 1);
+  assert.equal(snapshot.funnel.events.monitoring_mobile_summary_read, 1);
+  assert.equal(snapshot.funnel.events.notification_device_registered, 1);
+  assert.equal(snapshot.funnel.events.notification_device_health_read, 1);
+  assert.equal(snapshot.funnel.events.live_certificate_read, 1);
   assert.equal(snapshot.funnel.bySource.hacker_news.scan_started, 1);
+  assert.equal(snapshot.funnel.bySource.backend_api.monitoring_mobile_summary_read, 1);
   assert.equal(snapshot.funnel.bySource["utm:landing"].handoff_started, 1);
   assert.equal(snapshot.funnel.today.scan_started, 1);
   assert.equal(snapshot.funnel.today.handoff_started, 1);
-  assert.equal(snapshot.funnel.recent.length, 3);
-  assert.equal(snapshot.funnel.recent[0].event, "export_clicked");
+  assert.equal(snapshot.funnel.recent.length, 7);
+  assert.equal(snapshot.funnel.recent[0].event, "live_certificate_read");
 });
 
 test("telemetry tracker can persist counters to disk", () => {
