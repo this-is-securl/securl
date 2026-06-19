@@ -1195,7 +1195,15 @@ test("notification devices can be registered, listed, and disabled without echoi
     assert.equal(healthResponse.status, 200);
     assert.equal(healthPayload.health.registeredDevices, 1);
     assert.equal(healthPayload.health.activeDevices, 1);
+    assert.equal(healthPayload.health.readyDevices, 1);
+    assert.equal(healthPayload.health.staleDevices, 0);
+    assert.equal(healthPayload.health.devicesNeedingRegistration, 0);
+    assert.equal(healthPayload.health.byStatus.ready, 1);
+    assert.equal(healthPayload.health.staleAfterDays, 30);
     assert.equal(healthPayload.health.byAppId["online.securl.app"], 1);
+    assert.equal(healthPayload.devices[0].status, "ready");
+    assert.equal(healthPayload.devices[0].stale, false);
+    assert.equal(healthPayload.devices[0].needsRegistration, false);
     assert.equal(healthPayload.devices[0].lastPushStatus, null);
 
     const deleteResponse = await fetch(`${server.baseUrl}/api/notification-devices/${createPayload.device.id}`, {
