@@ -50,8 +50,16 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
       created_at timestamptz not null,
       updated_at timestamptz not null,
       last_seen_at timestamptz not null,
+      last_push_attempted_at timestamptz null,
+      last_push_sent_at timestamptz null,
+      last_push_status text null,
+      last_push_error text null,
       disabled_at timestamptz null
     )`,
+    `alter table if exists ${qualifiedPushDevicesTable} add column if not exists last_push_attempted_at timestamptz null`,
+    `alter table if exists ${qualifiedPushDevicesTable} add column if not exists last_push_sent_at timestamptz null`,
+    `alter table if exists ${qualifiedPushDevicesTable} add column if not exists last_push_status text null`,
+    `alter table if exists ${qualifiedPushDevicesTable} add column if not exists last_push_error text null`,
     `create table if not exists ${qualifiedTable} (
       id uuid primary key,
       owner_id text null,
@@ -297,6 +305,10 @@ export function buildPushDeviceRecord({
   createdAt = new Date().toISOString(),
   updatedAt = createdAt,
   lastSeenAt = createdAt,
+  lastPushAttemptedAt = null,
+  lastPushSentAt = null,
+  lastPushStatus = null,
+  lastPushError = null,
   disabledAt = null,
 }) {
   return {
@@ -311,6 +323,10 @@ export function buildPushDeviceRecord({
     createdAt,
     updatedAt,
     lastSeenAt,
+    lastPushAttemptedAt,
+    lastPushSentAt,
+    lastPushStatus,
+    lastPushError,
     disabledAt,
   };
 }
@@ -497,6 +513,10 @@ function hydratePushDeviceFromRow(row) {
     createdAt: row.created_at?.toISOString?.() ?? row.created_at,
     updatedAt: row.updated_at?.toISOString?.() ?? row.updated_at,
     lastSeenAt: row.last_seen_at?.toISOString?.() ?? row.last_seen_at,
+    lastPushAttemptedAt: row.last_push_attempted_at?.toISOString?.() ?? row.last_push_attempted_at ?? null,
+    lastPushSentAt: row.last_push_sent_at?.toISOString?.() ?? row.last_push_sent_at ?? null,
+    lastPushStatus: row.last_push_status ?? null,
+    lastPushError: row.last_push_error ?? null,
     disabledAt: row.disabled_at?.toISOString?.() ?? row.disabled_at,
   };
 }
@@ -516,6 +536,10 @@ function publicPushDevice(device) {
     createdAt: device.createdAt,
     updatedAt: device.updatedAt,
     lastSeenAt: device.lastSeenAt,
+    lastPushAttemptedAt: device.lastPushAttemptedAt ?? null,
+    lastPushSentAt: device.lastPushSentAt ?? null,
+    lastPushStatus: device.lastPushStatus ?? null,
+    lastPushError: device.lastPushError ?? null,
     disabledAt: device.disabledAt,
   };
 }
@@ -768,6 +792,25 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       device.disabledAt = new Date().toISOString();
       touchPushDeviceOrder(id);
       return true;
+    },
+    async recordPushDeliveryAttempt(id, {
+      requesterScope = null,
+      ownerId = null,
+      attemptedAt = new Date().toISOString(),
+      sentAt = null,
+      status = null,
+      error = null,
+    } = {}) {
+      const device = pushDevices.get(id);
+      if (!device) return null;
+      if (ownerId && device.ownerId !== ownerId) return null;
+      if (!ownerId && requesterScope && device.requesterScope !== requesterScope) return null;
+      device.lastPushAttemptedAt = attemptedAt;
+      device.lastPushSentAt = sentAt ?? device.lastPushSentAt ?? null;
+      device.lastPushStatus = status;
+      device.lastPushError = error;
+      touchPushDeviceOrder(id);
+      return publicPushDevice(device);
     },
     async createScan({ url, mode, requesterScope, clientIp, ownerId = null }) {
       const clientIpHash = hashClientIp(clientIp);
@@ -1436,6 +1479,35 @@ export function createPostgresScanRepository({
         params,
       );
       return result.rowCount > 0;
+    },
+    async recordPushDeliveryAttempt(id, {
+      requesterScope = null,
+      ownerId = null,
+      attemptedAt = new Date().toISOString(),
+      sentAt = null,
+      status = null,
+      error = null,
+    } = {}) {
+      const filters = ["id = $1"];
+      const params = [id, attemptedAt, sentAt, status, error];
+      if (ownerId) {
+        params.push(ownerId);
+        filters.push(`owner_id = $${params.length}`);
+      } else if (requesterScope) {
+        params.push(requesterScope);
+        filters.push(`requester_scope = $${params.length}`);
+      }
+      const { rows } = await pool.query(
+        `update ${pushDevicesTable}
+         set last_push_attempted_at = $2::timestamptz,
+             last_push_sent_at = coalesce($3::timestamptz, last_push_sent_at),
+             last_push_status = $4,
+             last_push_error = $5
+         where ${filters.join(" and ")}
+         returning *`,
+        params,
+      );
+      return publicPushDevice(hydratePushDeviceFromRow(rows[0]));
     },
     async createScan({ url, mode, requesterScope, clientIp, ownerId = null }) {
       const clientIpHash = hashClientIp(clientIp);

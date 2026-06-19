@@ -115,11 +115,13 @@ export function buildCapabilitiesPayload({
         mode: monitoringScheduler?.mode ?? "quiet",
         intervalMs: monitoringScheduler?.intervalMs ?? null,
         limit: monitoringScheduler?.limit ?? null,
+        lastSweep: monitoringScheduler?.lastSweep ?? null,
       },
       resources: [
         "POST /api/monitoring-targets",
         "GET /api/monitoring-targets",
         "GET /api/monitoring-summary",
+        "GET /api/monitoring-mobile-summary",
         "GET /api/monitoring-targets/:id",
         "GET /api/monitoring-targets/:id/history",
         "POST /api/monitoring-targets/:id/run",
@@ -131,11 +133,14 @@ export function buildCapabilitiesPayload({
       enabled: Boolean(notifications?.enabled),
       features: [
         "device-registration",
+        "device-health",
+        "delivery-audit",
         "monitoring-drift-push",
         "cert-event-push",
       ],
       resources: [
         "GET /api/notification-devices",
+        "GET /api/notification-devices/health",
         "POST /api/notification-devices",
         "DELETE /api/notification-devices/:id",
       ],

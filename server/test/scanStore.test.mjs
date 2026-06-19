@@ -317,6 +317,16 @@ test("scan repository stores push devices without exposing raw tokens in public 
     appId: "com.ktbatterham.certwatch",
   })).length, 0);
 
+  const audited = await repository.recordPushDeliveryAttempt(saved.id, {
+    ownerId: "scan-owner:test",
+    attemptedAt: "2026-06-19T08:00:00.000Z",
+    sentAt: "2026-06-19T08:00:00.000Z",
+    status: "sent",
+  });
+  assert.equal(audited.lastPushStatus, "sent");
+  assert.equal(audited.lastPushAttemptedAt, "2026-06-19T08:00:00.000Z");
+  assert.equal(audited.lastPushSentAt, "2026-06-19T08:00:00.000Z");
+
   assert.equal(await repository.disablePushDevice(saved.id, { ownerId: "scan-owner:test" }), true);
   assert.equal((await repository.listPushDevices({ ownerId: "scan-owner:test" })).length, 0);
 });
@@ -399,6 +409,8 @@ test("scan repository schema statements create the scans table and scoped indexe
   assert.ok(statements.some((statement) => /create table if not exists public\.auth_sessions/i.test(statement)));
   assert.ok(statements.some((statement) => /create table if not exists public\.api_keys/i.test(statement)));
   assert.ok(statements.some((statement) => /create table if not exists public\.push_devices/i.test(statement)));
+  assert.ok(statements.some((statement) => /last_push_attempted_at timestamptz null/i.test(statement)));
+  assert.ok(statements.some((statement) => /last_push_status text null/i.test(statement)));
   const scansStatement = statements.find((statement) => /create table if not exists public\.scans/i.test(statement));
   assert.ok(scansStatement);
   assert.match(scansStatement, /owner_id text null/i);

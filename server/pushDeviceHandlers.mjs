@@ -102,6 +102,74 @@ export async function handlePushDeviceCollectionRequest({
   return true;
 }
 
+export async function handlePushDeviceHealthRequest({
+  request,
+  response,
+  requestUrl,
+  scanRepository,
+  authorizeAnalysisRequest,
+  sendJson,
+  sendMethodNotAllowed,
+  sendRepositoryUnavailable,
+}) {
+  if (request.method !== "GET") {
+    sendMethodNotAllowed(response, ["GET"]);
+    return true;
+  }
+
+  const authState = await authorizeAnalysisRequest({
+    request,
+    response,
+    requestPath: requestUrl.pathname,
+    enforceRateLimit: false,
+    requireScanOwner: true,
+  });
+  if (!authState) {
+    return true;
+  }
+
+  try {
+    const devices = await scanRepository.listPushDevices({
+      ownerId: authState.ownerId,
+      requesterScope: authState.ownerId ? null : authState.requesterScope,
+      limit: clampLimit(requestUrl.searchParams.get("limit"), 100, 250),
+    });
+    const activeDevices = devices.filter((device) => !device.disabledAt);
+    const byAppId = {};
+    for (const device of activeDevices) {
+      const key = device.appId || "unknown";
+      byAppId[key] = (byAppId[key] ?? 0) + 1;
+    }
+
+    sendJson(response, 200, {
+      apiVersion: API_VERSION,
+      health: {
+        registeredDevices: devices.length,
+        activeDevices: activeDevices.length,
+        byAppId,
+        lastSeenAt: activeDevices[0]?.lastSeenAt ?? null,
+        lastPushAttemptedAt: activeDevices.find((device) => device.lastPushAttemptedAt)?.lastPushAttemptedAt ?? null,
+        lastPushSentAt: activeDevices.find((device) => device.lastPushSentAt)?.lastPushSentAt ?? null,
+      },
+      devices: activeDevices.map((device) => ({
+        id: device.id,
+        platform: device.platform,
+        appId: device.appId,
+        environment: device.environment,
+        lastSeenAt: device.lastSeenAt,
+        lastPushAttemptedAt: device.lastPushAttemptedAt,
+        lastPushSentAt: device.lastPushSentAt,
+        lastPushStatus: device.lastPushStatus,
+        lastPushError: device.lastPushError,
+      })),
+    });
+  } catch (error) {
+    sendRepositoryUnavailable(response, error, "notification_device_health");
+  }
+
+  return true;
+}
+
 export async function handlePushDeviceItemRequest({
   request,
   response,

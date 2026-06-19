@@ -16,6 +16,7 @@ import {
 } from "./requestGuards.mjs";
 import {
   buildMonitoringTargetDetailPayload,
+  buildMonitoringMobileSummaryPayload,
   buildMonitoringSummaryPayload,
   buildMonitoringTargetView,
   buildMonitoringTargetsPayload,
@@ -34,12 +35,14 @@ import {
   buildTargetHistoryPayload,
 } from "./scanDtos.mjs";
 import {
+  handleMonitoringMobileSummaryRequest,
   handleMonitoringSummaryRequest,
   handleMonitoringTargetCollectionRequest,
   handleMonitoringTargetItemRequest,
 } from "./monitoringTargetHandlers.mjs";
 import {
   handlePushDeviceCollectionRequest,
+  handlePushDeviceHealthRequest,
   handlePushDeviceItemRequest,
 } from "./pushDeviceHandlers.mjs";
 import { createMonitoringScheduler } from "./monitoringScheduler.mjs";
@@ -712,6 +715,24 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
+  if (requestUrl.pathname === "/api/notification-devices/health") {
+    await handlePushDeviceHealthRequest({
+      request,
+      response,
+      requestUrl,
+      scanRepository,
+      authorizeAnalysisRequest: (options) => withAuthResolvers({
+        ...options,
+        sendJsonResponse: sendApiJson,
+        sendRateLimitedResponse: sendApiRateLimited,
+      }),
+      sendJson: sendApiJson,
+      sendMethodNotAllowed: sendApiMethodNotAllowed,
+      sendRepositoryUnavailable: sendApiRepositoryUnavailable,
+    });
+    return;
+  }
+
   if (requestUrl.pathname.startsWith("/api/notification-devices/")) {
     await handlePushDeviceItemRequest({
       request,
@@ -766,6 +787,25 @@ const server = http.createServer(async (request, response) => {
         sendRateLimitedResponse: sendApiRateLimited,
       }),
       buildMonitoringSummaryPayload,
+      sendJson: sendApiJson,
+      sendMethodNotAllowed: sendApiMethodNotAllowed,
+      sendRepositoryUnavailable: sendApiRepositoryUnavailable,
+    });
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/monitoring-mobile-summary") {
+    await handleMonitoringMobileSummaryRequest({
+      request,
+      response,
+      requestUrl,
+      scanRepository,
+      authorizeAnalysisRequest: (options) => withAuthResolvers({
+        ...options,
+        sendJsonResponse: sendApiJson,
+        sendRateLimitedResponse: sendApiRateLimited,
+      }),
+      buildMonitoringMobileSummaryPayload,
       sendJson: sendApiJson,
       sendMethodNotAllowed: sendApiMethodNotAllowed,
       sendRepositoryUnavailable: sendApiRepositoryUnavailable,
