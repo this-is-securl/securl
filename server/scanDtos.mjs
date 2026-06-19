@@ -265,6 +265,36 @@ function buildStoredTargetDiff(records) {
   };
 }
 
+function buildMobilePostureDriftSummary(comparison) {
+  if (!comparison?.drift) {
+    return null;
+  }
+
+  return {
+    currentScanId: comparison.currentScanId,
+    previousScanId: comparison.previousScanId,
+    direction: comparison.drift.direction,
+    severity: comparison.drift.severity,
+    scoreDelta: comparison.drift.scoreDelta,
+    gradeChanged: comparison.drift.gradeChanged,
+    hasRegression: comparison.drift.hasRegression,
+    hasImprovement: comparison.drift.hasImprovement,
+    changedAreas: normalizeArray(comparison.drift.changedAreas).slice(0, 8),
+    eventCounts: comparison.drift.eventCounts ?? {
+      critical: 0,
+      warning: 0,
+      info: 0,
+    },
+    summary: normalizeArray(comparison.drift.summary).slice(0, 3),
+    topEvents: normalizeArray(comparison.drift.topEvents).slice(0, 3).map((event) => ({
+      eventType: event.eventType,
+      severity: event.severity,
+      title: event.title,
+      detail: event.detail,
+    })),
+  };
+}
+
 function cadenceWindowMs(cadence) {
   if (cadence === "hourly") return 60 * 60 * 1000;
   if (cadence === "6h") return 6 * 60 * 60 * 1000;
@@ -624,6 +654,7 @@ function buildMobileTargetSummary(target, records = []) {
           issues: normalizeArray(view.cert.issues).slice(0, 5),
         }
       : null,
+    posture: buildMobilePostureDriftSummary(comparison),
     changes: {
       postureRiskEvents: comparison?.riskEvents?.length ?? 0,
       certEvents: certEventCount,
