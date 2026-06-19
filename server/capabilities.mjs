@@ -101,6 +101,7 @@ export function buildCapabilitiesPayload({
       features: [
         "live-certificate",
         "tls-handshake-only",
+        "cert-attention-state",
       ],
       resources: [
         "GET /api/certificates/live?url=:url",

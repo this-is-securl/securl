@@ -98,6 +98,44 @@ function expiryBandForDays(daysRemaining) {
   return [...EXPIRY_WARNING_BANDS].reverse().find((band) => daysRemaining <= band) ?? null;
 }
 
+export function buildCertAttention(state) {
+  if (!state) {
+    return null;
+  }
+
+  if (!state.reachable) {
+    return {
+      type: "unreachable",
+      severity: "critical",
+      title: `Certificate check failed: ${state.host ?? "unknown host"}`,
+      body: state.issues?.[0] || "The TLS endpoint could not be reached.",
+    };
+  }
+
+  if (typeof state.daysRemaining === "number" && state.daysRemaining <= 0) {
+    return {
+      type: "cert_expired",
+      severity: "critical",
+      title: `Certificate expired: ${state.host ?? "unknown host"}`,
+      body: "The served certificate is no longer within its validity window.",
+    };
+  }
+
+  const warningBand = expiryBandForDays(state.daysRemaining);
+  if (warningBand !== null) {
+    const severity = warningBand <= 7 ? "critical" : "warning";
+    return {
+      type: "cert_expiring",
+      severity,
+      warningBand,
+      title: `Certificate expiring: ${state.host ?? "unknown host"}`,
+      body: `${state.daysRemaining} day${state.daysRemaining === 1 ? "" : "s"} remaining.`,
+    };
+  }
+
+  return null;
+}
+
 export function detectCertMonitoringEvent(previousState, nextState) {
   if (!nextState) {
     return null;
@@ -209,6 +247,7 @@ export async function runCertificateMonitorCheck({
     : event?.warningBand ?? previousState?.lastWarnedBand ?? null;
   const nextCertState = {
     ...nextState,
+    attention: buildCertAttention(nextState),
     lastWarnedBand,
     lastEventType: event?.type ?? previousState?.lastEventType ?? null,
     history: appendCertHistory(previousState, nextState, event),

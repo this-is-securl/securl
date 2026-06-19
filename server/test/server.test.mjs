@@ -510,6 +510,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.monitoring.resources.includes("POST /api/monitoring-targets/:id/run"));
     assert.ok(payload.certificates.resources.includes("GET /api/certificates/live?url=:url"));
     assert.ok(payload.certificates.features.includes("live-certificate"));
+    assert.ok(payload.certificates.features.includes("cert-attention-state"));
     assert.ok(payload.notifications.features.includes("device-health"));
     assert.ok(payload.notifications.features.includes("delivery-audit"));
     assert.ok(payload.notifications.resources.includes("GET /api/notification-devices/health"));

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildCertAttention,
   detectCertMonitoringEvent,
   normalizeMonitoringAppId,
   normalizeMonitoringCadence,
@@ -75,6 +76,67 @@ test("cert monitoring only emits tighter expiry bands", () => {
       { reachable: true, serialNumber: "ABC", issuer: "CA", daysRemaining: 13 },
     ),
     null,
+  );
+});
+
+test("cert monitoring surfaces initial certificate attention without firing an event", () => {
+  const expiringState = {
+    reachable: true,
+    host: "example.com",
+    daysRemaining: 6,
+    issues: [],
+  };
+
+  assert.equal(detectCertMonitoringEvent(null, expiringState), null);
+  assert.deepEqual(buildCertAttention(expiringState), {
+    type: "cert_expiring",
+    severity: "critical",
+    warningBand: 7,
+    title: "Certificate expiring: example.com",
+    body: "6 days remaining.",
+  });
+});
+
+test("cert monitoring attention clears when the certificate is healthy", () => {
+  assert.equal(
+    buildCertAttention({
+      reachable: true,
+      host: "example.com",
+      daysRemaining: 89,
+      issues: [],
+    }),
+    null,
+  );
+});
+
+test("cert monitoring marks first-seen expired and unreachable certificates as critical attention", () => {
+  assert.deepEqual(
+    buildCertAttention({
+      reachable: true,
+      host: "expired.example",
+      daysRemaining: 0,
+      issues: [],
+    }),
+    {
+      type: "cert_expired",
+      severity: "critical",
+      title: "Certificate expired: expired.example",
+      body: "The served certificate is no longer within its validity window.",
+    },
+  );
+
+  assert.deepEqual(
+    buildCertAttention({
+      reachable: false,
+      host: "down.example",
+      issues: ["connect timeout"],
+    }),
+    {
+      type: "unreachable",
+      severity: "critical",
+      title: "Certificate check failed: down.example",
+      body: "connect timeout",
+    },
   );
 });
 

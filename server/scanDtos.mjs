@@ -620,6 +620,7 @@ function buildMobileTargetSummary(target, records = []) {
           serialNumber: view.cert.serialNumber ?? null,
           lastEventType: view.cert.lastEventType ?? null,
           lastWarnedBand: view.cert.lastWarnedBand ?? null,
+          attention: view.cert.attention ?? null,
           issues: normalizeArray(view.cert.issues).slice(0, 5),
         }
       : null,
