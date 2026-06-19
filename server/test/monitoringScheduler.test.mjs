@@ -12,8 +12,12 @@ function makeTarget(overrides = {}) {
     url: overrides.url ?? "https://example.com/",
     label: overrides.label ?? "example.com",
     cadence: overrides.cadence ?? "daily",
+    kind: overrides.kind ?? "posture",
+    mode: overrides.mode ?? null,
+    appId: overrides.appId ?? null,
     addedAt: overrides.addedAt ?? "2026-05-28T12:00:00.000Z",
     lastScannedAt: overrides.lastScannedAt ?? null,
+    lastCheckedAt: overrides.lastCheckedAt ?? null,
   };
 }
 
@@ -59,6 +63,8 @@ test("monitoring sweep queues scans for due targets", async () => {
     checked: 1,
     due: 1,
     queued: 1,
+    certChecked: 0,
+    certNotified: 0,
     skipped: 0,
     failed: 0,
   });
@@ -116,6 +122,55 @@ test("monitoring sweep skips a due target with an active scan", async () => {
   assert.equal(result.skipped, 1);
   assert.equal(repository.createdScans.length, 0);
   assert.equal(enqueued.length, 0);
+});
+
+test("monitoring sweep runs certificate checks for due cert targets", async () => {
+  const target = makeTarget({
+    kind: "cert",
+    cadence: "hourly",
+    appId: "com.ktbatterham.certwatch",
+  });
+  const repository = createFakeRepository({ targets: [target] });
+  const enqueued = [];
+  const checked = [];
+
+  const result = await runMonitoringSweep({
+    scanRepository: repository,
+    enqueueScan: (job) => enqueued.push(job),
+    runCertificateCheck: async (certTarget) => {
+      checked.push(certTarget);
+      return { event: { type: "cert_expiring" } };
+    },
+    now: NOW,
+    log: () => {},
+  });
+
+  assert.equal(result.due, 1);
+  assert.equal(result.queued, 0);
+  assert.equal(result.certChecked, 1);
+  assert.equal(result.certNotified, 1);
+  assert.equal(repository.createdScans.length, 0);
+  assert.equal(enqueued.length, 0);
+  assert.equal(checked[0].id, target.id);
+});
+
+test("monitoring sweep honors hourly cadence against last cert check", async () => {
+  const target = makeTarget({
+    kind: "cert",
+    cadence: "hourly",
+    lastCheckedAt: "2026-05-30T11:30:00.000Z",
+  });
+  const repository = createFakeRepository({ targets: [target] });
+  const result = await runMonitoringSweep({
+    scanRepository: repository,
+    enqueueScan: () => {},
+    runCertificateCheck: async () => ({ event: null }),
+    now: NOW,
+    log: () => {},
+  });
+
+  assert.equal(result.due, 0);
+  assert.equal(result.certChecked, 0);
 });
 
 test("monitoring scheduler remains idle when disabled", () => {

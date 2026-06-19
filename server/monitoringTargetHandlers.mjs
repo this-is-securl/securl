@@ -1,4 +1,11 @@
 import { API_VERSION } from "./scanDtos.mjs";
+import {
+  normalizeMonitoringAppId,
+  normalizeMonitoringCadence,
+  normalizeMonitoringKind,
+  normalizeMonitoringMode,
+  runCertificateMonitorCheck,
+} from "./certMonitoring.mjs";
 
 function clampLimit(value, fallback = 50, max = 100) {
   if (value === null || value === undefined || value === "") {
@@ -92,6 +99,7 @@ export async function handleMonitoringTargetCollectionRequest({
   assertPublicHttpUrl,
   buildMonitoringTargetView,
   buildMonitoringTargetsPayload,
+  notificationService = null,
   sendJson,
   sendMethodNotAllowed,
   sendRepositoryUnavailable,
@@ -149,8 +157,17 @@ export async function handleMonitoringTargetCollectionRequest({
   try {
     const body = await readJsonBody(request);
     const target = typeof body.url === "string" ? body.url : "";
-    const cadence = body.cadence === "weekly" ? "weekly" : "daily";
+    const kind = normalizeMonitoringKind(body.kind);
+    const cadence = normalizeMonitoringCadence(body.cadence, "daily");
+    const mode = kind === "posture" ? normalizeMonitoringMode(body.mode, "quiet") : null;
+    const appId = normalizeMonitoringAppId(body.appId);
     const validatedTarget = await assertPublicHttpUrl(target);
+    if (kind === "cert" && validatedTarget.protocol !== "https:") {
+      sendJson(response, 400, {
+        error: "Certificate monitoring requires an HTTPS URL.",
+      });
+      return true;
+    }
     const label = typeof body.label === "string" && body.label.trim()
       ? body.label.trim().slice(0, 200)
       : validatedTarget.hostname;
@@ -159,19 +176,32 @@ export async function handleMonitoringTargetCollectionRequest({
       url: validatedTarget.toString(),
       label,
       cadence,
+      kind,
+      mode,
+      appId,
       requesterScope: authState.requesterScope,
       ownerId: authState.ownerId,
     });
 
+    let viewTarget = savedTarget;
+    if (kind === "cert") {
+      const outcome = await runCertificateMonitorCheck({
+        target: savedTarget,
+        scanRepository,
+        notificationService,
+      });
+      viewTarget = outcome.target;
+    }
+
     const records = await scanRepository.listPersistedRecords({
       ownerId: authState.ownerId,
-      url: savedTarget.url,
+      url: viewTarget.url,
       limit: 5,
     });
 
     sendJson(response, 201, {
       apiVersion: API_VERSION,
-      target: buildMonitoringTargetView(savedTarget, records),
+      target: buildMonitoringTargetView(viewTarget, records),
     });
   } catch (error) {
     telemetry.recordFailure(classifyScanFailure(error));
@@ -195,6 +225,7 @@ export async function handleMonitoringTargetItemRequest({
   checkTargetQuota,
   runScanAnalysis,
   enqueueScan,
+  buildMonitoringTargetView,
   buildMonitoringTargetDetailPayload,
   telemetry,
   classifyScanFailure,
@@ -240,6 +271,35 @@ export async function handleMonitoringTargetItemRequest({
 
     action = requestedAction;
 
+    if (action === "history") {
+      if (request.method !== "GET") {
+        sendMethodNotAllowed(response, ["GET"]);
+        return true;
+      }
+
+      if ((target.kind ?? "posture") === "cert") {
+        sendJson(response, 200, {
+          apiVersion: API_VERSION,
+          target: buildMonitoringTargetView(target, []),
+          history: Array.isArray(target.certState?.history) ? target.certState.history : [],
+        });
+        return true;
+      }
+
+      const records = await listMonitoringTargetRecords(
+        scanRepository,
+        authState.ownerId,
+        target,
+        clampLimit(requestUrl.searchParams.get("limit"), 25, 100),
+      );
+      sendJson(response, 200, {
+        apiVersion: API_VERSION,
+        target: buildMonitoringTargetView(target, records),
+        history: records.map((record) => record.summary).filter(Boolean),
+      });
+      return true;
+    }
+
     if (!action && request.method === "GET") {
       const records = await listMonitoringTargetRecords(
         scanRepository,
@@ -265,6 +325,21 @@ export async function handleMonitoringTargetItemRequest({
     if (action === "run") {
       if (request.method !== "POST") {
         sendMethodNotAllowed(response, ["POST"]);
+        return true;
+      }
+
+      if ((target.kind ?? "posture") === "cert") {
+        const outcome = await runCertificateMonitorCheck({
+          target,
+          scanRepository,
+          notificationService,
+          log,
+        });
+        sendJson(response, 200, {
+          apiVersion: API_VERSION,
+          target: buildMonitoringTargetView(outcome.target, []),
+          event: outcome.event ?? null,
+        });
         return true;
       }
 
