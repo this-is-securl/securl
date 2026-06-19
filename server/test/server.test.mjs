@@ -503,10 +503,16 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.equal(payload.monitoring.scheduler.enabled, true);
     assert.equal(payload.monitoring.scheduler.mode, "quiet");
     assert.equal(payload.monitoring.scheduler.intervalMs, 60000);
+    assert.equal(typeof payload.monitoring.scheduler.lastSweep.checked, "number");
+    assert.equal(typeof payload.monitoring.scheduler.lastSweep.failed, "number");
     assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-summary"));
+    assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-mobile-summary"));
     assert.ok(payload.monitoring.resources.includes("POST /api/monitoring-targets/:id/run"));
     assert.ok(payload.certificates.resources.includes("GET /api/certificates/live?url=:url"));
     assert.ok(payload.certificates.features.includes("live-certificate"));
+    assert.ok(payload.notifications.features.includes("device-health"));
+    assert.ok(payload.notifications.features.includes("delivery-audit"));
+    assert.ok(payload.notifications.resources.includes("GET /api/notification-devices/health"));
     assert.ok(payload.notifications.resources.includes("POST /api/notification-devices"));
     assert.equal(payload.notifications.enabled, false);
     assert.equal(payload.safety.passiveFirst, true);
@@ -1179,6 +1185,17 @@ test("notification devices can be registered, listed, and disabled without echoi
     assert.equal(listResponse.status, 200);
     assert.equal(listPayload.devices.length, 1);
     assert.equal(listPayload.devices[0].token, undefined);
+    assert.equal(listPayload.devices[0].lastPushStatus, null);
+
+    const healthResponse = await fetch(`${server.baseUrl}/api/notification-devices/health`, {
+      headers: scanOwnerHeaders(),
+    });
+    const healthPayload = await healthResponse.json();
+    assert.equal(healthResponse.status, 200);
+    assert.equal(healthPayload.health.registeredDevices, 1);
+    assert.equal(healthPayload.health.activeDevices, 1);
+    assert.equal(healthPayload.health.byAppId["online.securl.app"], 1);
+    assert.equal(healthPayload.devices[0].lastPushStatus, null);
 
     const deleteResponse = await fetch(`${server.baseUrl}/api/notification-devices/${createPayload.device.id}`, {
       method: "DELETE",
@@ -1250,6 +1267,16 @@ test("monitoring targets can be created, listed, and deleted", async () => {
     assert.equal(listPayload.targets[0].id, targetId);
     assert.equal(listPayload.targets[0].ownerId, undefined);
     assert.equal(listPayload.targets[0].requesterScope, undefined);
+
+    const mobileSummaryResponse = await fetch(`${server.baseUrl}/api/monitoring-mobile-summary`, {
+      headers: scanOwnerHeaders(SCAN_OWNER_ONE),
+    });
+    const mobileSummaryPayload = await mobileSummaryResponse.json();
+    assert.equal(mobileSummaryResponse.status, 200);
+    assert.equal(mobileSummaryPayload.summary.totalTargets, 1);
+    assert.equal(mobileSummaryPayload.summary.postureTargets, 1);
+    assert.equal(mobileSummaryPayload.targets[0].id, targetId);
+    assert.equal(mobileSummaryPayload.targets[0].latestScan, null);
 
     const deleteResponse = await fetch(`${server.baseUrl}/api/monitoring-targets/${targetId}`, {
       method: "DELETE",

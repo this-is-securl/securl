@@ -89,6 +89,56 @@ export async function handleMonitoringSummaryRequest({
   return true;
 }
 
+export async function handleMonitoringMobileSummaryRequest({
+  request,
+  response,
+  requestUrl,
+  scanRepository,
+  authorizeAnalysisRequest,
+  buildMonitoringMobileSummaryPayload,
+  sendJson,
+  sendMethodNotAllowed,
+  sendRepositoryUnavailable,
+}) {
+  if (request.method !== "GET") {
+    sendMethodNotAllowed(response, ["GET"]);
+    return true;
+  }
+
+  const authState = await authorizeAnalysisRequest({
+    request,
+    response,
+    requestPath: requestUrl.pathname,
+    enforceRateLimit: false,
+    requireScanOwner: true,
+  });
+  if (!authState) {
+    return true;
+  }
+
+  try {
+    const limit = clampLimit(requestUrl.searchParams.get("limit"), 100, 250);
+    const targets = await scanRepository.listMonitoringTargets({
+      ownerId: authState.ownerId,
+      limit,
+    });
+    const entries = await Promise.all(
+      targets.map(async (target) => ({
+        target,
+        records: target.kind === "cert"
+          ? []
+          : await listMonitoringTargetRecords(scanRepository, authState.ownerId, target, 3),
+      })),
+    );
+
+    sendJson(response, 200, buildMonitoringMobileSummaryPayload(entries));
+  } catch (error) {
+    sendRepositoryUnavailable(response, error, "monitoring_mobile_summary");
+  }
+
+  return true;
+}
+
 export async function handleMonitoringTargetCollectionRequest({
   request,
   response,

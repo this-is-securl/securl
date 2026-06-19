@@ -579,6 +579,76 @@ export function buildMonitoringSummaryPayload(targetEntries = []) {
   };
 }
 
+function buildMobileTargetSummary(target, records = []) {
+  const view = buildMonitoringTargetView(target, records);
+  const comparison = buildStoredTargetDiff(records);
+  const certHistory = Array.isArray(view.cert?.history) ? view.cert.history : [];
+  const certEventCount = certHistory.filter((entry) => entry?.eventType).length;
+
+  return {
+    id: view.id,
+    kind: view.kind,
+    url: view.url,
+    label: view.label,
+    cadence: view.cadence,
+    mode: view.mode,
+    appId: view.appId,
+    addedAt: view.addedAt,
+    lastCheckedAt: view.lastCheckedAt,
+    nextDueAt: view.nextDueAt,
+    due: view.due,
+    latestScan: view.latestScan
+      ? {
+          id: view.latestScan.id,
+          status: view.latestScan.status,
+          grade: view.latestScan.grade,
+          score: view.latestScan.score,
+          completedAt: view.latestScan.completedAt,
+          findingsCount: view.latestScan.findingsCount,
+          mainRisk: view.latestScan.mainRisk,
+        }
+      : null,
+    scoreDelta: view.scoreDelta,
+    cert: view.cert
+      ? {
+          reachable: view.cert.reachable ?? false,
+          checkedAt: view.cert.checkedAt ?? null,
+          host: view.cert.host ?? null,
+          issuer: view.cert.issuer ?? null,
+          validTo: view.cert.validTo ?? null,
+          daysRemaining: view.cert.daysRemaining ?? null,
+          serialNumber: view.cert.serialNumber ?? null,
+          lastEventType: view.cert.lastEventType ?? null,
+          lastWarnedBand: view.cert.lastWarnedBand ?? null,
+          issues: normalizeArray(view.cert.issues).slice(0, 5),
+        }
+      : null,
+    changes: {
+      postureRiskEvents: comparison?.riskEvents?.length ?? 0,
+      certEvents: certEventCount,
+    },
+  };
+}
+
+export function buildMonitoringMobileSummaryPayload(targetEntries = []) {
+  const targets = normalizeArray(targetEntries).map(({ target, records }) => buildMobileTargetSummary(target, records));
+  const dueTargets = targets.filter((target) => target.due).length;
+  const certTargets = targets.filter((target) => target.kind === "cert").length;
+  const postureTargets = targets.filter((target) => target.kind !== "cert").length;
+
+  return {
+    apiVersion: API_VERSION,
+    summary: {
+      totalTargets: targets.length,
+      dueTargets,
+      postureTargets,
+      certTargets,
+      changes: targets.reduce((total, target) => total + target.changes.postureRiskEvents + target.changes.certEvents, 0),
+    },
+    targets,
+  };
+}
+
 export function buildMonitoringTargetDetailPayload(target, records = [], events = []) {
   const view = buildMonitoringTargetView(target, records);
 

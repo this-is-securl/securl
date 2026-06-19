@@ -172,6 +172,7 @@ export function createNotificationService({
 
     let sent = 0;
     for (const device of devices) {
+      const attemptedAt = new Date().toISOString();
       try {
         const response = await sendApns({
           token: device.token,
@@ -182,10 +183,33 @@ export function createNotificationService({
         });
         if (response.statusCode >= 200 && response.statusCode < 300) {
           sent += 1;
+          await scanRepository.recordPushDeliveryAttempt?.(device.id, {
+            ownerId: device.ownerId,
+            requesterScope: device.ownerId ? null : device.requesterScope,
+            attemptedAt,
+            sentAt: attemptedAt,
+            status: "sent",
+            error: null,
+          });
         } else if (response.statusCode === 410 || response.statusCode === 400) {
+          await scanRepository.recordPushDeliveryAttempt?.(device.id, {
+            ownerId: device.ownerId,
+            requesterScope: device.ownerId ? null : device.requesterScope,
+            attemptedAt,
+            status: `apns_${response.statusCode}`,
+            error: response.body?.reason ? String(response.body.reason).slice(0, 500) : null,
+          });
           await scanRepository.disablePushDevice(device.id, {
             ownerId: device.ownerId,
             requesterScope: device.ownerId ? null : device.requesterScope,
+          });
+        } else {
+          await scanRepository.recordPushDeliveryAttempt?.(device.id, {
+            ownerId: device.ownerId,
+            requesterScope: device.ownerId ? null : device.requesterScope,
+            attemptedAt,
+            status: `apns_${response.statusCode || "unknown"}`,
+            error: response.body?.reason ? String(response.body.reason).slice(0, 500) : null,
           });
         }
         log(response.statusCode >= 200 && response.statusCode < 300 ? "info" : "warn", logEventName, {
@@ -199,6 +223,13 @@ export function createNotificationService({
           referenceId,
           deviceId: device.id,
           message: error instanceof Error ? error.message : String(error),
+        });
+        await scanRepository.recordPushDeliveryAttempt?.(device.id, {
+          ownerId: device.ownerId,
+          requesterScope: device.ownerId ? null : device.requesterScope,
+          attemptedAt,
+          status: "send_failed",
+          error: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500),
         });
       }
     }
