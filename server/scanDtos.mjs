@@ -266,11 +266,18 @@ function buildStoredTargetDiff(records) {
 }
 
 function cadenceWindowMs(cadence) {
-  return cadence === "weekly" ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+  if (cadence === "hourly") return 60 * 60 * 1000;
+  if (cadence === "6h") return 6 * 60 * 60 * 1000;
+  if (cadence === "weekly") return 7 * 24 * 60 * 60 * 1000;
+  return 24 * 60 * 60 * 1000;
 }
 
 export function buildMonitoringTargetView(target, records = []) {
-  const baseTime = target.lastScannedAt ? new Date(target.lastScannedAt).getTime() : new Date(target.addedAt).getTime();
+  const baseTime = target.lastCheckedAt
+    ? new Date(target.lastCheckedAt).getTime()
+    : target.lastScannedAt
+      ? new Date(target.lastScannedAt).getTime()
+      : new Date(target.addedAt).getTime();
   const nextDueAt = new Date(baseTime + cadenceWindowMs(target.cadence)).toISOString();
   const scans = normalizeArray(records).map((record) => record.summary).filter(Boolean);
   const completedScans = scans.filter((scan) => scan.status === "completed");
@@ -282,10 +289,15 @@ export function buildMonitoringTargetView(target, records = []) {
     url: target.url,
     label: target.label,
     cadence: target.cadence,
+    kind: target.kind ?? "posture",
+    mode: target.mode ?? null,
+    appId: target.appId ?? null,
     addedAt: target.addedAt,
     lastScannedAt: target.lastScannedAt ?? null,
+    lastCheckedAt: target.lastCheckedAt ?? target.lastScannedAt ?? null,
     nextDueAt,
     due: Date.now() >= new Date(nextDueAt).getTime(),
+    cert: target.certState ?? null,
     latestScan,
     previousScan,
     scoreDelta:
