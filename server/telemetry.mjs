@@ -31,6 +31,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     limitedReadKinds: {},
     funnelEvents: {},
     funnelEventsBySource: {},
+    funnelEventsByMode: {},
     funnelDays: {},
     recentFunnelEvents: [],
     failureClasses: {},
@@ -127,6 +128,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     state.limitedReadKinds = { ...(value.limitedReadKinds || {}) };
     state.funnelEvents = { ...(value.funnelEvents || {}) };
     state.funnelEventsBySource = { ...(value.funnelEventsBySource || {}) };
+    state.funnelEventsByMode = { ...(value.funnelEventsByMode || {}) };
     state.funnelDays = Object.fromEntries(
       Object.entries(value.funnelDays || {}).map(([date, bucket]) => [
         date,
@@ -310,6 +312,12 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         state.funnelEventsBySource[sanitized.source] = {};
       }
       incrementBucket(state.funnelEventsBySource[sanitized.source], sanitized.event);
+      if (sanitized.mode) {
+        if (!state.funnelEventsByMode[sanitized.mode]) {
+          state.funnelEventsByMode[sanitized.mode] = {};
+        }
+        incrementBucket(state.funnelEventsByMode[sanitized.mode], sanitized.event);
+      }
       const dateKey = now.toISOString().slice(0, 10);
       const dayBucket = getFunnelDayBucket(dateKey);
       incrementBucket(dayBucket.events, sanitized.event);
@@ -446,6 +454,12 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
           bySource: Object.fromEntries(
             Object.entries(state.funnelEventsBySource).map(([source, events]) => [
               source,
+              { ...events },
+            ]),
+          ),
+          byMode: Object.fromEntries(
+            Object.entries(state.funnelEventsByMode).map(([mode, events]) => [
+              mode,
               { ...events },
             ]),
           ),

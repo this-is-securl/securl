@@ -50,6 +50,7 @@ test("telemetry tracker records aggregate counts", () => {
     source: "hacker_news",
     target: "https://example.com/",
     scanId: "scan-one",
+    mode: "standard",
   });
   telemetry.recordFunnelEvent({
     event: "handoff_started",
@@ -70,6 +71,7 @@ test("telemetry tracker records aggregate counts", () => {
   telemetry.recordFunnelEvent({
     event: "notification_device_registered",
     source: "backend_api",
+    mode: "com.ktbatterham.securl",
   });
   telemetry.recordFunnelEvent({
     event: "notification_device_health_read",
@@ -133,6 +135,8 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.funnel.bySource.hacker_news.scan_started, 1);
   assert.equal(snapshot.funnel.bySource.backend_api.monitoring_mobile_summary_read, 1);
   assert.equal(snapshot.funnel.bySource["utm:landing"].handoff_started, 1);
+  assert.equal(snapshot.funnel.byMode.standard.scan_started, 1);
+  assert.equal(snapshot.funnel.byMode["com.ktbatterham.securl"].notification_device_registered, 1);
   assert.equal(snapshot.funnel.today.scan_started, 1);
   assert.equal(snapshot.funnel.today.handoff_started, 1);
   assert.equal(snapshot.funnel.recent.length, 7);
@@ -155,7 +159,12 @@ test("telemetry tracker can persist counters to disk", () => {
       target: "https://example.com/path?token=secret",
       now: new Date("2026-05-15T09:00:00Z"),
     });
-    first.recordFunnelEvent({ event: "report_viewed", source: "reddit", target: "https://example.com/path?token=secret" });
+    first.recordFunnelEvent({
+      event: "report_viewed",
+      source: "reddit",
+      target: "https://example.com/path?token=secret",
+      mode: "ios",
+    });
     first.recordFailure("requester_rate_limited", {
       target: "https://example.com/path?token=secret",
       message: "Too many requests\tfrom this client.",
@@ -180,6 +189,7 @@ test("telemetry tracker can persist counters to disk", () => {
     assert.equal(snapshot.scans.engagement.recent[0].target, "https://example.com");
     assert.equal(snapshot.funnel.events.report_viewed, 1);
     assert.equal(snapshot.funnel.bySource.reddit.report_viewed, 1);
+    assert.equal(snapshot.funnel.byMode.ios.report_viewed, 1);
     assert.equal(snapshot.funnel.recent[0].target, "https://example.com");
     assert.equal(snapshot.failures.classes.requester_rate_limited, 1);
     assert.equal(snapshot.failures.recent.length, 1);
