@@ -61,6 +61,7 @@ export function buildCapabilitiesPayload({
         "vendor-exposure",
         "action-plan",
         "scan-events",
+        "scan-resource-links",
       ],
       scoring: {
         model: "weighted-passive-posture",

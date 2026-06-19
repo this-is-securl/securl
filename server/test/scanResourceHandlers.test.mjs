@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  buildScanResourceLinks,
   getDeploymentScopedResultCacheAgeMs,
   RESULT_CACHE_TTL_MS,
 } from "../scanResourceHandlers.mjs";
@@ -13,4 +14,19 @@ test("deployment-scoped result cache ignores pre-start scans and caps the ttl", 
     getDeploymentScopedResultCacheAgeMs(RESULT_CACHE_TTL_MS + 5_000, 0),
     RESULT_CACHE_TTL_MS,
   );
+});
+
+test("scan resource links point clients at lightweight follow-up endpoints", () => {
+  assert.deepEqual(buildScanResourceLinks("scan-one"), {
+    detail: "/api/scans/scan-one",
+    summary: "/api/scans/scan-one/summary",
+    findings: "/api/scans/scan-one/findings",
+    digest: "/api/scans/scan-one/digest",
+    events: "/api/scans/scan-one/events",
+    evidence: "/api/scans/scan-one/evidence",
+    history: "/api/scans/scan-one/history",
+    comparison: "/api/scans/scan-one/comparison",
+    drift: "/api/scans/scan-one/drift",
+    share: "/api/scans/scan-one/share",
+  });
 });

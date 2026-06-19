@@ -484,6 +484,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.scans.features.includes("vendor-exposure"));
     assert.ok(payload.scans.features.includes("action-plan"));
     assert.ok(payload.scans.features.includes("scan-events"));
+    assert.ok(payload.scans.features.includes("scan-resource-links"));
     assert.equal(payload.scans.scoring.model, "weighted-passive-posture");
     assert.equal(payload.scans.scoring.version, "2026-06-14");
     assert.deepEqual(payload.scans.scoring.scoreRange, { min: 0, max: 100 });
@@ -967,6 +968,8 @@ test("authenticated sessions can own scan and monitoring resources without scan-
     const scanPayload = await scanResponse.json();
     assert.equal(scanResponse.status, 202);
     assert.match(scanPayload.scan.id, /[a-f0-9-]{36}/i);
+    assert.equal(scanPayload.resources.events, `/api/scans/${scanPayload.scan.id}/events`);
+    assert.equal(scanPayload.resources.digest, `/api/scans/${scanPayload.scan.id}/digest`);
 
     const listResponse = await fetch(`${server.baseUrl}/api/scans`, {
       headers: bearerHeaders(token),
