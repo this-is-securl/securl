@@ -711,6 +711,7 @@ const server = http.createServer(async (request, response) => {
       sendJson: sendApiJson,
       sendMethodNotAllowed: sendApiMethodNotAllowed,
       sendRepositoryUnavailable: sendApiRepositoryUnavailable,
+      telemetry,
     });
     return;
   }
@@ -729,6 +730,7 @@ const server = http.createServer(async (request, response) => {
       sendJson: sendApiJson,
       sendMethodNotAllowed: sendApiMethodNotAllowed,
       sendRepositoryUnavailable: sendApiRepositoryUnavailable,
+      telemetry,
     });
     return;
   }
@@ -809,6 +811,7 @@ const server = http.createServer(async (request, response) => {
       sendJson: sendApiJson,
       sendMethodNotAllowed: sendApiMethodNotAllowed,
       sendRepositoryUnavailable: sendApiRepositoryUnavailable,
+      telemetry,
     });
     return;
   }

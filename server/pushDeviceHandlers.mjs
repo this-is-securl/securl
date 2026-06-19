@@ -78,6 +78,7 @@ export async function handlePushDeviceCollectionRequest({
   sendJson,
   sendMethodNotAllowed,
   sendRepositoryUnavailable,
+  telemetry = null,
 }) {
   if (request.method === "GET") {
     const authState = await authorizeAnalysisRequest({
@@ -140,6 +141,11 @@ export async function handlePushDeviceCollectionRequest({
       requesterScope: authState.requesterScope,
       ownerId: authState.ownerId,
     });
+    telemetry?.recordFunnelEvent?.({
+      event: "notification_device_registered",
+      source: "backend_api",
+      mode: device.appId || "unknown",
+    });
 
     sendJson(response, 201, {
       apiVersion: API_VERSION,
@@ -161,6 +167,7 @@ export async function handlePushDeviceHealthRequest({
   sendJson,
   sendMethodNotAllowed,
   sendRepositoryUnavailable,
+  telemetry = null,
 }) {
   if (request.method !== "GET") {
     sendMethodNotAllowed(response, ["GET"]);
@@ -183,6 +190,10 @@ export async function handlePushDeviceHealthRequest({
       ownerId: authState.ownerId,
       requesterScope: authState.ownerId ? null : authState.requesterScope,
       limit: clampLimit(requestUrl.searchParams.get("limit"), 100, 250),
+    });
+    telemetry?.recordFunnelEvent?.({
+      event: "notification_device_health_read",
+      source: "backend_api",
     });
     const activeDevices = devices.filter((device) => !device.disabledAt);
     const now = Date.now();
