@@ -111,6 +111,16 @@ export function buildCapabilitiesPayload({
       enabled: true,
       kinds: ["posture", "cert"],
       cadences: ["hourly", "6h", "daily", "weekly"],
+      features: [
+        "scheduled-posture-monitoring",
+        "scheduled-cert-monitoring",
+        "manual-run",
+        "target-history",
+        "mobile-summary",
+        "mobile-posture-drift-summary",
+        "mobile-digest-preview",
+        "cert-attention-state",
+      ],
       scheduler: {
         enabled: Boolean(monitoringScheduler?.enabled),
         mode: monitoringScheduler?.mode ?? "quiet",

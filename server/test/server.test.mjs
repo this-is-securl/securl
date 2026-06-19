@@ -505,6 +505,9 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.equal(payload.monitoring.scheduler.intervalMs, 60000);
     assert.equal(typeof payload.monitoring.scheduler.lastSweep.checked, "number");
     assert.equal(typeof payload.monitoring.scheduler.lastSweep.failed, "number");
+    assert.ok(payload.monitoring.features.includes("mobile-posture-drift-summary"));
+    assert.ok(payload.monitoring.features.includes("mobile-digest-preview"));
+    assert.ok(payload.monitoring.features.includes("cert-attention-state"));
     assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-summary"));
     assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-mobile-summary"));
     assert.ok(payload.monitoring.resources.includes("POST /api/monitoring-targets/:id/run"));
