@@ -157,28 +157,14 @@ export function createNotificationService({
   };
   const enabled = Boolean(config.teamId && config.keyId && config.privateKey && config.defaultTopic);
 
-  async function notifyMonitoringScanCompleted({ completedScan, result, telemetryContext = {} }) {
-    if (telemetryContext.channel !== "monitoring_scheduler") {
-      return { attempted: 0, sent: 0, skipped: "not_monitoring_scheduler" };
-    }
-
-    const payload = await buildMonitoringPushPayload({ scanRepository, completedScan, result });
-    if (!payload) {
-      return { attempted: 0, sent: 0, skipped: "no_drift" };
-    }
-
-    const devices = await scanRepository.listPushDeviceSecrets({
-      ownerId: completedScan.ownerId,
-      requesterScope: completedScan.ownerId ? null : completedScan.requesterScope,
-      limit: 50,
-    });
+  async function deliverPushPayload({ devices, payload, referenceId, logEventName = "push_delivery_result" }) {
     if (!devices.length) {
       return { attempted: 0, sent: 0, skipped: "no_devices" };
     }
     if (!enabled) {
       log("warn", "push_delivery_skipped", {
         reason: "apns_not_configured",
-        scanId: completedScan.id,
+        referenceId,
         devices: devices.length,
       });
       return { attempted: devices.length, sent: 0, skipped: "apns_not_configured" };
@@ -202,15 +188,15 @@ export function createNotificationService({
             requesterScope: device.ownerId ? null : device.requesterScope,
           });
         }
-        log(response.statusCode >= 200 && response.statusCode < 300 ? "info" : "warn", "push_delivery_result", {
-          scanId: completedScan.id,
+        log(response.statusCode >= 200 && response.statusCode < 300 ? "info" : "warn", logEventName, {
+          referenceId,
           deviceId: device.id,
           statusCode: response.statusCode,
           apnsId: response.apnsId,
         });
       } catch (error) {
         log("warn", "push_delivery_failed", {
-          scanId: completedScan.id,
+          referenceId,
           deviceId: device.id,
           message: error instanceof Error ? error.message : String(error),
         });
@@ -220,9 +206,80 @@ export function createNotificationService({
     return { attempted: devices.length, sent, skipped: null };
   }
 
+  async function notifyMonitoringScanCompleted({ completedScan, result, telemetryContext = {} }) {
+    if (telemetryContext.channel !== "monitoring_scheduler") {
+      return { attempted: 0, sent: 0, skipped: "not_monitoring_scheduler" };
+    }
+
+    const payload = await buildMonitoringPushPayload({ scanRepository, completedScan, result });
+    if (!payload) {
+      return { attempted: 0, sent: 0, skipped: "no_drift" };
+    }
+
+    const devices = await scanRepository.listPushDeviceSecrets({
+      ownerId: completedScan.ownerId,
+      requesterScope: completedScan.ownerId ? null : completedScan.requesterScope,
+      limit: 50,
+    });
+    if (!devices.length) {
+      return { attempted: 0, sent: 0, skipped: "no_devices" };
+    }
+
+    return deliverPushPayload({
+      devices,
+      payload,
+      referenceId: completedScan.id,
+    });
+  }
+
+  async function notifyCertMonitoringEvent({ target, event, certState }) {
+    if (!event || !target) {
+      return { attempted: 0, sent: 0, skipped: "no_event" };
+    }
+
+    const devices = await scanRepository.listPushDeviceSecrets({
+      ownerId: target.ownerId,
+      requesterScope: target.ownerId ? null : target.requesterScope,
+      appId: target.appId ?? null,
+      limit: 50,
+    });
+    const host = certState?.host || target.label || target.url;
+    const payload = {
+      aps: {
+        alert: {
+          title: event.title,
+          body: event.body,
+        },
+        sound: "default",
+        "thread-id": host,
+      },
+      type: event.type,
+      targetId: target.id,
+      url: target.url,
+      host,
+      appId: target.appId ?? null,
+      severity: event.severity,
+      certificate: {
+        issuer: certState?.issuer ?? null,
+        serialNumber: certState?.serialNumber ?? null,
+        validTo: certState?.validTo ?? null,
+        daysRemaining: certState?.daysRemaining ?? null,
+        reachable: certState?.reachable ?? false,
+      },
+    };
+
+    return deliverPushPayload({
+      devices,
+      payload,
+      referenceId: target.id,
+      logEventName: "cert_push_delivery_result",
+    });
+  }
+
   return {
     enabled,
     notifyMonitoringScanCompleted,
+    notifyCertMonitoringEvent,
     snapshot() {
       return {
         enabled,

@@ -57,6 +57,7 @@ import {
   isPrivateAddress,
   isLocalHostname,
 } from "../packages/core/dist/index.js";
+import { runCertificateMonitorCheck } from "./certMonitoring.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -681,6 +682,7 @@ const server = http.createServer(async (request, response) => {
       assertPublicHttpUrl,
       buildMonitoringTargetView,
       buildMonitoringTargetsPayload,
+      notificationService,
       sendJson: sendApiJson,
       sendMethodNotAllowed: sendApiMethodNotAllowed,
       sendRepositoryUnavailable: sendApiRepositoryUnavailable,
@@ -791,6 +793,7 @@ const server = http.createServer(async (request, response) => {
       }),
       runScanAnalysis,
       enqueueScan: (job) => scanScheduler.enqueue(job),
+      buildMonitoringTargetView,
       buildMonitoringTargetDetailPayload,
       telemetry,
       classifyScanFailure,
@@ -912,6 +915,12 @@ monitoringScheduler = createMonitoringScheduler({
     formatErrorMessage,
     log,
     notificationService,
+  }),
+  runCertificateCheck: (target) => runCertificateMonitorCheck({
+    target,
+    scanRepository,
+    notificationService,
+    log,
   }),
   mode: MONITORING_SCAN_MODE,
   limit: MONITORING_SWEEP_LIMIT,

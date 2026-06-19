@@ -244,6 +244,49 @@ test("scan repository can upsert and delete monitoring targets", async () => {
   assert.equal((await repository.listMonitoringTargets({ ownerId: "scan-owner:test" })).length, 0);
 });
 
+test("scan repository stores cert monitoring state separately from posture targets", async () => {
+  const repository = createInMemoryScanRepository();
+  const posture = await repository.upsertMonitoringTarget({
+    url: "https://example.com/",
+    label: "example.com",
+    cadence: "daily",
+    kind: "posture",
+    mode: "quiet",
+    requesterScope: "ip:test",
+    ownerId: "scan-owner:test",
+  });
+  const cert = await repository.upsertMonitoringTarget({
+    url: "https://example.com/",
+    label: "example.com cert",
+    cadence: "hourly",
+    kind: "cert",
+    appId: "com.ktbatterham.certwatch",
+    requesterScope: "ip:test",
+    ownerId: "scan-owner:test",
+  });
+
+  assert.notEqual(posture.id, cert.id);
+  assert.equal(cert.kind, "cert");
+  assert.equal(cert.appId, "com.ktbatterham.certwatch");
+
+  const updated = await repository.updateMonitoringTargetCertState(cert.id, {
+    ownerId: "scan-owner:test",
+    certState: {
+      reachable: true,
+      host: "example.com",
+      serialNumber: "ABC123",
+      issuer: "Example CA",
+      checkedAt: "2026-06-18T08:00:00.000Z",
+      history: [{ checkedAt: "2026-06-18T08:00:00.000Z", eventType: null }],
+    },
+    lastCheckedAt: "2026-06-18T08:00:00.000Z",
+  });
+
+  assert.equal(updated.certState.serialNumber, "ABC123");
+  assert.equal(updated.lastCheckedAt, "2026-06-18T08:00:00.000Z");
+  assert.equal((await repository.listMonitoringTargets({ ownerId: "scan-owner:test" })).length, 2);
+});
+
 test("scan repository stores push devices without exposing raw tokens in public lists", async () => {
   const repository = createInMemoryScanRepository();
   const token = "a".repeat(64);
@@ -269,6 +312,10 @@ test("scan repository stores push devices without exposing raw tokens in public 
   const secrets = await repository.listPushDeviceSecrets({ ownerId: "scan-owner:test" });
   assert.equal(secrets.length, 1);
   assert.equal(secrets[0].token, token);
+  assert.equal((await repository.listPushDeviceSecrets({
+    ownerId: "scan-owner:test",
+    appId: "com.ktbatterham.certwatch",
+  })).length, 0);
 
   assert.equal(await repository.disablePushDevice(saved.id, { ownerId: "scan-owner:test" }), true);
   assert.equal((await repository.listPushDevices({ ownerId: "scan-owner:test" })).length, 0);
@@ -363,7 +410,8 @@ test("scan repository schema statements create the scans table and scoped indexe
   assert.ok(statements.some((statement) => /scan_events_scan_occurred_idx/i.test(statement)));
   assert.ok(statements.some((statement) => /monitoring_targets_owner_added_idx/i.test(statement)));
   assert.ok(statements.some((statement) => /monitoring_targets_requester_added_idx/i.test(statement)));
-  assert.ok(statements.some((statement) => /monitoring_targets_owner_url_uidx/i.test(statement)));
+  assert.ok(statements.some((statement) => /monitoring_targets_owner_url_kind_uidx/i.test(statement)));
+  assert.ok(statements.some((statement) => /cert_state jsonb null/i.test(statement)));
   assert.ok(statements.some((statement) => /auth_sessions_user_idx/i.test(statement)));
   assert.ok(statements.some((statement) => /api_keys_user_created_idx/i.test(statement)));
   assert.ok(statements.some((statement) => /api_keys_active_token_hash_idx/i.test(statement)));
