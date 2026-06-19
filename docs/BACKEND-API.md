@@ -100,6 +100,10 @@ APNs delivery is disabled until all of these are configured:
 
 Without those values, device registration still works and monitoring scans continue normally, but delivery is logged as skipped.
 
+## Telemetry readout
+
+When the production telemetry endpoint is explicitly exposed for admin use, `GET /api/telemetry` includes `clients.consumption`. This derived readout rolls up backend-owned client activity that frontend analytics may miss: mobile monitoring summary reads, APNs device registrations, notification health reads, and live certificate reads. It also includes today/all-time totals, mode/app breakdowns where supplied, and boolean adoption signals for mobile monitoring, push registration, notification health, and Cert Watch-style live certificate usage.
+
 ## Current auth resources
 
 - `POST /api/auth/register`

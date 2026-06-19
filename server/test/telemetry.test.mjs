@@ -141,6 +141,20 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.funnel.today.handoff_started, 1);
   assert.equal(snapshot.funnel.recent.length, 7);
   assert.equal(snapshot.funnel.recent[0].event, "live_certificate_read");
+  assert.equal(snapshot.clients.consumption.backendApiEvents, 4);
+  assert.equal(snapshot.clients.consumption.todayBackendApiEvents, 4);
+  assert.equal(snapshot.clients.consumption.monitoringMobileSummaryReads, 1);
+  assert.equal(snapshot.clients.consumption.notificationDeviceRegistrations, 1);
+  assert.equal(snapshot.clients.consumption.notificationDeviceHealthReads, 1);
+  assert.equal(snapshot.clients.consumption.liveCertificateReads, 1);
+  assert.equal(snapshot.clients.consumption.today.monitoringMobileSummaryReads, 1);
+  assert.equal(snapshot.clients.consumption.byMode["com.ktbatterham.securl"].notificationDeviceRegistrations, 1);
+  assert.deepEqual(snapshot.clients.consumption.adoptionSignals, {
+    mobileMonitoring: true,
+    pushRegistration: true,
+    notificationHealth: true,
+    certWatch: true,
+  });
 });
 
 test("telemetry tracker can persist counters to disk", () => {
@@ -191,6 +205,13 @@ test("telemetry tracker can persist counters to disk", () => {
     assert.equal(snapshot.funnel.bySource.reddit.report_viewed, 1);
     assert.equal(snapshot.funnel.byMode.ios.report_viewed, 1);
     assert.equal(snapshot.funnel.recent[0].target, "https://example.com");
+    assert.equal(snapshot.clients.consumption.backendApiEvents, 0);
+    assert.deepEqual(snapshot.clients.consumption.adoptionSignals, {
+      mobileMonitoring: false,
+      pushRegistration: false,
+      notificationHealth: false,
+      certWatch: false,
+    });
     assert.equal(snapshot.failures.classes.requester_rate_limited, 1);
     assert.equal(snapshot.failures.recent.length, 1);
     assert.equal(snapshot.failures.recent[0].class, "requester_rate_limited");
