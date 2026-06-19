@@ -370,6 +370,8 @@ export async function handleScanCollectionRequest({
           clientKey: telemetryContext.clientKey || authState.clientIp,
           source: telemetryContext.source,
           channel: telemetryContext.channel,
+          client: telemetryContext.client,
+          clientVersion: telemetryContext.clientVersion,
         });
         telemetry.recordScanCompleted(cachedScan.result);
         log("info", "scan_result_cache_hit", {

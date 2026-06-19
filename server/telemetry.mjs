@@ -1,9 +1,14 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { hashPrivacyValue, targetForPrivacy } from "./privacy.mjs";
+import { normalizeClientId, normalizeClientVersion } from "./clientMetadata.mjs";
 
 export function createTelemetryTracker({ storagePath = "" } = {}) {
   const persistence = storagePath ? "file" : "memory";
+  const boundedBucketKey = (buckets, key, maxKeys) => {
+    if (Object.hasOwn(buckets, key)) return key;
+    return Object.keys(buckets).length < maxKeys - 1 ? key : "other";
+  };
 
   const state = {
     startedAt: new Date().toISOString(),
@@ -18,6 +23,8 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     scanTargetOrigins: new Set(),
     scanSourceBuckets: {},
     scanChannelBuckets: {},
+    scanProductBuckets: {},
+    scanProductVersionBuckets: {},
     scanTargetBuckets: {},
     scanDays: {},
     recentScans: [],
@@ -32,6 +39,8 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     funnelEvents: {},
     funnelEventsBySource: {},
     funnelEventsByMode: {},
+    funnelEventsByClient: {},
+    funnelEventsByClientVersion: {},
     funnelDays: {},
     recentFunnelEvents: [],
     failureClasses: {},
@@ -98,6 +107,8 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     state.scanTargetOrigins = new Set(Array.isArray(value.scanTargetOrigins) ? value.scanTargetOrigins : []);
     state.scanSourceBuckets = { ...(value.scanSourceBuckets || {}) };
     state.scanChannelBuckets = { ...(value.scanChannelBuckets || {}) };
+    state.scanProductBuckets = { ...(value.scanProductBuckets || {}) };
+    state.scanProductVersionBuckets = { ...(value.scanProductVersionBuckets || {}) };
     state.scanTargetBuckets = { ...(value.scanTargetBuckets || {}) };
     state.scanDays = Object.fromEntries(
       Object.entries(value.scanDays || {}).map(([date, bucket]) => [
@@ -129,6 +140,8 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     state.funnelEvents = { ...(value.funnelEvents || {}) };
     state.funnelEventsBySource = { ...(value.funnelEventsBySource || {}) };
     state.funnelEventsByMode = { ...(value.funnelEventsByMode || {}) };
+    state.funnelEventsByClient = { ...(value.funnelEventsByClient || {}) };
+    state.funnelEventsByClientVersion = { ...(value.funnelEventsByClientVersion || {}) };
     state.funnelDays = Object.fromEntries(
       Object.entries(value.funnelDays || {}).map(([date, bucket]) => [
         date,
@@ -293,7 +306,17 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       }
       persist();
     },
-    recordFunnelEvent({ event, source = "unknown", target = null, scanId = null, format = null, mode = null, now = new Date() } = {}) {
+    recordFunnelEvent({
+      event,
+      source = "unknown",
+      target = null,
+      scanId = null,
+      format = null,
+      mode = null,
+      client = null,
+      clientVersion = null,
+      now = new Date(),
+    } = {}) {
       const sanitized = sanitizeFunnelEvent({
         occurredAt: now.toISOString(),
         event,
@@ -302,6 +325,8 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         scanId,
         format,
         mode,
+        client,
+        clientVersion,
       });
       if (!sanitized) {
         return false;
@@ -317,6 +342,21 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
           state.funnelEventsByMode[sanitized.mode] = {};
         }
         incrementBucket(state.funnelEventsByMode[sanitized.mode], sanitized.event);
+      }
+      if (sanitized.client) {
+        const clientKey = boundedBucketKey(state.funnelEventsByClient, sanitized.client, 100);
+        if (!state.funnelEventsByClient[clientKey]) {
+          state.funnelEventsByClient[clientKey] = {};
+        }
+        incrementBucket(state.funnelEventsByClient[clientKey], sanitized.event);
+        if (sanitized.clientVersion) {
+          const versionKey = `${sanitized.client}@${sanitized.clientVersion}`;
+          const boundedVersionKey = boundedBucketKey(state.funnelEventsByClientVersion, versionKey, 200);
+          if (!state.funnelEventsByClientVersion[boundedVersionKey]) {
+            state.funnelEventsByClientVersion[boundedVersionKey] = {};
+          }
+          incrementBucket(state.funnelEventsByClientVersion[boundedVersionKey], sanitized.event);
+        }
       }
       const dateKey = now.toISOString().slice(0, 10);
       const dayBucket = getFunnelDayBucket(dateKey);
@@ -336,11 +376,15 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       requesterKey = null,
       clientKey = null,
       target = null,
+      client = null,
+      clientVersion = null,
       now = new Date(),
     } = {}) {
       const normalizedSource = normalizeTrafficSource(source);
       const normalizedChannel = normalizeScanChannel(channel);
       const targetOrigin = targetForPrivacy(target);
+      const safeProduct = normalizeClientId(client);
+      const safeProductVersion = safeProduct ? normalizeClientVersion(clientVersion) : null;
       const safeRequesterKey = hashPrivacyValue(requesterKey, { prefix: "req", length: 16 });
       const safeClientKey = hashPrivacyValue(clientKey, { prefix: "client", length: 16 });
       state.scansRequested += 1;
@@ -349,6 +393,19 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       }
       incrementBucket(state.scanSourceBuckets, normalizedSource);
       incrementBucket(state.scanChannelBuckets, normalizedChannel);
+      if (safeProduct) {
+        incrementBucket(
+          state.scanProductBuckets,
+          boundedBucketKey(state.scanProductBuckets, safeProduct, 100),
+        );
+        if (safeProductVersion) {
+          const versionKey = `${safeProduct}@${safeProductVersion}`;
+          incrementBucket(
+            state.scanProductVersionBuckets,
+            boundedBucketKey(state.scanProductVersionBuckets, versionKey, 200),
+          );
+        }
+      }
       if (targetOrigin) {
         state.scanTargetOrigins.add(targetOrigin);
         incrementBucket(state.scanTargetBuckets, targetOrigin);
@@ -381,6 +438,8 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         channel: normalizedChannel,
         requesterKey: safeRequesterKey,
         clientKey: safeClientKey,
+        client: safeProduct,
+        clientVersion: safeProductVersion,
       });
       persist();
     },
@@ -433,12 +492,14 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       const todayScanBucket = getScanDayBucket(todayKey);
       const todayFunnelEvents = getFunnelDayBucket(todayKey).events || {};
       const clientConsumptionEvents = {
+        monitoringTargetRegistrations: state.funnelEvents.monitoring_target_registered || 0,
         monitoringMobileSummaryReads: state.funnelEvents.monitoring_mobile_summary_read || 0,
         notificationDeviceRegistrations: state.funnelEvents.notification_device_registered || 0,
         notificationDeviceHealthReads: state.funnelEvents.notification_device_health_read || 0,
         liveCertificateReads: state.funnelEvents.live_certificate_read || 0,
       };
       const todayClientConsumptionEvents = {
+        monitoringTargetRegistrations: todayFunnelEvents.monitoring_target_registered || 0,
         monitoringMobileSummaryReads: todayFunnelEvents.monitoring_mobile_summary_read || 0,
         notificationDeviceRegistrations: todayFunnelEvents.notification_device_registered || 0,
         notificationDeviceHealthReads: todayFunnelEvents.notification_device_health_read || 0,
@@ -480,6 +541,18 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
               { ...events },
             ]),
           ),
+          byClient: Object.fromEntries(
+            Object.entries(state.funnelEventsByClient).map(([client, events]) => [
+              client,
+              { ...events },
+            ]),
+          ),
+          byClientVersion: Object.fromEntries(
+            Object.entries(state.funnelEventsByClientVersion).map(([clientVersion, events]) => [
+              clientVersion,
+              { ...events },
+            ]),
+          ),
           today: { ...(getFunnelDayBucket(todayKey).events || {}) },
           recentDays: Object.entries(state.funnelDays)
             .sort(([left], [right]) => left.localeCompare(right))
@@ -491,6 +564,22 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
           recent: [...state.recentFunnelEvents].reverse(),
         },
         clients: {
+          identity: {
+            scanRequestsByClient: { ...state.scanProductBuckets },
+            scanRequestsByClientVersion: { ...state.scanProductVersionBuckets },
+            backendEventsByClient: Object.fromEntries(
+              Object.entries(state.funnelEventsByClient).map(([client, events]) => [
+                client,
+                { ...events },
+              ]),
+            ),
+            backendEventsByClientVersion: Object.fromEntries(
+              Object.entries(state.funnelEventsByClientVersion).map(([clientVersion, events]) => [
+                clientVersion,
+                { ...events },
+              ]),
+            ),
+          },
           consumption: {
             backendApiEvents: clientConsumptionTotal,
             todayBackendApiEvents: todayClientConsumptionTotal,
@@ -500,6 +589,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
               Object.entries(state.funnelEventsByMode)
                 .filter(([, events]) => (
                   events.monitoring_mobile_summary_read
+                  || events.monitoring_target_registered
                   || events.notification_device_registered
                   || events.notification_device_health_read
                   || events.live_certificate_read
@@ -507,6 +597,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
                 .map(([mode, events]) => [
                   mode,
                   {
+                    monitoringTargetRegistrations: events.monitoring_target_registered || 0,
                     monitoringMobileSummaryReads: events.monitoring_mobile_summary_read || 0,
                     notificationDeviceRegistrations: events.notification_device_registered || 0,
                     notificationDeviceHealthReads: events.notification_device_health_read || 0,
@@ -515,6 +606,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
                 ]),
             ),
             adoptionSignals: {
+              monitoringRegistration: clientConsumptionEvents.monitoringTargetRegistrations > 0,
               mobileMonitoring: clientConsumptionEvents.monitoringMobileSummaryReads > 0,
               pushRegistration: clientConsumptionEvents.notificationDeviceRegistrations > 0,
               notificationHealth: clientConsumptionEvents.notificationDeviceHealthReads > 0,
@@ -528,6 +620,8 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
           engagement: {
             sources: { ...state.scanSourceBuckets },
             channels: { ...state.scanChannelBuckets },
+            clients: { ...state.scanProductBuckets },
+            clientVersions: { ...state.scanProductVersionBuckets },
             uniqueRequesters: state.scanRequesterKeys.size,
             uniqueClients: state.scanClientKeys.size,
             uniqueTargets: state.scanTargetOrigins.size,
@@ -600,6 +694,7 @@ function sanitizeRecentScan(value) {
   const occurredAt = sanitizeTelemetryText(value.occurredAt, 40) || new Date().toISOString();
   const channel = normalizeScanChannel(value.channel);
   const source = normalizeTrafficSource(value.source);
+  const client = normalizeClientId(value.client);
   return {
     occurredAt,
     target: sanitizeTelemetryText(targetForPrivacy(value.target), 240),
@@ -608,6 +703,8 @@ function sanitizeRecentScan(value) {
     channel,
     requesterKey: sanitizeTelemetryText(value.requesterKey, 80),
     clientKey: sanitizeTelemetryText(value.clientKey, 80),
+    client,
+    clientVersion: client ? normalizeClientVersion(value.clientVersion) : null,
   };
 }
 
@@ -621,6 +718,7 @@ const FUNNEL_EVENT_NAMES = new Set([
   "share_link_copied",
   "export_clicked",
   "monitoring_saved",
+  "monitoring_target_registered",
   "monitoring_mobile_summary_read",
   "notification_device_registered",
   "notification_device_health_read",
@@ -635,6 +733,7 @@ function sanitizeFunnelEvent(value) {
   if (!event || !FUNNEL_EVENT_NAMES.has(event)) {
     return null;
   }
+  const client = normalizeClientId(value.client);
   return {
     occurredAt: sanitizeTelemetryText(value.occurredAt, 40) || new Date().toISOString(),
     event,
@@ -643,6 +742,8 @@ function sanitizeFunnelEvent(value) {
     scanId: sanitizeTelemetryText(value.scanId, 80),
     format: sanitizeTelemetryText(value.format, 40),
     mode: sanitizeTelemetryText(value.mode, 40),
+    client,
+    clientVersion: client ? normalizeClientVersion(value.clientVersion) : null,
   };
 }
 

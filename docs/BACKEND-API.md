@@ -12,6 +12,17 @@ For client integration guidance, see [`CONSUMER-API-MAP.md`](CONSUMER-API-MAP.md
 
 `GET /api/capabilities` is public and additive. It lets web, mobile, CLI, and future SDK clients discover supported API version, scan modes, auth modes, monitoring resources, export formats, package versions, and passive-safety boundaries without relying on hard-coded assumptions.
 
+## Optional client identity headers
+
+First-party and third-party clients may identify their product and release on any API request with:
+
+- `X-SecURL-Client`: a stable product identifier such as `securl-ios`, `header-watch-ios`, `cert-watch-ios`, `securl-web`, or a reverse-domain app id.
+- `X-SecURL-Client-Version`: a release/build identifier such as `1.2.0+19`.
+
+Both headers are optional and additive. Existing clients require no changes. Values are treated as aggregate product telemetry only: identifiers are lowercased and limited to 64 characters, versions are limited to 40 characters, whitespace, free-form values, UUIDs, and long hexadecimal identifiers are rejected, and aggregate bucket cardinality is capped. No device identifier is requested or inferred. Invalid values are silently ignored rather than failing the API request.
+
+Mobile clients should set these headers alongside `X-Scan-Owner` on every request. The backend then separates scan requests and service usage by product/version without storing personal data. Support is advertised by `service.clientTelemetry` in `GET /api/capabilities`.
+
 ## Current scan resources
 
 - `POST /api/scans`
@@ -102,7 +113,7 @@ Without those values, device registration still works and monitoring scans conti
 
 ## Telemetry readout
 
-When the production telemetry endpoint is explicitly exposed for admin use, `GET /api/telemetry` includes `clients.consumption`. This derived readout rolls up backend-owned client activity that frontend analytics may miss: mobile monitoring summary reads, APNs device registrations, notification health reads, and live certificate reads. It also includes today/all-time totals, mode/app breakdowns where supplied, and boolean adoption signals for mobile monitoring, push registration, notification health, and Cert Watch-style live certificate usage.
+When the production telemetry endpoint is explicitly exposed for admin use, `GET /api/telemetry` includes `clients.consumption` and `clients.identity`. The consumption readout rolls up backend-owned client activity that frontend analytics may miss: monitoring target registrations, mobile monitoring summary reads, APNs device registrations, notification health reads, and live certificate reads. Identity separates scan requests and service events by the optional product/version headers. It stores aggregate labels and counts only, not owner tokens, APNs tokens, device ids, IP addresses, or raw user agents.
 
 ## Current auth resources
 

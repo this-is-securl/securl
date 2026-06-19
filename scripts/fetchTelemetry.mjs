@@ -108,6 +108,7 @@ const main = async () => {
   const clientConsumption = telemetry.clients?.consumption || {};
   console.log(`  Backend API events: ${clientConsumption.backendApiEvents ?? 0}`);
   console.log(`  Today: ${clientConsumption.todayBackendApiEvents ?? 0}`);
+  console.log(`  Monitoring target registrations: ${clientConsumption.monitoringTargetRegistrations ?? 0}`);
   console.log(`  Mobile monitoring summary reads: ${clientConsumption.monitoringMobileSummaryReads ?? 0}`);
   console.log(`  Notification device registrations: ${clientConsumption.notificationDeviceRegistrations ?? 0}`);
   console.log(`  Notification device health reads: ${clientConsumption.notificationDeviceHealthReads ?? 0}`);
@@ -127,6 +128,33 @@ const main = async () => {
     console.log("  Apps / modes:");
     for (const [mode, count] of clientModes) {
       console.log(`    - ${mode}: ${count}`);
+    }
+  }
+  const clientIdentity = telemetry.clients?.identity || {};
+  const identifiedClients = new Set([
+    ...Object.keys(clientIdentity.scanRequestsByClient || {}),
+    ...Object.keys(clientIdentity.backendEventsByClient || {}),
+  ]);
+  if (identifiedClients.size) {
+    console.log("  Identified clients:");
+    for (const client of [...identifiedClients].sort()) {
+      const scans = clientIdentity.scanRequestsByClient?.[client] || 0;
+      const events = Object.values(clientIdentity.backendEventsByClient?.[client] || {})
+        .reduce((sum, count) => sum + Number(count || 0), 0);
+      console.log(`    - ${client}: ${scans} scans / ${events} service events`);
+    }
+  }
+  const identifiedVersions = new Set([
+    ...Object.keys(clientIdentity.scanRequestsByClientVersion || {}),
+    ...Object.keys(clientIdentity.backendEventsByClientVersion || {}),
+  ]);
+  if (identifiedVersions.size) {
+    console.log("  Client versions:");
+    for (const version of [...identifiedVersions].sort()) {
+      const scans = clientIdentity.scanRequestsByClientVersion?.[version] || 0;
+      const events = Object.values(clientIdentity.backendEventsByClientVersion?.[version] || {})
+        .reduce((sum, count) => sum + Number(count || 0), 0);
+      console.log(`    - ${version}: ${scans} scans / ${events} service events`);
     }
   }
   console.log("");

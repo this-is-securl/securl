@@ -11,6 +11,7 @@ export async function handleLiveCertificateRequest({
   classifyScanFailure,
   normalizeScanErrorMessage,
   telemetry,
+  readClientMetadata,
   sendJson,
   sendMethodNotAllowed,
 }) {
@@ -51,10 +52,13 @@ export async function handleLiveCertificateRequest({
     }
 
     const certificate = await scanLiveCertificate(validatedTarget);
+    const clientMetadata = readClientMetadata?.(request) || {};
     telemetry.recordFunnelEvent({
       event: "live_certificate_read",
       source: "backend_api",
       target: validatedTarget.toString(),
+      client: clientMetadata.client,
+      clientVersion: clientMetadata.version,
     });
     sendJson(response, 200, {
       apiVersion: API_VERSION,

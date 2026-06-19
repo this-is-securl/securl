@@ -13,6 +13,8 @@ const DEFAULT_ALLOWED_HEADERS = [
   "Authorization",
   "X-API-Key",
   "X-Scan-Owner",
+  "X-SecURL-Client",
+  "X-SecURL-Client-Version",
 ];
 
 const DEFAULT_ALLOWED_METHODS = [
