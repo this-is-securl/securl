@@ -29,6 +29,14 @@ export function buildCapabilitiesPayload({
         "GET /api/capabilities",
         "GET /api/certificates/live?url=:url",
       ],
+      clientTelemetry: {
+        optional: true,
+        privacySafe: true,
+        headers: {
+          client: "X-SecURL-Client",
+          version: "X-SecURL-Client-Version",
+        },
+      },
     },
     auth: {
       methods: [

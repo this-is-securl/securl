@@ -53,6 +53,7 @@ const postMonitoringTarget = (baseUrl, url, options = {}) =>
       url,
       ...(options.cadence ? { cadence: options.cadence } : {}),
       ...(options.label ? { label: options.label } : {}),
+      ...(options.appId ? { appId: options.appId } : {}),
     }),
     ...("headers" in options
       ? {
@@ -476,6 +477,12 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.match(payload.service.coreVersion, /^\d+\.\d+\.\d+/);
     assert.ok(payload.service.resources.includes("GET /api/ready"));
     assert.ok(payload.service.resources.includes("GET /api/certificates/live?url=:url"));
+    assert.deepEqual(payload.service.clientTelemetry.headers, {
+      client: "X-SecURL-Client",
+      version: "X-SecURL-Client-Version",
+    });
+    assert.equal(payload.service.clientTelemetry.optional, true);
+    assert.equal(payload.service.clientTelemetry.privacySafe, true);
     assert.deepEqual(payload.scans.modes, ["standard", "quiet", "deep-passive"]);
     assert.ok(payload.scans.features.includes("finding-evidence"));
     assert.ok(payload.scans.features.includes("evidence-summary"));
@@ -842,6 +849,8 @@ test("api preflight allows the Hostinger frontend origins", async () => {
       assert.match(response.headers.get("access-control-allow-methods") || "", /POST/);
       assert.match(response.headers.get("access-control-allow-methods") || "", /DELETE/);
       assert.match(response.headers.get("access-control-allow-headers") || "", /X-Scan-Owner/i);
+      assert.match(response.headers.get("access-control-allow-headers") || "", /X-SecURL-Client/i);
+      assert.match(response.headers.get("access-control-allow-headers") || "", /X-SecURL-Client-Version/i);
       assert.match(response.headers.get("access-control-allow-headers") || "", /Authorization/i);
     }
   } finally {
@@ -1170,7 +1179,11 @@ test("notification devices can be registered, listed, and disabled without echoi
 
     const createResponse = await fetch(`${server.baseUrl}/api/notification-devices`, {
       method: "POST",
-      headers: scanOwnerJsonHeaders(),
+      headers: {
+        ...scanOwnerJsonHeaders(),
+        "X-SecURL-Client": "securl-ios",
+        "X-SecURL-Client-Version": "1.2.0+19",
+      },
       body: JSON.stringify({
         apnsToken,
         platform: "ios",
@@ -1195,7 +1208,11 @@ test("notification devices can be registered, listed, and disabled without echoi
     assert.equal(listPayload.devices[0].lastPushStatus, null);
 
     const healthResponse = await fetch(`${server.baseUrl}/api/notification-devices/health`, {
-      headers: scanOwnerHeaders(),
+      headers: {
+        ...scanOwnerHeaders(),
+        "X-SecURL-Client": "securl-ios",
+        "X-SecURL-Client-Version": "1.2.0+19",
+      },
     });
     const healthPayload = await healthResponse.json();
     assert.equal(healthResponse.status, 200);
@@ -1216,6 +1233,12 @@ test("notification devices can be registered, listed, and disabled without echoi
     const telemetryPayload = await telemetryResponse.json();
     assert.equal(telemetryPayload.funnel.events.notification_device_registered, 1);
     assert.equal(telemetryPayload.funnel.events.notification_device_health_read, 1);
+    assert.equal(telemetryPayload.funnel.byClient["securl-ios"].notification_device_registered, 1);
+    assert.equal(telemetryPayload.funnel.byClient["securl-ios"].notification_device_health_read, 1);
+    assert.equal(
+      telemetryPayload.clients.identity.backendEventsByClientVersion["securl-ios@1.2.0+19"].notification_device_registered,
+      1,
+    );
 
     const deleteResponse = await fetch(`${server.baseUrl}/api/notification-devices/${createPayload.device.id}`, {
       method: "DELETE",
@@ -1266,6 +1289,11 @@ test("monitoring targets can be created, listed, and deleted", async () => {
       owner: SCAN_OWNER_ONE,
       cadence: "daily",
       label: "Example target",
+      appId: "com.ktbatterham.headerwatch",
+      headers: {
+        "X-SecURL-Client": "header-watch-ios",
+        "X-SecURL-Client-Version": "1.1.0+7",
+      },
     });
     const createPayload = await createResponse.json();
     assert.equal(createResponse.status, 201);
@@ -1289,7 +1317,11 @@ test("monitoring targets can be created, listed, and deleted", async () => {
     assert.equal(listPayload.targets[0].requesterScope, undefined);
 
     const mobileSummaryResponse = await fetch(`${server.baseUrl}/api/monitoring-mobile-summary`, {
-      headers: scanOwnerHeaders(SCAN_OWNER_ONE),
+      headers: {
+        ...scanOwnerHeaders(SCAN_OWNER_ONE),
+        "X-SecURL-Client": "header-watch-ios",
+        "X-SecURL-Client-Version": "1.1.0+7",
+      },
     });
     const mobileSummaryPayload = await mobileSummaryResponse.json();
     assert.equal(mobileSummaryResponse.status, 200);
@@ -1301,6 +1333,9 @@ test("monitoring targets can be created, listed, and deleted", async () => {
     const telemetryResponse = await fetch(`${server.baseUrl}/api/telemetry`);
     const telemetryPayload = await telemetryResponse.json();
     assert.equal(telemetryPayload.funnel.events.monitoring_mobile_summary_read, 1);
+    assert.equal(telemetryPayload.funnel.events.monitoring_target_registered, 1);
+    assert.equal(telemetryPayload.funnel.byClient["header-watch-ios"].monitoring_target_registered, 1);
+    assert.equal(telemetryPayload.funnel.byClient["header-watch-ios"].monitoring_mobile_summary_read, 1);
 
     const deleteResponse = await fetch(`${server.baseUrl}/api/monitoring-targets/${targetId}`, {
       method: "DELETE",

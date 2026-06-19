@@ -100,6 +100,7 @@ export async function handleMonitoringMobileSummaryRequest({
   sendMethodNotAllowed,
   sendRepositoryUnavailable,
   telemetry = null,
+  readClientMetadata = null,
 }) {
   if (request.method !== "GET") {
     sendMethodNotAllowed(response, ["GET"]);
@@ -118,9 +119,12 @@ export async function handleMonitoringMobileSummaryRequest({
   }
 
   try {
+    const clientMetadata = readClientMetadata?.(request) || {};
     telemetry?.recordFunnelEvent?.({
       event: "monitoring_mobile_summary_read",
       source: "backend_api",
+      client: clientMetadata.client,
+      clientVersion: clientMetadata.version,
     });
     const limit = clampLimit(requestUrl.searchParams.get("limit"), 100, 250);
     const targets = await scanRepository.listMonitoringTargets({
@@ -161,6 +165,7 @@ export async function handleMonitoringTargetCollectionRequest({
   classifyScanFailure,
   normalizeScanErrorMessage,
   telemetry,
+  readClientMetadata = null,
 }) {
   if (request.method === "GET") {
     const authState = await authorizeAnalysisRequest({
@@ -237,7 +242,6 @@ export async function handleMonitoringTargetCollectionRequest({
       requesterScope: authState.requesterScope,
       ownerId: authState.ownerId,
     });
-
     let viewTarget = savedTarget;
     if (kind === "cert") {
       const outcome = await runCertificateMonitorCheck({
@@ -247,6 +251,15 @@ export async function handleMonitoringTargetCollectionRequest({
       });
       viewTarget = outcome.target;
     }
+    const clientMetadata = readClientMetadata?.(request, { fallbackClient: appId }) || {};
+    telemetry?.recordFunnelEvent?.({
+      event: "monitoring_target_registered",
+      source: "backend_api",
+      mode: appId || kind,
+      target: validatedTarget.toString(),
+      client: clientMetadata.client,
+      clientVersion: clientMetadata.version,
+    });
 
     const records = await scanRepository.listPersistedRecords({
       ownerId: authState.ownerId,

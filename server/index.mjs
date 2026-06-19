@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath, URL } from "node:url";
 import { createCorsPolicy, resolveAllowedOrigins } from "./cors.mjs";
 import { buildCapabilitiesPayload } from "./capabilities.mjs";
+import { readClientMetadata } from "./clientMetadata.mjs";
 import { handleLiveCertificateRequest } from "./certificateHandlers.mjs";
 import { createRateLimiter } from "./rateLimiter.mjs";
 import { sendJson, sendMethodNotAllowed, sendRateLimited } from "./httpResponses.mjs";
@@ -235,10 +236,13 @@ function buildScanTelemetryContext({ request = null, body = {}, authState = {}, 
     ? body.referrer
     : String(request?.headers?.referer || request?.headers?.origin || "");
   const currentUrl = typeof body.currentUrl === "string" ? body.currentUrl : "";
+  const clientMetadata = readClientMetadata(request, { fallbackClient: body.appId });
   return {
     source: classifyTrafficSource({ referrer, currentUrl }),
     channel: channel || classifyAuthChannel(authState),
     clientKey: request ? buildVisitorKey(request) : authState.clientIp || null,
+    client: clientMetadata.client,
+    clientVersion: clientMetadata.version,
   };
 }
 
@@ -288,6 +292,8 @@ async function runScanAnalysis({ validatedTarget, mode, clientIp, requesterScope
     clientKey: telemetryContext.clientKey || clientIp,
     source: telemetryContext.source,
     channel: telemetryContext.channel,
+    client: telemetryContext.client,
+    clientVersion: telemetryContext.clientVersion,
   });
   log("info", "analysis_requested", {
     clientIpHash,
@@ -692,6 +698,7 @@ const server = http.createServer(async (request, response) => {
       classifyScanFailure,
       normalizeScanErrorMessage,
       telemetry,
+      readClientMetadata,
     });
     return;
   }
@@ -712,6 +719,7 @@ const server = http.createServer(async (request, response) => {
       sendMethodNotAllowed: sendApiMethodNotAllowed,
       sendRepositoryUnavailable: sendApiRepositoryUnavailable,
       telemetry,
+      readClientMetadata,
     });
     return;
   }
@@ -731,6 +739,7 @@ const server = http.createServer(async (request, response) => {
       sendMethodNotAllowed: sendApiMethodNotAllowed,
       sendRepositoryUnavailable: sendApiRepositoryUnavailable,
       telemetry,
+      readClientMetadata,
     });
     return;
   }
@@ -771,6 +780,7 @@ const server = http.createServer(async (request, response) => {
       classifyScanFailure,
       normalizeScanErrorMessage,
       telemetry,
+      readClientMetadata,
       sendJson: sendApiJson,
       sendMethodNotAllowed: sendApiMethodNotAllowed,
     });
@@ -812,6 +822,7 @@ const server = http.createServer(async (request, response) => {
       sendMethodNotAllowed: sendApiMethodNotAllowed,
       sendRepositoryUnavailable: sendApiRepositoryUnavailable,
       telemetry,
+      readClientMetadata,
     });
     return;
   }

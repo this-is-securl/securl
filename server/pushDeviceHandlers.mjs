@@ -79,6 +79,7 @@ export async function handlePushDeviceCollectionRequest({
   sendMethodNotAllowed,
   sendRepositoryUnavailable,
   telemetry = null,
+  readClientMetadata = null,
 }) {
   if (request.method === "GET") {
     const authState = await authorizeAnalysisRequest({
@@ -141,10 +142,13 @@ export async function handlePushDeviceCollectionRequest({
       requesterScope: authState.requesterScope,
       ownerId: authState.ownerId,
     });
+    const clientMetadata = readClientMetadata?.(request, { fallbackClient: device.appId }) || {};
     telemetry?.recordFunnelEvent?.({
       event: "notification_device_registered",
       source: "backend_api",
       mode: device.appId || "unknown",
+      client: clientMetadata.client,
+      clientVersion: clientMetadata.version,
     });
 
     sendJson(response, 201, {
@@ -168,6 +172,7 @@ export async function handlePushDeviceHealthRequest({
   sendMethodNotAllowed,
   sendRepositoryUnavailable,
   telemetry = null,
+  readClientMetadata = null,
 }) {
   if (request.method !== "GET") {
     sendMethodNotAllowed(response, ["GET"]);
@@ -191,9 +196,12 @@ export async function handlePushDeviceHealthRequest({
       requesterScope: authState.ownerId ? null : authState.requesterScope,
       limit: clampLimit(requestUrl.searchParams.get("limit"), 100, 250),
     });
+    const clientMetadata = readClientMetadata?.(request) || {};
     telemetry?.recordFunnelEvent?.({
       event: "notification_device_health_read",
       source: "backend_api",
+      client: clientMetadata.client,
+      clientVersion: clientMetadata.version,
     });
     const activeDevices = devices.filter((device) => !device.disabledAt);
     const now = Date.now();

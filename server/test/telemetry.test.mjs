@@ -18,6 +18,8 @@ test("telemetry tracker records aggregate counts", () => {
     requesterKey: "scan-owner-one",
     clientKey: "visitor-one",
     target: "https://example.com/path?secret=hidden",
+    client: "securl-ios",
+    clientVersion: "1.2.0+19",
     now: new Date("2026-05-15T11:00:00Z"),
   });
   telemetry.recordScanRequested({
@@ -81,6 +83,8 @@ test("telemetry tracker records aggregate counts", () => {
     event: "live_certificate_read",
     source: "backend_api",
     target: "https://example.com/cert",
+    client: "cert-watch-ios",
+    clientVersion: "1.1.0+8",
   });
 
   const snapshot = telemetry.snapshot();
@@ -137,6 +141,8 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.funnel.bySource["utm:landing"].handoff_started, 1);
   assert.equal(snapshot.funnel.byMode.standard.scan_started, 1);
   assert.equal(snapshot.funnel.byMode["com.ktbatterham.securl"].notification_device_registered, 1);
+  assert.equal(snapshot.funnel.byClient["cert-watch-ios"].live_certificate_read, 1);
+  assert.equal(snapshot.funnel.byClientVersion["cert-watch-ios@1.1.0+8"].live_certificate_read, 1);
   assert.equal(snapshot.funnel.today.scan_started, 1);
   assert.equal(snapshot.funnel.today.handoff_started, 1);
   assert.equal(snapshot.funnel.recent.length, 7);
@@ -149,7 +155,13 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.clients.consumption.liveCertificateReads, 1);
   assert.equal(snapshot.clients.consumption.today.monitoringMobileSummaryReads, 1);
   assert.equal(snapshot.clients.consumption.byMode["com.ktbatterham.securl"].notificationDeviceRegistrations, 1);
+  assert.equal(snapshot.clients.identity.scanRequestsByClient["securl-ios"], 1);
+  assert.equal(snapshot.clients.identity.scanRequestsByClientVersion["securl-ios@1.2.0+19"], 1);
+  assert.equal(snapshot.clients.identity.backendEventsByClient["cert-watch-ios"].live_certificate_read, 1);
+  assert.equal(snapshot.scans.engagement.clients["securl-ios"], 1);
+  assert.equal(snapshot.scans.engagement.clientVersions["securl-ios@1.2.0+19"], 1);
   assert.deepEqual(snapshot.clients.consumption.adoptionSignals, {
+    monitoringRegistration: false,
     mobileMonitoring: true,
     pushRegistration: true,
     notificationHealth: true,
@@ -171,6 +183,8 @@ test("telemetry tracker can persist counters to disk", () => {
       requesterKey: "scan-owner-one",
       clientKey: "visitor-one",
       target: "https://example.com/path?token=secret",
+      client: "header-watch-ios",
+      clientVersion: "1.0.3+11",
       now: new Date("2026-05-15T09:00:00Z"),
     });
     first.recordFunnelEvent({
@@ -200,6 +214,8 @@ test("telemetry tracker can persist counters to disk", () => {
     assert.equal(snapshot.scans.engagement.uniqueRequesters, 1);
     assert.equal(snapshot.scans.engagement.uniqueClients, 1);
     assert.equal(snapshot.scans.engagement.uniqueTargets, 1);
+    assert.equal(snapshot.scans.engagement.clients["header-watch-ios"], 1);
+    assert.equal(snapshot.clients.identity.scanRequestsByClientVersion["header-watch-ios@1.0.3+11"], 1);
     assert.equal(snapshot.scans.engagement.recent[0].target, "https://example.com");
     assert.equal(snapshot.funnel.events.report_viewed, 1);
     assert.equal(snapshot.funnel.bySource.reddit.report_viewed, 1);
@@ -207,6 +223,7 @@ test("telemetry tracker can persist counters to disk", () => {
     assert.equal(snapshot.funnel.recent[0].target, "https://example.com");
     assert.equal(snapshot.clients.consumption.backendApiEvents, 0);
     assert.deepEqual(snapshot.clients.consumption.adoptionSignals, {
+      monitoringRegistration: false,
       mobileMonitoring: false,
       pushRegistration: false,
       notificationHealth: false,
@@ -220,6 +237,24 @@ test("telemetry tracker can persist counters to disk", () => {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("client telemetry bounds attacker-controlled product cardinality", () => {
+  const telemetry = createTelemetryTracker();
+  for (let index = 0; index < 210; index += 1) {
+    telemetry.recordFunnelEvent({
+      event: "live_certificate_read",
+      source: "backend_api",
+      client: `client-${index}`,
+      clientVersion: `1.0.${index}`,
+    });
+  }
+
+  const snapshot = telemetry.snapshot();
+  assert.equal(Object.keys(snapshot.funnel.byClient).length, 100);
+  assert.equal(Object.keys(snapshot.funnel.byClientVersion).length, 200);
+  assert.equal(snapshot.funnel.byClient.other.live_certificate_read, 111);
+  assert.equal(snapshot.funnel.byClientVersion.other.live_certificate_read, 11);
 });
 
 test("traffic source classification groups common public launch channels", () => {
