@@ -38,6 +38,8 @@ For client integration guidance, see [`CONSUMER-API-MAP.md`](CONSUMER-API-MAP.md
 - `quiet`: lower-noise scans that skip page-body analysis, crawl, probe-heavy enrichment, OSV lookups, and CT host sampling.
 - `deep-passive`: broader passive recon for release readiness and scheduled review passes. It expands CT host sampling, related-page crawl, exposure probes, and API-surface probes while keeping strict limits and timeout bounds.
 
+Successful `POST /api/scans` responses include a `resources` object with relative paths for follow-up reads such as `events`, `digest`, `summary`, `evidence`, `comparison`, and `drift`. Clients can use these links instead of constructing endpoint paths themselves.
+
 Runtime controls:
 
 - `SCAN_TIMEOUT_MS`: standard/quiet scan timeout, default `45000`.

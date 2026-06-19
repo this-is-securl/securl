@@ -38,6 +38,22 @@ function writeSse(response, event, data) {
   response.write(`data: ${JSON.stringify(data)}\n\n`);
 }
 
+export function buildScanResourceLinks(scanId) {
+  const basePath = `/api/scans/${scanId}`;
+  return {
+    detail: basePath,
+    summary: `${basePath}/summary`,
+    findings: `${basePath}/findings`,
+    digest: `${basePath}/digest`,
+    events: `${basePath}/events`,
+    evidence: `${basePath}/evidence`,
+    history: `${basePath}/history`,
+    comparison: `${basePath}/comparison`,
+    drift: `${basePath}/drift`,
+    share: `${basePath}/share`,
+  };
+}
+
 async function streamScanEvents({
   request,
   response,
@@ -368,6 +384,7 @@ export async function handleScanCollectionRequest({
           apiVersion: API_VERSION,
           fromCache: true,
           scan: completedScan.summary,
+          resources: buildScanResourceLinks(completedScan.id),
         });
       } catch (error) {
         sendRepositoryUnavailable(response, error, "create_cached_scan");
@@ -388,6 +405,7 @@ export async function handleScanCollectionRequest({
       sendJson(response, 202, {
         apiVersion: API_VERSION,
         scan: (await scanRepository.getScan(scan.id, { ownerId: authState.ownerId })).summary,
+        resources: buildScanResourceLinks(scan.id),
       });
     } catch (error) {
       sendRepositoryUnavailable(response, error, "create_scan");
