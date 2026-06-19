@@ -103,7 +103,7 @@ function assertCapabilities(payload) {
     }
   }
 
-  for (const feature of ["evidence-summary", "posture-digest", "posture-drift", "exposure-brief", "vendor-exposure", "action-plan", "scan-events"]) {
+  for (const feature of ["evidence-summary", "posture-digest", "posture-drift", "exposure-brief", "vendor-exposure", "action-plan", "scan-events", "scan-resource-links"]) {
     if (!features.includes(feature)) {
       throw new Error(`Capabilities missing scan feature: ${feature}`);
     }
@@ -114,6 +114,28 @@ function assertCapabilities(payload) {
   }
   if (!payload.notifications?.features?.includes("device-registration")) {
     throw new Error("Capabilities missing notification device-registration feature.");
+  }
+}
+
+function assertScanResourceLinks(payload, scanId) {
+  const resources = payload.resources || {};
+  const expected = {
+    detail: `/api/scans/${scanId}`,
+    summary: `/api/scans/${scanId}/summary`,
+    findings: `/api/scans/${scanId}/findings`,
+    digest: `/api/scans/${scanId}/digest`,
+    events: `/api/scans/${scanId}/events`,
+    evidence: `/api/scans/${scanId}/evidence`,
+    history: `/api/scans/${scanId}/history`,
+    comparison: `/api/scans/${scanId}/comparison`,
+    drift: `/api/scans/${scanId}/drift`,
+    share: `/api/scans/${scanId}/share`,
+  };
+
+  for (const [name, path] of Object.entries(expected)) {
+    if (resources[name] !== path) {
+      throw new Error(`Scan create response missing resources.${name}: expected ${path}, got ${resources[name] || "missing"}`);
+    }
   }
 }
 
@@ -160,6 +182,7 @@ async function main() {
   if (!scanId) {
     throw new Error("Scan create response did not include scan.id");
   }
+  assertScanResourceLinks(createPayload, scanId);
   console.log(`scan: ${scanId}${createPayload.fromCache ? " (cache hit)" : ""}`);
 
   const detailPayload = createPayload.scan?.status === "completed"
