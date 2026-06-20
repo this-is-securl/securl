@@ -216,9 +216,16 @@ test("scan repository can upsert and delete monitoring targets", async () => {
     cadence: "daily",
     requesterScope: "ip:test",
     ownerId: "scan-owner:test",
+    observationPolicy: {
+      id: "test-policy",
+      name: "Test policy",
+      version: "1",
+      rules: [],
+    },
   });
 
   assert.equal(first.cadence, "daily");
+  assert.equal(first.observationPolicy.id, "test-policy");
 
   const updated = await repository.upsertMonitoringTarget({
     url: "https://example.com/",
@@ -555,6 +562,7 @@ test("scan repository schema statements create the scans table and scoped indexe
   assert.ok(statements.some((statement) => /create table if not exists public\.api_keys/i.test(statement)));
   assert.ok(statements.some((statement) => /add column if not exists job_attempts/i.test(statement)));
   assert.ok(statements.some((statement) => /scans_claimable_jobs_idx/i.test(statement)));
+  assert.ok(statements.some((statement) => /add column if not exists observation_policy/i.test(statement)));
   assert.ok(statements.some((statement) => /create table if not exists public\.push_devices/i.test(statement)));
   assert.ok(statements.some((statement) => /last_push_attempted_at timestamptz null/i.test(statement)));
   assert.ok(statements.some((statement) => /last_push_status text null/i.test(statement)));

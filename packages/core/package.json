@@ -89,6 +89,10 @@
     "./observation-drift": {
       "types": "./dist/observationDrift.d.ts",
       "default": "./dist/observationDrift.js"
+    },
+    "./observation-policy": {
+      "types": "./dist/observationPolicy.d.ts",
+      "default": "./dist/observationPolicy.js"
     }
   },
   "files": [

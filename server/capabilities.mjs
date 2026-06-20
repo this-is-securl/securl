@@ -73,6 +73,7 @@ export function buildCapabilitiesPayload({
         "durable-scan-jobs",
         "observation-ledger-v1",
         "observation-drift-v1",
+        "observation-policy-v1",
       ],
       scoring: {
         model: "weighted-passive-posture",
@@ -89,6 +90,12 @@ export function buildCapabilitiesPayload({
         deepPassive: deepPassiveScanTimeoutMs,
       },
       concurrency: scanConcurrency,
+      policy: {
+        defaultId: "securl-baseline-v1",
+        maxRules: 25,
+        scopes: ["observation", "change"],
+        operators: ["eq", "neq", "in", "gte", "lte"],
+      },
       resources: [
         "POST /api/scans",
         "GET /api/scans",
@@ -103,6 +110,7 @@ export function buildCapabilitiesPayload({
         "GET /api/scans/:id/evidence",
         "GET /api/scans/:id/observations",
         "GET /api/scans/:id/observation-drift",
+        "GET /api/scans/:id/policy-evaluation",
         "GET /api/scans/:id/history",
         "GET /api/scans/:id/comparison",
         "GET /api/scans/:id/drift",
@@ -134,6 +142,7 @@ export function buildCapabilitiesPayload({
         "mobile-posture-drift-summary",
         "mobile-digest-preview",
         "cert-attention-state",
+        "target-observation-policy",
       ],
       scheduler: {
         enabled: Boolean(monitoringScheduler?.enabled),

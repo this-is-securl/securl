@@ -1052,6 +1052,68 @@ export interface ObservationDriftReport {
   };
 }
 
+export type ObservationPolicySeverity = "info" | "warning" | "critical";
+export type ObservationPolicyScope = "observation" | "change";
+export type ObservationPolicyField = "status" | "value" | "confidence" | "impact" | "severity" | "type";
+export type ObservationPolicyOperator = "eq" | "neq" | "in" | "gte" | "lte";
+
+export interface ObservationPolicyRule {
+  id: string;
+  title: string;
+  description?: string;
+  enabled?: boolean;
+  severity: ObservationPolicySeverity;
+  scope: ObservationPolicyScope;
+  selector: {
+    kind?: string;
+    kindPrefix?: string;
+    category?: ObservationCategory;
+  };
+  assertion: {
+    field: ObservationPolicyField;
+    operator: ObservationPolicyOperator;
+    value: ObservationValue | ObservationChangeImpact | ObservationChangeSeverity | ObservationChangeType;
+  };
+  requireMatch?: boolean;
+}
+
+export interface ObservationPolicy {
+  id: string;
+  name: string;
+  version: string;
+  rules: ObservationPolicyRule[];
+}
+
+export interface ObservationPolicyViolation {
+  id: string;
+  ruleId: string;
+  title: string;
+  severity: ObservationPolicySeverity;
+  scope: ObservationPolicyScope;
+  observationId: string | null;
+  changeId: string | null;
+  kind: string | null;
+  subject: string | null;
+  expected: ObservationPolicyRule["assertion"];
+  actual: ObservationValue;
+  summary: string;
+}
+
+export interface ObservationPolicyEvaluation {
+  version: "1.0";
+  policy: { id: string; name: string; version: string };
+  target: string;
+  evaluatedAt: string;
+  passed: boolean;
+  violations: ObservationPolicyViolation[];
+  summary: {
+    rulesEvaluated: number;
+    violations: number;
+    bySeverity: Record<ObservationPolicySeverity, number>;
+    highestSeverity: ObservationPolicySeverity | null;
+  };
+}
+
 export interface AnalysisResult {
   inputUrl: string;
   normalizedUrl: string;
