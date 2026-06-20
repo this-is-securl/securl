@@ -103,7 +103,7 @@ function assertCapabilities(payload) {
     }
   }
 
-  for (const feature of ["evidence-summary", "posture-digest", "posture-drift", "exposure-brief", "vendor-exposure", "action-plan", "scan-events", "scan-resource-links"]) {
+  for (const feature of ["evidence-summary", "posture-digest", "posture-drift", "exposure-brief", "vendor-exposure", "action-plan", "scan-events", "scan-resource-links", "durable-scan-jobs"]) {
     if (!features.includes(feature)) {
       throw new Error(`Capabilities missing scan feature: ${feature}`);
     }

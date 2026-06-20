@@ -466,6 +466,86 @@ test("scan repository recovers stale running scans as failed", async () => {
   );
 });
 
+test("scan repository leases queued jobs atomically and releases terminal leases", async () => {
+  const repository = createInMemoryScanRepository();
+  const scan = await repository.createScan({
+    url: "https://example.com",
+    mode: "standard",
+    requesterScope: "ip:test",
+    clientIp: "127.0.0.1",
+  });
+
+  const claimed = await repository.claimScanJob(scan.id, { workerId: "worker-one", leaseMs: 60_000 });
+  const duplicate = await repository.claimScanJob(scan.id, { workerId: "worker-two", leaseMs: 60_000 });
+
+  assert.equal(claimed.jobAttempts, 1);
+  assert.equal(claimed.leaseOwner, "worker-one");
+  assert.equal(duplicate, null);
+  assert.equal((await repository.listClaimableScanJobs()).length, 0);
+  assert.equal(await repository.markRunning(scan.id, { workerId: "worker-two" }), null);
+  assert.equal((await repository.markRunning(scan.id, { workerId: "worker-one" })).status, "running");
+
+  await repository.markCompleted(scan.id, { score: 80, grade: "B", issues: [] });
+  const completed = await repository.getScanById(scan.id);
+  assert.equal(completed.leaseOwner, null);
+  assert.equal(completed.leaseExpiresAt, null);
+});
+
+test("scan repository requeues stale workers before exhausting attempts", async () => {
+  const repository = createInMemoryScanRepository();
+  const scan = await repository.createScan({
+    url: "https://example.com",
+    mode: "standard",
+    requesterScope: "ip:test",
+    clientIp: "127.0.0.1",
+  });
+  await repository.claimScanJob(scan.id, { workerId: "worker-one" });
+  await repository.markRunning(scan.id, { workerId: "worker-one" });
+  await wait(5);
+
+  const firstRecovery = await repository.requeueStaleRunningScanJobs({ maxAgeMs: 1, maxAttempts: 2 });
+  assert.deepEqual(firstRecovery, { requeued: 1, failed: 0 });
+  assert.equal((await repository.getScanById(scan.id)).status, "queued");
+
+  await repository.claimScanJob(scan.id, { workerId: "worker-two" });
+  await repository.markRunning(scan.id, { workerId: "worker-two" });
+  await wait(5);
+  const exhausted = await repository.requeueStaleRunningScanJobs({ maxAgeMs: 1, maxAttempts: 2 });
+  assert.deepEqual(exhausted, { requeued: 0, failed: 1 });
+  assert.equal((await repository.getScanById(scan.id)).status, "failed");
+});
+
+test("scan repository fences terminal writes from a recovered stale worker", async () => {
+  const repository = createInMemoryScanRepository();
+  const scan = await repository.createScan({
+    url: "https://example.com",
+    mode: "standard",
+    requesterScope: "ip:test",
+    clientIp: "127.0.0.1",
+  });
+  await repository.claimScanJob(scan.id, { workerId: "stale-worker" });
+  await repository.markRunning(scan.id, { workerId: "stale-worker" });
+  await wait(5);
+  await repository.requeueStaleRunningScanJobs({ maxAgeMs: 1, maxAttempts: 3 });
+  await repository.claimScanJob(scan.id, { workerId: "replacement-worker" });
+  await repository.markRunning(scan.id, { workerId: "replacement-worker" });
+
+  const staleCompletion = await repository.markCompleted(
+    scan.id,
+    { score: 10, grade: "F", issues: [] },
+    { workerId: "stale-worker" },
+  );
+  assert.equal(staleCompletion, null);
+
+  const replacementCompletion = await repository.markCompleted(
+    scan.id,
+    { score: 90, grade: "A", issues: [] },
+    { workerId: "replacement-worker" },
+  );
+  assert.equal(replacementCompletion.status, "completed");
+  assert.equal(replacementCompletion.result.grade, "A");
+});
+
 test("scan repository schema statements create the scans table and scoped indexes", () => {
   const statements = buildScanRepositorySchemaStatements("public");
 
@@ -473,6 +553,8 @@ test("scan repository schema statements create the scans table and scoped indexe
   assert.ok(statements.some((statement) => /create table if not exists public\.users/i.test(statement)));
   assert.ok(statements.some((statement) => /create table if not exists public\.auth_sessions/i.test(statement)));
   assert.ok(statements.some((statement) => /create table if not exists public\.api_keys/i.test(statement)));
+  assert.ok(statements.some((statement) => /add column if not exists job_attempts/i.test(statement)));
+  assert.ok(statements.some((statement) => /scans_claimable_jobs_idx/i.test(statement)));
   assert.ok(statements.some((statement) => /create table if not exists public\.push_devices/i.test(statement)));
   assert.ok(statements.some((statement) => /last_push_attempted_at timestamptz null/i.test(statement)));
   assert.ok(statements.some((statement) => /last_push_status text null/i.test(statement)));

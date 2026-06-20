@@ -52,3 +52,63 @@ test("scan scheduler recovers stale running scans through repository hook", asyn
 
   assert.equal(await scheduler.recoverStaleRunningScans(), 3);
 });
+
+test("scan scheduler claims durable jobs once across competing workers", async () => {
+  let claimed = false;
+  let executions = 0;
+  const repository = {
+    async claimScanJob(_id, { workerId }) {
+      if (claimed) return null;
+      claimed = true;
+      return { id: "durable-one", leaseOwner: workerId };
+    },
+  };
+  const options = {
+    concurrency: 1,
+    scanRepository: repository,
+    log: () => {},
+    runQueuedScan: async ({ scanLeaseOwner }) => {
+      assert.match(scanLeaseOwner, /^scan-worker:/);
+      executions += 1;
+    },
+  };
+  const first = createScanScheduler(options);
+  const second = createScanScheduler(options);
+
+  first.enqueue({ scan: { id: "durable-one" } });
+  second.enqueue({ scan: { id: "durable-one" } });
+  await wait(20);
+
+  assert.equal(executions, 1);
+  first.stop();
+  second.stop();
+});
+
+test("scan scheduler reconstructs persisted queued jobs during recovery", async () => {
+  const executed = [];
+  const scheduler = createScanScheduler({
+    concurrency: 1,
+    scanRepository: {
+      async requeueStaleRunningScanJobs() {
+        return { requeued: 1, failed: 0 };
+      },
+      async listClaimableScanJobs() {
+        return [{ id: "recovered-one", url: "https://example.com", mode: "standard" }];
+      },
+      async claimScanJob(_id, { workerId }) {
+        return { id: "recovered-one", leaseOwner: workerId };
+      },
+    },
+    jobFactory: (scan) => ({ scan, recovered: true }),
+    log: () => {},
+    runQueuedScan: async (job) => executed.push(job),
+  });
+
+  const recovered = await scheduler.recoverPersistedJobs();
+  await wait(20);
+
+  assert.deepEqual(recovered, { requeued: 1, failed: 0, queued: 1 });
+  assert.equal(executed.length, 1);
+  assert.equal(executed[0].recovered, true);
+  scheduler.stop();
+});

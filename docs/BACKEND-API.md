@@ -55,8 +55,8 @@ Runtime controls:
 
 - `SCAN_TIMEOUT_MS`: standard/quiet scan timeout, default `45000`.
 - `DEEP_PASSIVE_SCAN_TIMEOUT_MS`: deep-passive timeout, default `75000`, never lower than `SCAN_TIMEOUT_MS`.
-- `SCAN_CONCURRENCY`: in-process queued scan concurrency, default `2`.
-- `STALE_RUNNING_SCAN_MS`: startup recovery threshold for scans left `running`, default `120000`.
+- `SCAN_CONCURRENCY`: per-worker queued scan concurrency, default `2`.
+- `STALE_RUNNING_SCAN_MS`: recovery threshold for scans left `running`, default `120000`.
 - `MONITORING_SCHEDULER_ENABLED`: enables backend-owned due target sweeps when set to `true`, default `false`.
 - `MONITORING_SWEEP_INTERVAL_MS`: due target sweep interval, default `900000`, minimum `60000`.
 - `MONITORING_SWEEP_LIMIT`: maximum due targets queued per sweep, default `20`.
@@ -67,6 +67,8 @@ Runtime controls:
 `GET /api/scans/:id/digest` returns a compact posture digest for lightweight clients. `GET /api/scans/:id/brief` returns a concise exposure brief for mobile, CLI, and report clients that need the highest-priority public entry points, trust gaps, abuse indicators, and next actions without loading the full evidence payload. `GET /api/scans/:id/vendors` returns a compact vendor and supply-chain exposure brief covering third-party providers, visible data-flow categories, SRI gaps, priority vendors, and next actions. `GET /api/scans/:id/action-plan` returns a prioritized fix narrative that combines remediation, score drivers, exposure brief, and vendor context into owner/effort/impact-ranked actions. `GET /api/scans/:id/drift` returns the same drift/risk-event analysis used for monitoring when previous scans exist. Export resources return machine-readable JSON, Markdown, SARIF, or CI JSON once the scan is complete.
 
 `GET /api/scans/:id/events` returns a Server-Sent Events stream of scan lifecycle events and closes after `scan_terminal`. Mobile clients can use this instead of polling the full scan detail response while a scan is queued or running.
+
+Production scan jobs are durable when the Postgres repository is enabled. Each worker atomically leases queued rows before execution, so multiple Railway instances cannot run the same scan concurrently. Startup and periodic recovery rebuild work from persisted rows; interrupted running scans are requeued with a bounded three-attempt policy before becoming failed. Lease and attempt metadata are internal and do not change public scan payloads.
 
 ## Current certificate resources
 

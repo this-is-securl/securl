@@ -93,9 +93,15 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
       client_ip text not null,
       failure_class text null,
       error text null,
+      job_attempts integer not null default 0,
+      lease_owner text null,
+      lease_expires_at timestamptz null,
       summary jsonb not null,
       result jsonb null
     )`,
+    `alter table if exists ${qualifiedTable} add column if not exists job_attempts integer not null default 0`,
+    `alter table if exists ${qualifiedTable} add column if not exists lease_owner text null`,
+    `alter table if exists ${qualifiedTable} add column if not exists lease_expires_at timestamptz null`,
     `create table if not exists ${qualifiedEventsTable} (
       id uuid primary key,
       scan_id uuid not null references ${qualifiedTable}(id) on delete cascade,
@@ -129,6 +135,7 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
     `create index if not exists scans_requested_at_idx on ${qualifiedTable} (requested_at desc)`,
     `create index if not exists scans_owner_requested_at_idx on ${qualifiedTable} (owner_id, requested_at desc)`,
     `create index if not exists scans_requester_requested_at_idx on ${qualifiedTable} (requester_scope, requested_at desc)`,
+    `create index if not exists scans_claimable_jobs_idx on ${qualifiedTable} (requested_at asc, lease_expires_at) where status = 'queued'`,
     `create index if not exists scan_events_scan_occurred_idx on ${qualifiedEventsTable} (scan_id, occurred_at desc)`,
     `create index if not exists monitoring_targets_owner_added_idx on ${qualifiedTargetsTable} (owner_id, added_at desc)`,
     `create index if not exists monitoring_targets_requester_added_idx on ${qualifiedTargetsTable} (requester_scope, added_at desc)`,
@@ -200,6 +207,9 @@ export function buildPersistedScanRecord(scan) {
     clientIp: scan.clientIp,
     failureClass: scan.failureClass,
     error: scan.error,
+    jobAttempts: scan.jobAttempts ?? 0,
+    leaseOwner: scan.leaseOwner ?? null,
+    leaseExpiresAt: scan.leaseExpiresAt ?? null,
     summary: buildScanSummary(scan),
     result: scan.result,
   };
@@ -497,6 +507,9 @@ function hydrateScanFromRow(row) {
     clientIp: row.client_ip,
     failureClass: row.failure_class,
     error: row.error,
+    jobAttempts: Number(row.job_attempts || 0),
+    leaseOwner: row.lease_owner ?? null,
+    leaseExpiresAt: row.lease_expires_at?.toISOString?.() ?? row.lease_expires_at ?? null,
     result: row.result,
   });
 }
@@ -1007,6 +1020,9 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
         completedAt: null,
         failureClass: null,
         error: null,
+        jobAttempts: 0,
+        leaseOwner: null,
+        leaseExpiresAt: null,
         result: null,
       };
       scans.set(scan.id, scan);
@@ -1025,9 +1041,36 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       touchOrder(scan.id);
       return enrichScan(scan);
     },
-    async markRunning(id) {
+    async claimScanJob(id, { workerId, leaseMs = 5 * 60 * 1000, now = new Date() } = {}) {
       const scan = scans.get(id);
-      if (!scan) {
+      if (!scan || scan.status !== "queued" || !workerId) return null;
+      const leaseExpiresAt = scan.leaseExpiresAt ? new Date(scan.leaseExpiresAt).getTime() : 0;
+      if (scan.leaseOwner && leaseExpiresAt > now.getTime()) return null;
+      scan.jobAttempts = (scan.jobAttempts ?? 0) + 1;
+      scan.leaseOwner = workerId;
+      scan.leaseExpiresAt = new Date(now.getTime() + leaseMs).toISOString();
+      return enrichScan(scan);
+    },
+    async listClaimableScanJobs({ limit = 20, now = new Date() } = {}) {
+      return order
+        .map((id) => scans.get(id))
+        .filter((scan) => scan?.status === "queued"
+          && (!scan.leaseExpiresAt || new Date(scan.leaseExpiresAt).getTime() <= now.getTime()))
+        .sort((left, right) => String(left.requestedAt).localeCompare(String(right.requestedAt)))
+        .slice(0, Math.max(1, limit))
+        .map(enrichScan);
+    },
+    async releaseScanJob(id, { workerId, now = new Date() } = {}) {
+      const scan = scans.get(id);
+      if (!scan || scan.status !== "queued" || (workerId && scan.leaseOwner !== workerId)) return null;
+      scan.leaseOwner = null;
+      scan.leaseExpiresAt = null;
+      scan.requestedAt = scan.requestedAt || now.toISOString();
+      return enrichScan(scan);
+    },
+    async markRunning(id, { workerId = null } = {}) {
+      const scan = scans.get(id);
+      if (!scan || scan.status !== "queued" || (workerId && scan.leaseOwner !== workerId)) {
         return null;
       }
       scan.status = "running";
@@ -1045,13 +1088,15 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       touchOrder(id);
       return enrichScan(scan);
     },
-    async markCompleted(id, result) {
+    async markCompleted(id, result, { workerId = null } = {}) {
       const scan = scans.get(id);
-      if (!scan) {
+      if (!scan || (workerId && (scan.status !== "running" || scan.leaseOwner !== workerId))) {
         return null;
       }
       scan.status = "completed";
       scan.completedAt = new Date().toISOString();
+      scan.leaseOwner = null;
+      scan.leaseExpiresAt = null;
       scan.result = result;
       const scanEvents = events.get(id) ?? [];
       scanEvents.unshift(
@@ -1087,13 +1132,15 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       }
       return enrichScan(scan);
     },
-    async markFailed(id, failureClass, message) {
+    async markFailed(id, failureClass, message, { workerId = null } = {}) {
       const scan = scans.get(id);
-      if (!scan) {
+      if (!scan || (workerId && (scan.status !== "running" || scan.leaseOwner !== workerId))) {
         return null;
       }
       scan.status = "failed";
       scan.completedAt = new Date().toISOString();
+      scan.leaseOwner = null;
+      scan.leaseExpiresAt = null;
       scan.failureClass = failureClass;
       scan.error = message;
       const scanEvents = events.get(id) ?? [];
@@ -1133,6 +1180,44 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       }
 
       return staleIds.length;
+    },
+    async requeueStaleRunningScanJobs({
+      maxAgeMs = 2 * 60 * 1000,
+      maxAttempts = 3,
+      limit = 20,
+      failureClass = "scan_timeout",
+      message = "Scan exhausted its recovery attempts after a worker stopped responding.",
+    } = {}) {
+      const cutoff = Date.now() - maxAgeMs;
+      const stale = order
+        .map((id) => scans.get(id))
+        .filter((scan) => scan?.status === "running"
+          && (!scan.startedAt || new Date(scan.startedAt).getTime() <= cutoff))
+        .slice(0, Math.max(1, limit));
+      let requeued = 0;
+      let failed = 0;
+      for (const scan of stale) {
+        if ((scan.jobAttempts ?? 0) >= maxAttempts) {
+          await this.markFailed(scan.id, failureClass, message);
+          failed += 1;
+          continue;
+        }
+        scan.status = "queued";
+        scan.startedAt = null;
+        scan.leaseOwner = null;
+        scan.leaseExpiresAt = null;
+        const scanEvents = events.get(scan.id) ?? [];
+        scanEvents.unshift(buildScanEvent({
+          scanId: scan.id,
+          eventType: "requeued",
+          status: "queued",
+          message: "Scan was requeued after its previous worker stopped responding.",
+          metadata: { previousAttempts: scan.jobAttempts ?? 0 },
+        }));
+        events.set(scan.id, scanEvents);
+        requeued += 1;
+      }
+      return { requeued, failed };
     },
     async getScan(id, scope = {}) {
       const scan = scans.get(id);
@@ -1849,14 +1934,17 @@ export function createPostgresScanRepository({
         completedAt: null,
         failureClass: null,
         error: null,
+        jobAttempts: 0,
+        leaseOwner: null,
+        leaseExpiresAt: null,
         result: null,
       };
       const record = buildPersistedScanRecord(scan);
       await pool.query(
         `insert into ${table}
-          (id, owner_id, status, url, mode, requested_at, started_at, completed_at, requester_scope, client_ip, failure_class, error, summary, result)
+          (id, owner_id, status, url, mode, requested_at, started_at, completed_at, requester_scope, client_ip, failure_class, error, job_attempts, lease_owner, lease_expires_at, summary, result)
          values
-          ($1, $2, $3, $4, $5, $6::timestamptz, $7::timestamptz, $8::timestamptz, $9, $10, $11, $12, $13::jsonb, $14::jsonb)`,
+          ($1, $2, $3, $4, $5, $6::timestamptz, $7::timestamptz, $8::timestamptz, $9, $10, $11, $12, $13, $14, $15::timestamptz, $16::jsonb, $17::jsonb)`,
         [
           record.id,
           record.ownerId,
@@ -1870,6 +1958,9 @@ export function createPostgresScanRepository({
           record.clientIp,
           record.failureClass,
           record.error,
+          record.jobAttempts,
+          record.leaseOwner,
+          record.leaseExpiresAt,
           JSON.stringify(record.summary),
           record.result ? JSON.stringify(record.result) : null,
         ],
@@ -1902,15 +1993,67 @@ export function createPostgresScanRepository({
       );
       return scan;
     },
-    async markRunning(id) {
+    async claimScanJob(id, { workerId, leaseMs = 5 * 60 * 1000, now = new Date() } = {}) {
+      if (!workerId) return null;
+      const leaseExpiresAt = new Date(now.getTime() + leaseMs).toISOString();
+      const { rows } = await pool.query(
+        `update ${table}
+         set job_attempts = job_attempts + 1,
+             lease_owner = $2,
+             lease_expires_at = $3::timestamptz
+         where id = $1
+           and status = 'queued'
+           and (lease_expires_at is null or lease_expires_at <= $4::timestamptz)
+         returning *`,
+        [id, workerId, leaseExpiresAt, now.toISOString()],
+      );
+      return hydrateScanFromRow(rows[0]);
+    },
+    async listClaimableScanJobs({ limit = 20, now = new Date() } = {}) {
+      const { rows } = await pool.query(
+        `select * from ${table}
+         where status = 'queued'
+           and (lease_expires_at is null or lease_expires_at <= $1::timestamptz)
+         order by requested_at asc
+         limit $2`,
+        [now.toISOString(), Math.max(1, limit)],
+      );
+      return rows.map(hydrateScanFromRow).filter(Boolean);
+    },
+    async releaseScanJob(id, { workerId = null } = {}) {
+      const params = [id];
+      const ownerFilter = workerId
+        ? (() => {
+            params.push(workerId);
+            return `and lease_owner = $${params.length}`;
+          })()
+        : "";
+      const { rows } = await pool.query(
+        `update ${table}
+         set lease_owner = null, lease_expires_at = null
+         where id = $1 and status = 'queued' ${ownerFilter}
+         returning *`,
+        params,
+      );
+      return hydrateScanFromRow(rows[0]);
+    },
+    async markRunning(id, { workerId = null } = {}) {
       const startedAt = new Date().toISOString();
+      const params = [id, startedAt];
+      const ownerFilter = workerId
+        ? (() => {
+            params.push(workerId);
+            return `and lease_owner = $${params.length}`;
+          })()
+        : "";
       const { rows } = await pool.query(
         `update ${table}
          set status = 'running', started_at = $2::timestamptz
-         where id = $1
+         where id = $1 and status = 'queued' ${ownerFilter}
          returning *`,
-        [id, startedAt],
+        params,
       );
+      if (!rows[0]) return null;
       const event = buildScanEvent({
         scanId: id,
         eventType: "started",
@@ -1926,7 +2069,7 @@ export function createPostgresScanRepository({
       );
       return hydrateScanFromRow(rows[0]);
     },
-    async markCompleted(id, result) {
+    async markCompleted(id, result, { workerId = null } = {}) {
       const completedAt = new Date().toISOString();
       const summary = buildScanSummary({
         id,
@@ -1940,18 +2083,28 @@ export function createPostgresScanRepository({
         mode: "standard",
         result,
       });
+      const params = [id, completedAt, JSON.stringify(summary), JSON.stringify(result)];
+      const ownerFilter = workerId
+        ? (() => {
+            params.push(workerId);
+            return `and status = 'running' and lease_owner = $${params.length}`;
+          })()
+        : "";
       const { rows } = await pool.query(
         `update ${table}
          set status = 'completed',
              completed_at = $2::timestamptz,
              failure_class = null,
              error = null,
+             lease_owner = null,
+             lease_expires_at = null,
              summary = $3::jsonb,
              result = $4::jsonb
-         where id = $1
+         where id = $1 ${ownerFilter}
          returning *`,
-        [id, completedAt, JSON.stringify(summary), JSON.stringify(result)],
+        params,
       );
+      if (!rows[0]) return null;
       const event = buildScanEvent({
         scanId: id,
         eventType: "completed",
@@ -2005,19 +2158,29 @@ export function createPostgresScanRepository({
       }
       return hydrateScanFromRow(rows[0]);
     },
-    async markFailed(id, failureClass, message) {
+    async markFailed(id, failureClass, message, { workerId = null } = {}) {
       const completedAt = new Date().toISOString();
+      const params = [id, completedAt, failureClass, message];
+      const ownerFilter = workerId
+        ? (() => {
+            params.push(workerId);
+            return `and status = 'running' and lease_owner = $${params.length}`;
+          })()
+        : "";
       const { rows } = await pool.query(
         `update ${table}
          set status = 'failed',
              completed_at = $2::timestamptz,
              failure_class = $3,
              error = $4,
+             lease_owner = null,
+             lease_expires_at = null,
              result = null
-         where id = $1
+         where id = $1 ${ownerFilter}
          returning *`,
-        [id, completedAt, failureClass, message],
+        params,
       );
+      if (!rows[0]) return null;
       const event = buildScanEvent({
         scanId: id,
         eventType: "failed",
@@ -2056,6 +2219,92 @@ export function createPostgresScanRepository({
       }
 
       return rows.length;
+    },
+    async requeueStaleRunningScanJobs({
+      maxAgeMs = 2 * 60 * 1000,
+      maxAttempts = 3,
+      limit = 20,
+      failureClass = "scan_timeout",
+      message = "Scan exhausted its recovery attempts after a worker stopped responding.",
+    } = {}) {
+      const cutoffAt = new Date(Date.now() - maxAgeMs).toISOString();
+      const { rows } = await pool.query(
+        `select id, job_attempts from ${table}
+         where status = 'running'
+           and (started_at is null or started_at < $1::timestamptz)
+         order by coalesce(started_at, requested_at) asc
+         limit $2`,
+        [cutoffAt, Math.max(1, limit)],
+      );
+      let requeued = 0;
+      let failed = 0;
+      for (const row of rows) {
+        if (Number(row.job_attempts || 0) >= maxAttempts) {
+          const completedAt = new Date().toISOString();
+          const exhausted = await pool.query(
+            `update ${table}
+             set status = 'failed',
+                 completed_at = $3::timestamptz,
+                 failure_class = $4,
+                 error = $5,
+                 lease_owner = null,
+                 lease_expires_at = null,
+                 result = null
+             where id = $1
+               and status = 'running'
+               and (started_at is null or started_at < $2::timestamptz)
+             returning id`,
+            [row.id, cutoffAt, completedAt, failureClass, message],
+          );
+          if (!exhausted.rows[0]) continue;
+          const event = buildScanEvent({
+            scanId: row.id,
+            eventType: "failed",
+            status: "failed",
+            occurredAt: completedAt,
+            failureClass,
+            message,
+          });
+          await pool.query(
+            `insert into ${eventsTable}
+              (id, scan_id, event_type, occurred_at, status, failure_class, message, metadata)
+             values
+              ($1, $2, $3, $4::timestamptz, $5, $6, $7, $8::jsonb)`,
+            [event.id, event.scanId, event.eventType, event.occurredAt, event.status, event.failureClass, event.message, JSON.stringify({})],
+          );
+          failed += 1;
+          continue;
+        }
+        const updated = await pool.query(
+          `update ${table}
+           set status = 'queued',
+               started_at = null,
+               lease_owner = null,
+               lease_expires_at = null
+           where id = $1
+             and status = 'running'
+             and (started_at is null or started_at < $2::timestamptz)
+           returning id`,
+          [row.id, cutoffAt],
+        );
+        if (!updated.rows[0]) continue;
+        const event = buildScanEvent({
+          scanId: row.id,
+          eventType: "requeued",
+          status: "queued",
+          message: "Scan was requeued after its previous worker stopped responding.",
+          metadata: { previousAttempts: Number(row.job_attempts || 0) },
+        });
+        await pool.query(
+          `insert into ${eventsTable}
+            (id, scan_id, event_type, occurred_at, status, failure_class, message, metadata)
+           values
+            ($1, $2, $3, $4::timestamptz, $5, $6, $7, $8::jsonb)`,
+          [event.id, event.scanId, event.eventType, event.occurredAt, event.status, null, event.message, JSON.stringify(event.metadata)],
+        );
+        requeued += 1;
+      }
+      return { requeued, failed };
     },
     async getScan(id, { requesterScope = null, ownerId = null } = {}) {
       const filters = ["id = $1"];

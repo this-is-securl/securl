@@ -46,7 +46,7 @@ The current backend service exposes:
 - `GET /api/monitoring-targets`
 - `DELETE /api/monitoring-targets/:id`
 
-These scan resources still default to **in-memory** storage for local development, but the same API shape can now be backed by Postgres for durable deployments.
+These scan resources still default to **in-memory** storage for local development. Postgres deployments persist both scan state and queued work: workers claim jobs with leases, recover queued scans after restarts, and retry interrupted running scans without changing the mobile API contract.
 
 ## Target Service Model
 

@@ -945,20 +945,44 @@ try {
   process.exit(1);
 }
 
-scanScheduler = createScanScheduler({
-  concurrency: SCAN_CONCURRENCY,
-  staleRunningScanMs: STALE_RUNNING_SCAN_MS,
-  scanRepository,
-  runQueuedScan,
-  log,
-});
-await scanScheduler.recoverStaleRunningScans();
 notificationService = createNotificationService({
   scanRepository,
   log,
   telemetry,
 });
 notificationService.start?.();
+scanScheduler = createScanScheduler({
+  concurrency: SCAN_CONCURRENCY,
+  staleRunningScanMs: STALE_RUNNING_SCAN_MS,
+  scanRepository,
+  runQueuedScan,
+  jobFactory: (scan) => ({
+    scan,
+    validatedTarget: new URL(scan.url),
+    mode: scan.mode,
+    authState: {
+      clientIp: "recovered-scan-worker",
+      requesterScope: scan.requesterScope,
+      ownerId: scan.ownerId,
+    },
+    scanRepository,
+    runScanAnalysis,
+    telemetry,
+    telemetryContext: {
+      source: "internal",
+      channel: "recovered_scan",
+      clientKey: "recovered-scan-worker",
+    },
+    classifyScanFailure,
+    normalizeScanErrorMessage,
+    formatErrorMessage,
+    log,
+    notificationService,
+  }),
+  log,
+});
+await scanScheduler.recoverPersistedJobs();
+scanScheduler.start();
 monitoringScheduler = createMonitoringScheduler({
   enabled: MONITORING_SCHEDULER_ENABLED,
   intervalMs: MONITORING_SWEEP_INTERVAL_MS,
@@ -1014,6 +1038,7 @@ const shutdownGracefully = (signal) => {
   shutdownStarted = true;
   log("info", "shutdown_started", { signal });
   monitoringScheduler?.stop?.();
+  scanScheduler?.stop?.();
   notificationService?.stop?.();
   server.close((error) => {
     if (error) {
