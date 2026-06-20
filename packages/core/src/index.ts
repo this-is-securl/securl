@@ -59,6 +59,7 @@ import {
   requestWithHeaders,
 } from "./network.js";
 import { normalizeDiscoveredPath, rankDiscoveredPaths } from "./path-discovery.js";
+import { buildObservationLedger } from "./observations.js";
 import { buildPassiveIntelligence, emptyPassiveIntelligence } from "./passive-intelligence.js";
 import { analyzeRedirectChain } from "./redirectChain.js";
 import { attachIssueEvidence, buildPostureEvidenceSummary, buildPostureRemediationPlan } from "./postureRemediation.js";
@@ -653,9 +654,13 @@ async function buildLimitedResult(
     exposureBrief: buildExposureBrief(resultWithRemediation),
     vendorExposure: buildVendorExposureBrief(resultWithRemediation),
   };
-  return {
+  const resultWithActions = {
     ...resultWithBriefs,
     actionPlan: buildActionPlan(resultWithBriefs),
+  };
+  return {
+    ...resultWithActions,
+    observationLedger: buildObservationLedger(resultWithActions),
   };
 }
 
@@ -1163,9 +1168,13 @@ function buildTimedOutEnrichmentResult(
     exposureBrief: buildExposureBrief(resultWithRemediation),
     vendorExposure: buildVendorExposureBrief(resultWithRemediation),
   };
-  return {
+  const resultWithActions = {
     ...resultWithBriefs,
     actionPlan: buildActionPlan(resultWithBriefs),
+  };
+  return {
+    ...resultWithActions,
+    observationLedger: buildObservationLedger(resultWithActions),
   };
 }
 
@@ -1252,15 +1261,20 @@ export async function analyzeUrl(input: string, options: AnalyzeTargetOptions = 
     exposureBrief: buildExposureBrief(resultWithRemediation),
     vendorExposure: buildVendorExposureBrief(resultWithRemediation),
   };
-  return {
+  const resultWithActions = {
     ...resultWithBriefs,
     actionPlan: buildActionPlan(resultWithBriefs),
+  };
+  return {
+    ...resultWithActions,
+    observationLedger: buildObservationLedger(resultWithActions),
   };
 }
 
 export const analyzeTarget = analyzeUrl;
 export { formatErrorMessage };
 export { buildCompromiseSignals, emptyCompromiseSignals } from "./compromiseSignals.js";
+export { buildObservationLedger } from "./observations.js";
 export { buildActionPlan } from "./actionPlan.js";
 export { scanLiveCertificate } from "./certificate.js";
 export { buildExposureBrief } from "./exposureBrief.js";

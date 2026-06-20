@@ -103,7 +103,7 @@ function assertCapabilities(payload) {
     }
   }
 
-  for (const feature of ["evidence-summary", "posture-digest", "posture-drift", "exposure-brief", "vendor-exposure", "action-plan", "scan-events", "scan-resource-links", "durable-scan-jobs"]) {
+  for (const feature of ["evidence-summary", "posture-digest", "posture-drift", "exposure-brief", "vendor-exposure", "action-plan", "scan-events", "scan-resource-links", "durable-scan-jobs", "observation-ledger-v1"]) {
     if (!features.includes(feature)) {
       throw new Error(`Capabilities missing scan feature: ${feature}`);
     }
@@ -134,6 +134,7 @@ function assertScanResourceLinks(payload, scanId) {
     digest: `/api/scans/${scanId}/digest`,
     events: `/api/scans/${scanId}/events`,
     evidence: `/api/scans/${scanId}/evidence`,
+    observations: `/api/scans/${scanId}/observations`,
     history: `/api/scans/${scanId}/history`,
     comparison: `/api/scans/${scanId}/comparison`,
     drift: `/api/scans/${scanId}/drift`,
@@ -223,6 +224,7 @@ async function main() {
     ["vendors", `/api/scans/${encodeURIComponent(scanId)}/vendors`, ownerHeaders],
     ["action-plan", `/api/scans/${encodeURIComponent(scanId)}/action-plan`, ownerHeaders],
     ["evidence", `/api/scans/${encodeURIComponent(scanId)}/evidence`, ownerHeaders],
+    ["observations", `/api/scans/${encodeURIComponent(scanId)}/observations`, ownerHeaders],
     ["history", `/api/scans/${encodeURIComponent(scanId)}/history`, ownerHeaders],
     ["comparison", `/api/scans/${encodeURIComponent(scanId)}/comparison`, ownerHeaders],
     ["drift", `/api/scans/${encodeURIComponent(scanId)}/drift`, ownerHeaders],
@@ -250,6 +252,9 @@ async function main() {
     }
     if (label === "evidence" && !payload.evidence) {
       throw new Error("Evidence endpoint returned an empty evidence payload");
+    }
+    if (label === "observations" && !payload.observationLedger?.observations?.length) {
+      throw new Error("Observations endpoint returned an empty observation ledger");
     }
     if (label === "share" && !payload.scan?.result) {
       throw new Error("Share endpoint returned an empty scan result");

@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-06-20 — core 1.10.0 and durable backend jobs
+
+### Added
+
+- Added Observation Ledger v1 to the engine with deterministic signal IDs, explicit observed/inferred/missing/unavailable states, confidence, source evidence, and freshness windows.
+- Added the `securl/observations` package export and `GET /api/scans/:id/observations` lightweight API resource.
+- Added durable Postgres-backed scan job leases, restart recovery, bounded retries, and stale-worker write fencing.
+
+### Compatibility
+
+- Existing web and mobile scan DTOs remain valid; the ledger and resource links are additive.
+- Backend lease and attempt metadata remains internal.
+
 ## 2026-06-15 — core 1.9.0
 
 ### Added

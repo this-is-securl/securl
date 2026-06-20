@@ -24,6 +24,7 @@ test("scan resource links point clients at lightweight follow-up endpoints", () 
     digest: "/api/scans/scan-one/digest",
     events: "/api/scans/scan-one/events",
     evidence: "/api/scans/scan-one/evidence",
+    observations: "/api/scans/scan-one/observations",
     history: "/api/scans/scan-one/history",
     comparison: "/api/scans/scan-one/comparison",
     drift: "/api/scans/scan-one/drift",
