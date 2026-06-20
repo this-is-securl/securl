@@ -125,6 +125,21 @@ Transient network errors, timeouts, `429`, and `5xx` responses are retried with 
 
 Every device delivery is first written to a durable, idempotent notification outbox. Postgres workers claim pending rows with leases and `SKIP LOCKED`, reclaim work after interrupted workers, and retry recoverable failures on a bounded delayed schedule. APNs collapse identifiers reduce duplicate-visible alerts during at-least-once recovery. Completed outbox rows are retained for seven days and then pruned in bounded batches.
 
+## Policy alert destinations
+
+- `POST /api/alert-destinations`
+- `GET /api/alert-destinations`
+- `POST /api/alert-destinations/:id/test`
+- `DELETE /api/alert-destinations/:id`
+
+Alert destinations require an authenticated user session or user API key; anonymous scan-owner tokens cannot create network or email delivery. Each account is limited to ten destinations. Supported types are `webhook` and `email`; APNs continues to use notification-device registrations.
+
+Webhook URLs must use HTTPS and cannot contain credentials, query parameters, or fragments. They are checked for public-only DNS at registration and again at delivery, and the outbound socket is pinned to the validated addresses to close DNS-rebinding gaps. Redirects are not followed. Payloads include `X-SecURL-Timestamp` and `X-SecURL-Signature: sha256=<hmac>` headers; the webhook signing secret is returned when the destination is created and is never returned by list endpoints.
+
+Email delivery uses Resend when both `RESEND_API_KEY` and `ALERT_EMAIL_FROM` are configured. Without both values, email rows remain queued for bounded retry rather than being silently discarded.
+
+Policy alerts are generated only for newly introduced violation fingerprints. Existing unresolved violations do not notify on every scan. APNs is attempted immediately, while webhook and email deliveries are persisted to a separate idempotent outbox with leases, stale-worker recovery, bounded retry, audit status, and seven-day completed-row retention.
+
 Without APNs credentials, device registration and monitoring continue normally, while delivery is recorded as skipped.
 
 ## Telemetry readout

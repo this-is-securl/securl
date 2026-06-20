@@ -51,6 +51,8 @@ import {
 } from "./pushDeviceHandlers.mjs";
 import { createMonitoringScheduler } from "./monitoringScheduler.mjs";
 import { createNotificationService } from "./notificationService.mjs";
+import { createAlertDeliveryService } from "./alertDeliveryService.mjs";
+import { handleAlertDestinationCollectionRequest, handleAlertDestinationItemRequest } from "./alertDestinationHandlers.mjs";
 import { handleAuthRequest, resolveAuthenticatedApiKey, resolveAuthenticatedSession } from "./authHandlers.mjs";
 import { handleScanCollectionRequest, handleScanResourceRequest, runQueuedScan } from "./scanResourceHandlers.mjs";
 import { createScanScheduler } from "./scanScheduler.mjs";
@@ -216,6 +218,7 @@ let scanRepository;
 let scanScheduler;
 let monitoringScheduler;
 let notificationService;
+let alertDeliveryService;
 
 function buildVisitorKey(request) {
   const clientIp = getClientIp(request, { trustProxy, isLocalHostname, isPrivateAddress });
@@ -558,6 +561,7 @@ const server = http.createServer(async (request, response) => {
       scanConcurrency: SCAN_CONCURRENCY,
       monitoringScheduler: monitoringScheduler?.snapshot?.(),
       notifications: notificationService?.snapshot?.(),
+      alerts: alertDeliveryService?.snapshot?.(),
       serveFrontend,
     }));
     return;
@@ -673,6 +677,7 @@ const server = http.createServer(async (request, response) => {
       formatErrorMessage,
       log,
       notificationService,
+      alertDeliveryService,
       requireScanOwner: true,
     });
     return;
@@ -723,6 +728,44 @@ const server = http.createServer(async (request, response) => {
       sendRepositoryUnavailable: sendApiRepositoryUnavailable,
       telemetry,
       readClientMetadata,
+    });
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/alert-destinations") {
+    await handleAlertDestinationCollectionRequest({
+      request,
+      response,
+      requestUrl,
+      scanRepository,
+      authorizeAnalysisRequest: (options) => withAuthResolvers({
+        ...options,
+        sendJsonResponse: sendApiJson,
+        sendRateLimitedResponse: sendApiRateLimited,
+      }),
+      readJsonBody,
+      sendJson: sendApiJson,
+      sendMethodNotAllowed: sendApiMethodNotAllowed,
+      sendRepositoryUnavailable: sendApiRepositoryUnavailable,
+    });
+    return;
+  }
+
+  if (requestUrl.pathname.startsWith("/api/alert-destinations/")) {
+    await handleAlertDestinationItemRequest({
+      request,
+      response,
+      requestUrl,
+      scanRepository,
+      authorizeAnalysisRequest: (options) => withAuthResolvers({
+        ...options,
+        sendJsonResponse: sendApiJson,
+        sendRateLimitedResponse: sendApiRateLimited,
+      }),
+      alertDeliveryService,
+      sendJson: sendApiJson,
+      sendMethodNotAllowed: sendApiMethodNotAllowed,
+      sendRepositoryUnavailable: sendApiRepositoryUnavailable,
     });
     return;
   }
@@ -861,6 +904,7 @@ const server = http.createServer(async (request, response) => {
       formatErrorMessage,
       log,
       notificationService,
+      alertDeliveryService,
       sendJson: sendApiJson,
       sendMethodNotAllowed: sendApiMethodNotAllowed,
       sendRepositoryUnavailable: sendApiRepositoryUnavailable,
@@ -957,6 +1001,13 @@ notificationService = createNotificationService({
   telemetry,
 });
 notificationService.start?.();
+alertDeliveryService = createAlertDeliveryService({
+  scanRepository,
+  notificationService,
+  log,
+  telemetry,
+});
+alertDeliveryService.start?.();
 scanScheduler = createScanScheduler({
   concurrency: SCAN_CONCURRENCY,
   staleRunningScanMs: STALE_RUNNING_SCAN_MS,
@@ -984,6 +1035,7 @@ scanScheduler = createScanScheduler({
     formatErrorMessage,
     log,
     notificationService,
+    alertDeliveryService,
   }),
   log,
 });
@@ -1004,6 +1056,7 @@ monitoringScheduler = createMonitoringScheduler({
     formatErrorMessage,
     log,
     notificationService,
+    alertDeliveryService,
   }),
   runCertificateCheck: (target) => runCertificateMonitorCheck({
     target,
@@ -1046,6 +1099,7 @@ const shutdownGracefully = (signal) => {
   monitoringScheduler?.stop?.();
   scanScheduler?.stop?.();
   notificationService?.stop?.();
+  alertDeliveryService?.stop?.();
   server.close((error) => {
     if (error) {
       log("error", "shutdown_failed", {

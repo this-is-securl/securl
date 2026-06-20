@@ -6,19 +6,40 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-06-20
+
 ### Added
 - Added a bounded declarative observation policy engine, maintained baseline policy, validation helper, and `securl/observation-policy` export.
 - Added `diffObservationLedgers()` and `securl/observation-drift` for deterministic observation-level regression and improvement classification.
-- Added `buildVendorExposureBrief()` for compact vendor and supply-chain exposure summaries covering visible third-party providers, data-flow categories, SRI gaps, priority vendors, and next actions.
-- Added `vendorExposure` to analysis results and the `securl/vendor-exposure` package export for SDK consumers.
-- Added `buildExposureBrief()` for compact outside-observer action briefs covering public entry points, sensitive exposures, trust gaps, abuse indicators, third-party risk, AI surface signals, and next actions.
-- Added `exposureBrief` to analysis results and the `securl/exposure-brief` package export for SDK consumers.
 
 ## [1.10.0] - 2026-06-20
 
 ### Added
 - Added `buildObservationLedger()` and the `securl/observations` package export for stable, source-aware posture observations.
 - Added `observationLedger` to completed analysis results with deterministic IDs, confidence, status, and freshness metadata.
+
+## [1.9.0] - 2026-06-15
+
+### Added
+- Added `scanLiveCertificate()` and the `securl/live-certificate` package export for bounded TLS handshake-only certificate reads.
+- Added certificate chain, protocol, key-strength, and expiry metadata for lightweight certificate clients.
+
+## [1.8.0] - 2026-06-15
+
+### Added
+- Added `buildActionPlan()` and the `securl/action-plan` package export for prioritized owner, effort, and impact-ranked remediation actions.
+
+## [1.7.0] - 2026-06-15
+
+### Added
+- Added `buildVendorExposureBrief()` for compact vendor and supply-chain exposure summaries covering visible third-party providers, data-flow categories, SRI gaps, priority vendors, and next actions.
+- Added `vendorExposure` to analysis results and the `securl/vendor-exposure` package export for SDK consumers.
+
+## [1.6.0] - 2026-06-15
+
+### Added
+- Added `buildExposureBrief()` for compact outside-observer action briefs covering public entry points, sensitive exposures, trust gaps, abuse indicators, third-party risk, AI surface signals, and next actions.
+- Added `exposureBrief` to analysis results and the `securl/exposure-brief` package export for SDK consumers.
 
 ## [1.5.1] - 2026-06-15
 
