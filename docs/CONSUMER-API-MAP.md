@@ -11,6 +11,7 @@ For web and mobile experiences, prefer:
 - `GET /api/scans/:id/brief`: outside-observer exposure brief with public entry points, trust gaps, abuse indicators, and next actions.
 - `GET /api/scans/:id/vendors`: vendor and supply-chain exposure brief with third-party providers, data-flow categories, SRI gaps, and review priorities.
 - `GET /api/scans/:id/action-plan`: prioritized fix narrative combining remediation, evidence, score drivers, exposure, and vendor context.
+- `GET /api/scans/:id/observations`: stable source, confidence, status, and freshness-aware observations for monitoring, inventory, and integrations.
 - `GET /api/scans/:id/events`: Server-Sent Events lifecycle stream so apps can stop polling once a scan reaches `completed` or `failed`.
 
 These endpoints are stable additive resources. They are the safest shape for client UI because they avoid coupling screens to the full internal scan object.

@@ -211,7 +211,23 @@ console.log({
 });
 ```
 
-### 6. Evidence-backed remediation plans
+### 8. Machine-readable observation ledger
+
+Version `1.10.0+` adds stable posture observations for monitoring, inventory, policy, and future SaaS integrations. Each observation records what was seen, whether it was observed, inferred, missing, or unavailable, its confidence and source, and when that evidence should be refreshed.
+
+```ts
+import { analyzeUrl } from "securl";
+import { buildObservationLedger } from "securl/observations";
+
+const result = await analyzeUrl("https://example.com");
+const ledger = result.observationLedger ?? buildObservationLedger(result);
+
+console.log(ledger.summary, ledger.observations);
+```
+
+Observation IDs are deterministic across scans for the same subject and signal, making the ledger suitable for change detection without exposing backend job metadata.
+
+### 9. Evidence-backed remediation plans
 
 Version `1.4.0+` includes a remediation plan helper that turns score drivers and findings into prioritized, owner-aware fix guidance. Findings can also carry structured evidence references so clients can show why a finding was raised.
 
@@ -322,6 +338,7 @@ Primary exports:
 - `buildPostureDigest(result)` - reduce a full scan result to a compact API/mobile-friendly digest.
 - `buildActionPlan(result)` - turn remediation, score drivers, exposure, and vendor context into prioritized fix actions.
 - `scanLiveCertificate(url)` - perform a TLS handshake-only certificate read for lightweight cert monitoring.
+- `buildObservationLedger(result)` - produce stable source, confidence, status, and freshness-aware posture observations.
 - `buildPostureDriftReportFromSnapshots(current, previous)` - produce a complete scan-to-scan drift report for monitoring, alerting, and history views.
 - `buildPostureRemediationPlan(result)` - generate prioritized, owner-aware remediation actions from findings and score drivers.
 - `attachIssueEvidence(result)` - add structured evidence references to findings without changing their existing fields.
@@ -333,6 +350,7 @@ Package subpath exports:
 - `securl/posture-digest`
 - `securl/action-plan`
 - `securl/live-certificate`
+- `securl/observations`
 - `securl/posture-drift`
 - `securl/remediation-plan`
 - `securl/risk-events`

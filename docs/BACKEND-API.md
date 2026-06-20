@@ -37,6 +37,7 @@ Mobile clients should set these headers alongside `X-Scan-Owner` on every reques
 - `GET /api/scans/:id/action-plan`
 - `GET /api/scans/:id/events`
 - `GET /api/scans/:id/evidence`
+- `GET /api/scans/:id/observations`
 - `GET /api/scans/:id/history`
 - `GET /api/scans/:id/comparison`
 - `GET /api/scans/:id/drift`
@@ -64,7 +65,7 @@ Runtime controls:
 
 `GET /api/scans/:id/comparison` returns the completed scan summary, the previous completed scan summary for the same URL and owner when available, and the same diff/risk-event payload used by target history and monitoring detail views.
 
-`GET /api/scans/:id/digest` returns a compact posture digest for lightweight clients. `GET /api/scans/:id/brief` returns a concise exposure brief for mobile, CLI, and report clients that need the highest-priority public entry points, trust gaps, abuse indicators, and next actions without loading the full evidence payload. `GET /api/scans/:id/vendors` returns a compact vendor and supply-chain exposure brief covering third-party providers, visible data-flow categories, SRI gaps, priority vendors, and next actions. `GET /api/scans/:id/action-plan` returns a prioritized fix narrative that combines remediation, score drivers, exposure brief, and vendor context into owner/effort/impact-ranked actions. `GET /api/scans/:id/drift` returns the same drift/risk-event analysis used for monitoring when previous scans exist. Export resources return machine-readable JSON, Markdown, SARIF, or CI JSON once the scan is complete.
+`GET /api/scans/:id/digest` returns a compact posture digest for lightweight clients. `GET /api/scans/:id/observations` returns Observation Ledger v1: deterministic, source-aware evidence records with explicit status, confidence, observation time, and freshness. `GET /api/scans/:id/brief` returns a concise exposure brief for mobile, CLI, and report clients that need the highest-priority public entry points, trust gaps, abuse indicators, and next actions without loading the full evidence payload. `GET /api/scans/:id/vendors` returns a compact vendor and supply-chain exposure brief covering third-party providers, visible data-flow categories, SRI gaps, priority vendors, and next actions. `GET /api/scans/:id/action-plan` returns a prioritized fix narrative that combines remediation, score drivers, exposure brief, and vendor context into owner/effort/impact-ranked actions. `GET /api/scans/:id/drift` returns the same drift/risk-event analysis used for monitoring when previous scans exist. Export resources return machine-readable JSON, Markdown, SARIF, or CI JSON once the scan is complete.
 
 `GET /api/scans/:id/events` returns a Server-Sent Events stream of scan lifecycle events and closes after `scan_terminal`. Mobile clients can use this instead of polling the full scan detail response while a scan is queued or running.
 
@@ -80,7 +81,7 @@ Smoke-check the live API contract with:
 npm run smoke:api
 ```
 
-The smoke command checks health, readiness, capabilities, scan creation, scan detail resources, digest/brief/vendors/action-plan/events/evidence resources, live certificate lookup, comparison/drift resources, export formats, and the public share resource.
+The smoke command checks health, readiness, capabilities, scan creation, scan detail resources, digest/brief/vendors/action-plan/events/evidence/observations resources, live certificate lookup, comparison/drift resources, export formats, and the public share resource.
 
 Optional overrides:
 

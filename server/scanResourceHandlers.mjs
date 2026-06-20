@@ -47,6 +47,7 @@ export function buildScanResourceLinks(scanId) {
     digest: `${basePath}/digest`,
     events: `${basePath}/events`,
     evidence: `${basePath}/evidence`,
+    observations: `${basePath}/observations`,
     history: `${basePath}/history`,
     comparison: `${basePath}/comparison`,
     drift: `${basePath}/drift`,
@@ -466,6 +467,7 @@ export async function handleScanResourceRequest({
   buildScanBriefPayload,
   buildScanVendorsPayload,
   buildScanActionPlanPayload,
+  buildScanObservationsPayload,
   buildScanEvidencePayload,
   buildScanHistoryPayload,
   buildScanComparisonPayload,
@@ -578,6 +580,11 @@ export async function handleScanResourceRequest({
 
     if (resource === "action-plan") {
       sendJson(response, 200, buildScanActionPlanPayload(scan));
+      return true;
+    }
+
+    if (resource === "observations") {
+      sendJson(response, 200, buildScanObservationsPayload(scan));
       return true;
     }
 

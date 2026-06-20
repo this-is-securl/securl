@@ -976,6 +976,46 @@ export interface PublicSignalsInfo {
   strengths: string[];
 }
 
+export type ObservationCategory =
+  | "transport"
+  | "header"
+  | "certificate"
+  | "dns"
+  | "email"
+  | "infrastructure"
+  | "technology"
+  | "trust"
+  | "availability";
+export type ObservationStatus = "observed" | "inferred" | "missing" | "unavailable";
+export type ObservationValue = string | number | boolean | null | string[];
+
+export interface PostureObservation {
+  id: string;
+  category: ObservationCategory;
+  kind: string;
+  subject: string;
+  status: ObservationStatus;
+  value: ObservationValue;
+  confidence: IssueConfidence;
+  source: ScanEvidenceKind | "availability" | "technology" | "infrastructure";
+  observedAt: string;
+  freshUntil: string;
+  evidence: ScanEvidenceReference[];
+}
+
+export interface ObservationLedger {
+  version: "1.0";
+  target: string;
+  generatedAt: string;
+  observations: PostureObservation[];
+  summary: {
+    total: number;
+    byStatus: Record<ObservationStatus, number>;
+    byCategory: Partial<Record<ObservationCategory, number>>;
+    highConfidence: number;
+  };
+}
+
 export interface AnalysisResult {
   inputUrl: string;
   normalizedUrl: string;
@@ -1023,6 +1063,7 @@ export interface AnalysisResult {
   publicSignals: PublicSignalsInfo;
   wafFingerprint: WafFingerprintInfo;
   scanTiming?: ScanTimingInfo;
+  observationLedger?: ObservationLedger;
 }
 
 export interface AnalyzeTargetOptions {

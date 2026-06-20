@@ -12,6 +12,12 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 - Added `buildExposureBrief()` for compact outside-observer action briefs covering public entry points, sensitive exposures, trust gaps, abuse indicators, third-party risk, AI surface signals, and next actions.
 - Added `exposureBrief` to analysis results and the `securl/exposure-brief` package export for SDK consumers.
 
+## [1.10.0] - 2026-06-20
+
+### Added
+- Added `buildObservationLedger()` and the `securl/observations` package export for stable, source-aware posture observations.
+- Added `observationLedger` to completed analysis results with deterministic IDs, confidence, status, and freshness metadata.
+
 ## [1.5.1] - 2026-06-15
 
 ### Changed
