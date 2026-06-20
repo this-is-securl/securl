@@ -116,6 +116,8 @@ Each device registration's `appId` is used as its APNs topic, allowing SecURL, H
 
 Transient network errors, timeouts, `429`, and `5xx` responses are retried with short bounded backoff. Tokens are disabled only for APNs `Unregistered`, `BadDeviceToken`, or `DeviceTokenNotForTopic` responses; topic, payload, and provider-auth errors remain visible as recoverable delivery failures.
 
+Every device delivery is first written to a durable, idempotent notification outbox. Postgres workers claim pending rows with leases and `SKIP LOCKED`, reclaim work after interrupted workers, and retry recoverable failures on a bounded delayed schedule. APNs collapse identifiers reduce duplicate-visible alerts during at-least-once recovery. Completed outbox rows are retained for seven days and then pruned in bounded batches.
+
 Without APNs credentials, device registration and monitoring continue normally, while delivery is recorded as skipped.
 
 ## Telemetry readout

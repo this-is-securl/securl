@@ -10,6 +10,7 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
   const qualifiedSessionsTable = `${schema}.auth_sessions`;
   const qualifiedApiKeysTable = `${schema}.api_keys`;
   const qualifiedPushDevicesTable = `${schema}.push_devices`;
+  const qualifiedNotificationOutboxTable = `${schema}.notification_outbox`;
   return [
     `create schema if not exists ${schema}`,
     `create table if not exists ${qualifiedUsersTable} (
@@ -60,6 +61,25 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
     `alter table if exists ${qualifiedPushDevicesTable} add column if not exists last_push_sent_at timestamptz null`,
     `alter table if exists ${qualifiedPushDevicesTable} add column if not exists last_push_status text null`,
     `alter table if exists ${qualifiedPushDevicesTable} add column if not exists last_push_error text null`,
+    `create table if not exists ${qualifiedNotificationOutboxTable} (
+      id uuid primary key,
+      dedupe_key text not null unique,
+      device_id uuid not null references ${qualifiedPushDevicesTable}(id) on delete cascade,
+      owner_id text null,
+      requester_scope text not null,
+      channel text not null,
+      reference_id text not null,
+      payload jsonb not null,
+      status text not null,
+      attempts integer not null default 0,
+      available_at timestamptz not null,
+      leased_at timestamptz null,
+      lease_owner text null,
+      last_error text null,
+      created_at timestamptz not null,
+      updated_at timestamptz not null,
+      completed_at timestamptz null
+    )`,
     `create table if not exists ${qualifiedTable} (
       id uuid primary key,
       owner_id text null,
@@ -121,6 +141,9 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
     `create index if not exists push_devices_owner_updated_idx on ${qualifiedPushDevicesTable} (owner_id, updated_at desc) where disabled_at is null`,
     `create index if not exists push_devices_requester_updated_idx on ${qualifiedPushDevicesTable} (requester_scope, updated_at desc) where disabled_at is null`,
     `create unique index if not exists push_devices_scope_token_uidx on ${qualifiedPushDevicesTable} (coalesce(owner_id, ''), requester_scope, token_hash)`,
+    `create index if not exists notification_outbox_pending_idx on ${qualifiedNotificationOutboxTable} (status, available_at) where status in ('queued', 'processing')`,
+    `create index if not exists notification_outbox_device_created_idx on ${qualifiedNotificationOutboxTable} (device_id, created_at desc)`,
+    `create index if not exists notification_outbox_completed_idx on ${qualifiedNotificationOutboxTable} (completed_at) where completed_at is not null`,
   ];
 }
 
@@ -333,6 +356,74 @@ export function buildPushDeviceRecord({
 
 export function hashPushToken(token) {
   return crypto.createHash("sha256").update(String(token)).digest("hex");
+}
+
+function buildNotificationOutboxRecord({
+  id = crypto.randomUUID(),
+  dedupeKey,
+  device,
+  channel,
+  referenceId,
+  payload,
+  status = "queued",
+  attempts = 0,
+  availableAt = new Date().toISOString(),
+  leasedAt = null,
+  leaseOwner = null,
+  lastError = null,
+  createdAt = new Date().toISOString(),
+  updatedAt = createdAt,
+  completedAt = null,
+}) {
+  return {
+    id,
+    dedupeKey,
+    deviceId: device.id,
+    ownerId: device.ownerId ?? null,
+    requesterScope: device.requesterScope,
+    channel,
+    referenceId,
+    payload,
+    status,
+    attempts,
+    availableAt,
+    leasedAt,
+    leaseOwner,
+    lastError,
+    createdAt,
+    updatedAt,
+    completedAt,
+  };
+}
+
+function hydrateNotificationOutboxFromRow(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    dedupeKey: row.dedupe_key,
+    deviceId: row.device_id,
+    ownerId: row.owner_id,
+    requesterScope: row.requester_scope,
+    channel: row.channel,
+    referenceId: row.reference_id,
+    payload: row.payload,
+    status: row.status,
+    attempts: Number(row.attempts || 0),
+    availableAt: row.available_at?.toISOString?.() ?? row.available_at,
+    leasedAt: row.leased_at?.toISOString?.() ?? row.leased_at ?? null,
+    leaseOwner: row.lease_owner ?? null,
+    lastError: row.last_error ?? null,
+    createdAt: row.created_at?.toISOString?.() ?? row.created_at,
+    updatedAt: row.updated_at?.toISOString?.() ?? row.updated_at,
+    completedAt: row.completed_at?.toISOString?.() ?? row.completed_at ?? null,
+  };
+}
+
+function notificationDedupeKey(deviceId, channel, referenceId) {
+  return crypto
+    .createHash("sha256")
+    .update(`${deviceId}:${channel}:${referenceId}`)
+    .digest("hex");
 }
 
 function buildApiKeyUsageSummary(scans = []) {
@@ -573,6 +664,8 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
   const apiKeysByTokenHash = new Map();
   const pushDevices = new Map();
   const pushDeviceOrder = [];
+  const notificationOutbox = new Map();
+  const notificationOutboxByDedupeKey = new Map();
 
   const touchOrder = (id) => {
     const index = order.indexOf(id);
@@ -818,6 +911,86 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       device.lastPushError = error;
       touchPushDeviceOrder(id);
       return publicPushDevice(device);
+    },
+    async enqueueNotificationOutbox({ devices = [], payload, referenceId, channel = "monitoring" } = {}) {
+      const entries = [];
+      for (const device of devices) {
+        const dedupeKey = notificationDedupeKey(device.id, channel, referenceId);
+        const existingId = notificationOutboxByDedupeKey.get(dedupeKey);
+        if (existingId) {
+          entries.push({ ...notificationOutbox.get(existingId) });
+          continue;
+        }
+        const entry = buildNotificationOutboxRecord({
+          dedupeKey,
+          device,
+          channel,
+          referenceId,
+          payload: structuredClone(payload),
+        });
+        notificationOutbox.set(entry.id, entry);
+        notificationOutboxByDedupeKey.set(dedupeKey, entry.id);
+        entries.push({ ...entry });
+      }
+      return entries;
+    },
+    async claimNotificationOutbox({ workerId, limit = 20, leaseMs = 60_000, ids = null, now = new Date() } = {}) {
+      const nowMs = now.getTime();
+      const allowedIds = Array.isArray(ids) ? new Set(ids) : null;
+      const entries = [...notificationOutbox.values()]
+        .filter((entry) => {
+          if (allowedIds && !allowedIds.has(entry.id)) return false;
+          const available = new Date(entry.availableAt).getTime() <= nowMs;
+          const staleLease = entry.status === "processing"
+            && new Date(entry.leasedAt || 0).getTime() <= nowMs - leaseMs;
+          return available && (entry.status === "queued" || staleLease);
+        })
+        .sort((left, right) => String(left.createdAt).localeCompare(String(right.createdAt)))
+        .slice(0, Math.max(1, limit));
+      for (const entry of entries) {
+        entry.status = "processing";
+        entry.attempts += 1;
+        entry.leasedAt = now.toISOString();
+        entry.leaseOwner = workerId;
+        entry.updatedAt = now.toISOString();
+      }
+      return entries.map((entry) => ({ ...entry, payload: structuredClone(entry.payload) }));
+    },
+    async completeNotificationOutbox(id, {
+      status,
+      error = null,
+      availableAt = null,
+      workerId = null,
+      now = new Date(),
+    } = {}) {
+      const entry = notificationOutbox.get(id);
+      if (!entry || (workerId && entry.leaseOwner !== workerId)) return null;
+      entry.status = status;
+      entry.lastError = error;
+      entry.updatedAt = now.toISOString();
+      entry.availableAt = availableAt || entry.availableAt;
+      entry.completedAt = ["sent", "failed", "skipped"].includes(status) ? now.toISOString() : null;
+      entry.leasedAt = null;
+      entry.leaseOwner = null;
+      return { ...entry, payload: structuredClone(entry.payload) };
+    },
+    async getNotificationOutboxStats() {
+      const byStatus = {};
+      for (const entry of notificationOutbox.values()) {
+        byStatus[entry.status] = (byStatus[entry.status] || 0) + 1;
+      }
+      return { total: notificationOutbox.size, byStatus };
+    },
+    async pruneNotificationOutbox({ olderThanMs = 7 * 24 * 60 * 60 * 1000, limit = 500, now = new Date() } = {}) {
+      const cutoff = now.getTime() - olderThanMs;
+      const stale = [...notificationOutbox.values()]
+        .filter((entry) => entry.completedAt && new Date(entry.completedAt).getTime() <= cutoff)
+        .slice(0, Math.max(1, limit));
+      for (const entry of stale) {
+        notificationOutbox.delete(entry.id);
+        notificationOutboxByDedupeKey.delete(entry.dedupeKey);
+      }
+      return stale.length;
     },
     async createScan({ url, mode, requesterScope, clientIp, ownerId = null }) {
       const clientIpHash = hashClientIp(clientIp);
@@ -1162,6 +1335,7 @@ export function createPostgresScanRepository({
   const sessionsTable = `${schema}.auth_sessions`;
   const apiKeysTable = `${schema}.api_keys`;
   const pushDevicesTable = `${schema}.push_devices`;
+  const notificationOutboxTable = `${schema}.notification_outbox`;
   const schemaStatements = buildScanRepositorySchemaStatements(schema);
 
   const repository = {
@@ -1531,6 +1705,134 @@ export function createPostgresScanRepository({
         params,
       );
       return publicPushDevice(hydratePushDeviceFromRow(rows[0]));
+    },
+    async enqueueNotificationOutbox({ devices = [], payload, referenceId, channel = "monitoring" } = {}) {
+      const entries = [];
+      for (const device of devices) {
+        const entry = buildNotificationOutboxRecord({
+          dedupeKey: notificationDedupeKey(device.id, channel, referenceId),
+          device,
+          channel,
+          referenceId,
+          payload,
+        });
+        const { rows } = await pool.query(
+          `insert into ${notificationOutboxTable}
+            (id, dedupe_key, device_id, owner_id, requester_scope, channel, reference_id, payload, status,
+             attempts, available_at, leased_at, lease_owner, last_error, created_at, updated_at, completed_at)
+           values
+            ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11::timestamptz, $12::timestamptz,
+             $13, $14, $15::timestamptz, $16::timestamptz, $17::timestamptz)
+           on conflict (dedupe_key) do update set dedupe_key = excluded.dedupe_key
+           returning *`,
+          [
+            entry.id,
+            entry.dedupeKey,
+            entry.deviceId,
+            entry.ownerId,
+            entry.requesterScope,
+            entry.channel,
+            entry.referenceId,
+            JSON.stringify(entry.payload),
+            entry.status,
+            entry.attempts,
+            entry.availableAt,
+            entry.leasedAt,
+            entry.leaseOwner,
+            entry.lastError,
+            entry.createdAt,
+            entry.updatedAt,
+            entry.completedAt,
+          ],
+        );
+        entries.push(hydrateNotificationOutboxFromRow(rows[0]));
+      }
+      return entries;
+    },
+    async claimNotificationOutbox({ workerId, limit = 20, leaseMs = 60_000, ids = null, now = new Date() } = {}) {
+      const params = [now.toISOString(), new Date(now.getTime() - leaseMs).toISOString(), workerId];
+      const idFilter = Array.isArray(ids) && ids.length
+        ? (() => {
+            params.push(ids);
+            return `and id = any($${params.length}::uuid[])`;
+          })()
+        : "";
+      params.push(Math.max(1, limit));
+      const { rows } = await pool.query(
+        `with candidates as (
+           select id from ${notificationOutboxTable}
+           where available_at <= $1::timestamptz
+             and (status = 'queued' or (status = 'processing' and leased_at <= $2::timestamptz))
+             ${idFilter}
+           order by created_at asc
+           for update skip locked
+           limit $${params.length}
+         )
+         update ${notificationOutboxTable} as outbox
+         set status = 'processing',
+             attempts = outbox.attempts + 1,
+             leased_at = $1::timestamptz,
+             lease_owner = $3,
+             updated_at = $1::timestamptz
+         from candidates
+         where outbox.id = candidates.id
+         returning outbox.*`,
+        params,
+      );
+      return rows.map(hydrateNotificationOutboxFromRow).filter(Boolean);
+    },
+    async completeNotificationOutbox(id, {
+      status,
+      error = null,
+      availableAt = null,
+      workerId = null,
+      now = new Date(),
+    } = {}) {
+      const params = [id, status, error, availableAt, now.toISOString()];
+      const leaseFilter = workerId
+        ? (() => {
+            params.push(workerId);
+            return `and lease_owner = $${params.length}`;
+          })()
+        : "";
+      const { rows } = await pool.query(
+        `update ${notificationOutboxTable}
+         set status = $2,
+             last_error = $3,
+             available_at = coalesce($4::timestamptz, available_at),
+             leased_at = null,
+             lease_owner = null,
+             updated_at = $5::timestamptz,
+             completed_at = case when $2 in ('sent', 'failed', 'skipped') then $5::timestamptz else null end
+         where id = $1 ${leaseFilter}
+         returning *`,
+        params,
+      );
+      return hydrateNotificationOutboxFromRow(rows[0]);
+    },
+    async getNotificationOutboxStats() {
+      const { rows } = await pool.query(
+        `select status, count(*)::integer as count from ${notificationOutboxTable} group by status`,
+      );
+      const byStatus = Object.fromEntries(rows.map((row) => [row.status, Number(row.count)]));
+      return {
+        total: Object.values(byStatus).reduce((sum, count) => sum + count, 0),
+        byStatus,
+      };
+    },
+    async pruneNotificationOutbox({ olderThanMs = 7 * 24 * 60 * 60 * 1000, limit = 500, now = new Date() } = {}) {
+      const cutoffAt = new Date(now.getTime() - olderThanMs).toISOString();
+      const result = await pool.query(
+        `delete from ${notificationOutboxTable}
+         where id in (
+           select id from ${notificationOutboxTable}
+           where completed_at is not null and completed_at <= $1::timestamptz
+           order by completed_at asc
+           limit $2
+         )`,
+        [cutoffAt, Math.max(1, limit)],
+      );
+      return result.rowCount;
     },
     async createScan({ url, mode, requesterScope, clientIp, ownerId = null }) {
       const clientIpHash = hashClientIp(clientIp);

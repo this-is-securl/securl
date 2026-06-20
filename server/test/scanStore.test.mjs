@@ -333,6 +333,69 @@ test("scan repository stores push devices without exposing raw tokens in public 
   assert.equal((await repository.listPushDevices({ ownerId: "scan-owner:test" })).length, 0);
 });
 
+test("notification outbox is idempotent, leased, and recoverable", async () => {
+  const repository = createInMemoryScanRepository();
+  const token = "b".repeat(64);
+  const saved = await repository.upsertPushDevice({
+    token,
+    appId: "com.ktbatterham.securl",
+    requesterScope: "ip:test",
+    ownerId: "scan-owner:test",
+  });
+  const [device] = await repository.listPushDeviceSecrets({ ownerId: "scan-owner:test" });
+  const payload = { aps: { alert: { title: "Changed", body: "Grade changed." } } };
+  const claimBaseMs = Date.now() + 1_000;
+
+  const first = await repository.enqueueNotificationOutbox({
+    devices: [device],
+    payload,
+    referenceId: "scan-1",
+    channel: "monitoring_posture",
+  });
+  const duplicate = await repository.enqueueNotificationOutbox({
+    devices: [device],
+    payload,
+    referenceId: "scan-1",
+    channel: "monitoring_posture",
+  });
+  assert.equal(first[0].id, duplicate[0].id);
+  assert.equal((await repository.getNotificationOutboxStats()).total, 1);
+
+  const claimed = await repository.claimNotificationOutbox({
+    workerId: "worker-1",
+    now: new Date(claimBaseMs),
+  });
+  assert.equal(claimed.length, 1);
+  assert.equal(claimed[0].attempts, 1);
+  assert.equal(claimed[0].payload.aps.alert.title, "Changed");
+  assert.equal((await repository.claimNotificationOutbox({
+    workerId: "worker-2",
+    now: new Date(claimBaseMs + 30_000),
+  })).length, 0);
+  assert.equal(await repository.completeNotificationOutbox(claimed[0].id, {
+    status: "sent",
+    workerId: "worker-2",
+  }), null);
+
+  const reclaimed = await repository.claimNotificationOutbox({
+    workerId: "worker-2",
+    leaseMs: 60_000,
+    now: new Date(claimBaseMs + 61_000),
+  });
+  assert.equal(reclaimed.length, 1);
+  assert.equal(reclaimed[0].attempts, 2);
+  const completed = await repository.completeNotificationOutbox(reclaimed[0].id, {
+    status: "sent",
+    workerId: "worker-2",
+    now: new Date(claimBaseMs + 62_000),
+  });
+  assert.equal(completed.status, "sent");
+  assert.equal((await repository.getNotificationOutboxStats()).byStatus.sent, 1);
+  assert.equal(await repository.pruneNotificationOutbox({ olderThanMs: 0, now: new Date(claimBaseMs + 63_000) }), 1);
+  assert.equal((await repository.getNotificationOutboxStats()).total, 0);
+  assert.equal(await repository.getPushDeviceSecret(saved.id, { ownerId: "scan-owner:test" }).then(Boolean), true);
+});
+
 test("completed scans sync matching monitoring targets", async () => {
   const repository = createInMemoryScanRepository();
   await repository.upsertMonitoringTarget({
@@ -431,4 +494,7 @@ test("scan repository schema statements create the scans table and scoped indexe
   assert.ok(statements.some((statement) => /api_keys_active_token_hash_idx/i.test(statement)));
   assert.ok(statements.some((statement) => /push_devices_owner_updated_idx/i.test(statement)));
   assert.ok(statements.some((statement) => /push_devices_scope_token_uidx/i.test(statement)));
+  assert.ok(statements.some((statement) => /create table if not exists public\.notification_outbox/i.test(statement)));
+  assert.ok(statements.some((statement) => /notification_outbox_pending_idx/i.test(statement)));
+  assert.ok(statements.some((statement) => /notification_outbox_completed_idx/i.test(statement)));
 });

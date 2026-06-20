@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { classifyApnsResponse, createNotificationService } from "../notificationService.mjs";
+import { createInMemoryScanRepository } from "../scanRepository.mjs";
 
 function buildDevice(overrides = {}) {
   return {
@@ -214,4 +215,72 @@ test("test notifications expose delivery telemetry without exposing tokens", asy
   assert.equal(JSON.stringify(result).includes("a".repeat(64)), false);
   assert.equal(telemetryCalls[0].channel, "device_test");
   assert.equal(telemetryCalls[0].sent, 1);
+});
+
+test("durable outbox delivers idempotently for repeated monitoring events", async () => {
+  const repository = createInMemoryScanRepository();
+  await repository.upsertPushDevice({
+    token: "c".repeat(64),
+    appId: "com.ktbatterham.certwatch",
+    requesterScope: "scope-1",
+    ownerId: "owner-1",
+  });
+  let calls = 0;
+  const service = createService({
+    repository,
+    transport: async () => {
+      calls += 1;
+      return { statusCode: 200, body: null };
+    },
+  });
+  const input = {
+    target: {
+      id: "target-1",
+      ownerId: "owner-1",
+      requesterScope: "scope-1",
+      appId: "com.ktbatterham.certwatch",
+      url: "https://example.com/",
+      label: "example.com",
+    },
+    event: { type: "cert_expiring", severity: "high", title: "Certificate expiring", body: "12 days remain." },
+    certState: { host: "example.com", daysRemaining: 12, reachable: true },
+  };
+
+  const first = await service.notifyCertMonitoringEvent(input);
+  const duplicate = await service.notifyCertMonitoringEvent(input);
+  assert.equal(first.sent, 1);
+  assert.equal(duplicate.skipped, "already_queued_or_processed");
+  assert.equal(calls, 1);
+  assert.equal((await repository.getNotificationOutboxStats()).byStatus.sent, 1);
+});
+
+test("durable outbox drains work left behind by an interrupted worker", async () => {
+  const repository = createInMemoryScanRepository();
+  await repository.upsertPushDevice({
+    token: "d".repeat(64),
+    appId: "com.ktbatterham.securl",
+    requesterScope: "scope-1",
+    ownerId: "owner-1",
+  });
+  const [device] = await repository.listPushDeviceSecrets({ ownerId: "owner-1" });
+  await repository.enqueueNotificationOutbox({
+    devices: [device],
+    payload: { aps: { alert: { title: "Recovered", body: "Delivered after restart." } }, type: "monitoring_drift" },
+    referenceId: "scan-recovery",
+    channel: "monitoring_posture",
+  });
+  let calls = 0;
+  const service = createService({
+    repository,
+    transport: async () => {
+      calls += 1;
+      return { statusCode: 200, body: null };
+    },
+  });
+
+  const summary = await service.drainOutbox();
+  assert.equal(summary.claimed, 1);
+  assert.equal(summary.sent, 1);
+  assert.equal(calls, 1);
+  assert.equal((await repository.getNotificationOutboxStats()).byStatus.sent, 1);
 });
