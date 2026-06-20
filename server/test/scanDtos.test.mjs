@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildMonitoringMobileSummaryPayload } from "../scanDtos.mjs";
+import { buildMonitoringMobileSummaryPayload, buildScanObservationDriftPayload } from "../scanDtos.mjs";
 
 function buildAnalysisResult(overrides = {}) {
   return {
@@ -129,6 +129,49 @@ function buildCompletedRecord(id, resultOverrides = {}) {
     },
   };
 }
+
+test("scan observation drift compares the selected scan with its predecessor", () => {
+  const previous = buildCompletedRecord("previous", {
+    observationLedger: {
+      version: "1.0",
+      target: "https://example.com/",
+      generatedAt: "2026-06-19T08:00:00.000Z",
+      observations: [{
+        id: "obs_csp",
+        category: "header",
+        kind: "http.header.content-security-policy",
+        subject: "https://example.com/",
+        status: "observed",
+        value: "default-src 'self'",
+        confidence: "high",
+        source: "header",
+        observedAt: "2026-06-19T08:00:00.000Z",
+        freshUntil: "2026-06-19T09:00:00.000Z",
+        evidence: [],
+      }],
+      summary: { total: 1, byStatus: { observed: 1 }, byCategory: { header: 1 }, highConfidence: 1 },
+    },
+  });
+  const current = buildCompletedRecord("current", {
+    scannedAt: "2026-06-20T08:00:00.000Z",
+    observationLedger: {
+      ...previous.result.observationLedger,
+      generatedAt: "2026-06-20T08:00:00.000Z",
+      observations: [{
+        ...previous.result.observationLedger.observations[0],
+        status: "missing",
+        value: null,
+        observedAt: "2026-06-20T08:00:00.000Z",
+      }],
+    },
+  });
+
+  const payload = buildScanObservationDriftPayload(current, [current, previous]);
+  assert.equal(payload.observationDrift.currentScanId, "current");
+  assert.equal(payload.observationDrift.previousScanId, "previous");
+  assert.equal(payload.observationDrift.summary.direction, "regressed");
+  assert.equal(payload.observationDrift.summary.bySeverity.critical, 2);
+});
 
 test("mobile monitoring summary exposes certificate attention state", () => {
   const payload = buildMonitoringMobileSummaryPayload([

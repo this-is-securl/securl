@@ -494,6 +494,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.scans.features.includes("scan-resource-links"));
     assert.ok(payload.scans.features.includes("durable-scan-jobs"));
     assert.ok(payload.scans.features.includes("observation-ledger-v1"));
+    assert.ok(payload.scans.features.includes("observation-drift-v1"));
     assert.equal(payload.scans.scoring.model, "weighted-passive-posture");
     assert.equal(payload.scans.scoring.version, "2026-06-14");
     assert.deepEqual(payload.scans.scoring.scoreRange, { min: 0, max: 100 });
@@ -506,6 +507,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/vendors"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/action-plan"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/observations"));
+    assert.ok(payload.scans.resources.includes("GET /api/scans/:id/observation-drift"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/events"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/comparison"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/drift"));
