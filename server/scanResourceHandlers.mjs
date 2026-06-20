@@ -143,13 +143,21 @@ export async function runQueuedScan({
   log,
   telemetryContext = {},
   notificationService = null,
+  scanLeaseOwner = null,
 }) {
   const safeTarget = targetForPrivacy(validatedTarget);
   const safeClientIp = hashClientIp(authState.clientIp);
   const safeRequesterScope = redactRequesterScope(authState.requesterScope);
 
   try {
-    await scanRepository.markRunning(scan.id);
+    const runningScan = await scanRepository.markRunning(scan.id, { workerId: scanLeaseOwner });
+    if (!runningScan) {
+      log("warn", "scan_resource_lease_lost", {
+        scanId: scan.id,
+        targetOrigin: safeTarget,
+      });
+      return;
+    }
   } catch (error) {
     telemetry.recordFailure("scan_repository_failure", {
       target: safeTarget,
@@ -184,7 +192,12 @@ export async function runQueuedScan({
       source: "scan_analysis",
     });
     try {
-      await scanRepository.markFailed(scan.id, failureClass, normalizeScanErrorMessage(error));
+      await scanRepository.markFailed(
+        scan.id,
+        failureClass,
+        normalizeScanErrorMessage(error),
+        { workerId: scanLeaseOwner },
+      );
     } catch (repositoryError) {
       telemetry.recordFailure("scan_repository_failure", {
         target: safeTarget,
@@ -211,7 +224,7 @@ export async function runQueuedScan({
   }
 
   try {
-    const completedScan = await scanRepository.markCompleted(scan.id, result);
+    const completedScan = await scanRepository.markCompleted(scan.id, result, { workerId: scanLeaseOwner });
     if (notificationService && completedScan) {
       await notificationService.notifyMonitoringScanCompleted({
         completedScan,

@@ -492,6 +492,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.scans.features.includes("action-plan"));
     assert.ok(payload.scans.features.includes("scan-events"));
     assert.ok(payload.scans.features.includes("scan-resource-links"));
+    assert.ok(payload.scans.features.includes("durable-scan-jobs"));
     assert.equal(payload.scans.scoring.model, "weighted-passive-posture");
     assert.equal(payload.scans.scoring.version, "2026-06-14");
     assert.deepEqual(payload.scans.scoring.scoreRange, { min: 0, max: 100 });

@@ -70,6 +70,7 @@ export function buildCapabilitiesPayload({
         "action-plan",
         "scan-events",
         "scan-resource-links",
+        "durable-scan-jobs",
       ],
       scoring: {
         model: "weighted-passive-posture",
