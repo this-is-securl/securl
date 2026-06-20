@@ -403,6 +403,42 @@ test("notification outbox is idempotent, leased, and recoverable", async () => {
   assert.equal(await repository.getPushDeviceSecret(saved.id, { ownerId: "scan-owner:test" }).then(Boolean), true);
 });
 
+test("alert destinations hide secrets and generic outbox delivery is idempotent", async () => {
+  const repository = createInMemoryScanRepository();
+  const destination = await repository.upsertAlertDestination({
+    ownerId: "scan-owner:test",
+    requesterScope: "owner:test",
+    type: "webhook",
+    label: "Build alerts",
+    endpoint: "https://hooks.example.com/securl",
+    signingSecret: "super-secret",
+  });
+  assert.equal(destination.endpoint, undefined);
+  assert.equal(destination.signingSecret, undefined);
+  assert.equal(destination.endpointOrigin, "https://hooks.example.com");
+
+  const [secret] = await repository.listAlertDestinations({ ownerId: "scan-owner:test", includeSecrets: true });
+  assert.equal(secret.signingSecret, "super-secret");
+  const first = await repository.enqueueAlertOutbox({
+    destinations: [secret],
+    payload: { type: "policy" },
+    referenceId: "scan-one:policy-one",
+    channel: "monitoring_policy",
+  });
+  const duplicate = await repository.enqueueAlertOutbox({
+    destinations: [secret],
+    payload: { type: "policy" },
+    referenceId: "scan-one:policy-one",
+    channel: "monitoring_policy",
+  });
+  assert.equal(first[0].id, duplicate[0].id);
+
+  const claimed = await repository.claimAlertOutbox({ workerId: "worker-one" });
+  assert.equal(claimed.length, 1);
+  await repository.completeAlertOutbox(claimed[0].id, { status: "sent", workerId: "worker-one" });
+  assert.deepEqual(await repository.getAlertOutboxStats(), { total: 1, byStatus: { sent: 1 } });
+});
+
 test("completed scans sync matching monitoring targets", async () => {
   const repository = createInMemoryScanRepository();
   await repository.upsertMonitoringTarget({
@@ -563,6 +599,8 @@ test("scan repository schema statements create the scans table and scoped indexe
   assert.ok(statements.some((statement) => /add column if not exists job_attempts/i.test(statement)));
   assert.ok(statements.some((statement) => /scans_claimable_jobs_idx/i.test(statement)));
   assert.ok(statements.some((statement) => /add column if not exists observation_policy/i.test(statement)));
+  assert.ok(statements.some((statement) => /create table if not exists public\.alert_destinations/i.test(statement)));
+  assert.ok(statements.some((statement) => /create table if not exists public\.alert_outbox/i.test(statement)));
   assert.ok(statements.some((statement) => /create table if not exists public\.push_devices/i.test(statement)));
   assert.ok(statements.some((statement) => /last_push_attempted_at timestamptz null/i.test(statement)));
   assert.ok(statements.some((statement) => /last_push_status text null/i.test(statement)));

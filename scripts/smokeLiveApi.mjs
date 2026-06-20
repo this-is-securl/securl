@@ -123,6 +123,14 @@ function assertCapabilities(payload) {
   if (!payload.notifications?.resources?.includes("POST /api/notification-devices/:id/test")) {
     throw new Error("Capabilities missing notification test resource.");
   }
+  for (const feature of ["policy-violation-alerts", "durable-alert-outbox", "signed-webhooks", "destination-test"]) {
+    if (!payload.alerts?.features?.includes(feature)) {
+      throw new Error(`Capabilities missing alert feature: ${feature}`);
+    }
+  }
+  if (!payload.alerts?.resources?.includes("POST /api/alert-destinations/:id/test")) {
+    throw new Error("Capabilities missing alert destination test resource.");
+  }
 }
 
 function assertScanResourceLinks(payload, scanId) {

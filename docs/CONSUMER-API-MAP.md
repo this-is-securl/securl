@@ -14,6 +14,8 @@ For web and mobile experiences, prefer:
 - `GET /api/scans/:id/observations`: stable source, confidence, status, and freshness-aware observations for monitoring, inventory, and integrations.
 - `GET /api/scans/:id/observation-drift`: observation-level added, removed, status, value, and confidence changes against the previous completed scan.
 - `GET /api/scans/:id/policy-evaluation`: current policy result, violation severity, expected assertion, and observed value.
+
+Authenticated automation clients can manage signed webhook or email routes through `/api/alert-destinations`. APNs clients continue to use `/api/notification-devices`. Destination test endpoints provide forceable delivery checks without waiting for a real policy transition.
 - `GET /api/scans/:id/events`: Server-Sent Events lifecycle stream so apps can stop polling once a scan reaches `completed` or `failed`.
 
 These endpoints are stable additive resources. They are the safest shape for client UI because they avoid coupling screens to the full internal scan object.

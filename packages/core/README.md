@@ -227,7 +227,7 @@ console.log(ledger.summary, ledger.observations);
 
 Observation IDs are deterministic across scans for the same subject and signal, making the ledger suitable for change detection without exposing backend job metadata.
 
-Use `diffObservationLedgers(current, previous)` from `securl/observation-drift` to classify observation-level regressions, improvements, and neutral changes.
+Version `1.11.0+` adds `diffObservationLedgers(current, previous)` from `securl/observation-drift` to classify observation-level regressions, improvements, and neutral changes.
 
 Use `evaluateObservationPolicy({ ledger, drift, policy })` from `securl/observation-policy` to apply bounded declarative rules. Rules can select an exact observation kind, kind prefix, or category, then assert equality, membership, or numeric thresholds against current observations or changes. `DEFAULT_OBSERVATION_POLICY` provides a maintained baseline for certificate validity/window, HSTS, CSP, DMARC, and critical regressions.
 

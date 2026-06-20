@@ -146,6 +146,7 @@ export async function runQueuedScan({
   log,
   telemetryContext = {},
   notificationService = null,
+  alertDeliveryService = null,
   scanLeaseOwner = null,
 }) {
   const safeTarget = targetForPrivacy(validatedTarget);
@@ -226,15 +227,9 @@ export async function runQueuedScan({
     return;
   }
 
+  let completedScan = null;
   try {
-    const completedScan = await scanRepository.markCompleted(scan.id, result, { workerId: scanLeaseOwner });
-    if (notificationService && completedScan) {
-      await notificationService.notifyMonitoringScanCompleted({
-        completedScan,
-        result,
-        telemetryContext,
-      });
-    }
+    completedScan = await scanRepository.markCompleted(scan.id, result, { workerId: scanLeaseOwner });
   } catch (error) {
     telemetry.recordFailure("scan_repository_failure", {
       target: safeTarget,
@@ -249,6 +244,41 @@ export async function runQueuedScan({
       targetOrigin: safeTarget,
       scanId: scan.id,
     });
+  }
+
+  let policyAlert = null;
+  if (completedScan && alertDeliveryService) {
+    try {
+      policyAlert = await alertDeliveryService.processMonitoringScan({ completedScan, result, telemetryContext });
+    } catch (error) {
+      telemetry.recordFailure("alert_delivery_failure", {
+        target: safeTarget,
+        message: formatErrorMessage(error),
+        source: "policy_alert_delivery",
+      });
+      log("error", "policy_alert_delivery_failed", {
+        scanId: scan.id,
+        targetOrigin: safeTarget,
+        message: formatErrorMessage(error),
+      });
+    }
+  }
+
+  if (completedScan && notificationService && !policyAlert?.violations) {
+    try {
+      await notificationService.notifyMonitoringScanCompleted({ completedScan, result, telemetryContext });
+    } catch (error) {
+      telemetry.recordFailure("notification_delivery_failure", {
+        target: safeTarget,
+        message: formatErrorMessage(error),
+        source: "monitoring_notification_delivery",
+      });
+      log("error", "monitoring_notification_delivery_failed", {
+        scanId: scan.id,
+        targetOrigin: safeTarget,
+        message: formatErrorMessage(error),
+      });
+    }
   }
 }
 
@@ -275,6 +305,7 @@ export async function handleScanCollectionRequest({
   formatErrorMessage,
   log,
   notificationService = null,
+  alertDeliveryService = null,
   requireScanOwner = false,
 }) {
   if (request.method === "GET") {
@@ -444,6 +475,7 @@ export async function handleScanCollectionRequest({
         log,
         telemetryContext,
         notificationService,
+        alertDeliveryService,
     });
   } catch (error) {
     telemetry.recordFailure(classifyScanFailure(error));

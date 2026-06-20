@@ -306,6 +306,7 @@ export async function handleMonitoringTargetItemRequest({
   formatErrorMessage,
   log,
   notificationService = null,
+  alertDeliveryService = null,
   sendJson,
   sendMethodNotAllowed,
   sendRepositoryUnavailable,
@@ -470,6 +471,7 @@ export async function handleMonitoringTargetItemRequest({
           log,
           telemetryContext,
           notificationService,
+          alertDeliveryService,
       });
       return true;
     }

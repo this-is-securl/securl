@@ -520,6 +520,34 @@ export function createNotificationService({
     });
   }
 
+  async function sendPolicyAlert({ completedScan, target, payload }) {
+    const devices = await scanRepository.listPushDeviceSecrets({
+      ownerId: target.ownerId,
+      requesterScope: target.ownerId ? null : target.requesterScope,
+      appId: target.appId ?? null,
+      limit: 50,
+    });
+    const highest = payload.summary?.highestSeverity || "warning";
+    const first = payload.violations?.[0]?.title || "Monitoring policy failed";
+    return deliverPushPayload({
+      devices,
+      payload: {
+        aps: {
+          alert: {
+            title: `SecURL ${highest}: ${target.label}`,
+            body: payload.violations.length > 1 ? `${first} and ${payload.violations.length - 1} more.` : first,
+          },
+          sound: highest === "critical" ? "default" : undefined,
+          "thread-id": new URL(target.url).hostname,
+        },
+        ...payload,
+      },
+      referenceId: `${completedScan.id}:${payload.policy.id}`,
+      logEventName: "policy_push_delivery_result",
+      channel: "monitoring_policy",
+    });
+  }
+
   async function drainOutbox({ limit = 20 } = {}) {
     if (!outboxEnabled || outboxRunning) return outboxLastDrain;
     outboxRunning = true;
@@ -592,6 +620,7 @@ export function createNotificationService({
     notifyMonitoringScanCompleted,
     notifyCertMonitoringEvent,
     sendTestNotification,
+    sendPolicyAlert,
     drainOutbox,
     start,
     stop,

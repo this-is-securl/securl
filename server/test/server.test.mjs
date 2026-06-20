@@ -541,6 +541,13 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.notifications.resources.includes("GET /api/notification-devices/health"));
     assert.ok(payload.notifications.resources.includes("POST /api/notification-devices"));
     assert.ok(payload.notifications.resources.includes("POST /api/notification-devices/:id/test"));
+    assert.equal(payload.alerts.enabled, true);
+    assert.ok(payload.alerts.features.includes("policy-violation-alerts"));
+    assert.ok(payload.alerts.features.includes("durable-alert-outbox"));
+    assert.ok(payload.alerts.features.includes("signed-webhooks"));
+    assert.ok(payload.alerts.resources.includes("POST /api/alert-destinations/:id/test"));
+    assert.equal(payload.alerts.channels.webhook, true);
+    assert.equal(payload.alerts.channels.email, false);
     assert.equal(payload.notifications.delivery.timeoutMs, 10000);
     assert.equal(payload.notifications.delivery.maxAttempts, 3);
     assert.ok(payload.notifications.delivery.invalidTokenReasons.includes("BadDeviceToken"));
@@ -1290,6 +1297,81 @@ test("notification devices can be registered, listed, and disabled without echoi
     const deletePayload = await deleteResponse.json();
     assert.equal(deleteResponse.status, 200);
     assert.equal(deletePayload.deleted, true);
+  } finally {
+    await server.stop();
+  }
+});
+
+test("alert destinations can be registered, tested, listed, and disabled without exposing secrets", async () => {
+  const server = await startServer();
+  try {
+    const anonymousResponse = await fetch(`${server.baseUrl}/api/alert-destinations`, {
+      headers: scanOwnerHeaders(SCAN_OWNER_ONE),
+    });
+    assert.equal(anonymousResponse.status, 403);
+    const registration = await registerUser(server.baseUrl, {
+      email: "alerts@example.com",
+      password: "correct horse battery staple",
+    });
+    const token = (await registration.json()).session.token;
+    const createResponse = await fetch(`${server.baseUrl}/api/alert-destinations`, {
+      method: "POST",
+      headers: { ...bearerHeaders(token), "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "email", label: "Security inbox", email: "security@example.com" }),
+    });
+    const created = await createResponse.json();
+    assert.equal(createResponse.status, 201);
+    assert.equal(created.destination.type, "email");
+    assert.equal(created.destination.emailHint, "s***@example.com");
+    assert.equal(created.destination.email, undefined);
+    assert.equal(created.destination.signingSecret, undefined);
+
+    const listResponse = await fetch(`${server.baseUrl}/api/alert-destinations`, {
+      headers: bearerHeaders(token),
+    });
+    const listed = await listResponse.json();
+    assert.equal(listResponse.status, 200);
+    assert.equal(listed.destinations.length, 1);
+    assert.equal(listed.destinations[0].emailHint, "s***@example.com");
+
+    const testResponse = await fetch(`${server.baseUrl}/api/alert-destinations/${created.destination.id}/test`, {
+      method: "POST",
+      headers: bearerHeaders(token),
+    });
+    const tested = await testResponse.json();
+    assert.equal(testResponse.status, 202);
+    assert.equal(tested.result.queued, 1);
+
+    const deleteResponse = await fetch(`${server.baseUrl}/api/alert-destinations/${created.destination.id}`, {
+      method: "DELETE",
+      headers: bearerHeaders(token),
+    });
+    assert.equal(deleteResponse.status, 200);
+    const afterDelete = await fetch(`${server.baseUrl}/api/alert-destinations`, {
+      headers: bearerHeaders(token),
+    });
+    assert.equal((await afterDelete.json()).destinations.length, 0);
+  } finally {
+    await server.stop();
+  }
+});
+
+test("alert webhook destinations reject private and credential-bearing URLs", async () => {
+  const server = await startServer();
+  try {
+    const registration = await registerUser(server.baseUrl, {
+      email: "webhooks@example.com",
+      password: "correct horse battery staple",
+    });
+    const token = (await registration.json()).session.token;
+    for (const url of ["https://127.0.0.1/hook", "https://user:pass@example.com/hook"]) {
+      const response = await fetch(`${server.baseUrl}/api/alert-destinations`, {
+        method: "POST",
+        headers: { ...bearerHeaders(token), "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "webhook", url }),
+      });
+      assert.equal(response.status, 400);
+    }
   } finally {
     await server.stop();
   }

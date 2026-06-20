@@ -11,6 +11,8 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
   const qualifiedApiKeysTable = `${schema}.api_keys`;
   const qualifiedPushDevicesTable = `${schema}.push_devices`;
   const qualifiedNotificationOutboxTable = `${schema}.notification_outbox`;
+  const qualifiedAlertDestinationsTable = `${schema}.alert_destinations`;
+  const qualifiedAlertOutboxTable = `${schema}.alert_outbox`;
   return [
     `create schema if not exists ${schema}`,
     `create table if not exists ${qualifiedUsersTable} (
@@ -65,6 +67,38 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
       id uuid primary key,
       dedupe_key text not null unique,
       device_id uuid not null references ${qualifiedPushDevicesTable}(id) on delete cascade,
+      owner_id text null,
+      requester_scope text not null,
+      channel text not null,
+      reference_id text not null,
+      payload jsonb not null,
+      status text not null,
+      attempts integer not null default 0,
+      available_at timestamptz not null,
+      leased_at timestamptz null,
+      lease_owner text null,
+      last_error text null,
+      created_at timestamptz not null,
+      updated_at timestamptz not null,
+      completed_at timestamptz null
+    )`,
+    `create table if not exists ${qualifiedAlertDestinationsTable} (
+      id uuid primary key,
+      owner_id text null,
+      requester_scope text not null,
+      type text not null,
+      label text not null,
+      endpoint text null,
+      email text null,
+      signing_secret text null,
+      created_at timestamptz not null,
+      updated_at timestamptz not null,
+      disabled_at timestamptz null
+    )`,
+    `create table if not exists ${qualifiedAlertOutboxTable} (
+      id uuid primary key,
+      dedupe_key text not null unique,
+      destination_id uuid not null references ${qualifiedAlertDestinationsTable}(id) on delete cascade,
       owner_id text null,
       requester_scope text not null,
       channel text not null,
@@ -153,6 +187,11 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
     `create index if not exists notification_outbox_pending_idx on ${qualifiedNotificationOutboxTable} (status, available_at) where status in ('queued', 'processing')`,
     `create index if not exists notification_outbox_device_created_idx on ${qualifiedNotificationOutboxTable} (device_id, created_at desc)`,
     `create index if not exists notification_outbox_completed_idx on ${qualifiedNotificationOutboxTable} (completed_at) where completed_at is not null`,
+    `create index if not exists alert_destinations_owner_updated_idx on ${qualifiedAlertDestinationsTable} (owner_id, updated_at desc) where disabled_at is null`,
+    `create index if not exists alert_destinations_requester_updated_idx on ${qualifiedAlertDestinationsTable} (requester_scope, updated_at desc) where disabled_at is null`,
+    `create index if not exists alert_outbox_pending_idx on ${qualifiedAlertOutboxTable} (status, available_at) where status in ('queued', 'processing')`,
+    `create index if not exists alert_outbox_destination_created_idx on ${qualifiedAlertOutboxTable} (destination_id, created_at desc)`,
+    `create index if not exists alert_outbox_completed_idx on ${qualifiedAlertOutboxTable} (completed_at) where completed_at is not null`,
   ];
 }
 
@@ -440,6 +479,101 @@ function notificationDedupeKey(deviceId, channel, referenceId) {
     .digest("hex");
 }
 
+function buildAlertDestinationRecord({
+  id = crypto.randomUUID(),
+  ownerId = null,
+  requesterScope,
+  type,
+  label,
+  endpoint = null,
+  email = null,
+  signingSecret = null,
+  createdAt = new Date().toISOString(),
+  updatedAt = createdAt,
+  disabledAt = null,
+}) {
+  return { id, ownerId, requesterScope, type, label, endpoint, email, signingSecret, createdAt, updatedAt, disabledAt };
+}
+
+function publicAlertDestination(destination) {
+  if (!destination) return null;
+  return {
+    id: destination.id,
+    type: destination.type,
+    label: destination.label,
+    endpointOrigin: destination.endpoint ? new URL(destination.endpoint).origin : null,
+    emailHint: destination.email ? destination.email.replace(/^(.).+(@.+)$/, "$1***$2") : null,
+    createdAt: destination.createdAt,
+    updatedAt: destination.updatedAt,
+    disabledAt: destination.disabledAt,
+  };
+}
+
+function hydrateAlertDestinationFromRow(row, { includeSecrets = false } = {}) {
+  if (!row) return null;
+  const destination = {
+    id: row.id,
+    ownerId: row.owner_id,
+    requesterScope: row.requester_scope,
+    type: row.type,
+    label: row.label,
+    endpoint: row.endpoint ?? null,
+    email: row.email ?? null,
+    signingSecret: row.signing_secret ?? null,
+    createdAt: row.created_at?.toISOString?.() ?? row.created_at,
+    updatedAt: row.updated_at?.toISOString?.() ?? row.updated_at,
+    disabledAt: row.disabled_at?.toISOString?.() ?? row.disabled_at ?? null,
+  };
+  return includeSecrets ? destination : publicAlertDestination(destination);
+}
+
+function buildAlertOutboxRecord({
+  id = crypto.randomUUID(),
+  destination,
+  channel,
+  referenceId,
+  payload,
+  status = "queued",
+  attempts = 0,
+  availableAt = new Date().toISOString(),
+  leasedAt = null,
+  leaseOwner = null,
+  lastError = null,
+  createdAt = new Date().toISOString(),
+  updatedAt = createdAt,
+  completedAt = null,
+}) {
+  const dedupeKey = crypto.createHash("sha256").update(`${destination.id}:${channel}:${referenceId}`).digest("hex");
+  return {
+    id, dedupeKey, destinationId: destination.id, ownerId: destination.ownerId ?? null,
+    requesterScope: destination.requesterScope, channel, referenceId, payload, status, attempts,
+    availableAt, leasedAt, leaseOwner, lastError, createdAt, updatedAt, completedAt,
+  };
+}
+
+function hydrateAlertOutboxFromRow(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    dedupeKey: row.dedupe_key,
+    destinationId: row.destination_id,
+    ownerId: row.owner_id,
+    requesterScope: row.requester_scope,
+    channel: row.channel,
+    referenceId: row.reference_id,
+    payload: row.payload,
+    status: row.status,
+    attempts: Number(row.attempts || 0),
+    availableAt: row.available_at?.toISOString?.() ?? row.available_at,
+    leasedAt: row.leased_at?.toISOString?.() ?? row.leased_at ?? null,
+    leaseOwner: row.lease_owner ?? null,
+    lastError: row.last_error ?? null,
+    createdAt: row.created_at?.toISOString?.() ?? row.created_at,
+    updatedAt: row.updated_at?.toISOString?.() ?? row.updated_at,
+    completedAt: row.completed_at?.toISOString?.() ?? row.completed_at ?? null,
+  };
+}
+
 function buildApiKeyUsageSummary(scans = []) {
   const counters = {
     queued: 0,
@@ -684,6 +818,9 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
   const pushDeviceOrder = [];
   const notificationOutbox = new Map();
   const notificationOutboxByDedupeKey = new Map();
+  const alertDestinations = new Map();
+  const alertOutbox = new Map();
+  const alertOutboxByDedupeKey = new Map();
 
   const touchOrder = (id) => {
     const index = order.indexOf(id);
@@ -1007,6 +1144,103 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       for (const entry of stale) {
         notificationOutbox.delete(entry.id);
         notificationOutboxByDedupeKey.delete(entry.dedupeKey);
+      }
+      return stale.length;
+    },
+    async upsertAlertDestination({ ownerId = null, requesterScope, type, label, endpoint = null, email = null, signingSecret = null }) {
+      const existing = [...alertDestinations.values()].find((destination) =>
+        destination.ownerId === ownerId
+          && destination.requesterScope === requesterScope
+          && destination.type === type
+          && destination.endpoint === endpoint
+          && destination.email === email,
+      );
+      if (existing) {
+        existing.label = label;
+        existing.signingSecret = signingSecret ?? existing.signingSecret;
+        existing.updatedAt = new Date().toISOString();
+        existing.disabledAt = null;
+        return publicAlertDestination(existing);
+      }
+      const destination = buildAlertDestinationRecord({ ownerId, requesterScope, type, label, endpoint, email, signingSecret });
+      alertDestinations.set(destination.id, destination);
+      return publicAlertDestination(destination);
+    },
+    async listAlertDestinations({ ownerId = null, requesterScope = null, limit = 50, includeSecrets = false } = {}) {
+      return [...alertDestinations.values()]
+        .filter((destination) => !destination.disabledAt && matchesScope(destination, { ownerId, requesterScope }))
+        .sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)))
+        .slice(0, Math.max(1, limit))
+        .map((destination) => includeSecrets ? { ...destination } : publicAlertDestination(destination));
+    },
+    async getAlertDestination(id, { ownerId = null, requesterScope = null, includeSecrets = false } = {}) {
+      const destination = alertDestinations.get(id);
+      if (!destination || destination.disabledAt || !matchesScope(destination, { ownerId, requesterScope })) return null;
+      return includeSecrets ? { ...destination } : publicAlertDestination(destination);
+    },
+    async disableAlertDestination(id, { ownerId = null, requesterScope = null } = {}) {
+      const destination = alertDestinations.get(id);
+      if (!destination || !matchesScope(destination, { ownerId, requesterScope })) return false;
+      destination.disabledAt = new Date().toISOString();
+      destination.updatedAt = destination.disabledAt;
+      return true;
+    },
+    async enqueueAlertOutbox({ destinations, payload, referenceId, channel }) {
+      const entries = [];
+      for (const destination of destinations) {
+        const entry = buildAlertOutboxRecord({ destination, payload, referenceId, channel });
+        const existingId = alertOutboxByDedupeKey.get(entry.dedupeKey);
+        if (existingId) {
+          entries.push({ ...alertOutbox.get(existingId) });
+          continue;
+        }
+        alertOutbox.set(entry.id, entry);
+        alertOutboxByDedupeKey.set(entry.dedupeKey, entry.id);
+        entries.push({ ...entry });
+      }
+      return entries;
+    },
+    async claimAlertOutbox({ workerId, limit = 20, leaseMs = 60_000, now = new Date() } = {}) {
+      const nowMs = now.getTime();
+      const entries = [...alertOutbox.values()]
+        .filter((entry) => new Date(entry.availableAt).getTime() <= nowMs
+          && (entry.status === "queued" || (entry.status === "processing" && new Date(entry.leasedAt || 0).getTime() <= nowMs - leaseMs)))
+        .sort((left, right) => String(left.createdAt).localeCompare(String(right.createdAt)))
+        .slice(0, Math.max(1, limit));
+      for (const entry of entries) {
+        entry.status = "processing";
+        entry.attempts += 1;
+        entry.leasedAt = now.toISOString();
+        entry.leaseOwner = workerId;
+        entry.updatedAt = now.toISOString();
+      }
+      return entries.map((entry) => ({ ...entry, payload: structuredClone(entry.payload) }));
+    },
+    async completeAlertOutbox(id, { status, error = null, availableAt = null, workerId = null, now = new Date() } = {}) {
+      const entry = alertOutbox.get(id);
+      if (!entry || (workerId && entry.leaseOwner !== workerId)) return null;
+      entry.status = status;
+      entry.lastError = error;
+      entry.availableAt = availableAt || entry.availableAt;
+      entry.leasedAt = null;
+      entry.leaseOwner = null;
+      entry.updatedAt = now.toISOString();
+      entry.completedAt = ["sent", "failed", "skipped"].includes(status) ? now.toISOString() : null;
+      return { ...entry, payload: structuredClone(entry.payload) };
+    },
+    async getAlertOutboxStats() {
+      const byStatus = {};
+      for (const entry of alertOutbox.values()) byStatus[entry.status] = (byStatus[entry.status] || 0) + 1;
+      return { total: alertOutbox.size, byStatus };
+    },
+    async pruneAlertOutbox({ olderThanMs = 7 * 24 * 60 * 60 * 1000, limit = 500, now = new Date() } = {}) {
+      const cutoff = now.getTime() - olderThanMs;
+      const stale = [...alertOutbox.values()]
+        .filter((entry) => entry.completedAt && new Date(entry.completedAt).getTime() <= cutoff)
+        .slice(0, Math.max(1, limit));
+      for (const entry of stale) {
+        alertOutbox.delete(entry.id);
+        alertOutboxByDedupeKey.delete(entry.dedupeKey);
       }
       return stale.length;
     },
@@ -1429,6 +1663,8 @@ export function createPostgresScanRepository({
   const apiKeysTable = `${schema}.api_keys`;
   const pushDevicesTable = `${schema}.push_devices`;
   const notificationOutboxTable = `${schema}.notification_outbox`;
+  const alertDestinationsTable = `${schema}.alert_destinations`;
+  const alertOutboxTable = `${schema}.alert_outbox`;
   const schemaStatements = buildScanRepositorySchemaStatements(schema);
 
   const repository = {
@@ -1924,6 +2160,148 @@ export function createPostgresScanRepository({
            limit $2
          )`,
         [cutoffAt, Math.max(1, limit)],
+      );
+      return result.rowCount;
+    },
+    async upsertAlertDestination({ ownerId = null, requesterScope, type, label, endpoint = null, email = null, signingSecret = null }) {
+      const existing = await pool.query(
+        `select * from ${alertDestinationsTable}
+         where coalesce(owner_id, '') = coalesce($1, '')
+           and requester_scope = $2 and type = $3
+           and coalesce(endpoint, '') = coalesce($4, '')
+           and coalesce(email, '') = coalesce($5, '')
+         limit 1`,
+        [ownerId, requesterScope, type, endpoint, email],
+      );
+      if (existing.rows[0]) {
+        const { rows } = await pool.query(
+          `update ${alertDestinationsTable}
+           set label = $2, signing_secret = coalesce($3, signing_secret), updated_at = $4::timestamptz, disabled_at = null
+           where id = $1 returning *`,
+          [existing.rows[0].id, label, signingSecret, new Date().toISOString()],
+        );
+        return hydrateAlertDestinationFromRow(rows[0]);
+      }
+      const destination = buildAlertDestinationRecord({ ownerId, requesterScope, type, label, endpoint, email, signingSecret });
+      const { rows } = await pool.query(
+        `insert into ${alertDestinationsTable}
+          (id, owner_id, requester_scope, type, label, endpoint, email, signing_secret, created_at, updated_at, disabled_at)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9::timestamptz, $10::timestamptz, $11::timestamptz)
+         returning *`,
+        [destination.id, destination.ownerId, destination.requesterScope, destination.type, destination.label,
+          destination.endpoint, destination.email, destination.signingSecret, destination.createdAt, destination.updatedAt, destination.disabledAt],
+      );
+      return hydrateAlertDestinationFromRow(rows[0]);
+    },
+    async listAlertDestinations({ ownerId = null, requesterScope = null, limit = 50, includeSecrets = false } = {}) {
+      const filters = ["disabled_at is null"];
+      const params = [];
+      if (ownerId) {
+        params.push(ownerId);
+        filters.push(`owner_id = $${params.length}`);
+      } else if (requesterScope) {
+        params.push(requesterScope);
+        filters.push(`requester_scope = $${params.length}`);
+      }
+      params.push(Math.max(1, limit));
+      const { rows } = await pool.query(
+        `select * from ${alertDestinationsTable} where ${filters.join(" and ")} order by updated_at desc limit $${params.length}`,
+        params,
+      );
+      return rows.map((row) => hydrateAlertDestinationFromRow(row, { includeSecrets })).filter(Boolean);
+    },
+    async getAlertDestination(id, { ownerId = null, requesterScope = null, includeSecrets = false } = {}) {
+      const filters = ["id = $1", "disabled_at is null"];
+      const params = [id];
+      if (ownerId) {
+        params.push(ownerId);
+        filters.push(`owner_id = $${params.length}`);
+      } else if (requesterScope) {
+        params.push(requesterScope);
+        filters.push(`requester_scope = $${params.length}`);
+      }
+      const { rows } = await pool.query(`select * from ${alertDestinationsTable} where ${filters.join(" and ")} limit 1`, params);
+      return hydrateAlertDestinationFromRow(rows[0], { includeSecrets });
+    },
+    async disableAlertDestination(id, { ownerId = null, requesterScope = null } = {}) {
+      const filters = ["id = $1"];
+      const params = [id, new Date().toISOString()];
+      if (ownerId) {
+        params.push(ownerId);
+        filters.push(`owner_id = $${params.length}`);
+      } else if (requesterScope) {
+        params.push(requesterScope);
+        filters.push(`requester_scope = $${params.length}`);
+      }
+      const result = await pool.query(
+        `update ${alertDestinationsTable} set disabled_at = $2::timestamptz, updated_at = $2::timestamptz where ${filters.join(" and ")}`,
+        params,
+      );
+      return result.rowCount > 0;
+    },
+    async enqueueAlertOutbox({ destinations, payload, referenceId, channel }) {
+      const entries = [];
+      for (const destination of destinations) {
+        const entry = buildAlertOutboxRecord({ destination, payload, referenceId, channel });
+        const { rows } = await pool.query(
+          `insert into ${alertOutboxTable}
+            (id, dedupe_key, destination_id, owner_id, requester_scope, channel, reference_id, payload, status, attempts,
+             available_at, leased_at, lease_owner, last_error, created_at, updated_at, completed_at)
+           values ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11::timestamptz, $12::timestamptz,
+             $13, $14, $15::timestamptz, $16::timestamptz, $17::timestamptz)
+           on conflict (dedupe_key) do update set dedupe_key = excluded.dedupe_key
+           returning *`,
+          [entry.id, entry.dedupeKey, entry.destinationId, entry.ownerId, entry.requesterScope, entry.channel,
+            entry.referenceId, JSON.stringify(entry.payload), entry.status, entry.attempts, entry.availableAt,
+            entry.leasedAt, entry.leaseOwner, entry.lastError, entry.createdAt, entry.updatedAt, entry.completedAt],
+        );
+        entries.push(hydrateAlertOutboxFromRow(rows[0]));
+      }
+      return entries;
+    },
+    async claimAlertOutbox({ workerId, limit = 20, leaseMs = 60_000, now = new Date() } = {}) {
+      const staleAt = new Date(now.getTime() - leaseMs).toISOString();
+      const { rows } = await pool.query(
+        `with candidates as (
+           select id from ${alertOutboxTable}
+           where available_at <= $1::timestamptz
+             and (status = 'queued' or (status = 'processing' and leased_at <= $2::timestamptz))
+           order by created_at asc for update skip locked limit $4
+         )
+         update ${alertOutboxTable} outbox
+         set status = 'processing', attempts = outbox.attempts + 1, leased_at = $1::timestamptz,
+             lease_owner = $3, updated_at = $1::timestamptz
+         from candidates where outbox.id = candidates.id returning outbox.*`,
+        [now.toISOString(), staleAt, workerId, Math.max(1, limit)],
+      );
+      return rows.map(hydrateAlertOutboxFromRow).filter(Boolean);
+    },
+    async completeAlertOutbox(id, { status, error = null, availableAt = null, workerId = null, now = new Date() } = {}) {
+      const params = [id, status, error, availableAt, now.toISOString()];
+      const ownerFilter = workerId ? (() => { params.push(workerId); return `and lease_owner = $${params.length}`; })() : "";
+      const { rows } = await pool.query(
+        `update ${alertOutboxTable}
+         set status = $2, last_error = $3, available_at = coalesce($4::timestamptz, available_at),
+             leased_at = null, lease_owner = null, updated_at = $5::timestamptz,
+             completed_at = case when $2 in ('sent', 'failed', 'skipped') then $5::timestamptz else null end
+         where id = $1 ${ownerFilter} returning *`,
+        params,
+      );
+      return hydrateAlertOutboxFromRow(rows[0]);
+    },
+    async getAlertOutboxStats() {
+      const { rows } = await pool.query(`select status, count(*)::integer count from ${alertOutboxTable} group by status`);
+      const byStatus = Object.fromEntries(rows.map((row) => [row.status, Number(row.count)]));
+      return { total: Object.values(byStatus).reduce((sum, count) => sum + count, 0), byStatus };
+    },
+    async pruneAlertOutbox({ olderThanMs = 7 * 24 * 60 * 60 * 1000, limit = 500, now = new Date() } = {}) {
+      const cutoff = new Date(now.getTime() - olderThanMs).toISOString();
+      const result = await pool.query(
+        `delete from ${alertOutboxTable} where id in (
+           select id from ${alertOutboxTable} where completed_at is not null and completed_at <= $1::timestamptz
+           order by completed_at asc limit $2
+         )`,
+        [cutoff, Math.max(1, limit)],
       );
       return result.rowCount;
     },

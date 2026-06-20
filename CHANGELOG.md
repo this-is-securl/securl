@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-06-20 — core 1.11.0 and continuous policy monitoring
+
+### Added
+
+- Added observation-level drift with regression, improvement, and neutral-change classification.
+- Added bounded custom observation policies on monitoring targets and default baseline evaluation.
+- Added newly introduced policy-violation routing to APNs, signed webhooks, and Resend email.
+- Added authenticated alert-destination resources and a durable generic delivery outbox.
+
+### Security
+
+- Webhook destinations are HTTPS-only, reject credentials/query/fragment content, revalidate public DNS at send time, pin outbound sockets, and do not follow redirects.
+- Webhook/email destinations require authenticated accounts and are capped per owner.
+
 ## 2026-06-20 — core 1.10.0 and durable backend jobs
 
 ### Added

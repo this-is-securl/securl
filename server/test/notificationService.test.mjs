@@ -138,6 +138,46 @@ test("network failures stop after the configured attempt bound", async () => {
   assert.equal(repository.attempts[0].status, "send_failed");
 });
 
+test("policy alerts use the monitoring target app id and policy channel", async () => {
+  const device = buildDevice();
+  const repository = {
+    ...buildRepository(device),
+    async listPushDeviceSecrets({ appId }) {
+      assert.equal(appId, "com.ktbatterham.securl");
+      return [device];
+    },
+  };
+  let deliveredPayload = null;
+  const service = createService({
+    repository,
+    transport: async ({ payload }) => {
+      deliveredPayload = payload;
+      return { statusCode: 200, apnsId: "policy-apns", body: null };
+    },
+  });
+  const result = await service.sendPolicyAlert({
+    completedScan: { id: "scan-one" },
+    target: {
+      id: "target-one",
+      ownerId: "owner-1",
+      requesterScope: "scope-1",
+      appId: "com.ktbatterham.securl",
+      label: "Example",
+      url: "https://example.com/",
+    },
+    payload: {
+      type: "observation_policy_violation",
+      policy: { id: "policy-one" },
+      summary: { highestSeverity: "critical" },
+      violations: [{ title: "Certificate expired" }],
+    },
+  });
+  assert.equal(result.sent, 1);
+  assert.equal(deliveredPayload.type, "observation_policy_violation");
+  assert.match(deliveredPayload.aps.alert.title, /critical/i);
+  assert.equal(deliveredPayload.aps["thread-id"], "example.com");
+});
+
 test("timeouts are retried but remain a recoverable device health failure", async () => {
   const repository = buildRepository();
   const service = createService({

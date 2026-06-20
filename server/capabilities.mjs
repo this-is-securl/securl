@@ -13,6 +13,7 @@ export function buildCapabilitiesPayload({
   scanConcurrency,
   monitoringScheduler,
   notifications,
+  alerts,
   serveFrontend,
 } = {}) {
   return {
@@ -192,6 +193,25 @@ export function buildCapabilitiesPayload({
         "POST /api/notification-devices/:id/test",
         "DELETE /api/notification-devices/:id",
       ],
+    },
+    alerts: {
+      enabled: Boolean(alerts?.enabled),
+      channels: alerts?.channels ?? { apns: false, webhook: true, email: false },
+      features: [
+        "policy-violation-alerts",
+        "new-violation-deduplication",
+        "durable-alert-outbox",
+        "signed-webhooks",
+        "bounded-delivery-retry",
+        "destination-test",
+      ],
+      resources: [
+        "GET /api/alert-destinations",
+        "POST /api/alert-destinations",
+        "POST /api/alert-destinations/:id/test",
+        "DELETE /api/alert-destinations/:id",
+      ],
+      outbox: { lastDrain: alerts?.lastDrain ?? null },
     },
     exports: {
       formats: ["json", "markdown", "sarif", "ci-json"],
