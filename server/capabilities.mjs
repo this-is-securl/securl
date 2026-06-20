@@ -151,10 +151,18 @@ export function buildCapabilitiesPayload({
     notifications: {
       providers: ["apns"],
       enabled: Boolean(notifications?.enabled),
+      delivery: {
+        timeoutMs: notifications?.timeoutMs ?? null,
+        maxAttempts: notifications?.maxAttempts ?? null,
+        invalidTokenReasons: ["Unregistered", "BadDeviceToken", "DeviceTokenNotForTopic"],
+        retries: ["network_error", "timeout", "apns_429", "apns_5xx"],
+      },
       features: [
         "device-registration",
         "device-health",
         "delivery-audit",
+        "test-notification",
+        "bounded-delivery-retry",
         "monitoring-drift-push",
         "cert-event-push",
       ],
@@ -162,6 +170,7 @@ export function buildCapabilitiesPayload({
         "GET /api/notification-devices",
         "GET /api/notification-devices/health",
         "POST /api/notification-devices",
+        "POST /api/notification-devices/:id/test",
         "DELETE /api/notification-devices/:id",
       ],
     },

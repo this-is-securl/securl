@@ -758,6 +758,9 @@ const server = http.createServer(async (request, response) => {
       sendJson: sendApiJson,
       sendMethodNotAllowed: sendApiMethodNotAllowed,
       sendRepositoryUnavailable: sendApiRepositoryUnavailable,
+      notificationService,
+      telemetry,
+      readClientMetadata,
     });
     return;
   }
@@ -953,6 +956,7 @@ await scanScheduler.recoverStaleRunningScans();
 notificationService = createNotificationService({
   scanRepository,
   log,
+  telemetry,
 });
 monitoringScheduler = createMonitoringScheduler({
   enabled: MONITORING_SCHEDULER_ENABLED,

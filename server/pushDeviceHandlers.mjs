@@ -19,7 +19,8 @@ function clampLimit(value, fallback = 50, max = 100) {
 }
 
 const STALE_DEVICE_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
-const APNS_REJECTION_STATUSES = new Set(["apns_400", "apns_410"]);
+const APNS_REJECTION_STATUSES = new Set(["invalid_token", "apns_410"]);
+const APNS_TRANSIENT_STATUSES = new Set(["send_failed", "timed_out", "apns_429", "apns_500", "apns_503"]);
 
 export function classifyDeviceHealth(device, now = Date.now()) {
   if (device.disabledAt) {
@@ -51,7 +52,7 @@ export function classifyDeviceHealth(device, now = Date.now()) {
     };
   }
 
-  if (device.lastPushStatus === "send_failed") {
+  if (APNS_TRANSIENT_STATUSES.has(device.lastPushStatus) || /^apns_(?:[45]\d\d|unknown)$/.test(device.lastPushStatus || "")) {
     return {
       status: "push_failed",
       stale: false,
@@ -271,8 +272,11 @@ export async function handlePushDeviceItemRequest({
   sendJson,
   sendMethodNotAllowed,
   sendRepositoryUnavailable,
+  notificationService = null,
+  telemetry = null,
+  readClientMetadata = null,
 }) {
-  const match = requestUrl.pathname.match(/^\/api\/notification-devices\/([^/]+)$/);
+  const match = requestUrl.pathname.match(/^\/api\/notification-devices\/([^/]+)(?:\/(test))?$/);
   if (!match) {
     sendJson(response, 404, {
       error: "Notification device not found.",
@@ -280,8 +284,10 @@ export async function handlePushDeviceItemRequest({
     return true;
   }
 
-  if (request.method !== "DELETE") {
-    sendMethodNotAllowed(response, ["DELETE"]);
+  const action = match[2] || null;
+  const expectedMethod = action === "test" ? "POST" : "DELETE";
+  if (request.method !== expectedMethod) {
+    sendMethodNotAllowed(response, [expectedMethod]);
     return true;
   }
 
@@ -296,6 +302,37 @@ export async function handlePushDeviceItemRequest({
   }
 
   try {
+    if (action === "test") {
+      const device = await scanRepository.getPushDeviceSecret(match[1], {
+        ownerId: authState.ownerId,
+        requesterScope: authState.ownerId ? null : authState.requesterScope,
+      });
+      if (!device) {
+        sendJson(response, 404, { error: "Notification device not found." });
+        return true;
+      }
+      if (!notificationService?.sendTestNotification) {
+        sendJson(response, 503, { error: "Notification delivery is unavailable." });
+        return true;
+      }
+
+      const delivery = await notificationService.sendTestNotification({ device });
+      const clientMetadata = readClientMetadata?.(request, { fallbackClient: device.appId }) || {};
+      telemetry?.recordFunnelEvent?.({
+        event: "notification_test_requested",
+        source: "backend_api",
+        mode: device.appId || "unknown",
+        client: clientMetadata.client,
+        clientVersion: clientMetadata.version,
+      });
+      sendJson(response, delivery.sent === 1 ? 200 : 503, {
+        apiVersion: API_VERSION,
+        delivered: delivery.sent === 1,
+        delivery,
+      });
+      return true;
+    }
+
     const deleted = await scanRepository.disablePushDevice(match[1], {
       ownerId: authState.ownerId,
       requesterScope: authState.ownerId ? null : authState.requesterScope,

@@ -260,8 +260,9 @@ export async function runCertificateMonitorCheck({
     lastCheckedAt: nextCertState.checkedAt,
   });
 
+  let notification = { attempted: 0, sent: 0, failed: 0, skipped: event ? "notification_service_unavailable" : "no_event" };
   if (event && notificationService?.notifyCertMonitoringEvent) {
-    await notificationService.notifyCertMonitoringEvent({
+    notification = await notificationService.notifyCertMonitoringEvent({
       target: updatedTarget ?? { ...target, certState: nextCertState, lastCheckedAt: nextCertState.checkedAt },
       event: {
         type: event.type,
@@ -284,5 +285,6 @@ export async function runCertificateMonitorCheck({
     target: updatedTarget ?? { ...target, certState: nextCertState, lastCheckedAt: nextCertState.checkedAt },
     event,
     certState: nextCertState,
+    notification,
   };
 }

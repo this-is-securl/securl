@@ -115,6 +115,14 @@ function assertCapabilities(payload) {
   if (!payload.notifications?.features?.includes("device-registration")) {
     throw new Error("Capabilities missing notification device-registration feature.");
   }
+  for (const feature of ["test-notification", "bounded-delivery-retry"]) {
+    if (!payload.notifications?.features?.includes(feature)) {
+      throw new Error(`Capabilities missing notification feature: ${feature}`);
+    }
+  }
+  if (!payload.notifications?.resources?.includes("POST /api/notification-devices/:id/test")) {
+    throw new Error("Capabilities missing notification test resource.");
+  }
 }
 
 function assertScanResourceLinks(payload, scanId) {
@@ -145,7 +153,11 @@ async function main() {
   const mode = getArg("mode", process.env.SMOKE_SCAN_MODE || DEFAULT_MODE);
   const timeoutMs = Number(getArg("timeout-ms", process.env.SMOKE_TIMEOUT_MS || DEFAULT_TIMEOUT_MS));
   const ownerToken = buildOwnerToken();
-  const ownerHeaders = { "X-Scan-Owner": ownerToken };
+  const ownerHeaders = {
+    "X-Scan-Owner": ownerToken,
+    "X-SecURL-Client": "securl-api-smoke",
+    "X-SecURL-Client-Version": "1.0.0",
+  };
   const jsonOwnerHeaders = { ...ownerHeaders, "Content-Type": "application/json" };
 
   console.log(`SecURL API smoke`);

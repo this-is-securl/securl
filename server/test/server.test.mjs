@@ -524,8 +524,15 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.certificates.features.includes("cert-attention-state"));
     assert.ok(payload.notifications.features.includes("device-health"));
     assert.ok(payload.notifications.features.includes("delivery-audit"));
+    assert.ok(payload.notifications.features.includes("test-notification"));
+    assert.ok(payload.notifications.features.includes("bounded-delivery-retry"));
     assert.ok(payload.notifications.resources.includes("GET /api/notification-devices/health"));
     assert.ok(payload.notifications.resources.includes("POST /api/notification-devices"));
+    assert.ok(payload.notifications.resources.includes("POST /api/notification-devices/:id/test"));
+    assert.equal(payload.notifications.delivery.timeoutMs, 10000);
+    assert.equal(payload.notifications.delivery.maxAttempts, 3);
+    assert.ok(payload.notifications.delivery.invalidTokenReasons.includes("BadDeviceToken"));
+    assert.ok(payload.notifications.delivery.retries.includes("apns_5xx"));
     assert.equal(payload.notifications.enabled, false);
     assert.equal(payload.safety.passiveFirst, true);
   } finally {
@@ -1198,6 +1205,25 @@ test("notification devices can be registered, listed, and disabled without echoi
     assert.equal(createPayload.device.tokenPrefix, "aaaaaaaa...");
     assert.equal(createPayload.device.environment, "sandbox");
 
+    const testResponse = await fetch(`${server.baseUrl}/api/notification-devices/${createPayload.device.id}/test`, {
+      method: "POST",
+      headers: {
+        ...scanOwnerJsonHeaders(),
+        "X-SecURL-Client": "securl-ios",
+        "X-SecURL-Client-Version": "1.2.0+19",
+      },
+    });
+    const testPayload = await testResponse.json();
+    assert.equal(testResponse.status, 503);
+    assert.equal(testPayload.delivered, false);
+    assert.equal(testPayload.delivery.skipped, "apns_not_configured");
+
+    const wrongOwnerTestResponse = await fetch(`${server.baseUrl}/api/notification-devices/${createPayload.device.id}/test`, {
+      method: "POST",
+      headers: scanOwnerJsonHeaders(SCAN_OWNER_TWO),
+    });
+    assert.equal(wrongOwnerTestResponse.status, 404);
+
     const listResponse = await fetch(`${server.baseUrl}/api/notification-devices`, {
       headers: scanOwnerHeaders(),
     });
@@ -1233,12 +1259,16 @@ test("notification devices can be registered, listed, and disabled without echoi
     const telemetryPayload = await telemetryResponse.json();
     assert.equal(telemetryPayload.funnel.events.notification_device_registered, 1);
     assert.equal(telemetryPayload.funnel.events.notification_device_health_read, 1);
+    assert.equal(telemetryPayload.funnel.events.notification_test_requested, 1);
     assert.equal(telemetryPayload.funnel.byClient["securl-ios"].notification_device_registered, 1);
     assert.equal(telemetryPayload.funnel.byClient["securl-ios"].notification_device_health_read, 1);
     assert.equal(
       telemetryPayload.clients.identity.backendEventsByClientVersion["securl-ios@1.2.0+19"].notification_device_registered,
       1,
     );
+    assert.equal(telemetryPayload.notifications.delivery.batches, 1);
+    assert.equal(telemetryPayload.notifications.delivery.skipped.apns_not_configured, 1);
+    assert.equal(telemetryPayload.notifications.delivery.byChannel.device_test.batches, 1);
 
     const deleteResponse = await fetch(`${server.baseUrl}/api/notification-devices/${createPayload.device.id}`, {
       method: "DELETE",

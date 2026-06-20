@@ -65,6 +65,10 @@ test("monitoring sweep queues scans for due targets", async () => {
     queued: 1,
     certChecked: 0,
     certNotified: 0,
+    notificationAttempted: 0,
+    notificationSent: 0,
+    notificationFailed: 0,
+    notificationSkipped: 0,
     skipped: 0,
     failed: 0,
   });
@@ -139,7 +143,10 @@ test("monitoring sweep runs certificate checks for due cert targets", async () =
     enqueueScan: (job) => enqueued.push(job),
     runCertificateCheck: async (certTarget) => {
       checked.push(certTarget);
-      return { event: { type: "cert_expiring" } };
+      return {
+        event: { type: "cert_expiring" },
+        notification: { attempted: 1, sent: 1, failed: 0, skipped: null },
+      };
     },
     now: NOW,
     log: () => {},
@@ -149,6 +156,9 @@ test("monitoring sweep runs certificate checks for due cert targets", async () =
   assert.equal(result.queued, 0);
   assert.equal(result.certChecked, 1);
   assert.equal(result.certNotified, 1);
+  assert.equal(result.notificationAttempted, 1);
+  assert.equal(result.notificationSent, 1);
+  assert.equal(result.notificationFailed, 0);
   assert.equal(repository.createdScans.length, 0);
   assert.equal(enqueued.length, 0);
   assert.equal(checked[0].id, target.id);

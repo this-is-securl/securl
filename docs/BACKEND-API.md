@@ -98,22 +98,31 @@ npm run smoke:api -- --base-url=https://securl-app-production.up.railway.app --t
 
 - `POST /api/notification-devices`
 - `GET /api/notification-devices`
+- `GET /api/notification-devices/health`
+- `POST /api/notification-devices/:id/test`
 - `DELETE /api/notification-devices/:id`
 
 `POST /api/notification-devices` registers an iOS APNs device token against the same owner boundary used for scans and monitoring targets. The backend never echoes the raw token in list responses. When `MONITORING_SCHEDULER_ENABLED=true`, scheduled monitoring scans can send APNs alerts when a registered target's grade, score, headers, certificate window, or risk events change.
 
-APNs delivery is disabled until all of these are configured:
+`POST /api/notification-devices/:id/test` sends one owner-scoped test notification to an active registration. It returns `200` only when APNs accepts the notification and `503` with a sanitized delivery result when delivery is unavailable or fails. The raw device token is never returned.
+
+APNs delivery is enabled when these credentials are configured:
 
 - `APNS_TEAM_ID`
 - `APNS_KEY_ID`
 - `APNS_PRIVATE_KEY`
-- `APNS_BUNDLE_ID`
 
-Without those values, device registration still works and monitoring scans continue normally, but delivery is logged as skipped.
+Each device registration's `appId` is used as its APNs topic, allowing SecURL, Header Watch, and Cert Watch to share the same provider key. `APNS_BUNDLE_ID` is an optional fallback for registrations without an app id. `APNS_TIMEOUT_MS` controls the per-attempt deadline (default `10000`) and `APNS_MAX_ATTEMPTS` controls bounded delivery attempts (default `3`, maximum `5`).
+
+Transient network errors, timeouts, `429`, and `5xx` responses are retried with short bounded backoff. Tokens are disabled only for APNs `Unregistered`, `BadDeviceToken`, or `DeviceTokenNotForTopic` responses; topic, payload, and provider-auth errors remain visible as recoverable delivery failures.
+
+Without APNs credentials, device registration and monitoring continue normally, while delivery is recorded as skipped.
 
 ## Telemetry readout
 
 When the production telemetry endpoint is explicitly exposed for admin use, `GET /api/telemetry` includes `clients.consumption` and `clients.identity`. The consumption readout rolls up backend-owned client activity that frontend analytics may miss: monitoring target registrations, mobile monitoring summary reads, APNs device registrations, notification health reads, and live certificate reads. Identity separates scan requests and service events by the optional product/version headers. It stores aggregate labels and counts only, not owner tokens, APNs tokens, device ids, IP addresses, or raw user agents.
+
+`notifications.delivery` reports aggregate batches, devices attempted, APNs attempts, sends, failures, retries, disabled invalid tokens, skipped reasons, channels, and today's counters. Notification payloads and device tokens are not retained in telemetry.
 
 ## Current auth resources
 

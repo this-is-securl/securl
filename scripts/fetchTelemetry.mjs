@@ -112,6 +112,7 @@ const main = async () => {
   console.log(`  Mobile monitoring summary reads: ${clientConsumption.monitoringMobileSummaryReads ?? 0}`);
   console.log(`  Notification device registrations: ${clientConsumption.notificationDeviceRegistrations ?? 0}`);
   console.log(`  Notification device health reads: ${clientConsumption.notificationDeviceHealthReads ?? 0}`);
+  console.log(`  Notification test requests: ${clientConsumption.notificationTestRequests ?? 0}`);
   console.log(`  Live certificate reads: ${clientConsumption.liveCertificateReads ?? 0}`);
   const activeSignals = Object.entries(clientConsumption.adoptionSignals || {})
     .filter(([, active]) => active)
@@ -155,6 +156,23 @@ const main = async () => {
       const events = Object.values(clientIdentity.backendEventsByClientVersion?.[version] || {})
         .reduce((sum, count) => sum + Number(count || 0), 0);
       console.log(`    - ${version}: ${scans} scans / ${events} service events`);
+    }
+  }
+  const delivery = telemetry.notifications?.delivery || {};
+  console.log("");
+  console.log("Notification delivery");
+  console.log(`  Batches: ${delivery.batches ?? 0}`);
+  console.log(`  Devices attempted: ${delivery.attempted ?? 0}`);
+  console.log(`  APNs attempts: ${delivery.attempts ?? 0}`);
+  console.log(`  Sent: ${delivery.sent ?? 0}`);
+  console.log(`  Failed: ${delivery.failed ?? 0}`);
+  console.log(`  Retried: ${delivery.retried ?? 0}`);
+  console.log(`  Tokens disabled: ${delivery.disabled ?? 0}`);
+  const skippedDeliveries = Object.entries(delivery.skipped || {});
+  if (skippedDeliveries.length) {
+    console.log("  Skipped:");
+    for (const [reason, count] of skippedDeliveries.sort(([, left], [, right]) => right - left)) {
+      console.log(`    - ${reason}: ${count}`);
     }
   }
   console.log("");

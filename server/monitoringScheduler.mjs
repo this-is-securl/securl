@@ -52,6 +52,10 @@ export async function runMonitoringSweep({
     queued: 0,
     certChecked: 0,
     certNotified: 0,
+    notificationAttempted: 0,
+    notificationSent: 0,
+    notificationFailed: 0,
+    notificationSkipped: 0,
     skipped: 0,
     failed: 0,
   };
@@ -71,14 +75,20 @@ export async function runMonitoringSweep({
 
         const outcome = await runCertificateCheck(target);
         result.certChecked += 1;
-        if (outcome?.event) {
-          result.certNotified += 1;
-        }
+        const notification = outcome?.notification || {};
+        result.notificationAttempted += Number(notification.attempted || 0);
+        result.notificationSent += Number(notification.sent || 0);
+        result.notificationFailed += Number(notification.failed || 0);
+        if (notification.skipped) result.notificationSkipped += 1;
+        result.certNotified += Number(notification.sent || 0);
         log("info", "monitoring_scheduler_checked_cert", {
           targetId: target.id,
           ownerId: target.ownerId,
           url: target.url,
           eventType: outcome?.event?.type ?? null,
+          notificationSent: Number(notification.sent || 0),
+          notificationFailed: Number(notification.failed || 0),
+          notificationSkipped: notification.skipped ?? null,
         });
         continue;
       }
