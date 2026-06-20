@@ -6,6 +6,7 @@ import { buildPostureDriftReportFromDiff } from "../packages/core/dist/postureDr
 import { buildVendorExposureBrief } from "../packages/core/dist/vendorExposure.js";
 import { buildObservationLedger } from "../packages/core/dist/observations.js";
 import { diffObservationLedgers } from "../packages/core/dist/observationDrift.js";
+import { DEFAULT_OBSERVATION_POLICY, evaluateObservationPolicy } from "../packages/core/dist/observationPolicy.js";
 
 export const API_VERSION = "2026-05-14";
 export const SCAN_EXPORT_FORMATS = ["json", "markdown", "sarif", "ci-json"];
@@ -382,6 +383,7 @@ export function buildMonitoringTargetView(target, records = []) {
     kind: target.kind ?? "posture",
     mode: target.mode ?? null,
     appId: target.appId ?? null,
+    observationPolicy: target.observationPolicy ?? null,
     addedAt: target.addedAt,
     lastScannedAt: target.lastScannedAt ?? null,
     lastCheckedAt: target.lastCheckedAt ?? target.lastScannedAt ?? null,
@@ -627,6 +629,34 @@ export function buildScanObservationDriftPayload(scan, records) {
   };
 }
 
+function buildPolicyEvaluation(records, policy = null) {
+  const completed = normalizeArray(records).filter((record) => record?.status === "completed" && record?.result);
+  const [current, previous] = completed;
+  if (!current) return null;
+  const ledger = current.result.observationLedger ?? buildObservationLedger(current.result);
+  const drift = previous
+    ? diffObservationLedgers(
+        ledger,
+        previous.result.observationLedger ?? buildObservationLedger(previous.result),
+      )
+    : null;
+  return evaluateObservationPolicy({ ledger, drift, policy: policy ?? DEFAULT_OBSERVATION_POLICY });
+}
+
+export function buildScanPolicyEvaluationPayload(scan, records, policy = null, policySource = "default") {
+  const completedRecords = normalizeArray(records).filter((record) => record?.status === "completed" && record?.result);
+  const currentIndex = completedRecords.findIndex((record) => record.id === scan.id);
+  const comparisonRecords = currentIndex >= 0
+    ? completedRecords.slice(currentIndex, currentIndex + 2)
+    : completedRecords.slice(0, 2);
+  return {
+    apiVersion: API_VERSION,
+    scan: scan.summary,
+    policySource,
+    policyEvaluation: buildPolicyEvaluation(comparisonRecords, policy),
+  };
+}
+
 export function buildTargetHistoryPayload(url, records) {
   return {
     apiVersion: API_VERSION,
@@ -793,6 +823,7 @@ export function buildMonitoringTargetDetailPayload(target, records = [], events 
     target: view,
     scans: normalizeArray(records).map((record) => record.summary).filter(Boolean),
     comparison: buildStoredTargetDiff(records),
+    policyEvaluation: target.kind === "posture" ? buildPolicyEvaluation(records, target.observationPolicy) : null,
     events: normalizeArray(events).map(buildPublicScanEvent),
   };
 }

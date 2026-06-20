@@ -7,6 +7,7 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 ## [Unreleased]
 
 ### Added
+- Added a bounded declarative observation policy engine, maintained baseline policy, validation helper, and `securl/observation-policy` export.
 - Added `diffObservationLedgers()` and `securl/observation-drift` for deterministic observation-level regression and improvement classification.
 - Added `buildVendorExposureBrief()` for compact vendor and supply-chain exposure summaries covering visible third-party providers, data-flow categories, SRI gaps, priority vendors, and next actions.
 - Added `vendorExposure` to analysis results and the `securl/vendor-exposure` package export for SDK consumers.

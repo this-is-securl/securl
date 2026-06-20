@@ -13,6 +13,7 @@ For web and mobile experiences, prefer:
 - `GET /api/scans/:id/action-plan`: prioritized fix narrative combining remediation, evidence, score drivers, exposure, and vendor context.
 - `GET /api/scans/:id/observations`: stable source, confidence, status, and freshness-aware observations for monitoring, inventory, and integrations.
 - `GET /api/scans/:id/observation-drift`: observation-level added, removed, status, value, and confidence changes against the previous completed scan.
+- `GET /api/scans/:id/policy-evaluation`: current policy result, violation severity, expected assertion, and observed value.
 - `GET /api/scans/:id/events`: Server-Sent Events lifecycle stream so apps can stop polling once a scan reaches `completed` or `failed`.
 
 These endpoints are stable additive resources. They are the safest shape for client UI because they avoid coupling screens to the full internal scan object.

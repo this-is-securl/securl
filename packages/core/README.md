@@ -229,6 +229,8 @@ Observation IDs are deterministic across scans for the same subject and signal, 
 
 Use `diffObservationLedgers(current, previous)` from `securl/observation-drift` to classify observation-level regressions, improvements, and neutral changes.
 
+Use `evaluateObservationPolicy({ ledger, drift, policy })` from `securl/observation-policy` to apply bounded declarative rules. Rules can select an exact observation kind, kind prefix, or category, then assert equality, membership, or numeric thresholds against current observations or changes. `DEFAULT_OBSERVATION_POLICY` provides a maintained baseline for certificate validity/window, HSTS, CSP, DMARC, and critical regressions.
+
 ### 9. Evidence-backed remediation plans
 
 Version `1.4.0+` includes a remediation plan helper that turns score drivers and findings into prioritized, owner-aware fix guidance. Findings can also carry structured evidence references so clients can show why a finding was raised.
@@ -342,6 +344,7 @@ Primary exports:
 - `scanLiveCertificate(url)` - perform a TLS handshake-only certificate read for lightweight cert monitoring.
 - `buildObservationLedger(result)` - produce stable source, confidence, status, and freshness-aware posture observations.
 - `diffObservationLedgers(current, previous)` - compare stable observations and classify their operational impact.
+- `evaluateObservationPolicy({ ledger, drift, policy })` - evaluate bounded declarative posture and change rules.
 - `buildPostureDriftReportFromSnapshots(current, previous)` - produce a complete scan-to-scan drift report for monitoring, alerting, and history views.
 - `buildPostureRemediationPlan(result)` - generate prioritized, owner-aware remediation actions from findings and score drivers.
 - `attachIssueEvidence(result)` - add structured evidence references to findings without changing their existing fields.
@@ -355,6 +358,7 @@ Package subpath exports:
 - `securl/live-certificate`
 - `securl/observations`
 - `securl/observation-drift`
+- `securl/observation-policy`
 - `securl/posture-drift`
 - `securl/remediation-plan`
 - `securl/risk-events`

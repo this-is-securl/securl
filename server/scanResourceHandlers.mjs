@@ -49,6 +49,7 @@ export function buildScanResourceLinks(scanId) {
     evidence: `${basePath}/evidence`,
     observations: `${basePath}/observations`,
     observationDrift: `${basePath}/observation-drift`,
+    policyEvaluation: `${basePath}/policy-evaluation`,
     history: `${basePath}/history`,
     comparison: `${basePath}/comparison`,
     drift: `${basePath}/drift`,
@@ -474,6 +475,7 @@ export async function handleScanResourceRequest({
   buildScanComparisonPayload,
   buildScanDriftPayload,
   buildScanObservationDriftPayload,
+  buildScanPolicyEvaluationPayload,
   sendBody,
   sendJson,
   sendMethodNotAllowed,
@@ -650,6 +652,32 @@ export async function handleScanResourceRequest({
         url: scan.url,
       });
       sendJson(response, 200, buildScanObservationDriftPayload(scan, records));
+      return true;
+    }
+
+    if (resource === "policy-evaluation") {
+      if (scan.status !== "completed" || !scan.result) {
+        sendJson(response, 409, {
+          error: "Policy evaluation is only available once the scan has completed.",
+        });
+        return true;
+      }
+      const [records, targets] = await Promise.all([
+        scanRepository.listPersistedRecords({
+          limit: clampLimit(requestUrl.searchParams.get("limit"), 20, 100),
+          ownerId: authState.ownerId,
+          url: scan.url,
+        }),
+        scanRepository.listMonitoringTargets({ ownerId: authState.ownerId, limit: 250 }),
+      ]);
+      const target = targets.find((candidate) => (candidate.kind ?? "posture") === "posture"
+        && (candidate.url === scan.url || candidate.url === scan.result.finalUrl));
+      sendJson(response, 200, buildScanPolicyEvaluationPayload(
+        scan,
+        records,
+        target?.observationPolicy ?? null,
+        target?.observationPolicy ? "monitoring_target" : "default",
+      ));
       return true;
     }
 

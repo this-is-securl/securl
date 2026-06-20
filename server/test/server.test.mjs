@@ -54,6 +54,7 @@ const postMonitoringTarget = (baseUrl, url, options = {}) =>
       ...(options.cadence ? { cadence: options.cadence } : {}),
       ...(options.label ? { label: options.label } : {}),
       ...(options.appId ? { appId: options.appId } : {}),
+      ...(options.policy ? { policy: options.policy } : {}),
     }),
     ...("headers" in options
       ? {
@@ -495,11 +496,14 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.scans.features.includes("durable-scan-jobs"));
     assert.ok(payload.scans.features.includes("observation-ledger-v1"));
     assert.ok(payload.scans.features.includes("observation-drift-v1"));
+    assert.ok(payload.scans.features.includes("observation-policy-v1"));
     assert.equal(payload.scans.scoring.model, "weighted-passive-posture");
     assert.equal(payload.scans.scoring.version, "2026-06-14");
     assert.deepEqual(payload.scans.scoring.scoreRange, { min: 0, max: 100 });
     assert.equal(payload.scans.maxDurationMs.standard, 45000);
     assert.equal(payload.scans.maxDurationMs.deepPassive, 75000);
+    assert.equal(payload.scans.policy.defaultId, "securl-baseline-v1");
+    assert.equal(payload.scans.policy.maxRules, 25);
     assert.ok(payload.auth.resources.includes("GET /api/auth/api-keys"));
     assert.ok(payload.auth.resources.includes("DELETE /api/auth/api-keys/:id"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/digest"));
@@ -508,6 +512,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/action-plan"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/observations"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/observation-drift"));
+    assert.ok(payload.scans.resources.includes("GET /api/scans/:id/policy-evaluation"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/events"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/comparison"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/drift"));
@@ -521,6 +526,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.monitoring.features.includes("mobile-posture-drift-summary"));
     assert.ok(payload.monitoring.features.includes("mobile-digest-preview"));
     assert.ok(payload.monitoring.features.includes("cert-attention-state"));
+    assert.ok(payload.monitoring.features.includes("target-observation-policy"));
     assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-summary"));
     assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-mobile-summary"));
     assert.ok(payload.monitoring.resources.includes("POST /api/monitoring-targets/:id/run"));
@@ -1322,11 +1328,26 @@ test("monitoring targets can be created, listed, and deleted", async () => {
   const server = await startServer();
 
   try {
+    const policy = {
+      id: "header-baseline",
+      name: "Header baseline",
+      version: "1",
+      rules: [{
+        id: "hsts",
+        title: "HSTS required",
+        severity: "critical",
+        scope: "observation",
+        selector: { kind: "http.header.strict-transport-security" },
+        assertion: { field: "status", operator: "eq", value: "observed" },
+        requireMatch: true,
+      }],
+    };
     const createResponse = await postMonitoringTarget(server.baseUrl, "https://example.com", {
       owner: SCAN_OWNER_ONE,
       cadence: "daily",
       label: "Example target",
       appId: "com.ktbatterham.headerwatch",
+      policy,
       headers: {
         "X-SecURL-Client": "header-watch-ios",
         "X-SecURL-Client-Version": "1.1.0+7",
@@ -1341,6 +1362,9 @@ test("monitoring targets can be created, listed, and deleted", async () => {
     assert.equal(createPayload.target.latestScan, null);
     assert.equal(createPayload.target.ownerId, undefined);
     assert.equal(createPayload.target.requesterScope, undefined);
+    assert.equal(createPayload.target.observationPolicy.id, policy.id);
+    assert.equal(createPayload.target.observationPolicy.rules[0].id, "hsts");
+    assert.equal(createPayload.target.observationPolicy.rules[0].enabled, true);
 
     const targetId = createPayload.target.id;
     const listResponse = await fetch(`${server.baseUrl}/api/monitoring-targets`, {
@@ -1352,6 +1376,7 @@ test("monitoring targets can be created, listed, and deleted", async () => {
     assert.equal(listPayload.targets[0].id, targetId);
     assert.equal(listPayload.targets[0].ownerId, undefined);
     assert.equal(listPayload.targets[0].requesterScope, undefined);
+    assert.equal(listPayload.targets[0].observationPolicy.id, "header-baseline");
 
     const mobileSummaryResponse = await fetch(`${server.baseUrl}/api/monitoring-mobile-summary`, {
       headers: {
@@ -1388,6 +1413,21 @@ test("monitoring targets can be created, listed, and deleted", async () => {
     });
     const emptyListPayload = await emptyListResponse.json();
     assert.equal(emptyListPayload.targets.length, 0);
+  } finally {
+    await server.stop();
+  }
+});
+
+test("monitoring targets reject malformed observation policies", async () => {
+  const server = await startServer();
+  try {
+    const response = await postMonitoringTarget(server.baseUrl, "https://example.com", {
+      owner: SCAN_OWNER_ONE,
+      policy: { id: "broken", name: "Broken", version: "1", rules: [] },
+    });
+    const payload = await response.json();
+    assert.equal(response.status, 400);
+    assert.match(payload.error, /policy/i);
   } finally {
     await server.stop();
   }
@@ -1913,6 +1953,9 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     const observationsResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/observations`, {
       headers: scanOwnerHeaders(),
     });
+    const policyEvaluationResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/policy-evaluation`, {
+      headers: scanOwnerHeaders(),
+    });
     const historyResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/history`, {
       headers: scanOwnerHeaders(),
     });
@@ -1940,6 +1983,7 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     const actionPlanPayload = await actionPlanResponse.json();
     const evidencePayload = await evidenceResponse.json();
     const observationsPayload = await observationsResponse.json();
+    const policyEvaluationPayload = await policyEvaluationResponse.json();
     const historyPayload = await historyResponse.json();
     const eventsText = await eventsResponse.text();
     const markdownExport = await markdownExportResponse.text();
@@ -2009,6 +2053,10 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
       observationsPayload.observationLedger.summary.total,
       observationsPayload.observationLedger.observations.length,
     );
+    assert.equal(policyEvaluationResponse.status, 200);
+    assert.equal(policyEvaluationPayload.policySource, "default");
+    assert.equal(policyEvaluationPayload.policyEvaluation.version, "1.0");
+    assert.equal(typeof policyEvaluationPayload.policyEvaluation.passed, "boolean");
     assert.equal(historyResponse.status, 200);
     assert.equal(historyPayload.apiVersion, "2026-05-14");
     assert.equal(historyPayload.scan.id, scanId);

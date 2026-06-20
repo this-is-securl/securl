@@ -1276,6 +1276,7 @@ export { formatErrorMessage };
 export { buildCompromiseSignals, emptyCompromiseSignals } from "./compromiseSignals.js";
 export { buildObservationLedger } from "./observations.js";
 export { diffObservationLedgers } from "./observationDrift.js";
+export { DEFAULT_OBSERVATION_POLICY, evaluateObservationPolicy, validateObservationPolicy } from "./observationPolicy.js";
 export { buildActionPlan } from "./actionPlan.js";
 export { scanLiveCertificate } from "./certificate.js";
 export { buildExposureBrief } from "./exposureBrief.js";

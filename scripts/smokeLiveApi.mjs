@@ -103,7 +103,7 @@ function assertCapabilities(payload) {
     }
   }
 
-  for (const feature of ["evidence-summary", "posture-digest", "posture-drift", "exposure-brief", "vendor-exposure", "action-plan", "scan-events", "scan-resource-links", "durable-scan-jobs", "observation-ledger-v1", "observation-drift-v1"]) {
+  for (const feature of ["evidence-summary", "posture-digest", "posture-drift", "exposure-brief", "vendor-exposure", "action-plan", "scan-events", "scan-resource-links", "durable-scan-jobs", "observation-ledger-v1", "observation-drift-v1", "observation-policy-v1"]) {
     if (!features.includes(feature)) {
       throw new Error(`Capabilities missing scan feature: ${feature}`);
     }
@@ -136,6 +136,7 @@ function assertScanResourceLinks(payload, scanId) {
     evidence: `/api/scans/${scanId}/evidence`,
     observations: `/api/scans/${scanId}/observations`,
     observationDrift: `/api/scans/${scanId}/observation-drift`,
+    policyEvaluation: `/api/scans/${scanId}/policy-evaluation`,
     history: `/api/scans/${scanId}/history`,
     comparison: `/api/scans/${scanId}/comparison`,
     drift: `/api/scans/${scanId}/drift`,
@@ -227,6 +228,7 @@ async function main() {
     ["evidence", `/api/scans/${encodeURIComponent(scanId)}/evidence`, ownerHeaders],
     ["observations", `/api/scans/${encodeURIComponent(scanId)}/observations`, ownerHeaders],
     ["observation-drift", `/api/scans/${encodeURIComponent(scanId)}/observation-drift`, ownerHeaders],
+    ["policy-evaluation", `/api/scans/${encodeURIComponent(scanId)}/policy-evaluation`, ownerHeaders],
     ["history", `/api/scans/${encodeURIComponent(scanId)}/history`, ownerHeaders],
     ["comparison", `/api/scans/${encodeURIComponent(scanId)}/comparison`, ownerHeaders],
     ["drift", `/api/scans/${encodeURIComponent(scanId)}/drift`, ownerHeaders],
@@ -260,6 +262,9 @@ async function main() {
     }
     if (label === "observation-drift" && !("observationDrift" in payload)) {
       throw new Error("Observation drift endpoint omitted its contract field");
+    }
+    if (label === "policy-evaluation" && !payload.policyEvaluation?.summary) {
+      throw new Error("Policy evaluation endpoint returned no evaluation summary");
     }
     if (label === "share" && !payload.scan?.result) {
       throw new Error("Share endpoint returned an empty scan result");

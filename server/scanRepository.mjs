@@ -122,6 +122,7 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
       kind text not null default 'posture',
       mode text null,
       app_id text null,
+      observation_policy jsonb null,
       cert_state jsonb null,
       added_at timestamptz not null,
       last_scanned_at timestamptz null,
@@ -130,6 +131,7 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
     `alter table if exists ${qualifiedTargetsTable} add column if not exists kind text not null default 'posture'`,
     `alter table if exists ${qualifiedTargetsTable} add column if not exists mode text null`,
     `alter table if exists ${qualifiedTargetsTable} add column if not exists app_id text null`,
+    `alter table if exists ${qualifiedTargetsTable} add column if not exists observation_policy jsonb null`,
     `alter table if exists ${qualifiedTargetsTable} add column if not exists cert_state jsonb null`,
     `alter table if exists ${qualifiedTargetsTable} add column if not exists last_checked_at timestamptz null`,
     `create index if not exists scans_requested_at_idx on ${qualifiedTable} (requested_at desc)`,
@@ -246,6 +248,7 @@ export function buildMonitoringTargetRecord({
   kind = "posture",
   mode = null,
   appId = null,
+  observationPolicy = null,
   certState = null,
   addedAt = new Date().toISOString(),
   lastScannedAt = null,
@@ -261,6 +264,7 @@ export function buildMonitoringTargetRecord({
     kind,
     mode,
     appId,
+    observationPolicy,
     certState,
     addedAt,
     lastScannedAt,
@@ -546,6 +550,7 @@ function hydrateMonitoringTargetFromRow(row) {
     kind: row.kind ?? "posture",
     mode: row.mode ?? null,
     appId: row.app_id ?? null,
+    observationPolicy: row.observation_policy ?? null,
     certState: row.cert_state ?? null,
     addedAt: row.added_at?.toISOString?.() ?? row.added_at,
     lastScannedAt: row.last_scanned_at?.toISOString?.() ?? row.last_scanned_at,
@@ -1286,6 +1291,7 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       kind = "posture",
       mode = null,
       appId = null,
+      observationPolicy = undefined,
       certState = null,
       lastScannedAt = null,
       lastCheckedAt = null,
@@ -1304,6 +1310,7 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
         existing.kind = kind;
         existing.mode = mode;
         existing.appId = appId;
+        if (observationPolicy !== undefined) existing.observationPolicy = observationPolicy;
         existing.certState = certState ?? existing.certState ?? null;
         existing.lastScannedAt = lastScannedAt ?? existing.lastScannedAt;
         existing.lastCheckedAt = lastCheckedAt ?? existing.lastCheckedAt ?? null;
@@ -1320,6 +1327,7 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
         kind,
         mode,
         appId,
+        observationPolicy,
         certState,
         lastScannedAt,
         lastCheckedAt,
@@ -2414,6 +2422,7 @@ export function createPostgresScanRepository({
       kind = "posture",
       mode = null,
       appId = null,
+      observationPolicy = undefined,
       certState = null,
       lastScannedAt = null,
       lastCheckedAt = null,
@@ -2449,9 +2458,10 @@ export function createPostgresScanRepository({
                cadence = $3,
                mode = $4,
                app_id = $5,
-               cert_state = coalesce($6::jsonb, cert_state),
-               last_scanned_at = coalesce($7::timestamptz, last_scanned_at),
-               last_checked_at = coalesce($8::timestamptz, last_checked_at)
+               observation_policy = coalesce($6::jsonb, observation_policy),
+               cert_state = coalesce($7::jsonb, cert_state),
+               last_scanned_at = coalesce($8::timestamptz, last_scanned_at),
+               last_checked_at = coalesce($9::timestamptz, last_checked_at)
            where id = $1
            returning *`,
           [
@@ -2460,6 +2470,7 @@ export function createPostgresScanRepository({
             cadence,
             mode,
             appId,
+            observationPolicy ? JSON.stringify(observationPolicy) : null,
             certState ? JSON.stringify(certState) : null,
             lastScannedAt,
             lastCheckedAt,
@@ -2477,15 +2488,16 @@ export function createPostgresScanRepository({
         kind,
         mode,
         appId,
+        observationPolicy,
         certState,
         lastScannedAt,
         lastCheckedAt,
       });
       const { rows } = await pool.query(
         `insert into ${targetsTable}
-          (id, owner_id, requester_scope, url, label, cadence, kind, mode, app_id, cert_state, added_at, last_scanned_at, last_checked_at)
+          (id, owner_id, requester_scope, url, label, cadence, kind, mode, app_id, observation_policy, cert_state, added_at, last_scanned_at, last_checked_at)
          values
-          ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11::timestamptz, $12::timestamptz, $13::timestamptz)
+          ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11::jsonb, $12::timestamptz, $13::timestamptz, $14::timestamptz)
          returning *`,
         [
           target.id,
@@ -2497,6 +2509,7 @@ export function createPostgresScanRepository({
           target.kind,
           target.mode,
           target.appId,
+          target.observationPolicy ? JSON.stringify(target.observationPolicy) : null,
           target.certState ? JSON.stringify(target.certState) : null,
           target.addedAt,
           target.lastScannedAt,

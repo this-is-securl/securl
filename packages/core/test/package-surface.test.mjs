@@ -17,6 +17,7 @@ test("package surface exports expected public functions", async () => {
   const certificate = await import("../dist/certificate.js");
   const observations = await import("../dist/observations.js");
   const observationDrift = await import("../dist/observationDrift.js");
+  const observationPolicy = await import("../dist/observationPolicy.js");
 
   assert.equal(typeof pkg.analyzeTarget, "function");
   assert.equal(typeof pkg.analyzeUrl, "function");
@@ -46,6 +47,9 @@ test("package surface exports expected public functions", async () => {
   assert.equal(typeof observations.buildObservationLedger, "function");
   assert.equal(typeof pkg.diffObservationLedgers, "function");
   assert.equal(typeof observationDrift.diffObservationLedgers, "function");
+  assert.equal(typeof pkg.evaluateObservationPolicy, "function");
+  assert.equal(typeof observationPolicy.evaluateObservationPolicy, "function");
+  assert.equal(typeof observationPolicy.validateObservationPolicy, "function");
   assert.equal(typeof pkg.formatErrorMessage, "function");
 });
 

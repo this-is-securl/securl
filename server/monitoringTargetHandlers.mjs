@@ -1,4 +1,5 @@
 import { API_VERSION } from "./scanDtos.mjs";
+import { validateObservationPolicy } from "../packages/core/dist/observationPolicy.js";
 import {
   normalizeMonitoringAppId,
   normalizeMonitoringCadence,
@@ -221,6 +222,9 @@ export async function handleMonitoringTargetCollectionRequest({
     const cadence = normalizeMonitoringCadence(body.cadence, "daily");
     const mode = kind === "posture" ? normalizeMonitoringMode(body.mode, "quiet") : null;
     const appId = normalizeMonitoringAppId(body.appId);
+    const observationPolicy = body.policy === undefined || body.policy === null
+      ? undefined
+      : validateObservationPolicy(body.policy);
     const validatedTarget = await assertPublicHttpUrl(target);
     if (kind === "cert" && validatedTarget.protocol !== "https:") {
       sendJson(response, 400, {
@@ -239,6 +243,7 @@ export async function handleMonitoringTargetCollectionRequest({
       kind,
       mode,
       appId,
+      observationPolicy,
       requesterScope: authState.requesterScope,
       ownerId: authState.ownerId,
     });
