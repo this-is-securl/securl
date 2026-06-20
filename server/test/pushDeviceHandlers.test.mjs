@@ -51,6 +51,18 @@ test("push device health flags APNs token rejections as needing registration", (
   );
 });
 
+test("push device health recognizes the explicit invalid-token delivery status", () => {
+  assert.deepEqual(
+    classifyDeviceHealth(buildDevice({ lastPushStatus: "invalid_token" }), NOW),
+    {
+      status: "rejected",
+      stale: false,
+      needsRegistration: true,
+      reason: "invalid_token",
+    },
+  );
+});
+
 test("push device health reports transient send failures without forcing registration", () => {
   assert.deepEqual(
     classifyDeviceHealth(buildDevice({
@@ -63,4 +75,10 @@ test("push device health reports transient send failures without forcing registr
       reason: "last_push_failed",
     },
   );
+});
+
+test("push device health treats exhausted APNs retries as recoverable", () => {
+  assert.equal(classifyDeviceHealth(buildDevice({ lastPushStatus: "apns_503" }), NOW).status, "push_failed");
+  assert.equal(classifyDeviceHealth(buildDevice({ lastPushStatus: "timed_out" }), NOW).needsRegistration, false);
+  assert.equal(classifyDeviceHealth(buildDevice({ lastPushStatus: "apns_400" }), NOW).status, "push_failed");
 });

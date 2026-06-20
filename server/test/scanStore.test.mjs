@@ -312,6 +312,8 @@ test("scan repository stores push devices without exposing raw tokens in public 
   const secrets = await repository.listPushDeviceSecrets({ ownerId: "scan-owner:test" });
   assert.equal(secrets.length, 1);
   assert.equal(secrets[0].token, token);
+  assert.equal((await repository.getPushDeviceSecret(saved.id, { ownerId: "scan-owner:test" })).token, token);
+  assert.equal(await repository.getPushDeviceSecret(saved.id, { ownerId: "scan-owner:other" }), null);
   assert.equal((await repository.listPushDeviceSecrets({
     ownerId: "scan-owner:test",
     appId: "com.ktbatterham.certwatch",

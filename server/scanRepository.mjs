@@ -784,6 +784,13 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
         .slice(0, Math.max(1, limit))
         .map((device) => ({ ...device }));
     },
+    async getPushDeviceSecret(id, { requesterScope = null, ownerId = null } = {}) {
+      const device = pushDevices.get(id);
+      if (!device || device.disabledAt) return null;
+      if (ownerId && device.ownerId !== ownerId) return null;
+      if (!ownerId && requesterScope && device.requesterScope !== requesterScope) return null;
+      return { ...device };
+    },
     async disablePushDevice(id, { requesterScope = null, ownerId = null } = {}) {
       const device = pushDevices.get(id);
       if (!device) return false;
@@ -1461,6 +1468,22 @@ export function createPostgresScanRepository({
         params,
       );
       return rows.map(hydratePushDeviceFromRow).filter(Boolean);
+    },
+    async getPushDeviceSecret(id, { requesterScope = null, ownerId = null } = {}) {
+      const filters = ["id = $1", "disabled_at is null"];
+      const params = [id];
+      if (ownerId) {
+        params.push(ownerId);
+        filters.push(`owner_id = $${params.length}`);
+      } else if (requesterScope) {
+        params.push(requesterScope);
+        filters.push(`requester_scope = $${params.length}`);
+      }
+      const { rows } = await pool.query(
+        `select * from ${pushDevicesTable} where ${filters.join(" and ")} limit 1`,
+        params,
+      );
+      return hydratePushDeviceFromRow(rows[0]);
     },
     async disablePushDevice(id, { requesterScope = null, ownerId = null } = {}) {
       const filters = ["id = $1"];

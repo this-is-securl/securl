@@ -33,48 +33,99 @@ function apnsHost(environment) {
   return environment === "sandbox" ? "https://api.sandbox.push.apple.com" : "https://api.push.apple.com";
 }
 
-async function sendApns({ token, environment, topic, payload, config }) {
+const INVALID_TOKEN_REASONS = new Set([
+  "BadDeviceToken",
+  "DeviceTokenNotForTopic",
+  "Unregistered",
+]);
+const TRANSIENT_STATUS_CODES = new Set([429, 500, 503]);
+
+function parseApnsBody(body) {
+  if (!body) return null;
+  try {
+    return JSON.parse(body);
+  } catch {
+    return { reason: String(body).slice(0, 500) };
+  }
+}
+
+export function classifyApnsResponse(response = {}) {
+  const statusCode = Number(response.statusCode || 0);
+  const reason = typeof response.body?.reason === "string" ? response.body.reason : null;
+  if (statusCode >= 200 && statusCode < 300) {
+    return { outcome: "sent", retryable: false, disableToken: false, status: "sent", reason: null };
+  }
+  if (statusCode === 410 || INVALID_TOKEN_REASONS.has(reason)) {
+    return { outcome: "failed", retryable: false, disableToken: true, status: "invalid_token", reason };
+  }
+  const retryable = statusCode === 0
+    || TRANSIENT_STATUS_CODES.has(statusCode)
+    || statusCode >= 500
+    || reason === "IdleTimeout";
+  return {
+    outcome: "failed",
+    retryable,
+    disableToken: false,
+    status: `apns_${statusCode || "unknown"}`,
+    reason,
+  };
+}
+
+async function sendApns({ token, environment, topic, payload, config, timeoutMs = 10_000 }) {
   const jwt = buildApnsJwt(config);
   const client = http2.connect(apnsHost(environment));
+  let timeout = null;
 
   try {
-    await new Promise((resolve, reject) => {
-      client.once("error", reject);
-      client.once("connect", resolve);
-    });
-
-    return await new Promise((resolve, reject) => {
-      const apnsRequest = client.request({
-        ":method": "POST",
-        ":path": `/3/device/${token}`,
-        authorization: `bearer ${jwt}`,
-        "apns-topic": topic,
-        "apns-push-type": "alert",
-        "apns-priority": "10",
-        "content-type": "application/json",
-      });
-      let body = "";
-      let statusCode = 0;
-      let apnsId = null;
-      apnsRequest.setEncoding("utf8");
-      apnsRequest.on("data", (chunk) => {
-        body += chunk;
-      });
-      apnsRequest.on("response", (headers) => {
-        statusCode = Number(headers[":status"] || 0);
-        apnsId = headers["apns-id"] ?? null;
-      });
-      apnsRequest.on("error", reject);
-      apnsRequest.on("end", () => {
-        resolve({
-          statusCode,
-          apnsId,
-          body: body ? JSON.parse(body) : null,
+    return await Promise.race([
+      (async () => {
+        await new Promise((resolve, reject) => {
+          client.once("error", reject);
+          client.once("connect", resolve);
         });
-      });
-      apnsRequest.end(JSON.stringify(payload));
-    });
+        return await new Promise((resolve, reject) => {
+          const apnsRequest = client.request({
+            ":method": "POST",
+            ":path": `/3/device/${token}`,
+            authorization: `bearer ${jwt}`,
+            "apns-topic": topic,
+            "apns-push-type": "alert",
+            "apns-priority": "10",
+            "apns-expiration": "0",
+            "content-type": "application/json",
+          });
+          let body = "";
+          let statusCode = 0;
+          let apnsId = null;
+          let retryAfter = null;
+          apnsRequest.setEncoding("utf8");
+          apnsRequest.on("data", (chunk) => {
+            body += chunk;
+          });
+          apnsRequest.on("response", (headers) => {
+            statusCode = Number(headers[":status"] || 0);
+            apnsId = headers["apns-id"] ?? null;
+            retryAfter = headers["retry-after"] ?? null;
+          });
+          apnsRequest.on("error", reject);
+          apnsRequest.on("end", () => {
+            resolve({ statusCode, apnsId, retryAfter, body: parseApnsBody(body) });
+          });
+          apnsRequest.end(JSON.stringify(payload));
+        });
+      })(),
+      new Promise((_, reject) => {
+        timeout = setTimeout(() => {
+          const error = new Error(`APNs request timed out after ${timeoutMs}ms.`);
+          error.code = "APNS_TIMEOUT";
+          client.destroy(error);
+          reject(error);
+        }, timeoutMs);
+        timeout.unref?.();
+      }),
+    ]);
   } finally {
+    if (timeout) clearTimeout(timeout);
     client.close();
   }
 }
@@ -97,6 +148,14 @@ function buildNotificationChangeSummary(diff, riskEvents) {
     changes.push(riskEvents[0].title);
   }
   return changes;
+}
+
+function retryDelayMs(attempt, response) {
+  const retryAfterSeconds = Number(response?.retryAfter);
+  if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds >= 0) {
+    return Math.min(5_000, Math.max(100, Math.round(retryAfterSeconds * 1_000)));
+  }
+  return attempt <= 1 ? 250 : 750;
 }
 
 async function buildMonitoringPushPayload({ scanRepository, completedScan, result }) {
@@ -148,18 +207,51 @@ export function createNotificationService({
   scanRepository,
   log = () => {},
   apns = {},
+  telemetry = null,
+  transport = sendApns,
+  sleep = (delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs)),
 } = {}) {
+  const explicitTimeoutMs = Number(apns.timeoutMs);
+  const environmentTimeoutMs = Number(process.env.APNS_TIMEOUT_MS);
+  const configuredMaxAttempts = Number(apns.maxAttempts ?? process.env.APNS_MAX_ATTEMPTS);
   const config = {
     teamId: apns.teamId || process.env.APNS_TEAM_ID || "",
     keyId: apns.keyId || process.env.APNS_KEY_ID || "",
     privateKey: privateKeyFromEnv(apns.privateKey || process.env.APNS_PRIVATE_KEY || ""),
     defaultTopic: apns.topic || process.env.APNS_BUNDLE_ID || "",
+    timeoutMs: Number.isFinite(explicitTimeoutMs)
+      ? Math.max(1, Math.floor(explicitTimeoutMs))
+      : Number.isFinite(environmentTimeoutMs)
+      ? Math.max(1_000, Math.floor(environmentTimeoutMs))
+      : 10_000,
+    maxAttempts: Number.isFinite(configuredMaxAttempts) ? Math.min(5, Math.max(1, Math.floor(configuredMaxAttempts))) : 3,
   };
-  const enabled = Boolean(config.teamId && config.keyId && config.privateKey && config.defaultTopic);
+  const enabled = Boolean(config.teamId && config.keyId && config.privateKey);
 
-  async function deliverPushPayload({ devices, payload, referenceId, logEventName = "push_delivery_result" }) {
+  function recordDeliveryTelemetry(result, channel) {
+    telemetry?.recordNotificationDelivery?.({
+      channel,
+      attempted: result.attempted,
+      attempts: result.attempts,
+      sent: result.sent,
+      failed: result.failed,
+      disabled: result.disabled,
+      retried: result.retried,
+      skipped: result.skipped,
+    });
+  }
+
+  async function deliverPushPayload({
+    devices,
+    payload,
+    referenceId,
+    logEventName = "push_delivery_result",
+    channel = "monitoring",
+  }) {
     if (!devices.length) {
-      return { attempted: 0, sent: 0, skipped: "no_devices" };
+      const result = { attempted: 0, attempts: 0, sent: 0, failed: 0, disabled: 0, retried: 0, skipped: "no_devices", results: [] };
+      recordDeliveryTelemetry(result, channel);
+      return result;
     }
     if (!enabled) {
       log("warn", "push_delivery_skipped", {
@@ -167,74 +259,107 @@ export function createNotificationService({
         referenceId,
         devices: devices.length,
       });
-      return { attempted: devices.length, sent: 0, skipped: "apns_not_configured" };
+      const result = { attempted: devices.length, attempts: 0, sent: 0, failed: 0, disabled: 0, retried: 0, skipped: "apns_not_configured", results: [] };
+      recordDeliveryTelemetry(result, channel);
+      return result;
     }
 
     let sent = 0;
+    let failed = 0;
+    let disabled = 0;
+    let attempts = 0;
+    let retried = 0;
+    const results = [];
     for (const device of devices) {
       const attemptedAt = new Date().toISOString();
-      try {
-        const response = await sendApns({
-          token: device.token,
-          environment: device.environment,
-          topic: device.appId || config.defaultTopic,
-          payload,
-          config,
-        });
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          sent += 1;
-          await scanRepository.recordPushDeliveryAttempt?.(device.id, {
-            ownerId: device.ownerId,
-            requesterScope: device.ownerId ? null : device.requesterScope,
-            attemptedAt,
-            sentAt: attemptedAt,
-            status: "sent",
-            error: null,
+      const topic = device.appId || config.defaultTopic;
+      let finalClassification = null;
+      let finalResponse = null;
+      let deviceAttempts = 0;
+
+      if (!topic) {
+        finalClassification = {
+          outcome: "failed",
+          retryable: false,
+          disableToken: false,
+          status: "missing_topic",
+          reason: "No APNs topic is configured for this device.",
+        };
+      } else {
+        for (let attempt = 1; attempt <= config.maxAttempts; attempt += 1) {
+          deviceAttempts += 1;
+          attempts += 1;
+          try {
+            finalResponse = await transport({
+              token: device.token,
+              environment: device.environment,
+              topic,
+              payload,
+              config,
+              timeoutMs: config.timeoutMs,
+            });
+            finalClassification = classifyApnsResponse(finalResponse);
+          } catch (error) {
+            finalResponse = null;
+            finalClassification = {
+              outcome: "failed",
+              retryable: true,
+              disableToken: false,
+              status: error?.code === "APNS_TIMEOUT" ? "timed_out" : "send_failed",
+              reason: error instanceof Error ? error.message : String(error),
+            };
+          }
+
+          log(finalClassification.outcome === "sent" ? "info" : "warn", logEventName, {
+            referenceId,
+            deviceId: device.id,
+            attempt,
+            status: finalClassification.status,
+            statusCode: finalResponse?.statusCode ?? null,
+            apnsId: finalResponse?.apnsId ?? null,
+            retryable: finalClassification.retryable,
           });
-        } else if (response.statusCode === 410 || response.statusCode === 400) {
-          await scanRepository.recordPushDeliveryAttempt?.(device.id, {
-            ownerId: device.ownerId,
-            requesterScope: device.ownerId ? null : device.requesterScope,
-            attemptedAt,
-            status: `apns_${response.statusCode}`,
-            error: response.body?.reason ? String(response.body.reason).slice(0, 500) : null,
-          });
-          await scanRepository.disablePushDevice(device.id, {
-            ownerId: device.ownerId,
-            requesterScope: device.ownerId ? null : device.requesterScope,
-          });
-        } else {
-          await scanRepository.recordPushDeliveryAttempt?.(device.id, {
-            ownerId: device.ownerId,
-            requesterScope: device.ownerId ? null : device.requesterScope,
-            attemptedAt,
-            status: `apns_${response.statusCode || "unknown"}`,
-            error: response.body?.reason ? String(response.body.reason).slice(0, 500) : null,
-          });
+
+          if (finalClassification.outcome === "sent" || !finalClassification.retryable || attempt >= config.maxAttempts) {
+            break;
+          }
+          retried += 1;
+          await sleep(retryDelayMs(attempt, finalResponse));
         }
-        log(response.statusCode >= 200 && response.statusCode < 300 ? "info" : "warn", logEventName, {
-          referenceId,
-          deviceId: device.id,
-          statusCode: response.statusCode,
-          apnsId: response.apnsId,
-        });
-      } catch (error) {
-        log("warn", "push_delivery_failed", {
-          referenceId,
-          deviceId: device.id,
-          message: error instanceof Error ? error.message : String(error),
-        });
-        await scanRepository.recordPushDeliveryAttempt?.(device.id, {
+      }
+
+      const deliveryError = finalClassification.reason ? String(finalClassification.reason).slice(0, 500) : null;
+      const wasSent = finalClassification.outcome === "sent";
+      if (wasSent) sent += 1;
+      else failed += 1;
+
+      await scanRepository.recordPushDeliveryAttempt?.(device.id, {
+        ownerId: device.ownerId,
+        requesterScope: device.ownerId ? null : device.requesterScope,
+        attemptedAt,
+        sentAt: wasSent ? attemptedAt : null,
+        status: finalClassification.status,
+        error: deliveryError,
+      });
+      if (finalClassification.disableToken) {
+        const didDisable = await scanRepository.disablePushDevice(device.id, {
           ownerId: device.ownerId,
           requesterScope: device.ownerId ? null : device.requesterScope,
-          attemptedAt,
-          status: "send_failed",
-          error: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500),
         });
+        if (didDisable) disabled += 1;
       }
+      results.push({
+        deviceId: device.id,
+        status: finalClassification.status,
+        reason: deliveryError,
+        attempts: deviceAttempts,
+        disabled: finalClassification.disableToken,
+      });
     }
 
-    return { attempted: devices.length, sent, skipped: null };
+    const result = { attempted: devices.length, attempts, sent, failed, disabled, retried, skipped: null, results };
+    recordDeliveryTelemetry(result, channel);
+    return result;
   }
 
   async function notifyMonitoringScanCompleted({ completedScan, result, telemetryContext = {} }) {
@@ -260,6 +385,7 @@ export function createNotificationService({
       devices,
       payload,
       referenceId: completedScan.id,
+      channel: "monitoring_posture",
     });
   }
 
@@ -304,6 +430,28 @@ export function createNotificationService({
       payload,
       referenceId: target.id,
       logEventName: "cert_push_delivery_result",
+      channel: "monitoring_certificate",
+    });
+  }
+
+  async function sendTestNotification({ device }) {
+    const appName = device.appId || "SecURL";
+    return deliverPushPayload({
+      devices: [device],
+      payload: {
+        aps: {
+          alert: {
+            title: "SecURL notifications are ready",
+            body: `Test notification for ${appName}.`,
+          },
+          sound: "default",
+        },
+        type: "notification_test",
+        appId: device.appId ?? null,
+      },
+      referenceId: `test:${device.id}`,
+      logEventName: "test_push_delivery_result",
+      channel: "device_test",
     });
   }
 
@@ -311,11 +459,15 @@ export function createNotificationService({
     enabled,
     notifyMonitoringScanCompleted,
     notifyCertMonitoringEvent,
+    sendTestNotification,
     snapshot() {
       return {
         enabled,
         provider: "apns",
+        credentialsConfigured: enabled,
         topicConfigured: Boolean(config.defaultTopic),
+        timeoutMs: config.timeoutMs,
+        maxAttempts: config.maxAttempts,
       };
     },
   };

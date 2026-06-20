@@ -43,6 +43,18 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     funnelEventsByClientVersion: {},
     funnelDays: {},
     recentFunnelEvents: [],
+    notificationDeliveries: {
+      batches: 0,
+      attempted: 0,
+      attempts: 0,
+      sent: 0,
+      failed: 0,
+      disabled: 0,
+      retried: 0,
+    },
+    notificationDeliverySkipped: {},
+    notificationDeliveryChannels: {},
+    notificationDeliveryDays: {},
     failureClasses: {},
     recentFailures: [],
     authRejected: 0,
@@ -157,6 +169,13 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         .filter(Boolean)
         .slice(-40)
       : state.recentFunnelEvents;
+    state.notificationDeliveries = {
+      ...state.notificationDeliveries,
+      ...(value.notificationDeliveries || {}),
+    };
+    state.notificationDeliverySkipped = { ...(value.notificationDeliverySkipped || {}) };
+    state.notificationDeliveryChannels = { ...(value.notificationDeliveryChannels || {}) };
+    state.notificationDeliveryDays = { ...(value.notificationDeliveryDays || {}) };
     state.failureClasses = { ...(value.failureClasses || {}) };
     state.recentFailures = Array.isArray(value.recentFailures)
       ? value.recentFailures
@@ -190,6 +209,14 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
 
   const incrementBucket = (bucket, key) => {
     bucket[key] = (bucket[key] ?? 0) + 1;
+  };
+  const nonNegativeCount = (value) => (
+    Number.isFinite(Number(value)) ? Math.max(0, Math.floor(Number(value))) : 0
+  );
+  const incrementCounters = (bucket, counters) => {
+    for (const [key, value] of Object.entries(counters)) {
+      bucket[key] = nonNegativeCount(bucket[key]) + nonNegativeCount(value);
+    }
   };
   const getDayBucket = (dateKey) => {
     if (!state.visitorDays[dateKey]) {
@@ -461,6 +488,41 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       }
       persist();
     },
+    recordNotificationDelivery({
+      channel = "unknown",
+      attempted = 0,
+      attempts = 0,
+      sent = 0,
+      failed = 0,
+      disabled = 0,
+      retried = 0,
+      skipped = null,
+      now = new Date(),
+    } = {}) {
+      const safeChannel = normalizeScanChannel(channel);
+      const counters = {
+        batches: 1,
+        attempted: nonNegativeCount(attempted),
+        attempts: nonNegativeCount(attempts),
+        sent: nonNegativeCount(sent),
+        failed: nonNegativeCount(failed),
+        disabled: nonNegativeCount(disabled),
+        retried: nonNegativeCount(retried),
+      };
+      incrementCounters(state.notificationDeliveries, counters);
+      if (!state.notificationDeliveryChannels[safeChannel]) {
+        state.notificationDeliveryChannels[safeChannel] = {};
+      }
+      incrementCounters(state.notificationDeliveryChannels[safeChannel], counters);
+      const dateKey = now.toISOString().slice(0, 10);
+      if (!state.notificationDeliveryDays[dateKey]) {
+        state.notificationDeliveryDays[dateKey] = {};
+      }
+      incrementCounters(state.notificationDeliveryDays[dateKey], counters);
+      const safeSkipped = sanitizeTelemetryText(skipped, 80);
+      if (safeSkipped) incrementBucket(state.notificationDeliverySkipped, safeSkipped);
+      persist();
+    },
     recordFailure(failureClass, details = {}) {
       incrementBucket(state.failureClasses, failureClass);
       pushRecentFailure(failureClass, details);
@@ -496,6 +558,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         monitoringMobileSummaryReads: state.funnelEvents.monitoring_mobile_summary_read || 0,
         notificationDeviceRegistrations: state.funnelEvents.notification_device_registered || 0,
         notificationDeviceHealthReads: state.funnelEvents.notification_device_health_read || 0,
+        notificationTestRequests: state.funnelEvents.notification_test_requested || 0,
         liveCertificateReads: state.funnelEvents.live_certificate_read || 0,
       };
       const todayClientConsumptionEvents = {
@@ -503,6 +566,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         monitoringMobileSummaryReads: todayFunnelEvents.monitoring_mobile_summary_read || 0,
         notificationDeviceRegistrations: todayFunnelEvents.notification_device_registered || 0,
         notificationDeviceHealthReads: todayFunnelEvents.notification_device_health_read || 0,
+        notificationTestRequests: todayFunnelEvents.notification_test_requested || 0,
         liveCertificateReads: todayFunnelEvents.live_certificate_read || 0,
       };
       const clientConsumptionTotal = Object.values(clientConsumptionEvents)
@@ -592,6 +656,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
                   || events.monitoring_target_registered
                   || events.notification_device_registered
                   || events.notification_device_health_read
+                  || events.notification_test_requested
                   || events.live_certificate_read
                 ))
                 .map(([mode, events]) => [
@@ -601,6 +666,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
                     monitoringMobileSummaryReads: events.monitoring_mobile_summary_read || 0,
                     notificationDeviceRegistrations: events.notification_device_registered || 0,
                     notificationDeviceHealthReads: events.notification_device_health_read || 0,
+                    notificationTestRequests: events.notification_test_requested || 0,
                     liveCertificateReads: events.live_certificate_read || 0,
                   },
                 ]),
@@ -612,6 +678,19 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
               notificationHealth: clientConsumptionEvents.notificationDeviceHealthReads > 0,
               certWatch: clientConsumptionEvents.liveCertificateReads > 0,
             },
+          },
+        },
+        notifications: {
+          delivery: {
+            ...state.notificationDeliveries,
+            skipped: { ...state.notificationDeliverySkipped },
+            byChannel: Object.fromEntries(
+              Object.entries(state.notificationDeliveryChannels).map(([channel, counters]) => [
+                channel,
+                { ...counters },
+              ]),
+            ),
+            today: { ...(state.notificationDeliveryDays[todayKey] || {}) },
           },
         },
         scans: {
@@ -722,6 +801,7 @@ const FUNNEL_EVENT_NAMES = new Set([
   "monitoring_mobile_summary_read",
   "notification_device_registered",
   "notification_device_health_read",
+  "notification_test_requested",
   "live_certificate_read",
 ]);
 

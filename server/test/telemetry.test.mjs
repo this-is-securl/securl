@@ -47,6 +47,13 @@ test("telemetry tracker records aggregate counts", () => {
   telemetry.recordAuthRejected();
   telemetry.recordRequesterRateLimited();
   telemetry.recordTargetRateLimited();
+  telemetry.recordNotificationDelivery({
+    channel: "monitoring_certificate",
+    attempted: 1,
+    attempts: 2,
+    sent: 1,
+    retried: 1,
+  });
   telemetry.recordFunnelEvent({
     event: "scan_started",
     source: "hacker_news",
@@ -129,6 +136,13 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.failures.authRejected, 1);
   assert.equal(snapshot.failures.requesterRateLimited, 1);
   assert.equal(snapshot.failures.targetRateLimited, 1);
+  assert.equal(snapshot.notifications.delivery.batches, 1);
+  assert.equal(snapshot.notifications.delivery.attempted, 1);
+  assert.equal(snapshot.notifications.delivery.attempts, 2);
+  assert.equal(snapshot.notifications.delivery.sent, 1);
+  assert.equal(snapshot.notifications.delivery.retried, 1);
+  assert.equal(snapshot.notifications.delivery.byChannel.monitoring_certificate.sent, 1);
+  assert.equal(snapshot.notifications.delivery.today.sent, 1);
   assert.equal(snapshot.funnel.events.scan_started, 1);
   assert.equal(snapshot.funnel.events.handoff_started, 1);
   assert.equal(snapshot.funnel.events.export_clicked, 1);
@@ -198,6 +212,11 @@ test("telemetry tracker can persist counters to disk", () => {
       message: "Too many requests\tfrom this client.",
       source: "request_guard",
     });
+    first.recordNotificationDelivery({
+      channel: "device_test",
+      attempted: 1,
+      skipped: "apns_not_configured",
+    });
 
     const second = createTelemetryTracker({ storagePath });
     const snapshot = second.snapshot();
@@ -234,6 +253,9 @@ test("telemetry tracker can persist counters to disk", () => {
     assert.equal(snapshot.failures.recent[0].class, "requester_rate_limited");
     assert.equal(snapshot.failures.recent[0].target, "https://example.com");
     assert.equal(snapshot.failures.recent[0].message, "Too many requests from this client.");
+    assert.equal(snapshot.notifications.delivery.attempted, 1);
+    assert.equal(snapshot.notifications.delivery.skipped.apns_not_configured, 1);
+    assert.equal(snapshot.notifications.delivery.byChannel.device_test.batches, 1);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
