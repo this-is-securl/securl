@@ -958,6 +958,7 @@ notificationService = createNotificationService({
   log,
   telemetry,
 });
+notificationService.start?.();
 monitoringScheduler = createMonitoringScheduler({
   enabled: MONITORING_SCHEDULER_ENABLED,
   intervalMs: MONITORING_SWEEP_INTERVAL_MS,
@@ -1013,6 +1014,7 @@ const shutdownGracefully = (signal) => {
   shutdownStarted = true;
   log("info", "shutdown_started", { signal });
   monitoringScheduler?.stop?.();
+  notificationService?.stop?.();
   server.close((error) => {
     if (error) {
       log("error", "shutdown_failed", {

@@ -526,6 +526,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.notifications.features.includes("delivery-audit"));
     assert.ok(payload.notifications.features.includes("test-notification"));
     assert.ok(payload.notifications.features.includes("bounded-delivery-retry"));
+    assert.ok(payload.notifications.features.includes("durable-notification-outbox"));
     assert.ok(payload.notifications.resources.includes("GET /api/notification-devices/health"));
     assert.ok(payload.notifications.resources.includes("POST /api/notification-devices"));
     assert.ok(payload.notifications.resources.includes("POST /api/notification-devices/:id/test"));
@@ -533,6 +534,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.equal(payload.notifications.delivery.maxAttempts, 3);
     assert.ok(payload.notifications.delivery.invalidTokenReasons.includes("BadDeviceToken"));
     assert.ok(payload.notifications.delivery.retries.includes("apns_5xx"));
+    assert.equal(payload.notifications.outbox.enabled, true);
     assert.equal(payload.notifications.enabled, false);
     assert.equal(payload.safety.passiveFirst, true);
   } finally {

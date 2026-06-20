@@ -115,7 +115,7 @@ function assertCapabilities(payload) {
   if (!payload.notifications?.features?.includes("device-registration")) {
     throw new Error("Capabilities missing notification device-registration feature.");
   }
-  for (const feature of ["test-notification", "bounded-delivery-retry"]) {
+  for (const feature of ["test-notification", "bounded-delivery-retry", "durable-notification-outbox"]) {
     if (!payload.notifications?.features?.includes(feature)) {
       throw new Error(`Capabilities missing notification feature: ${feature}`);
     }

@@ -157,12 +157,17 @@ export function buildCapabilitiesPayload({
         invalidTokenReasons: ["Unregistered", "BadDeviceToken", "DeviceTokenNotForTopic"],
         retries: ["network_error", "timeout", "apns_429", "apns_5xx"],
       },
+      outbox: {
+        enabled: Boolean(notifications?.outbox?.enabled),
+        lastDrain: notifications?.outbox?.lastDrain ?? null,
+      },
       features: [
         "device-registration",
         "device-health",
         "delivery-audit",
         "test-notification",
         "bounded-delivery-retry",
+        "durable-notification-outbox",
         "monitoring-drift-push",
         "cert-event-push",
       ],

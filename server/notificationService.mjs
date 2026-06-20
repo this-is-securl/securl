@@ -71,7 +71,7 @@ export function classifyApnsResponse(response = {}) {
   };
 }
 
-async function sendApns({ token, environment, topic, payload, config, timeoutMs = 10_000 }) {
+async function sendApns({ token, environment, topic, payload, config, timeoutMs = 10_000, collapseId = null, expiration = 0 }) {
   const jwt = buildApnsJwt(config);
   const client = http2.connect(apnsHost(environment));
   let timeout = null;
@@ -84,16 +84,18 @@ async function sendApns({ token, environment, topic, payload, config, timeoutMs 
           client.once("connect", resolve);
         });
         return await new Promise((resolve, reject) => {
-          const apnsRequest = client.request({
+          const headers = {
             ":method": "POST",
             ":path": `/3/device/${token}`,
             authorization: `bearer ${jwt}`,
             "apns-topic": topic,
             "apns-push-type": "alert",
             "apns-priority": "10",
-            "apns-expiration": "0",
+            "apns-expiration": String(expiration),
             "content-type": "application/json",
-          });
+          };
+          if (collapseId) headers["apns-collapse-id"] = collapseId;
+          const apnsRequest = client.request(headers);
           let body = "";
           let statusCode = 0;
           let apnsId = null;
@@ -227,6 +229,17 @@ export function createNotificationService({
     maxAttempts: Number.isFinite(configuredMaxAttempts) ? Math.min(5, Math.max(1, Math.floor(configuredMaxAttempts))) : 3,
   };
   const enabled = Boolean(config.teamId && config.keyId && config.privateKey);
+  const outboxEnabled = Boolean(
+    scanRepository?.enqueueNotificationOutbox
+    && scanRepository?.claimNotificationOutbox
+    && scanRepository?.completeNotificationOutbox,
+  );
+  const outboxWorkerId = `notification:${process.pid}:${crypto.randomUUID()}`;
+  const outboxLeaseMs = 60_000;
+  const outboxMaxAttempts = 5;
+  let outboxTimer = null;
+  let outboxRunning = false;
+  let outboxLastDrain = null;
 
   function recordDeliveryTelemetry(result, channel) {
     telemetry?.recordNotificationDelivery?.({
@@ -247,19 +260,55 @@ export function createNotificationService({
     referenceId,
     logEventName = "push_delivery_result",
     channel = "monitoring",
+    claimedEntries = null,
+    persistToOutbox = true,
   }) {
     if (!devices.length) {
       const result = { attempted: 0, attempts: 0, sent: 0, failed: 0, disabled: 0, retried: 0, skipped: "no_devices", results: [] };
       recordDeliveryTelemetry(result, channel);
       return result;
     }
+    let outboxEntries = Array.isArray(claimedEntries) ? claimedEntries : [];
+    let deliveryDevices = devices;
+    if (outboxEnabled && persistToOutbox) {
+      const queuedEntries = await scanRepository.enqueueNotificationOutbox({
+        devices,
+        payload,
+        referenceId,
+        channel,
+      });
+      outboxEntries = await scanRepository.claimNotificationOutbox({
+        workerId: outboxWorkerId,
+        ids: queuedEntries.map((entry) => entry.id),
+        limit: queuedEntries.length,
+        leaseMs: outboxLeaseMs,
+      });
+      const claimedDeviceIds = new Set(outboxEntries.map((entry) => entry.deviceId));
+      deliveryDevices = devices.filter((device) => claimedDeviceIds.has(device.id));
+      if (!deliveryDevices.length) {
+        const result = { attempted: 0, attempts: 0, sent: 0, failed: 0, disabled: 0, retried: 0, skipped: "already_queued_or_processed", results: [] };
+        recordDeliveryTelemetry(result, channel);
+        return result;
+      }
+    }
+    const outboxByDeviceId = new Map(outboxEntries.map((entry) => [entry.deviceId, entry]));
+
     if (!enabled) {
       log("warn", "push_delivery_skipped", {
         reason: "apns_not_configured",
         referenceId,
-        devices: devices.length,
+        devices: deliveryDevices.length,
       });
-      const result = { attempted: devices.length, attempts: 0, sent: 0, failed: 0, disabled: 0, retried: 0, skipped: "apns_not_configured", results: [] };
+      for (const entry of outboxEntries) {
+        const retryLater = channel !== "device_test";
+        await scanRepository.completeNotificationOutbox(entry.id, {
+          status: retryLater ? "queued" : "skipped",
+          error: "APNs credentials are not configured.",
+          availableAt: retryLater ? new Date(Date.now() + 15 * 60_000).toISOString() : null,
+          workerId: outboxWorkerId,
+        });
+      }
+      const result = { attempted: deliveryDevices.length, attempts: 0, sent: 0, failed: 0, disabled: 0, retried: 0, skipped: "apns_not_configured", results: [] };
       recordDeliveryTelemetry(result, channel);
       return result;
     }
@@ -270,7 +319,7 @@ export function createNotificationService({
     let attempts = 0;
     let retried = 0;
     const results = [];
-    for (const device of devices) {
+    for (const device of deliveryDevices) {
       const attemptedAt = new Date().toISOString();
       const topic = device.appId || config.defaultTopic;
       let finalClassification = null;
@@ -297,6 +346,8 @@ export function createNotificationService({
               payload,
               config,
               timeoutMs: config.timeoutMs,
+              collapseId: crypto.createHash("sha256").update(String(referenceId)).digest("hex").slice(0, 64),
+              expiration: payload?.type === "notification_test" ? 0 : Math.floor(Date.now() / 1000) + 60 * 60,
             });
             finalClassification = classifyApnsResponse(finalResponse);
           } catch (error) {
@@ -355,9 +406,23 @@ export function createNotificationService({
         attempts: deviceAttempts,
         disabled: finalClassification.disableToken,
       });
+      const outboxEntry = outboxByDeviceId.get(device.id);
+      if (outboxEntry) {
+        const retryOutbox = finalClassification.retryable
+          && outboxEntry.attempts < outboxMaxAttempts
+          && channel !== "device_test";
+        await scanRepository.completeNotificationOutbox(outboxEntry.id, {
+          status: wasSent ? "sent" : retryOutbox ? "queued" : "failed",
+          error: deliveryError,
+          availableAt: retryOutbox
+            ? new Date(Date.now() + Math.min(15 * 60_000, 30_000 * outboxEntry.attempts)).toISOString()
+            : null,
+          workerId: outboxWorkerId,
+        });
+      }
     }
 
-    const result = { attempted: devices.length, attempts, sent, failed, disabled, retried, skipped: null, results };
+    const result = { attempted: deliveryDevices.length, attempts, sent, failed, disabled, retried, skipped: null, results };
     recordDeliveryTelemetry(result, channel);
     return result;
   }
@@ -449,10 +514,77 @@ export function createNotificationService({
         type: "notification_test",
         appId: device.appId ?? null,
       },
-      referenceId: `test:${device.id}`,
+      referenceId: `test:${device.id}:${crypto.randomUUID()}`,
       logEventName: "test_push_delivery_result",
       channel: "device_test",
     });
+  }
+
+  async function drainOutbox({ limit = 20 } = {}) {
+    if (!outboxEnabled || outboxRunning) return outboxLastDrain;
+    outboxRunning = true;
+    const summary = { claimed: 0, sent: 0, failed: 0, skipped: 0 };
+    try {
+      const entries = await scanRepository.claimNotificationOutbox({
+        workerId: outboxWorkerId,
+        limit,
+        leaseMs: outboxLeaseMs,
+      });
+      summary.claimed = entries.length;
+      for (const entry of entries) {
+        const device = await scanRepository.getPushDeviceSecret?.(entry.deviceId, {
+          ownerId: entry.ownerId,
+          requesterScope: entry.ownerId ? null : entry.requesterScope,
+        });
+        if (!device) {
+          await scanRepository.completeNotificationOutbox(entry.id, {
+            status: "skipped",
+            error: "Notification device is unavailable or disabled.",
+            workerId: outboxWorkerId,
+          });
+          summary.skipped += 1;
+          continue;
+        }
+        const result = await deliverPushPayload({
+          devices: [device],
+          payload: entry.payload,
+          referenceId: entry.referenceId,
+          channel: entry.channel,
+          claimedEntries: [entry],
+          persistToOutbox: false,
+        });
+        summary.sent += result.sent;
+        summary.failed += result.failed;
+      }
+      const pruned = await scanRepository.pruneNotificationOutbox?.();
+      summary.pruned = Number(pruned || 0);
+      summary.stats = await scanRepository.getNotificationOutboxStats?.();
+      outboxLastDrain = { ...summary, completedAt: new Date().toISOString() };
+      return outboxLastDrain;
+    } finally {
+      outboxRunning = false;
+    }
+  }
+
+  function start() {
+    if (!outboxEnabled || outboxTimer) return false;
+    outboxTimer = setInterval(() => {
+      void drainOutbox().catch((error) => {
+        log("error", "notification_outbox_drain_failed", {
+          message: error instanceof Error ? error.message : String(error),
+        });
+      });
+    }, 15_000);
+    outboxTimer.unref?.();
+    queueMicrotask(() => void drainOutbox().catch(() => {}));
+    return true;
+  }
+
+  function stop() {
+    if (!outboxTimer) return false;
+    clearInterval(outboxTimer);
+    outboxTimer = null;
+    return true;
   }
 
   return {
@@ -460,6 +592,9 @@ export function createNotificationService({
     notifyMonitoringScanCompleted,
     notifyCertMonitoringEvent,
     sendTestNotification,
+    drainOutbox,
+    start,
+    stop,
     snapshot() {
       return {
         enabled,
@@ -468,6 +603,11 @@ export function createNotificationService({
         topicConfigured: Boolean(config.defaultTopic),
         timeoutMs: config.timeoutMs,
         maxAttempts: config.maxAttempts,
+        outbox: {
+          enabled: outboxEnabled,
+          running: outboxRunning,
+          lastDrain: outboxLastDrain,
+        },
       };
     },
   };
