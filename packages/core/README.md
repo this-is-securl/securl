@@ -227,6 +227,8 @@ console.log(ledger.summary, ledger.observations);
 
 Observation IDs are deterministic across scans for the same subject and signal, making the ledger suitable for change detection without exposing backend job metadata.
 
+Use `diffObservationLedgers(current, previous)` from `securl/observation-drift` to classify observation-level regressions, improvements, and neutral changes.
+
 ### 9. Evidence-backed remediation plans
 
 Version `1.4.0+` includes a remediation plan helper that turns score drivers and findings into prioritized, owner-aware fix guidance. Findings can also carry structured evidence references so clients can show why a finding was raised.
@@ -339,6 +341,7 @@ Primary exports:
 - `buildActionPlan(result)` - turn remediation, score drivers, exposure, and vendor context into prioritized fix actions.
 - `scanLiveCertificate(url)` - perform a TLS handshake-only certificate read for lightweight cert monitoring.
 - `buildObservationLedger(result)` - produce stable source, confidence, status, and freshness-aware posture observations.
+- `diffObservationLedgers(current, previous)` - compare stable observations and classify their operational impact.
 - `buildPostureDriftReportFromSnapshots(current, previous)` - produce a complete scan-to-scan drift report for monitoring, alerting, and history views.
 - `buildPostureRemediationPlan(result)` - generate prioritized, owner-aware remediation actions from findings and score drivers.
 - `attachIssueEvidence(result)` - add structured evidence references to findings without changing their existing fields.
@@ -351,6 +354,7 @@ Package subpath exports:
 - `securl/action-plan`
 - `securl/live-certificate`
 - `securl/observations`
+- `securl/observation-drift`
 - `securl/posture-drift`
 - `securl/remediation-plan`
 - `securl/risk-events`

@@ -1016,6 +1016,42 @@ export interface ObservationLedger {
   };
 }
 
+export type ObservationChangeType = "added" | "removed" | "status_changed" | "value_changed" | "confidence_changed";
+export type ObservationChangeImpact = "regression" | "improvement" | "change";
+export type ObservationChangeSeverity = "info" | "warning" | "critical";
+
+export interface ObservationChange {
+  id: string;
+  observationId: string;
+  type: ObservationChangeType;
+  impact: ObservationChangeImpact;
+  severity: ObservationChangeSeverity;
+  category: ObservationCategory;
+  kind: string;
+  subject: string;
+  previous: PostureObservation | null;
+  current: PostureObservation | null;
+  summary: string;
+}
+
+export interface ObservationDriftReport {
+  version: "1.0";
+  target: string;
+  comparedAt: string;
+  previousObservedAt: string;
+  currentObservedAt: string;
+  changes: ObservationChange[];
+  summary: {
+    direction: "regressed" | "improved" | "changed" | "unchanged";
+    total: number;
+    regressions: number;
+    improvements: number;
+    neutralChanges: number;
+    bySeverity: Record<ObservationChangeSeverity, number>;
+    byCategory: Partial<Record<ObservationCategory, number>>;
+  };
+}
+
 export interface AnalysisResult {
   inputUrl: string;
   normalizedUrl: string;

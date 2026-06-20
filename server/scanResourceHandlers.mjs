@@ -48,6 +48,7 @@ export function buildScanResourceLinks(scanId) {
     events: `${basePath}/events`,
     evidence: `${basePath}/evidence`,
     observations: `${basePath}/observations`,
+    observationDrift: `${basePath}/observation-drift`,
     history: `${basePath}/history`,
     comparison: `${basePath}/comparison`,
     drift: `${basePath}/drift`,
@@ -472,6 +473,7 @@ export async function handleScanResourceRequest({
   buildScanHistoryPayload,
   buildScanComparisonPayload,
   buildScanDriftPayload,
+  buildScanObservationDriftPayload,
   sendBody,
   sendJson,
   sendMethodNotAllowed,
@@ -632,6 +634,22 @@ export async function handleScanResourceRequest({
         url: scan.url,
       });
       sendJson(response, 200, buildScanDriftPayload(scan, records));
+      return true;
+    }
+
+    if (resource === "observation-drift") {
+      if (scan.status !== "completed" || !scan.result) {
+        sendJson(response, 409, {
+          error: "Observation drift is only available once the scan has completed.",
+        });
+        return true;
+      }
+      const records = await scanRepository.listPersistedRecords({
+        limit: clampLimit(requestUrl.searchParams.get("limit"), 20, 100),
+        ownerId: authState.ownerId,
+        url: scan.url,
+      });
+      sendJson(response, 200, buildScanObservationDriftPayload(scan, records));
       return true;
     }
 

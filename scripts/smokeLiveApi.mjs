@@ -103,7 +103,7 @@ function assertCapabilities(payload) {
     }
   }
 
-  for (const feature of ["evidence-summary", "posture-digest", "posture-drift", "exposure-brief", "vendor-exposure", "action-plan", "scan-events", "scan-resource-links", "durable-scan-jobs", "observation-ledger-v1"]) {
+  for (const feature of ["evidence-summary", "posture-digest", "posture-drift", "exposure-brief", "vendor-exposure", "action-plan", "scan-events", "scan-resource-links", "durable-scan-jobs", "observation-ledger-v1", "observation-drift-v1"]) {
     if (!features.includes(feature)) {
       throw new Error(`Capabilities missing scan feature: ${feature}`);
     }
@@ -135,6 +135,7 @@ function assertScanResourceLinks(payload, scanId) {
     events: `/api/scans/${scanId}/events`,
     evidence: `/api/scans/${scanId}/evidence`,
     observations: `/api/scans/${scanId}/observations`,
+    observationDrift: `/api/scans/${scanId}/observation-drift`,
     history: `/api/scans/${scanId}/history`,
     comparison: `/api/scans/${scanId}/comparison`,
     drift: `/api/scans/${scanId}/drift`,
@@ -225,6 +226,7 @@ async function main() {
     ["action-plan", `/api/scans/${encodeURIComponent(scanId)}/action-plan`, ownerHeaders],
     ["evidence", `/api/scans/${encodeURIComponent(scanId)}/evidence`, ownerHeaders],
     ["observations", `/api/scans/${encodeURIComponent(scanId)}/observations`, ownerHeaders],
+    ["observation-drift", `/api/scans/${encodeURIComponent(scanId)}/observation-drift`, ownerHeaders],
     ["history", `/api/scans/${encodeURIComponent(scanId)}/history`, ownerHeaders],
     ["comparison", `/api/scans/${encodeURIComponent(scanId)}/comparison`, ownerHeaders],
     ["drift", `/api/scans/${encodeURIComponent(scanId)}/drift`, ownerHeaders],
@@ -255,6 +257,9 @@ async function main() {
     }
     if (label === "observations" && !payload.observationLedger?.observations?.length) {
       throw new Error("Observations endpoint returned an empty observation ledger");
+    }
+    if (label === "observation-drift" && !("observationDrift" in payload)) {
+      throw new Error("Observation drift endpoint omitted its contract field");
     }
     if (label === "share" && !payload.scan?.result) {
       throw new Error("Share endpoint returned an empty scan result");

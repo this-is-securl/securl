@@ -72,6 +72,7 @@ export function buildCapabilitiesPayload({
         "scan-resource-links",
         "durable-scan-jobs",
         "observation-ledger-v1",
+        "observation-drift-v1",
       ],
       scoring: {
         model: "weighted-passive-posture",
@@ -101,6 +102,7 @@ export function buildCapabilitiesPayload({
         "GET /api/scans/:id/action-plan",
         "GET /api/scans/:id/evidence",
         "GET /api/scans/:id/observations",
+        "GET /api/scans/:id/observation-drift",
         "GET /api/scans/:id/history",
         "GET /api/scans/:id/comparison",
         "GET /api/scans/:id/drift",
