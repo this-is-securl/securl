@@ -21,14 +21,19 @@ git diff --name-status securl-v$(node -p "require('./packages/core/package.json'
 3. Run:
    - `npm run release:core:check`
 4. Review the dry-run tarball contents.
-5. Confirm `NPM_TOKEN` is present in GitHub repository secrets.
+5. Confirm npm Trusted Publishing is configured for this package:
+   - provider: GitHub Actions
+   - organization: `this-is-securl`
+   - repository: `securl`
+   - workflow filename: `publish-core-package.yml`
+   - allowed action: `npm publish`
 
 ## Release steps
 
 1. Commit the version/changelog update.
 2. Tag the release using `securl-v<version>`, for example `securl-v1.4.1`.
 3. Push the tag.
-4. Let `.github/workflows/publish-core-package.yml` publish the package.
+4. Let `.github/workflows/publish-core-package.yml` publish the package through short-lived npm OIDC credentials.
 
 ## Post-release
 

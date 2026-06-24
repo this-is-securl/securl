@@ -26,6 +26,9 @@ jobs:
           registry-url: https://registry.npmjs.org
           cache: npm
 
+      - name: Setup npm with trusted publishing support
+        run: npm install --global npm@11.17.0
+
       - name: Verify release tag is based on main
         run: |
           git fetch origin main --depth=1
@@ -40,6 +43,4 @@ jobs:
           npm run test:core
 
       - name: Publish SecURL package
-        run: npm publish ./packages/core --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish ./packages/core --access public
