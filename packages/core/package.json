@@ -129,6 +129,6 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "node-html-parser": "^7.1.0"
+    "node-html-parser": "^8.0.3"
   }
 }
