@@ -1147,6 +1147,25 @@ test("api responses include cors headers for the Hostinger frontend origin", asy
   }
 });
 
+test("development API accepts the configured Vite origin", async () => {
+  const server = await startServer();
+
+  try {
+    const response = await fetch(`${server.baseUrl}/api/scans`, {
+      headers: {
+        Origin: "http://localhost:8080",
+      },
+    });
+    const payload = await response.json();
+
+    assert.equal(response.status, 401);
+    assert.equal(response.headers.get("access-control-allow-origin"), "http://localhost:8080");
+    assert.match(payload.error, /owner token/i);
+  } finally {
+    await server.stop();
+  }
+});
+
 test("api rejects unexpected origins", async () => {
   const server = await startServer();
 

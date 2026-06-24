@@ -1,6 +1,6 @@
 {
   "name": "securl",
-  "version": "1.11.0",
+  "version": "1.11.1",
   "type": "module",
   "description": "Passive external security posture scanner for public URLs and web services.",
   "author": {
@@ -129,6 +129,6 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "node-html-parser": "^7.1.0"
+    "node-html-parser": "^8.0.3"
   }
 }
