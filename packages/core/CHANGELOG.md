@@ -6,6 +6,11 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [1.11.1] - 2026-06-24
+
+### Changed
+- Updated `node-html-parser` to 8.0.3, replacing the retired entity decoder while preserving the existing parsing API and Node 22 runtime floor.
+
 ## [1.11.0] - 2026-06-20
 
 ### Added

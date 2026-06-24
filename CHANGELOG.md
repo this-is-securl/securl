@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-06-24 — core 1.11.1 dependency refresh
+
+### Changed
+
+- Updated the core HTML parser to 8.0.3 and retained the existing public engine API.
+- Updated the Vite React plugin, Tailwind CSS, Radix UI primitives, and pinned GitHub checkout action.
+
+### Verified
+
+- Clean dependency installation and zero-vulnerability npm audit.
+- Full core, backend, strict type, lint, production build, and package dry-run checks.
+
 ## 2026-06-20 — core 1.11.0 and continuous policy monitoring
 
 ### Added
