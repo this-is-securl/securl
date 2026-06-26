@@ -481,6 +481,14 @@ export function createNotificationService({
       host,
       appId: target.appId ?? null,
       severity: event.severity,
+      event: {
+        type: event.type,
+        severity: event.severity,
+        warningBand: event.warningBand ?? null,
+        previous: event.previous ?? null,
+        current: event.current ?? null,
+        delta: event.delta ?? null,
+      },
       certificate: {
         issuer: certState?.issuer ?? null,
         serialNumber: certState?.serialNumber ?? null,

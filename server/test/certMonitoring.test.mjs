@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildCertAttention,
+  buildCertMonitoringEventDetails,
   detectCertMonitoringEvent,
   normalizeMonitoringAppId,
   normalizeMonitoringCadence,
@@ -38,6 +39,37 @@ test("cert monitoring detects renewal before issuer-only changes", () => {
     severity: "info",
     resetWarningBand: true,
   });
+});
+
+test("cert monitoring event details include previous, current, and delta context", () => {
+  const previous = {
+    reachable: true,
+    issuer: "Old CA",
+    serialNumber: "ABC",
+    validTo: "2026-07-01T00:00:00.000Z",
+    daysRemaining: 5,
+    lastWarnedBand: 7,
+  };
+  const current = {
+    reachable: true,
+    host: "example.com",
+    issuer: "New CA",
+    serialNumber: "DEF",
+    validTo: "2026-09-01T00:00:00.000Z",
+    daysRemaining: 67,
+  };
+  const event = buildCertMonitoringEventDetails(
+    { type: "cert_renewed", severity: "info", resetWarningBand: true },
+    previous,
+    current,
+  );
+
+  assert.equal(event.type, "cert_renewed");
+  assert.equal(event.title, "Certificate renewed: example.com");
+  assert.equal(event.resetWarningBand, true);
+  assert.equal(event.previous.serialNumber, "ABC");
+  assert.equal(event.current.serialNumber, "DEF");
+  assert.equal(event.delta.daysRemaining, 62);
 });
 
 test("cert monitoring detects issuer changes when serial is unchanged", () => {

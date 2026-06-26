@@ -79,6 +79,8 @@ Production scan jobs are durable when the Postgres repository is enabled. Each w
 
 `GET /api/certificates/live?url=...` performs a bounded TLS handshake only. It returns the served certificate expiry, issuer, subject, SANs, fingerprint, serial number, negotiated protocol/cipher, key hints, and observed chain without running the full posture scanner.
 
+Certificate monitoring history entries include additive event context for Cert Watch timelines: event severity, title/detail text, expiry warning band, previous issuer/serial/expiry/day count, and day-count delta. First-seen expired, expiring, or unreachable certificates do not fire a transition push, but their attention state and first-seen attention type are stored so mobile clients can still show the problem immediately.
+
 Smoke-check the live API contract with:
 
 ```sh

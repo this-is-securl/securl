@@ -224,6 +224,54 @@ test("mobile monitoring summary exposes certificate attention state", () => {
   assert.equal(payload.targets[0].actions[0].id, "review_certificate");
 });
 
+test("mobile monitoring summary promotes latest certificate history metadata", () => {
+  const payload = buildMonitoringMobileSummaryPayload([
+    {
+      target: {
+        id: "target-cert-2",
+        url: "https://example.com/",
+        label: "Example cert",
+        cadence: "daily",
+        kind: "cert",
+        mode: null,
+        appId: "com.ktbatterham.certwatch",
+        addedAt: "2026-06-19T08:00:00.000Z",
+        lastCheckedAt: "2026-06-19T08:01:00.000Z",
+        certState: {
+          reachable: true,
+          checkedAt: "2026-06-19T08:01:00.000Z",
+          host: "example.com",
+          issuer: "Example CA",
+          validTo: "2026-09-25T00:00:00.000Z",
+          daysRemaining: 92,
+          serialNumber: "DEF456",
+          lastEventType: "cert_renewed",
+          lastWarnedBand: null,
+          attention: null,
+          issues: [],
+          history: [{
+            checkedAt: "2026-06-19T08:01:00.000Z",
+            eventType: "cert_renewed",
+            eventSeverity: "info",
+            eventTitle: "Certificate renewed: example.com",
+            eventDetail: "New certificate from Example CA.",
+            daysRemaining: 92,
+            previousDaysRemaining: 6,
+            daysRemainingDelta: 86,
+          }],
+        },
+      },
+      records: [],
+    },
+  ]);
+
+  assert.equal(payload.targets[0].status.state, "changed");
+  assert.equal(payload.targets[0].change.type, "cert_renewed");
+  assert.equal(payload.targets[0].change.title, "Certificate renewed: example.com");
+  assert.equal(payload.targets[0].change.detail, "New certificate from Example CA.");
+  assert.equal(payload.targets[0].actions[0].id, "confirm_certificate_renewal");
+});
+
 test("mobile monitoring summary exposes compact posture drift for apps", () => {
   const payload = buildMonitoringMobileSummaryPayload([
     {

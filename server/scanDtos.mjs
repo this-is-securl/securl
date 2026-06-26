@@ -334,15 +334,15 @@ function buildCertChangeSummary(view, certEventCount) {
   const latestEvent = normalizeArray(view.cert.history).find((entry) => entry?.eventType) ?? null;
   const attention = view.cert.attention ?? null;
   const type = latestEvent?.eventType ?? attention?.type ?? null;
-  const severity = strongestSeverity([attention?.severity, latestEvent ? "info" : null]);
+  const severity = strongestSeverity([attention?.severity, latestEvent?.eventSeverity, latestEvent ? "info" : null]);
 
   return {
     type,
     severity,
     changed: Boolean(type),
     eventCount: certEventCount,
-    title: attention?.title ?? (type ? `Certificate changed: ${view.cert.host ?? view.label}` : null),
-    detail: attention?.body ?? null,
+    title: attention?.title ?? latestEvent?.eventTitle ?? (type ? `Certificate changed: ${view.cert.host ?? view.label}` : null),
+    detail: attention?.body ?? latestEvent?.eventDetail ?? null,
     occurredAt: latestEvent?.checkedAt ?? view.cert.checkedAt ?? view.lastCheckedAt,
   };
 }
