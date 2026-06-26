@@ -125,6 +125,8 @@ export function buildCapabilitiesPayload({
         "live-certificate",
         "tls-handshake-only",
         "cert-attention-state",
+        "cert-event-context-v1",
+        "cert-history-context-v1",
       ],
       resources: [
         "GET /api/certificates/live?url=:url",

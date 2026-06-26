@@ -266,10 +266,12 @@ test("durable outbox delivers idempotently for repeated monitoring events", asyn
     ownerId: "owner-1",
   });
   let calls = 0;
+  let deliveredPayload = null;
   const service = createService({
     repository,
-    transport: async () => {
+    transport: async ({ payload }) => {
       calls += 1;
+      deliveredPayload = payload;
       return { statusCode: 200, body: null };
     },
   });
@@ -282,7 +284,16 @@ test("durable outbox delivers idempotently for repeated monitoring events", asyn
       url: "https://example.com/",
       label: "example.com",
     },
-    event: { type: "cert_expiring", severity: "high", title: "Certificate expiring", body: "12 days remain." },
+    event: {
+      type: "cert_expiring",
+      severity: "warning",
+      title: "Certificate expiring",
+      body: "12 days remain.",
+      warningBand: 14,
+      previous: { daysRemaining: 29, serialNumber: "ABC" },
+      current: { daysRemaining: 12, serialNumber: "ABC" },
+      delta: { daysRemaining: -17 },
+    },
     certState: { host: "example.com", daysRemaining: 12, reachable: true },
   };
 
@@ -291,6 +302,10 @@ test("durable outbox delivers idempotently for repeated monitoring events", asyn
   assert.equal(first.sent, 1);
   assert.equal(duplicate.skipped, "already_queued_or_processed");
   assert.equal(calls, 1);
+  assert.equal(deliveredPayload.event.warningBand, 14);
+  assert.equal(deliveredPayload.event.previous.daysRemaining, 29);
+  assert.equal(deliveredPayload.event.current.daysRemaining, 12);
+  assert.equal(deliveredPayload.event.delta.daysRemaining, -17);
   assert.equal((await repository.getNotificationOutboxStats()).byStatus.sent, 1);
 });
 

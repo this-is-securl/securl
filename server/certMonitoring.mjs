@@ -98,6 +98,18 @@ function expiryBandForDays(daysRemaining) {
   return [...EXPIRY_WARNING_BANDS].reverse().find((band) => daysRemaining <= band) ?? null;
 }
 
+function numericDelta(current, previous) {
+  return typeof current === "number" && typeof previous === "number" ? current - previous : null;
+}
+
+function daysUntilValidTo(validTo) {
+  const time = validTo ? new Date(validTo).getTime() : NaN;
+  if (!Number.isFinite(time)) {
+    return null;
+  }
+  return Math.ceil((time - Date.now()) / (24 * 60 * 60 * 1000));
+}
+
 export function buildCertAttention(state) {
   if (!state) {
     return null;
@@ -176,7 +188,7 @@ export function detectCertMonitoringEvent(previousState, nextState) {
   return null;
 }
 
-function certEventTitle(type, host) {
+export function certEventTitle(type, host) {
   switch (type) {
     case "cert_expiring":
       return `Certificate expiring: ${host}`;
@@ -193,7 +205,7 @@ function certEventTitle(type, host) {
   }
 }
 
-function certEventBody(type, state) {
+export function certEventBody(type, state) {
   switch (type) {
     case "cert_expiring":
       return `${state.daysRemaining} day${state.daysRemaining === 1 ? "" : "s"} remaining.`;
@@ -210,16 +222,72 @@ function certEventBody(type, state) {
   }
 }
 
-function appendCertHistory(previousState, nextState, event) {
+export function buildCertMonitoringEventDetails(event, previousState, nextState) {
+  if (!event || !nextState) {
+    return null;
+  }
+
+  const host = nextState.host ?? previousState?.host ?? "unknown host";
+  return {
+    type: event.type,
+    severity: event.severity,
+    title: event.title ?? certEventTitle(event.type, host),
+    body: event.body ?? certEventBody(event.type, nextState),
+    warningBand: event.warningBand ?? null,
+    resetWarningBand: Boolean(event.resetWarningBand),
+    previous: previousState ? {
+      reachable: previousState.reachable ?? null,
+      issuer: previousState.issuer ?? null,
+      serialNumber: previousState.serialNumber ?? null,
+      validTo: previousState.validTo ?? null,
+      daysRemaining: previousState.daysRemaining ?? null,
+      lastWarnedBand: previousState.lastWarnedBand ?? null,
+    } : null,
+    current: {
+      reachable: nextState.reachable ?? false,
+      issuer: nextState.issuer ?? null,
+      serialNumber: nextState.serialNumber ?? null,
+      validTo: nextState.validTo ?? null,
+      daysRemaining: nextState.daysRemaining ?? null,
+      warningBand: expiryBandForDays(nextState.daysRemaining),
+    },
+    delta: {
+      daysRemaining: numericDelta(nextState.daysRemaining, previousState?.daysRemaining),
+      validToDays: numericDelta(daysUntilValidTo(nextState.validTo), daysUntilValidTo(previousState?.validTo)),
+    },
+  };
+}
+
+function firstSeenAttentionType(previousState, nextState, attention) {
+  if (previousState || !attention) {
+    return null;
+  }
+  return attention.type;
+}
+
+function appendCertHistory(previousState, nextState, event, attention) {
   const history = Array.isArray(previousState?.history) ? previousState.history : [];
+  const eventDetails = buildCertMonitoringEventDetails(event, previousState, nextState);
   const entry = {
     checkedAt: nextState.checkedAt,
     eventType: event?.type ?? null,
+    eventSeverity: eventDetails?.severity ?? null,
+    eventTitle: eventDetails?.title ?? null,
+    eventDetail: eventDetails?.body ?? null,
+    warningBand: eventDetails?.warningBand ?? null,
+    firstSeenAttentionType: firstSeenAttentionType(previousState, nextState, attention),
     reachable: nextState.reachable,
+    valid: nextState.valid,
+    authorized: nextState.authorized,
     issuer: nextState.issuer,
+    previousIssuer: eventDetails?.previous?.issuer ?? null,
     serialNumber: nextState.serialNumber,
+    previousSerialNumber: eventDetails?.previous?.serialNumber ?? null,
     validTo: nextState.validTo,
+    previousValidTo: eventDetails?.previous?.validTo ?? null,
     daysRemaining: nextState.daysRemaining,
+    previousDaysRemaining: eventDetails?.previous?.daysRemaining ?? null,
+    daysRemainingDelta: eventDetails?.delta?.daysRemaining ?? null,
     issues: nextState.issues,
   };
   return [entry, ...history].slice(0, 50);
@@ -242,15 +310,17 @@ export async function runCertificateMonitorCheck({
   }
 
   const event = detectCertMonitoringEvent(previousState, nextState);
+  const eventDetails = buildCertMonitoringEventDetails(event, previousState, nextState);
   const lastWarnedBand = event?.resetWarningBand
     ? null
     : event?.warningBand ?? previousState?.lastWarnedBand ?? null;
+  const attention = buildCertAttention(nextState);
   const nextCertState = {
     ...nextState,
-    attention: buildCertAttention(nextState),
+    attention,
     lastWarnedBand,
     lastEventType: event?.type ?? previousState?.lastEventType ?? null,
-    history: appendCertHistory(previousState, nextState, event),
+    history: appendCertHistory(previousState, nextState, eventDetails, attention),
   };
 
   const updatedTarget = await scanRepository.updateMonitoringTargetCertState(target.id, {
@@ -264,12 +334,7 @@ export async function runCertificateMonitorCheck({
   if (event && notificationService?.notifyCertMonitoringEvent) {
     notification = await notificationService.notifyCertMonitoringEvent({
       target: updatedTarget ?? { ...target, certState: nextCertState, lastCheckedAt: nextCertState.checkedAt },
-      event: {
-        type: event.type,
-        severity: event.severity,
-        title: certEventTitle(event.type, nextCertState.host),
-        body: certEventBody(event.type, nextCertState),
-      },
+      event: eventDetails,
       certState: nextCertState,
     });
   }
