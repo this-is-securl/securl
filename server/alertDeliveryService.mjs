@@ -6,6 +6,85 @@ import { diffObservationLedgers } from "../packages/core/dist/observationDrift.j
 import { DEFAULT_OBSERVATION_POLICY, evaluateObservationPolicy } from "../packages/core/dist/observationPolicy.js";
 
 const MAX_ATTEMPTS = 5;
+const SEVERITY_RANK = { critical: 3, warning: 2, info: 1 };
+
+function highestSeverity(violations = []) {
+  return violations.reduce((highest, violation) => (
+    (SEVERITY_RANK[violation.severity] || 0) > (SEVERITY_RANK[highest] || 0) ? violation.severity : highest
+  ), "info");
+}
+
+function categoryForViolation(violation) {
+  const kind = String(violation.kind || "");
+  if (kind.startsWith("tls.certificate") || kind.startsWith("certificate.")) return "certificate";
+  if (kind.startsWith("http.header") || kind.startsWith("header.")) return "headers";
+  if (kind.startsWith("dns.") || kind.startsWith("email.")) return "dns";
+  if (kind.startsWith("web.") || kind.startsWith("html.")) return "web";
+  if (kind.startsWith("vendor.") || kind.startsWith("third_party.")) return "vendors";
+  if (kind.startsWith("delivery.")) return "delivery";
+  return "posture";
+}
+
+function actionForViolation(violation) {
+  const category = categoryForViolation(violation);
+  const templates = {
+    certificate: ["review_certificate", "Review certificate renewal"],
+    headers: ["review_security_headers", "Review security header configuration"],
+    dns: ["review_dns_trust", "Review DNS and email trust records"],
+    web: ["review_public_web_surface", "Review public web surface"],
+    vendors: ["review_third_party_surface", "Review third-party exposure"],
+    delivery: ["review_alert_delivery", "Review alert delivery"],
+    posture: ["review_posture_policy", "Review posture policy finding"],
+  };
+  const [id, label] = templates[category] ?? templates.posture;
+  return {
+    id,
+    label,
+    priority: violation.severity || "warning",
+    category,
+    ruleId: violation.ruleId,
+    violationId: violation.id,
+  };
+}
+
+function countBySeverity(violations = []) {
+  return violations.reduce((counts, violation) => {
+    const severity = violation.severity || "info";
+    counts[severity] = (counts[severity] || 0) + 1;
+    return counts;
+  }, { critical: 0, warning: 0, info: 0 });
+}
+
+function buildPolicyAlertBrief({ target, evaluation, violations }) {
+  const severity = highestSeverity(violations);
+  const first = violations[0];
+  const count = violations.length;
+  const host = target.label || target.url;
+  const noun = `policy violation${count === 1 ? "" : "s"}`;
+  const firstTitle = first?.title || "Monitoring policy failed";
+  return {
+    title: `${host}: ${count} ${severity} ${noun}`,
+    body: count > 1 ? `${firstTitle} and ${count - 1} more.` : firstTitle,
+    detail: `${evaluation.policy.name} found ${count} newly introduced ${noun}.`,
+    highestSeverity: severity,
+    primaryViolationId: first?.id ?? null,
+    primaryActionId: first ? actionForViolation(first).id : null,
+  };
+}
+
+function buildPolicyAlertActions(violations = []) {
+  const actionsById = new Map();
+  for (const violation of violations) {
+    const action = actionForViolation(violation);
+    const existing = actionsById.get(action.id);
+    if (!existing || (SEVERITY_RANK[action.priority] || 0) > (SEVERITY_RANK[existing.priority] || 0)) {
+      actionsById.set(action.id, { ...action, count: 1 });
+    } else {
+      existing.count += 1;
+    }
+  }
+  return [...actionsById.values()].sort((a, b) => (SEVERITY_RANK[b.priority] || 0) - (SEVERITY_RANK[a.priority] || 0));
+}
 
 function matchesTarget(record, target) {
   return record?.url === target.url || record?.result?.finalUrl === target.url || record?.result?.normalizedUrl === target.url;
@@ -20,6 +99,9 @@ function buildEvaluation(result, previousResult, policy) {
 }
 
 function buildPolicyAlert({ completedScan, target, evaluation, violations }) {
+  const severityCounts = countBySeverity(violations);
+  const brief = buildPolicyAlertBrief({ target, evaluation, violations });
+  const actions = buildPolicyAlertActions(violations);
   return {
     type: "observation_policy_violation",
     version: "1.0",
@@ -28,16 +110,26 @@ function buildPolicyAlert({ completedScan, target, evaluation, violations }) {
     target: { id: target.id, url: target.url, label: target.label },
     scan: { id: completedScan.id, grade: completedScan.result?.grade ?? null, score: completedScan.result?.score ?? null },
     policy: evaluation.policy,
-    summary: { ...evaluation.summary, newViolations: violations.length },
+    summary: {
+      ...evaluation.summary,
+      newViolations: violations.length,
+      newBySeverity: severityCounts,
+      highestSeverity: brief.highestSeverity,
+    },
+    brief,
+    actions,
     violations: violations.slice(0, 10).map((violation) => ({
       id: violation.id,
       ruleId: violation.ruleId,
       title: violation.title,
       severity: violation.severity,
+      category: categoryForViolation(violation),
       kind: violation.kind,
       subject: violation.subject,
       actual: violation.actual,
       expected: violation.expected,
+      summary: violation.summary,
+      action: actionForViolation(violation),
     })),
   };
 }
@@ -84,6 +176,10 @@ async function sendEmail(destination, payload, config, timeoutMs = 10_000) {
     return { ok: false, statusCode: 0, retryable: true, error: "Email provider is not configured." };
   }
   const critical = payload.violations.filter((violation) => violation.severity === "critical").length;
+  const subject = payload.brief?.title || `[SecURL] ${payload.target.label}: ${payload.violations.length} policy violation${payload.violations.length === 1 ? "" : "s"}`;
+  const actionLines = Array.isArray(payload.actions) && payload.actions.length
+    ? ["", "Suggested actions:", ...payload.actions.map((action) => `- ${action.label} (${action.count})`)]
+    : [];
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     signal: AbortSignal.timeout(timeoutMs),
@@ -91,13 +187,15 @@ async function sendEmail(destination, payload, config, timeoutMs = 10_000) {
     body: JSON.stringify({
       from: config.emailFrom,
       to: [destination.email],
-      subject: `[SecURL] ${payload.target.label}: ${payload.violations.length} policy violation${payload.violations.length === 1 ? "" : "s"}`,
+      subject: subject.startsWith("[SecURL]") ? subject : `[SecURL] ${subject}`,
       text: [
         `${payload.target.url} failed ${payload.policy.name}.`,
+        payload.brief?.detail ?? null,
         `${critical} critical, ${payload.violations.length - critical} other new violation(s).`,
         "",
-        ...payload.violations.map((violation) => `- [${violation.severity.toUpperCase()}] ${violation.title}`),
-      ].join("\n"),
+        ...payload.violations.map((violation) => `- [${violation.severity.toUpperCase()}] ${violation.title}${violation.action?.label ? ` - ${violation.action.label}` : ""}`),
+        ...actionLines,
+      ].filter(Boolean).join("\n"),
     }),
   }).catch((error) => ({ ok: false, status: 0, error }));
   const statusCode = response.status || 0;

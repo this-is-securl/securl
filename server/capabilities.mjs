@@ -203,6 +203,8 @@ export function buildCapabilitiesPayload({
       channels: alerts?.channels ?? { apns: false, webhook: true, email: false },
       features: [
         "policy-violation-alerts",
+        "policy-alert-brief-v1",
+        "policy-alert-actions-v1",
         "new-violation-deduplication",
         "durable-alert-outbox",
         "signed-webhooks",

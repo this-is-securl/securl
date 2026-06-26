@@ -537,13 +537,15 @@ export function createNotificationService({
     });
     const highest = payload.summary?.highestSeverity || "warning";
     const first = payload.violations?.[0]?.title || "Monitoring policy failed";
+    const title = payload.brief?.title || `SecURL ${highest}: ${target.label}`;
+    const body = payload.brief?.body || (payload.violations.length > 1 ? `${first} and ${payload.violations.length - 1} more.` : first);
     return deliverPushPayload({
       devices,
       payload: {
         aps: {
           alert: {
-            title: `SecURL ${highest}: ${target.label}`,
-            body: payload.violations.length > 1 ? `${first} and ${payload.violations.length - 1} more.` : first,
+            title,
+            body,
           },
           sound: highest === "critical" ? "default" : undefined,
           "thread-id": new URL(target.url).hostname,

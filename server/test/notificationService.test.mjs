@@ -169,12 +169,19 @@ test("policy alerts use the monitoring target app id and policy channel", async 
       type: "observation_policy_violation",
       policy: { id: "policy-one" },
       summary: { highestSeverity: "critical" },
+      brief: {
+        title: "Example: 1 critical new policy violation",
+        body: "Certificate expired",
+      },
+      actions: [{ id: "review_certificate", label: "Review certificate renewal", count: 1 }],
       violations: [{ title: "Certificate expired" }],
     },
   });
   assert.equal(result.sent, 1);
   assert.equal(deliveredPayload.type, "observation_policy_violation");
-  assert.match(deliveredPayload.aps.alert.title, /critical/i);
+  assert.equal(deliveredPayload.aps.alert.title, "Example: 1 critical new policy violation");
+  assert.equal(deliveredPayload.aps.alert.body, "Certificate expired");
+  assert.equal(deliveredPayload.actions[0].id, "review_certificate");
   assert.equal(deliveredPayload.aps["thread-id"], "example.com");
 });
 
