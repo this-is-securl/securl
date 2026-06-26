@@ -142,6 +142,8 @@ export function buildCapabilitiesPayload({
         "mobile-summary",
         "mobile-posture-drift-summary",
         "mobile-digest-preview",
+        "mobile-monitoring-status-v1",
+        "mobile-monitoring-actions-v1",
         "cert-attention-state",
         "target-observation-policy",
       ],
