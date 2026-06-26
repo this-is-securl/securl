@@ -215,6 +215,13 @@ test("mobile monitoring summary exposes certificate attention state", () => {
   assert.equal(payload.targets[0].cert.attention.type, "cert_expiring");
   assert.equal(payload.targets[0].cert.attention.severity, "critical");
   assert.equal(payload.targets[0].cert.attention.warningBand, 7);
+  assert.equal(payload.targets[0].status.state, "needs_attention");
+  assert.equal(payload.targets[0].status.reason, "cert_expiring");
+  assert.equal(payload.targets[0].change.type, "cert_expiring");
+  assert.equal(payload.targets[0].change.severity, "critical");
+  assert.equal(payload.targets[0].nextCheck.cadence, "daily");
+  assert.equal(payload.targets[0].nextCheck.scheduledAt, payload.targets[0].nextDueAt);
+  assert.equal(payload.targets[0].actions[0].id, "review_certificate");
 });
 
 test("mobile monitoring summary exposes compact posture drift for apps", () => {
@@ -277,6 +284,12 @@ test("mobile monitoring summary exposes compact posture drift for apps", () => {
   assert.ok(target.posture.changedAreas.includes("certificate"));
   assert.ok(target.posture.eventCounts.critical >= 4);
   assert.ok(target.posture.topEvents.length > 0);
+  assert.equal(target.status.state, "needs_attention");
+  assert.equal(target.status.reason, "posture_regressed");
+  assert.equal(target.change.type, "posture_regressed");
+  assert.equal(target.change.severity, "critical");
+  assert.equal(target.actions[0].id, "review_posture_regression");
+  assert.equal(target.nextCheck.due, target.due);
   assert.equal(target.changes.postureRiskEvents, 6);
   assert.equal(payload.summary.changes, target.changes.postureRiskEvents);
 });

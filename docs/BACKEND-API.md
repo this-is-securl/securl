@@ -97,9 +97,20 @@ npm run smoke:api -- --base-url=https://securl-app-production.up.railway.app --t
 
 - `POST /api/monitoring-targets`
 - `GET /api/monitoring-targets`
+- `GET /api/monitoring-mobile-summary`
 - `GET /api/monitoring-targets/:id`
+- `GET /api/monitoring-targets/:id/history`
 - `POST /api/monitoring-targets/:id/run`
 - `DELETE /api/monitoring-targets/:id`
+
+`GET /api/monitoring-mobile-summary` returns a compact owner-scoped view for the iOS apps. Each target keeps the existing `latestScan`, `latestDigest`, `cert`, `posture`, and `changes` fields, and also includes additive mobile hints:
+
+- `status`: stable machine state such as `stable`, `pending`, `due`, `changed`, or `needs_attention`, with severity and reason.
+- `change`: the most relevant posture or certificate change summary for compact list/detail UI.
+- `nextCheck`: cadence, scheduled time, due flag, seconds until due, and last checked time.
+- `actions`: short stable action ids and labels, such as `review_posture_regression`, `review_certificate`, `check_tls_endpoint`, or `run_scheduled_check`.
+
+These fields are derived server-side from stored scan drift, certificate attention, and scheduler timing so mobile clients do not need to fetch full scan detail just to render watch-list state.
 
 ## Current notification resources
 

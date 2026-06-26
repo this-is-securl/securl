@@ -298,6 +298,158 @@ function buildMobilePostureDriftSummary(comparison) {
   };
 }
 
+function severityRank(severity) {
+  return { critical: 3, warning: 2, info: 1 }[severity] ?? 0;
+}
+
+function strongestSeverity(values) {
+  return normalizeArray(values)
+    .filter(Boolean)
+    .sort((left, right) => severityRank(right) - severityRank(left))[0] ?? null;
+}
+
+function secondsUntil(isoDate) {
+  const time = isoDate ? new Date(isoDate).getTime() : NaN;
+  if (!Number.isFinite(time)) {
+    return null;
+  }
+  return Math.max(0, Math.ceil((time - Date.now()) / 1000));
+}
+
+function buildMobileNextCheck(view) {
+  return {
+    cadence: view.cadence,
+    scheduledAt: view.nextDueAt,
+    due: view.due,
+    secondsUntilDue: secondsUntil(view.nextDueAt),
+    lastCheckedAt: view.lastCheckedAt,
+  };
+}
+
+function buildCertChangeSummary(view, certEventCount) {
+  if (!view.cert) {
+    return null;
+  }
+
+  const latestEvent = normalizeArray(view.cert.history).find((entry) => entry?.eventType) ?? null;
+  const attention = view.cert.attention ?? null;
+  const type = latestEvent?.eventType ?? attention?.type ?? null;
+  const severity = strongestSeverity([attention?.severity, latestEvent ? "info" : null]);
+
+  return {
+    type,
+    severity,
+    changed: Boolean(type),
+    eventCount: certEventCount,
+    title: attention?.title ?? (type ? `Certificate changed: ${view.cert.host ?? view.label}` : null),
+    detail: attention?.body ?? null,
+    occurredAt: latestEvent?.checkedAt ?? view.cert.checkedAt ?? view.lastCheckedAt,
+  };
+}
+
+function buildPostureChangeSummary(posture, riskEventCount) {
+  if (!posture) {
+    return {
+      type: null,
+      severity: null,
+      changed: false,
+      eventCount: 0,
+      title: null,
+      detail: null,
+      occurredAt: null,
+    };
+  }
+
+  const topEvent = normalizeArray(posture.topEvents)[0] ?? null;
+  const type = posture.hasRegression
+    ? "posture_regressed"
+    : posture.hasImprovement
+      ? "posture_improved"
+      : posture.direction === "changed"
+        ? "posture_changed"
+        : null;
+
+  return {
+    type,
+    severity: posture.severity ?? topEvent?.severity ?? null,
+    changed: Boolean(type),
+    eventCount: riskEventCount,
+    title: topEvent?.title ?? (type ? "Posture changed" : null),
+    detail: topEvent?.detail ?? normalizeArray(posture.summary)[0] ?? null,
+    occurredAt: null,
+  };
+}
+
+function buildMobileTargetStatus({ view, posture, certChange, postureChange, latestRecord }) {
+  const certAttention = view.cert?.attention ?? null;
+  if (certAttention?.severity === "critical") {
+    return { state: "needs_attention", severity: "critical", reason: certAttention.type };
+  }
+  if (posture?.hasRegression) {
+    return { state: "needs_attention", severity: posture.severity ?? "warning", reason: "posture_regressed" };
+  }
+  if (certAttention) {
+    return { state: "needs_attention", severity: certAttention.severity ?? "warning", reason: certAttention.type };
+  }
+  if (certChange?.changed || postureChange?.changed) {
+    return {
+      state: "changed",
+      severity: strongestSeverity([certChange?.severity, postureChange?.severity]) ?? "info",
+      reason: certChange?.type ?? postureChange?.type,
+    };
+  }
+  if (view.due) {
+    return { state: "due", severity: "info", reason: "scheduled_check_due" };
+  }
+  if (view.kind === "posture" && !latestRecord) {
+    return { state: "pending", severity: "info", reason: "no_completed_scan" };
+  }
+  if (view.kind === "cert" && !view.cert) {
+    return { state: "pending", severity: "info", reason: "no_certificate_check" };
+  }
+  return { state: "stable", severity: null, reason: null };
+}
+
+function buildMobileTargetActions({ view, status, posture, certChange, latestRecord }) {
+  const actions = [];
+  if (view.kind === "posture" && !latestRecord) {
+    actions.push({
+      id: "run_initial_scan",
+      label: "Run first check",
+      priority: "high",
+    });
+  }
+  if (status.reason === "posture_regressed") {
+    actions.push({
+      id: "review_posture_regression",
+      label: "Review posture regression",
+      priority: posture?.severity === "critical" ? "critical" : "high",
+    });
+  }
+  if (view.cert?.attention) {
+    actions.push({
+      id: view.cert.attention.type === "unreachable" ? "check_tls_endpoint" : "review_certificate",
+      label: view.cert.attention.type === "unreachable" ? "Check TLS endpoint" : "Review certificate",
+      priority: view.cert.attention.severity === "critical" ? "critical" : "high",
+    });
+  }
+  if (certChange?.type === "cert_renewed") {
+    actions.push({
+      id: "confirm_certificate_renewal",
+      label: "Confirm renewal",
+      priority: "normal",
+    });
+  }
+  if (view.due && actions.every((action) => action.id !== "run_initial_scan")) {
+    actions.push({
+      id: "run_scheduled_check",
+      label: "Run scheduled check",
+      priority: "normal",
+    });
+  }
+  return actions.slice(0, 4);
+}
+
 function buildMobileDigestPreview(record) {
   if (!record?.result) {
     return null;
@@ -747,6 +899,10 @@ function buildMobileTargetSummary(target, records = []) {
   const latestRecord = normalizeArray(records).find((record) => record?.status === "completed" && record?.result);
   const certHistory = Array.isArray(view.cert?.history) ? view.cert.history : [];
   const certEventCount = certHistory.filter((entry) => entry?.eventType).length;
+  const posture = buildMobilePostureDriftSummary(comparison);
+  const certChange = buildCertChangeSummary(view, certEventCount);
+  const postureChange = buildPostureChangeSummary(posture, comparison?.riskEvents?.length ?? 0);
+  const status = buildMobileTargetStatus({ view, posture, certChange, postureChange, latestRecord });
 
   return {
     id: view.id,
@@ -760,6 +916,8 @@ function buildMobileTargetSummary(target, records = []) {
     lastCheckedAt: view.lastCheckedAt,
     nextDueAt: view.nextDueAt,
     due: view.due,
+    nextCheck: buildMobileNextCheck(view),
+    status,
     latestScan: view.latestScan
       ? {
           id: view.latestScan.id,
@@ -786,9 +944,11 @@ function buildMobileTargetSummary(target, records = []) {
           lastWarnedBand: view.cert.lastWarnedBand ?? null,
           attention: view.cert.attention ?? null,
           issues: normalizeArray(view.cert.issues).slice(0, 5),
-        }
+      }
       : null,
-    posture: buildMobilePostureDriftSummary(comparison),
+    posture,
+    change: view.kind === "cert" ? certChange : postureChange,
+    actions: buildMobileTargetActions({ view, status, posture, certChange, latestRecord }),
     changes: {
       postureRiskEvents: comparison?.riskEvents?.length ?? 0,
       certEvents: certEventCount,
