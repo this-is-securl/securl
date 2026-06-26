@@ -334,16 +334,42 @@ export function createAlertDeliveryService({
   }
 
   async function sendTestDestination(destination) {
+    const violation = {
+      id: "test",
+      ruleId: "test",
+      title: "Alert delivery is configured",
+      severity: "info",
+      kind: "delivery.test",
+      subject: "SecURL",
+      actual: true,
+      expected: { field: "value", operator: "eq", value: true },
+      summary: "This synthetic alert confirms the destination can receive SecURL payloads.",
+    };
+    const policy = { id: "test", name: "Delivery test", version: "1" };
+    const target = { id: null, url: "https://securl.online/", label: "SecURL test" };
     const payload = {
       type: "alert_destination_test",
       version: "1.0",
       eventId: crypto.randomUUID(),
       occurredAt: new Date().toISOString(),
-      target: { id: null, url: "https://securl.online/", label: "SecURL test" },
+      target,
       scan: { id: null, grade: null, score: null },
-      policy: { id: "test", name: "Delivery test", version: "1" },
-      summary: { rulesEvaluated: 0, violations: 1, bySeverity: { info: 1, warning: 0, critical: 0 }, highestSeverity: "info", newViolations: 1 },
-      violations: [{ id: "test", ruleId: "test", title: "Alert delivery is configured", severity: "info", kind: "delivery.test", subject: "SecURL", actual: true, expected: { field: "value", operator: "eq", value: true } }],
+      policy,
+      summary: {
+        rulesEvaluated: 0,
+        violations: 1,
+        bySeverity: { info: 1, warning: 0, critical: 0 },
+        highestSeverity: "info",
+        newViolations: 1,
+        newBySeverity: { info: 1, warning: 0, critical: 0 },
+      },
+      brief: buildPolicyAlertBrief({ target, evaluation: { policy }, violations: [violation] }),
+      actions: buildPolicyAlertActions([violation]),
+      violations: [{
+        ...violation,
+        category: categoryForViolation(violation),
+        action: actionForViolation(violation),
+      }],
     };
     const entries = await scanRepository.enqueueAlertOutbox({
       destinations: [destination],

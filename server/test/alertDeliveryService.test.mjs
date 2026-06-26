@@ -131,3 +131,35 @@ test("policy alerts route new violations to APNs and durable destinations once",
   assert.equal(pushCalls, 1);
   assert.equal(webhookCalls, 1);
 });
+
+test("destination tests send the enriched policy alert contract", async () => {
+  const repository = createInMemoryScanRepository();
+  const destination = await repository.upsertAlertDestination({
+    ownerId: "scan-owner:test",
+    requesterScope: "owner:test",
+    type: "webhook",
+    label: "Webhook",
+    endpoint: "https://hooks.example.com/securl",
+    signingSecret: "secret",
+  });
+  const [secretDestination] = await repository.listAlertDestinations({ ownerId: "scan-owner:test", includeSecrets: true });
+  let deliveredPayload = null;
+  const service = createAlertDeliveryService({
+    scanRepository: repository,
+    webhookTransport: async (_destination, payload) => {
+      deliveredPayload = payload;
+      return { ok: true, statusCode: 204, retryable: false };
+    },
+  });
+
+  const result = await service.sendTestDestination(secretDestination);
+
+  assert.equal(destination.endpoint, undefined);
+  assert.equal(result.queued, 1);
+  assert.equal(deliveredPayload.type, "alert_destination_test");
+  assert.equal(deliveredPayload.brief.title, "SecURL test: 1 info policy violation");
+  assert.equal(deliveredPayload.summary.newBySeverity.info, 1);
+  assert.equal(deliveredPayload.violations[0].category, "delivery");
+  assert.equal(deliveredPayload.violations[0].action.id, "review_alert_delivery");
+  assert.equal(deliveredPayload.actions[0].id, "review_alert_delivery");
+});
