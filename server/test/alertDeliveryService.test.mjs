@@ -100,7 +100,13 @@ test("policy alerts route new violations to APNs and durable destinations once",
     webhookTransport: async (_destination, payload) => {
       webhookCalls += 1;
       assert.equal(payload.type, "observation_policy_violation");
+      assert.equal(payload.brief.highestSeverity, "critical");
+      assert.match(payload.brief.title, /example\.com: 1 critical policy violation/);
+      assert.equal(payload.summary.newBySeverity.critical, 1);
       assert.equal(payload.violations[0].ruleId, "cert-window");
+      assert.equal(payload.violations[0].category, "certificate");
+      assert.equal(payload.violations[0].action.id, "review_certificate");
+      assert.equal(payload.actions[0].id, "review_certificate");
       return { ok: true, statusCode: 204, retryable: false };
     },
   });

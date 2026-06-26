@@ -543,6 +543,8 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.notifications.resources.includes("POST /api/notification-devices/:id/test"));
     assert.equal(payload.alerts.enabled, true);
     assert.ok(payload.alerts.features.includes("policy-violation-alerts"));
+    assert.ok(payload.alerts.features.includes("policy-alert-brief-v1"));
+    assert.ok(payload.alerts.features.includes("policy-alert-actions-v1"));
     assert.ok(payload.alerts.features.includes("durable-alert-outbox"));
     assert.ok(payload.alerts.features.includes("signed-webhooks"));
     assert.ok(payload.alerts.resources.includes("POST /api/alert-destinations/:id/test"));

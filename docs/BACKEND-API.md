@@ -151,7 +151,7 @@ Webhook URLs must use HTTPS and cannot contain credentials, query parameters, or
 
 Email delivery uses Resend when both `RESEND_API_KEY` and `ALERT_EMAIL_FROM` are configured. Without both values, email rows remain queued for bounded retry rather than being silently discarded.
 
-Policy alerts are generated only for newly introduced violation fingerprints. Existing unresolved violations do not notify on every scan. APNs is attempted immediately, while webhook and email deliveries are persisted to a separate idempotent outbox with leases, stale-worker recovery, bounded retry, audit status, and seven-day completed-row retention.
+Policy alerts are generated only for newly introduced violation fingerprints. Existing unresolved violations do not notify on every scan. Alert payloads keep the raw policy fields and also include a compact `brief`, `summary.newBySeverity`, categorized violation entries, and stable `actions` so mobile, web, webhook, and email clients can render the incident without interpreting policy internals. APNs is attempted immediately, while webhook and email deliveries are persisted to a separate idempotent outbox with leases, stale-worker recovery, bounded retry, audit status, and seven-day completed-row retention.
 
 Without APNs credentials, device registration and monitoring continue normally, while delivery is recorded as skipped.
 
