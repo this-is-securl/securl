@@ -42,4 +42,4 @@ jobs:
           npm run test:core
 
       - name: Publish SecURL package
-        run: npm publish ./packages/core --access public
+        run: npm publish ./packages/core --access public --provenance
