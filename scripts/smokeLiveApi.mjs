@@ -82,6 +82,7 @@ function assertCapabilities(payload) {
     "GET /api/scans/:id/findings",
     "GET /api/scans/:id/digest",
     "GET /api/scans/:id/insights",
+    "GET /api/scans/:id/mobile-summary",
     "GET /api/scans/:id/brief",
     "GET /api/scans/:id/vendors",
     "GET /api/scans/:id/action-plan",
@@ -104,7 +105,7 @@ function assertCapabilities(payload) {
     }
   }
 
-  for (const feature of ["evidence-summary", "posture-digest", "posture-insights", "posture-drift", "exposure-brief", "vendor-exposure", "action-plan", "scan-events", "scan-resource-links", "durable-scan-jobs", "observation-ledger-v1", "observation-drift-v1", "observation-policy-v1"]) {
+  for (const feature of ["evidence-summary", "posture-digest", "posture-insights", "mobile-scan-summary", "posture-drift", "exposure-brief", "vendor-exposure", "action-plan", "scan-events", "scan-resource-links", "durable-scan-jobs", "observation-ledger-v1", "observation-drift-v1", "observation-policy-v1"]) {
     if (!features.includes(feature)) {
       throw new Error(`Capabilities missing scan feature: ${feature}`);
     }
@@ -142,6 +143,7 @@ function assertScanResourceLinks(payload, scanId) {
     findings: `/api/scans/${scanId}/findings`,
     digest: `/api/scans/${scanId}/digest`,
     insights: `/api/scans/${scanId}/insights`,
+    mobileSummary: `/api/scans/${scanId}/mobile-summary`,
     brief: `/api/scans/${scanId}/brief`,
     vendors: `/api/scans/${scanId}/vendors`,
     actionPlan: `/api/scans/${scanId}/action-plan`,
@@ -236,6 +238,7 @@ async function main() {
     ["findings", `/api/scans/${encodeURIComponent(scanId)}/findings`, ownerHeaders],
     ["digest", `/api/scans/${encodeURIComponent(scanId)}/digest`, ownerHeaders],
     ["insights", `/api/scans/${encodeURIComponent(scanId)}/insights`, ownerHeaders],
+    ["mobile-summary", `/api/scans/${encodeURIComponent(scanId)}/mobile-summary`, ownerHeaders],
     ["brief", `/api/scans/${encodeURIComponent(scanId)}/brief`, ownerHeaders],
     ["vendors", `/api/scans/${encodeURIComponent(scanId)}/vendors`, ownerHeaders],
     ["action-plan", `/api/scans/${encodeURIComponent(scanId)}/action-plan`, ownerHeaders],
@@ -261,6 +264,9 @@ async function main() {
     }
     if (label === "insights" && !payload.insights?.topInsights) {
       throw new Error("Insights endpoint returned an empty insights payload");
+    }
+    if (label === "mobile-summary" && (!payload.digest || !payload.insights || !payload.ready)) {
+      throw new Error("Mobile summary endpoint returned an incomplete payload");
     }
     if (label === "brief" && !payload.brief) {
       throw new Error("Brief endpoint returned an empty exposure brief");

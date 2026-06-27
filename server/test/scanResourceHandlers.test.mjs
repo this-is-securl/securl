@@ -23,6 +23,7 @@ test("scan resource links point clients at lightweight follow-up endpoints", () 
     findings: "/api/scans/scan-one/findings",
     digest: "/api/scans/scan-one/digest",
     insights: "/api/scans/scan-one/insights",
+    mobileSummary: "/api/scans/scan-one/mobile-summary",
     brief: "/api/scans/scan-one/brief",
     vendors: "/api/scans/scan-one/vendors",
     actionPlan: "/api/scans/scan-one/action-plan",

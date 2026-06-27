@@ -46,6 +46,7 @@ export function buildScanResourceLinks(scanId) {
     findings: `${basePath}/findings`,
     digest: `${basePath}/digest`,
     insights: `${basePath}/insights`,
+    mobileSummary: `${basePath}/mobile-summary`,
     brief: `${basePath}/brief`,
     vendors: `${basePath}/vendors`,
     actionPlan: `${basePath}/action-plan`,
@@ -506,6 +507,7 @@ export async function handleScanResourceRequest({
   buildScanVendorsPayload,
   buildScanActionPlanPayload,
   buildScanInsightsPayload,
+  buildScanMobileSummaryPayload,
   buildScanObservationsPayload,
   buildScanEvidencePayload,
   buildScanHistoryPayload,
@@ -626,6 +628,14 @@ export async function handleScanResourceRequest({
 
     if (resource === "insights") {
       sendJson(response, 200, buildScanInsightsPayload(scan));
+      return true;
+    }
+
+    if (resource === "mobile-summary") {
+      sendJson(response, 200, {
+        ...buildScanMobileSummaryPayload(scan),
+        resources: buildScanResourceLinks(scan.id),
+      });
       return true;
     }
 
