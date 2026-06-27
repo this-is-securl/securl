@@ -8,6 +8,7 @@ For web and mobile experiences, prefer:
 
 - `GET /api/scans/:id/summary`: scan lifecycle, score, grade, and target metadata.
 - `GET /api/scans/:id/digest`: compact posture overview, top findings, score drivers, controls, trust, and timing.
+- `GET /api/scans/:id/insights`: display-ready risk themes, top insights, and next-best actions for mobile/web summary screens.
 - `GET /api/scans/:id/brief`: outside-observer exposure brief with public entry points, trust gaps, abuse indicators, and next actions.
 - `GET /api/scans/:id/vendors`: vendor and supply-chain exposure brief with third-party providers, data-flow categories, SRI gaps, and review priorities.
 - `GET /api/scans/:id/action-plan`: prioritized fix narrative combining remediation, evidence, score drivers, exposure, and vendor context.

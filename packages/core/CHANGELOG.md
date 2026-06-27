@@ -6,6 +6,12 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-06-27
+
+### Added
+- Added `buildPostureInsights()` and the `securl/posture-insights` package export for display-ready risk themes, top insights, and next-best actions.
+- Added `postureInsights` to completed analysis results so API, mobile, and CLI clients can render security judgement without reinterpreting raw findings.
+
 ## [1.11.1] - 2026-06-24
 
 ### Changed

@@ -488,6 +488,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.scans.features.includes("finding-evidence"));
     assert.ok(payload.scans.features.includes("evidence-summary"));
     assert.ok(payload.scans.features.includes("remediation-plan"));
+    assert.ok(payload.scans.features.includes("posture-insights"));
     assert.ok(payload.scans.features.includes("exposure-brief"));
     assert.ok(payload.scans.features.includes("vendor-exposure"));
     assert.ok(payload.scans.features.includes("action-plan"));
@@ -507,6 +508,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.auth.resources.includes("GET /api/auth/api-keys"));
     assert.ok(payload.auth.resources.includes("DELETE /api/auth/api-keys/:id"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/digest"));
+    assert.ok(payload.scans.resources.includes("GET /api/scans/:id/insights"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/brief"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/vendors"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/action-plan"));
@@ -1008,6 +1010,7 @@ test("authenticated sessions can own scan and monitoring resources without scan-
     assert.match(scanPayload.scan.id, /[a-f0-9-]{36}/i);
     assert.equal(scanPayload.resources.events, `/api/scans/${scanPayload.scan.id}/events`);
     assert.equal(scanPayload.resources.digest, `/api/scans/${scanPayload.scan.id}/digest`);
+    assert.equal(scanPayload.resources.insights, `/api/scans/${scanPayload.scan.id}/insights`);
 
     const listResponse = await fetch(`${server.baseUrl}/api/scans`, {
       headers: bearerHeaders(token),
@@ -2041,6 +2044,9 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     const digestResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/digest`, {
       headers: scanOwnerHeaders(),
     });
+    const insightsResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/insights`, {
+      headers: scanOwnerHeaders(),
+    });
     const briefResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/brief`, {
       headers: scanOwnerHeaders(),
     });
@@ -2081,6 +2087,7 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     const summaryPayload = await summaryResponse.json();
     const findingsPayload = await findingsResponse.json();
     const digestPayload = await digestResponse.json();
+    const insightsPayload = await insightsResponse.json();
     const briefPayload = await briefResponse.json();
     const vendorsPayload = await vendorsResponse.json();
     const actionPlanPayload = await actionPlanResponse.json();
@@ -2121,6 +2128,14 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.equal(typeof digestPayload.digest.evidence.totalEvidenceReferences, "number");
     assert.ok(Array.isArray(digestPayload.digest.posture.scoreDrivers));
     assert.ok(Array.isArray(digestPayload.digest.intelligence.riskIndicators));
+    assert.equal(insightsResponse.status, 200);
+    assert.equal(insightsPayload.apiVersion, "2026-05-14");
+    assert.equal(insightsPayload.scan.id, scanId);
+    assert.ok(insightsPayload.insights);
+    assert.equal(typeof insightsPayload.insights.summary, "string");
+    assert.ok(Array.isArray(insightsPayload.insights.themes));
+    assert.ok(Array.isArray(insightsPayload.insights.topInsights));
+    assert.ok(Array.isArray(insightsPayload.insights.nextBestActions));
     assert.equal(briefResponse.status, 200);
     assert.equal(briefPayload.apiVersion, "2026-05-14");
     assert.equal(briefPayload.scan.id, scanId);

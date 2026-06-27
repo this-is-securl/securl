@@ -353,6 +353,58 @@ export interface ActionPlan {
   limitation: AssessmentLimitation | null;
 }
 
+export type PostureInsightSeverity = "info" | "warning" | "critical";
+
+export interface PostureInsightThemeSummary {
+  theme: ActionPlanTheme;
+  label: string;
+  count: number;
+  highestSeverity: PostureInsightSeverity;
+  highImpactActions: number;
+  quickWins: number;
+  owners: RemediationOwner[];
+  scoreImpact: number;
+}
+
+export interface PostureInsightItem {
+  id: string;
+  title: string;
+  summary: string;
+  severity: PostureInsightSeverity;
+  theme: ActionPlanTheme;
+  owner: RemediationOwner;
+  effort: RemediationEffort;
+  impact: RemediationImpact;
+  confidence: IssueConfidence;
+  scoreImpact: number | null;
+  nextAction: string;
+  verify: string;
+  evidence: ScanEvidenceReference[];
+  relatedFindings: string[];
+  source: ActionPlanItem["source"];
+}
+
+export interface PostureInsightAction {
+  id: string;
+  label: string;
+  theme: ActionPlanTheme;
+  owner: RemediationOwner;
+  effort: RemediationEffort;
+  impact: RemediationImpact;
+  severity: PostureInsightSeverity;
+  verify: string;
+}
+
+export interface PostureInsights {
+  generatedAt: string;
+  summary: string;
+  posture: ActionPlan["posture"];
+  themes: PostureInsightThemeSummary[];
+  topInsights: PostureInsightItem[];
+  nextBestActions: PostureInsightAction[];
+  limitation: AssessmentLimitation | null;
+}
+
 export interface CrawlPageResult {
   label: string;
   path: string;
@@ -1141,6 +1193,7 @@ export interface AnalysisResult {
   exposureBrief?: ExposureBrief;
   vendorExposure?: VendorExposureBrief;
   actionPlan?: ActionPlan;
+  postureInsights?: PostureInsights;
   crawl: CrawlSummary;
   securityTxt: SecurityTxtInfo;
   domainSecurity: DomainSecurityInfo;
