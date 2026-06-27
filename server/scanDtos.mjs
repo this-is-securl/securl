@@ -659,6 +659,18 @@ export function buildScanInsightsPayload(scan) {
   };
 }
 
+export function buildScanMobileSummaryPayload(scan) {
+  const digestPayload = buildScanDigestPayload(scan);
+  const insightsPayload = buildScanInsightsPayload(scan);
+  return {
+    apiVersion: API_VERSION,
+    scan: scan.summary,
+    ready: scan.status === "completed" && Boolean(scan.result),
+    digest: digestPayload.digest,
+    insights: insightsPayload.insights,
+  };
+}
+
 export function buildScanObservationsPayload(scan) {
   const result = scan.result;
   return {

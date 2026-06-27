@@ -9,6 +9,7 @@ For web and mobile experiences, prefer:
 - `GET /api/scans/:id/summary`: scan lifecycle, score, grade, and target metadata.
 - `GET /api/scans/:id/digest`: compact posture overview, top findings, score drivers, controls, trust, and timing.
 - `GET /api/scans/:id/insights`: display-ready risk themes, top insights, and next-best actions for mobile/web summary screens.
+- `GET /api/scans/:id/mobile-summary`: one-call app result payload containing scan summary, digest, and insights after scan completion.
 - `GET /api/scans/:id/brief`: outside-observer exposure brief with public entry points, trust gaps, abuse indicators, and next actions.
 - `GET /api/scans/:id/vendors`: vendor and supply-chain exposure brief with third-party providers, data-flow categories, SRI gaps, and review priorities.
 - `GET /api/scans/:id/action-plan`: prioritized fix narrative combining remediation, evidence, score drivers, exposure, and vendor context.
@@ -21,7 +22,7 @@ Authenticated automation clients can manage signed webhook or email routes throu
 
 These endpoints are stable additive resources. They are the safest shape for client UI because they avoid coupling screens to the full internal scan object.
 
-For mobile clients, use `/digest` for the main scan result screen unless a specific deeper view needs `/findings`, `/evidence`, or the full scan object.
+For mobile clients, use `/mobile-summary` for the main scan result screen after SSE terminal. Use `/digest` or `/insights` directly only when a specific view needs one part of that payload.
 
 ## Mobile Monitoring And Cert Watch
 
