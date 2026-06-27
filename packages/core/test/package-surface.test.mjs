@@ -14,6 +14,7 @@ test("package surface exports expected public functions", async () => {
   const exposureBrief = await import("../dist/exposureBrief.js");
   const vendorExposure = await import("../dist/vendorExposure.js");
   const actionPlan = await import("../dist/actionPlan.js");
+  const postureInsights = await import("../dist/postureInsights.js");
   const certificate = await import("../dist/certificate.js");
   const observations = await import("../dist/observations.js");
   const observationDrift = await import("../dist/observationDrift.js");
@@ -41,6 +42,8 @@ test("package surface exports expected public functions", async () => {
   assert.equal(typeof vendorExposure.buildVendorExposureBrief, "function");
   assert.equal(typeof pkg.buildActionPlan, "function");
   assert.equal(typeof actionPlan.buildActionPlan, "function");
+  assert.equal(typeof pkg.buildPostureInsights, "function");
+  assert.equal(typeof postureInsights.buildPostureInsights, "function");
   assert.equal(typeof pkg.scanLiveCertificate, "function");
   assert.equal(typeof certificate.scanLiveCertificate, "function");
   assert.equal(typeof pkg.buildObservationLedger, "function");

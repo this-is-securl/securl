@@ -194,7 +194,28 @@ console.log({
 
 Action-plan items include owner, effort, impact, confidence, score impact where available, evidence references, and verification guidance.
 
-### 7. Live certificate checks
+### 7. Posture insights
+
+Version `1.12.0+` includes a posture-insights helper for client surfaces that need display-ready risk themes and next-best actions.
+
+```ts
+import { analyzeUrl } from "securl";
+import { buildPostureInsights } from "securl/posture-insights";
+
+const result = await analyzeUrl("https://example.com");
+const insights = buildPostureInsights(result);
+
+console.log({
+  summary: insights.summary,
+  themes: insights.themes,
+  topInsights: insights.topInsights,
+  nextBestActions: insights.nextBestActions,
+});
+```
+
+Posture insights are derived from the action plan, so clients can render security judgement without reinterpreting raw findings, score drivers, exposure details, or vendor context.
+
+### 8. Live certificate checks
 
 Version `1.9.0+` includes a lightweight certificate helper for Cert Watch-style clients that only need the currently served TLS certificate.
 
@@ -313,7 +334,7 @@ It is also used by the SecURL app from the local workspace during development.
 - local package check: `npm run pack:core`
 - CI verification: `.github/workflows/core-package-checks.yml`
 - publish workflow: `.github/workflows/publish-core-package.yml`
-- publish requires an `NPM_TOKEN` repository secret
+- publish uses npm Trusted Publishing through GitHub Actions OIDC
 - publish uses npm provenance (`npm publish --provenance`)
 
 Recommended release flow:
@@ -341,6 +362,7 @@ Primary exports:
 - `buildPostureRiskEventsFromSnapshots(current, previous, diff)` - classify scan changes into alert-friendly risk events.
 - `buildPostureDigest(result)` - reduce a full scan result to a compact API/mobile-friendly digest.
 - `buildActionPlan(result)` - turn remediation, score drivers, exposure, and vendor context into prioritized fix actions.
+- `buildPostureInsights(result)` - summarize risk themes, top insights, and next-best actions for client surfaces.
 - `scanLiveCertificate(url)` - perform a TLS handshake-only certificate read for lightweight cert monitoring.
 - `buildObservationLedger(result)` - produce stable source, confidence, status, and freshness-aware posture observations.
 - `diffObservationLedgers(current, previous)` - compare stable observations and classify their operational impact.
@@ -355,6 +377,7 @@ Package subpath exports:
 - `securl/history-diff`
 - `securl/posture-digest`
 - `securl/action-plan`
+- `securl/posture-insights`
 - `securl/live-certificate`
 - `securl/observations`
 - `securl/observation-drift`
