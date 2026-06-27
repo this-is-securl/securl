@@ -35,6 +35,8 @@ git diff --name-status securl-v$(node -p "require('./packages/core/package.json'
 3. Push the tag.
 4. Let `.github/workflows/publish-core-package.yml` publish the package through short-lived npm OIDC credentials.
 
+The publish workflow verifies that the release commit is already contained in `origin/main` with `git merge-base --is-ancestor`. If a manual workflow dispatch is needed after a tag publish failure, run it from `main`; the package version comes from `packages/core/package.json`.
+
 ## Post-release
 
 1. Confirm the package is available on npm.
