@@ -83,7 +83,8 @@ export const buildReportWorkspaceSections = ({
   const criticalCount = analysisData.issues.filter((issue) => issue.severity === "critical").length;
   const warningCount = analysisData.issues.filter((issue) => issue.severity === "warning").length;
   const remediationCount = analysisData.remediation.length;
-  const priorityActionCount = getPriorityActions(analysisData).length;
+  const serverActionCount = analysisData.remediationPlan?.items.length ?? 0;
+  const priorityActionCount = serverActionCount || getPriorityActions(analysisData).length;
   const mappedThemeCount = analysisData.issues.filter((issue) => issue.owasp.length || issue.mitre.length).length;
   const trustSignalIssueCount = analysisData.publicSignals.issues.length + analysisData.securityTxt.issues.length;
   const domainIssueCount = analysisData.domainSecurity.issues.length;
@@ -149,9 +150,13 @@ export const buildReportWorkspaceSections = ({
   },
   {
     key: "findings-actions",
-    title: "Priority actions",
-    summary: "What should be done first and why it matters.",
-    context: `${priorityActionCount} recommended next steps`,
+    title: serverActionCount ? "Remediation plan" : "Priority actions",
+    summary: serverActionCount
+      ? "Owner-aware actions generated from score drivers and evidence."
+      : "What should be done first and why it matters.",
+    context: serverActionCount
+      ? `${serverActionCount} actions • ${analysisData.remediationPlan?.quickWins ?? 0} quick wins`
+      : `${priorityActionCount} recommended next steps`,
     badge: priorityActionCount > 0 ? `${priorityActionCount} actions` : undefined,
     icon: ListTodo,
     content: <PriorityActionsPanel analysis={analysisData} />,
