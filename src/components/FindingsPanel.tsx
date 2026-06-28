@@ -1,4 +1,4 @@
-import { AlertTriangle, Info, ShieldCheck, ShieldX, Sparkles, TriangleAlert } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info, ShieldCheck, ShieldX, Sparkles, TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -168,6 +168,38 @@ export const FindingsPanel = ({ issues, strengths }: FindingsPanelProps) => {
                             </Badge>
                           ))}
                         </div>
+                        {issue.evidence?.length ? (
+                          <div className="mt-4 rounded-2xl border border-white/10 bg-white/3 px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-[#d89a63]" />
+                              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">Evidence</p>
+                            </div>
+                            <div className="mt-3 grid gap-2">
+                              {issue.evidence.slice(0, 4).map((item, evidenceIndex) => (
+                                <div
+                                  key={`${item.kind}-${item.label}-${evidenceIndex}`}
+                                  className="rounded-xl border border-white/8 bg-zinc-950/45 px-3.5 py-3"
+                                >
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <Badge variant="outline" className="border-white/10 bg-white/5 text-zinc-300">
+                                      {item.kind}
+                                    </Badge>
+                                    <p className="text-sm font-semibold text-zinc-100">{item.label}</p>
+                                  </div>
+                                  <p className="mt-2 text-xs leading-5 text-zinc-400">
+                                    Observed: <span className="text-zinc-200">{item.observed ?? "not observed"}</span>
+                                  </p>
+                                  {item.expected ? (
+                                    <p className="mt-1 text-xs leading-5 text-zinc-500">
+                                      Expected: <span className="text-zinc-300">{item.expected}</span>
+                                    </p>
+                                  ) : null}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+
                         <div className="mt-4 grid gap-3 md:grid-cols-2">
                           <div className="rounded-2xl border border-white/10 bg-white/3 px-4 py-3">
                             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">Confidence read</p>
