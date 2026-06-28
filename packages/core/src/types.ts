@@ -212,6 +212,46 @@ export interface PostureEvidenceSummary {
   limitation: AssessmentLimitation | null;
 }
 
+export type EvidenceQualityLevel = "high" | "medium" | "low";
+
+export interface EvidenceQualitySignal {
+  id: string;
+  label: string;
+  detail: string;
+  impact: "positive" | "negative" | "neutral";
+}
+
+export interface EvidenceQualitySummary {
+  generatedAt: string;
+  level: EvidenceQualityLevel;
+  score: number;
+  summary: string;
+  evidence: {
+    totalReferences: number;
+    observedReferences: number;
+    derivedReferences: number;
+    observedRatio: number;
+    kinds: ScanEvidenceKind[];
+  };
+  scan: {
+    limited: boolean;
+    limitedKind: AssessmentLimitation["kind"];
+    timedOut: boolean;
+    statusCode: number;
+    responseTimeMs: number;
+  };
+  findings: {
+    total: number;
+    lowConfidence: number;
+    mediumConfidence: number;
+    highConfidence: number;
+  };
+  strengths: EvidenceQualitySignal[];
+  gaps: EvidenceQualitySignal[];
+  recommendedFollowUp: string[];
+  limitation: AssessmentLimitation | null;
+}
+
 export type ExposureBriefLevel = "low" | "medium" | "high" | "critical" | "unknown";
 
 export type ExposureBriefCategory =
@@ -1190,6 +1230,7 @@ export interface AnalysisResult {
   remediation: RemediationSnippet[];
   remediationPlan?: RemediationPlan;
   evidenceSummary?: PostureEvidenceSummary;
+  evidenceQuality?: EvidenceQualitySummary;
   exposureBrief?: ExposureBrief;
   vendorExposure?: VendorExposureBrief;
   actionPlan?: ActionPlan;

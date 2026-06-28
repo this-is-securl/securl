@@ -2,6 +2,7 @@ import { URL } from "node:url";
 import { scanTls } from "./certificate.js";
 import { buildActionPlan } from "./actionPlan.js";
 import { buildCompromiseSignals, emptyCompromiseSignals } from "./compromiseSignals.js";
+import { buildEvidenceQualitySummary } from "./evidenceQuality.js";
 import { buildExposureBrief } from "./exposureBrief.js";
 import { buildPostureInsights } from "./postureInsights.js";
 import { buildVendorExposureBrief } from "./vendorExposure.js";
@@ -650,10 +651,14 @@ async function buildLimitedResult(
     remediationPlan,
     evidenceSummary: buildPostureEvidenceSummary({ ...evidenceResult, remediationPlan }),
   };
-  const resultWithBriefs = {
+  const resultWithQuality = {
     ...resultWithRemediation,
-    exposureBrief: buildExposureBrief(resultWithRemediation),
-    vendorExposure: buildVendorExposureBrief(resultWithRemediation),
+    evidenceQuality: buildEvidenceQualitySummary(resultWithRemediation),
+  };
+  const resultWithBriefs = {
+    ...resultWithQuality,
+    exposureBrief: buildExposureBrief(resultWithQuality),
+    vendorExposure: buildVendorExposureBrief(resultWithQuality),
   };
   const resultWithActions = {
     ...resultWithBriefs,
@@ -1168,10 +1173,14 @@ function buildTimedOutEnrichmentResult(
     remediationPlan,
     evidenceSummary: buildPostureEvidenceSummary({ ...evidenceResult, remediationPlan }),
   };
-  const resultWithBriefs = {
+  const resultWithQuality = {
     ...resultWithRemediation,
-    exposureBrief: buildExposureBrief(resultWithRemediation),
-    vendorExposure: buildVendorExposureBrief(resultWithRemediation),
+    evidenceQuality: buildEvidenceQualitySummary(resultWithRemediation),
+  };
+  const resultWithBriefs = {
+    ...resultWithQuality,
+    exposureBrief: buildExposureBrief(resultWithQuality),
+    vendorExposure: buildVendorExposureBrief(resultWithQuality),
   };
   const resultWithActions = {
     ...resultWithBriefs,
@@ -1265,10 +1274,14 @@ export async function analyzeUrl(input: string, options: AnalyzeTargetOptions = 
     remediationPlan,
     evidenceSummary: buildPostureEvidenceSummary({ ...resultWithEvidence, remediationPlan }),
   };
-  const resultWithBriefs = {
+  const resultWithQuality = {
     ...resultWithRemediation,
-    exposureBrief: buildExposureBrief(resultWithRemediation),
-    vendorExposure: buildVendorExposureBrief(resultWithRemediation),
+    evidenceQuality: buildEvidenceQualitySummary(resultWithRemediation),
+  };
+  const resultWithBriefs = {
+    ...resultWithQuality,
+    exposureBrief: buildExposureBrief(resultWithQuality),
+    vendorExposure: buildVendorExposureBrief(resultWithQuality),
   };
   const resultWithActions = {
     ...resultWithBriefs,
@@ -1291,6 +1304,7 @@ export { buildObservationLedger } from "./observations.js";
 export { diffObservationLedgers } from "./observationDrift.js";
 export { DEFAULT_OBSERVATION_POLICY, evaluateObservationPolicy, validateObservationPolicy } from "./observationPolicy.js";
 export { buildActionPlan } from "./actionPlan.js";
+export { buildEvidenceQualitySummary } from "./evidenceQuality.js";
 export { buildPostureInsights } from "./postureInsights.js";
 export { scanLiveCertificate } from "./certificate.js";
 export { buildExposureBrief } from "./exposureBrief.js";

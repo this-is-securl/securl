@@ -1,3 +1,4 @@
+import { buildEvidenceQualitySummary } from "./evidenceQuality.js";
 import type { AnalysisResult, ScanIssue, Severity } from "./types.js";
 
 type IssueSeverity = Exclude<Severity, "good">;
@@ -42,6 +43,7 @@ export function buildPostureDigest(analysis: AnalysisResult, { findingLimit = 8 
   const riskIndicators = compromiseIndicators.filter((indicator) =>
     ["warning", "critical"].includes(indicator.severity),
   );
+  const evidenceQuality = analysis.evidenceQuality ?? buildEvidenceQualitySummary(analysis);
 
   return {
     generatedAt: new Date().toISOString(),
@@ -89,6 +91,17 @@ export function buildPostureDigest(analysis: AnalysisResult, { findingLimit = 8 
         scoreImpact: reference.scoreImpact,
       })),
     } : null,
+    evidenceQuality: {
+      level: evidenceQuality.level,
+      score: evidenceQuality.score,
+      summary: evidenceQuality.summary,
+      evidence: evidenceQuality.evidence,
+      scan: evidenceQuality.scan,
+      findings: evidenceQuality.findings,
+      strengths: normalizeArray(evidenceQuality.strengths).slice(0, 5),
+      gaps: normalizeArray(evidenceQuality.gaps).slice(0, 5),
+      recommendedFollowUp: normalizeArray(evidenceQuality.recommendedFollowUp).slice(0, 4),
+    },
     remediationPlan: analysis.remediationPlan ? {
       summary: analysis.remediationPlan.summary,
       totalActions: analysis.remediationPlan.totalActions,

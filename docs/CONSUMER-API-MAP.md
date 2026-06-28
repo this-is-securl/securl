@@ -7,7 +7,7 @@ Use this map when building web, iOS, CLI, report, or automation clients. The ful
 For web and mobile experiences, prefer:
 
 - `GET /api/scans/:id/summary`: scan lifecycle, score, grade, and target metadata.
-- `GET /api/scans/:id/digest`: compact posture overview, top findings, score drivers, controls, trust, and timing.
+- `GET /api/scans/:id/digest`: compact posture overview, top findings, score drivers, controls, trust, evidence quality, and timing.
 - `GET /api/scans/:id/insights`: display-ready risk themes, top insights, and next-best actions for mobile/web summary screens.
 - `GET /api/scans/:id/mobile-summary`: one-call app result payload containing scan summary, digest, and insights after scan completion.
 - `GET /api/scans/:id/brief`: outside-observer exposure brief with public entry points, trust gaps, abuse indicators, and next actions.

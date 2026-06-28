@@ -105,7 +105,7 @@ function assertCapabilities(payload) {
     }
   }
 
-  for (const feature of ["evidence-summary", "posture-digest", "posture-insights", "mobile-scan-summary", "posture-drift", "exposure-brief", "vendor-exposure", "action-plan", "scan-events", "scan-resource-links", "durable-scan-jobs", "observation-ledger-v1", "observation-drift-v1", "observation-policy-v1"]) {
+  for (const feature of ["evidence-summary", "evidence-quality", "posture-digest", "posture-insights", "mobile-scan-summary", "posture-drift", "exposure-brief", "vendor-exposure", "action-plan", "scan-events", "scan-resource-links", "durable-scan-jobs", "observation-ledger-v1", "observation-drift-v1", "observation-policy-v1"]) {
     if (!features.includes(feature)) {
       throw new Error(`Capabilities missing scan feature: ${feature}`);
     }
@@ -261,6 +261,9 @@ async function main() {
     console.log(`${label}: ok`);
     if (label === "digest" && !payload.digest) {
       throw new Error("Digest endpoint returned an empty digest");
+    }
+    if (label === "digest" && !payload.digest.evidenceQuality?.level) {
+      throw new Error("Digest endpoint returned no evidence quality summary");
     }
     if (label === "insights" && !payload.insights?.topInsights) {
       throw new Error("Insights endpoint returned an empty insights payload");

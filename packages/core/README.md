@@ -287,6 +287,23 @@ console.log({
 });
 ```
 
+Version `1.13.0+` includes an evidence-quality helper for client surfaces that need to explain how much confidence to place in a scan result.
+
+```js
+import { buildEvidenceQualitySummary } from "securl/evidence-quality";
+
+const quality = buildEvidenceQualitySummary(resultWithEvidence);
+
+console.log({
+  level: quality.level,
+  score: quality.score,
+  gaps: quality.gaps,
+  followUp: quality.recommendedFollowUp,
+});
+```
+
+Evidence quality is also included in `buildPostureDigest()` output, so mobile and API clients can display scan confidence without loading the full result.
+
 ## Package trust and release signals
 
 - public source repository with package code under `packages/core`
@@ -371,6 +388,7 @@ Primary exports:
 - `buildPostureRemediationPlan(result)` - generate prioritized, owner-aware remediation actions from findings and score drivers.
 - `attachIssueEvidence(result)` - add structured evidence references to findings without changing their existing fields.
 - `buildPostureEvidenceSummary(result)` - produce compact evidence metadata for API, mobile, report, and explainability surfaces.
+- `buildEvidenceQualitySummary(result)` - summarize scan confidence, collection gaps, and recommended follow-up.
 
 Package subpath exports:
 
@@ -384,6 +402,7 @@ Package subpath exports:
 - `securl/observation-policy`
 - `securl/posture-drift`
 - `securl/remediation-plan`
+- `securl/evidence-quality`
 - `securl/risk-events`
 - `securl/types`
 
