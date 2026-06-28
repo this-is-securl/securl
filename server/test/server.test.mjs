@@ -487,6 +487,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.deepEqual(payload.scans.modes, ["standard", "quiet", "deep-passive"]);
     assert.ok(payload.scans.features.includes("finding-evidence"));
     assert.ok(payload.scans.features.includes("evidence-summary"));
+    assert.ok(payload.scans.features.includes("evidence-quality"));
     assert.ok(payload.scans.features.includes("remediation-plan"));
     assert.ok(payload.scans.features.includes("posture-insights"));
     assert.ok(payload.scans.features.includes("mobile-scan-summary"));
@@ -2133,6 +2134,9 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.ok(Array.isArray(digestPayload.digest.remediationPlan.topActions));
     assert.ok(digestPayload.digest.evidence);
     assert.equal(typeof digestPayload.digest.evidence.totalEvidenceReferences, "number");
+    assert.ok(digestPayload.digest.evidenceQuality);
+    assert.equal(typeof digestPayload.digest.evidenceQuality.score, "number");
+    assert.ok(["high", "medium", "low"].includes(digestPayload.digest.evidenceQuality.level));
     assert.ok(Array.isArray(digestPayload.digest.posture.scoreDrivers));
     assert.ok(Array.isArray(digestPayload.digest.intelligence.riskIndicators));
     assert.equal(insightsResponse.status, 200);
@@ -2148,6 +2152,7 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.equal(mobileSummaryPayload.scan.id, scanId);
     assert.equal(mobileSummaryPayload.ready, true);
     assert.equal(mobileSummaryPayload.digest.target.host, "example.com");
+    assert.ok(mobileSummaryPayload.digest.evidenceQuality);
     assert.equal(typeof mobileSummaryPayload.insights.summary, "string");
     assert.equal(mobileSummaryPayload.resources.mobileSummary, `/api/scans/${scanId}/mobile-summary`);
     assert.equal(briefResponse.status, 200);

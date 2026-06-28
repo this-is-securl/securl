@@ -63,6 +63,7 @@ export function buildCapabilitiesPayload({
         "executive-summary",
         "finding-evidence",
         "evidence-summary",
+        "evidence-quality",
         "remediation-plan",
         "posture-digest",
         "posture-insights",

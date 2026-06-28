@@ -6,6 +6,12 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-06-28
+
+### Added
+- Added `buildEvidenceQualitySummary()` and the `securl/evidence-quality` package export for scan confidence, coverage gaps, and recommended follow-up.
+- Added `evidenceQuality` to completed analysis results and compact posture digests so API, mobile, and CLI clients can explain how trustworthy a scan read is.
+
 ## [1.12.0] - 2026-06-27
 
 ### Added
