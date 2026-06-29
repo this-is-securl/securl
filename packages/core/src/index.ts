@@ -5,6 +5,7 @@ import { buildCompromiseSignals, emptyCompromiseSignals } from "./compromiseSign
 import { buildEvidenceQualitySummary } from "./evidenceQuality.js";
 import { buildExposureBrief } from "./exposureBrief.js";
 import { buildPostureInsights } from "./postureInsights.js";
+import { buildSignalClaritySummary } from "./signalClarity.js";
 import { buildVendorExposureBrief } from "./vendorExposure.js";
 import { parseSetCookie } from "./cookie-analysis.js";
 import { analyzeCookieHeaders } from "./cookieAnalysis.js";
@@ -668,9 +669,13 @@ async function buildLimitedResult(
     ...resultWithActions,
     postureInsights: buildPostureInsights(resultWithActions),
   };
-  return {
+  const resultWithSignalClarity = {
     ...resultWithInsights,
-    observationLedger: buildObservationLedger(resultWithInsights),
+    signalClarity: buildSignalClaritySummary(resultWithInsights),
+  };
+  return {
+    ...resultWithSignalClarity,
+    observationLedger: buildObservationLedger(resultWithSignalClarity),
   };
 }
 
@@ -1306,6 +1311,7 @@ export { DEFAULT_OBSERVATION_POLICY, evaluateObservationPolicy, validateObservat
 export { buildActionPlan } from "./actionPlan.js";
 export { buildEvidenceQualitySummary } from "./evidenceQuality.js";
 export { buildPostureInsights } from "./postureInsights.js";
+export { buildSignalClaritySummary } from "./signalClarity.js";
 export { scanLiveCertificate } from "./certificate.js";
 export { buildExposureBrief } from "./exposureBrief.js";
 export { buildVendorExposureBrief } from "./vendorExposure.js";

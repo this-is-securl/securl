@@ -175,6 +175,9 @@ test("posture digest condenses scan results for API consumers", () => {
   assert.equal(digest.findings.bySeverity.warning, 1);
   assert.equal(digest.remediationPlan.totalActions, 1);
   assert.equal(digest.remediationPlan.topActions[0].owner, "edge");
+  assert.equal(digest.signalClarity.verdict, "strong");
+  assert.equal(digest.signalClarity.topNegativeDrivers[0].label, "Content-Security-Policy gap");
+  assert.equal(digest.signalClarity.nextBestAction.label, "Tighten the CSP.");
   assert.equal(digest.controls.headers.missing, 1);
   assert.equal(digest.controls.headers.warning, 1);
   assert.equal(digest.controls.tls.issuer, "Example CA");

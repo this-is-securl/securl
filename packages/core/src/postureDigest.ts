@@ -1,4 +1,5 @@
 import { buildEvidenceQualitySummary } from "./evidenceQuality.js";
+import { buildSignalClaritySummary } from "./signalClarity.js";
 import type { AnalysisResult, ScanIssue, Severity } from "./types.js";
 
 type IssueSeverity = Exclude<Severity, "good">;
@@ -44,6 +45,7 @@ export function buildPostureDigest(analysis: AnalysisResult, { findingLimit = 8 
     ["warning", "critical"].includes(indicator.severity),
   );
   const evidenceQuality = analysis.evidenceQuality ?? buildEvidenceQualitySummary(analysis);
+  const signalClarity = analysis.signalClarity ?? buildSignalClaritySummary({ ...analysis, evidenceQuality });
 
   return {
     generatedAt: new Date().toISOString(),
@@ -101,6 +103,16 @@ export function buildPostureDigest(analysis: AnalysisResult, { findingLimit = 8 
       strengths: normalizeArray(evidenceQuality.strengths).slice(0, 5),
       gaps: normalizeArray(evidenceQuality.gaps).slice(0, 5),
       recommendedFollowUp: normalizeArray(evidenceQuality.recommendedFollowUp).slice(0, 4),
+    },
+    signalClarity: {
+      headline: signalClarity.headline,
+      verdict: signalClarity.verdict,
+      summary: signalClarity.summary,
+      confidence: signalClarity.confidence,
+      topNegativeDrivers: signalClarity.score.topNegativeDrivers.slice(0, 3),
+      topPositiveSignals: signalClarity.score.topPositiveSignals.slice(0, 3),
+      nextBestAction: signalClarity.nextBestAction,
+      caveats: signalClarity.caveats.slice(0, 3),
     },
     remediationPlan: analysis.remediationPlan ? {
       summary: analysis.remediationPlan.summary,

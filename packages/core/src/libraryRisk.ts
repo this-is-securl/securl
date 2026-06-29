@@ -4,6 +4,8 @@ import {
   OSV_DETAIL_LOOKUP_LIMIT,
   OSV_QUERY_TIMEOUT_MS,
 } from "./scannerConfig.js";
+import { requestJson } from "./network.js";
+import type { RequestJsonFn } from "./network.js";
 import type { LibraryFingerprint, LibraryRiskSignal, LibraryVulnerability } from "./types.js";
 import { mapWithConcurrency, unique } from "./utils.js";
 
@@ -25,25 +27,23 @@ const LIBRARY_PATTERNS: Array<{ packageName: string; pattern: RegExp; evidence: 
 
 const riskCache = new Map<string, LibraryRiskSignal[]>();
 
-const abortableJsonFetch = async (url: string, init?: RequestInit) => {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), OSV_QUERY_TIMEOUT_MS);
-  try {
-    const response = await fetch(url, {
-      ...init,
-      signal: controller.signal,
-      headers: {
-        "content-type": "application/json",
-        ...(init?.headers || {}),
-      },
-    });
-    if (!response.ok) {
-      throw new Error(`OSV request failed with status ${response.status}`);
-    }
-    return (await response.json()) as Record<string, unknown>;
-  } finally {
-    clearTimeout(timeout);
+const requestOsvJson = async (
+  url: string,
+  requestJsonFn: RequestJsonFn,
+  options: { method?: "GET" | "POST"; body?: string } = {},
+) => {
+  const response = await requestJsonFn(
+    new URL(url),
+    { "content-type": "application/json" },
+    {
+      timeoutMs: OSV_QUERY_TIMEOUT_MS,
+      ...options,
+    },
+  );
+  if (response.statusCode < 200 || response.statusCode >= 300 || !response.json || typeof response.json !== "object") {
+    throw new Error(`OSV request failed with status ${response.statusCode}`);
   }
+  return response.json as Record<string, unknown>;
 };
 
 const toSeverity = (value: unknown): LibraryVulnerability["severity"] => {
@@ -105,7 +105,10 @@ export const collectLibraryFingerprints = (externalScriptUrls: string[]): Librar
   return fingerprints.slice(0, LIBRARY_RISK_LOOKUP_LIMIT);
 };
 
-export const fetchLibraryRiskSignals = async (fingerprints: LibraryFingerprint[]): Promise<LibraryRiskSignal[]> => {
+export const fetchLibraryRiskSignals = async (
+  fingerprints: LibraryFingerprint[],
+  requestJsonFn: RequestJsonFn = requestJson,
+): Promise<LibraryRiskSignal[]> => {
   const queryableFingerprints = fingerprints.filter((item) => item.confidence === "high").slice(0, LIBRARY_RISK_LOOKUP_LIMIT);
   if (!queryableFingerprints.length) {
     return [];
@@ -118,7 +121,7 @@ export const fetchLibraryRiskSignals = async (fingerprints: LibraryFingerprint[]
   }
 
   try {
-    const queryResponse = await abortableJsonFetch(OSV_QUERYBATCH_URL, {
+    const queryResponse = await requestOsvJson(OSV_QUERYBATCH_URL, requestJsonFn, {
       method: "POST",
       body: JSON.stringify({
         queries: queryableFingerprints.map((item) => ({
@@ -147,7 +150,7 @@ export const fetchLibraryRiskSignals = async (fingerprints: LibraryFingerprint[]
       OSV_DETAIL_CONCURRENCY_LIMIT,
       async (id) => {
         try {
-          const payload = await abortableJsonFetch(`${OSV_VULN_URL}${encodeURIComponent(id)}`);
+          const payload = await requestOsvJson(`${OSV_VULN_URL}${encodeURIComponent(id)}`, requestJsonFn);
           return [id, toVulnerability(payload)] as const;
         } catch {
           return [id, null] as const;
