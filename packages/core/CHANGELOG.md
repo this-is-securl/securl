@@ -6,6 +6,16 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [1.13.1] - 2026-06-29
+
+### Added
+- Added `buildSignalClaritySummary()` and the `securl/signal-clarity` package export for compact grade explanation, evidence confidence, top score drivers, caveats, and next-best action.
+- Added `signalClarity` to completed analysis results and compact posture digests so API, mobile, CLI, and future SaaS clients can explain why a target received its grade without interpreting the full result payload.
+
+### Changed
+- Routed OSV library-risk lookups through the shared scanner transport instead of raw `fetch`, keeping public-enrichment network access bounded, injectable, and clearer to package trust scanners.
+- Added npm funding and explicit provenance metadata to strengthen package trust signals.
+
 ## [1.13.0] - 2026-06-28
 
 ### Added

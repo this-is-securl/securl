@@ -1,6 +1,6 @@
 {
   "name": "securl",
-  "version": "1.13.0",
+  "version": "1.13.1",
   "type": "module",
   "description": "Passive external security posture scanner for public URLs and web services.",
   "author": {
@@ -16,6 +16,10 @@
   "bugs": {
     "url": "https://github.com/this-is-securl/securl/issues"
   },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/ktbatterham"
+  },
   "engines": {
     "node": ">=22"
   },
@@ -28,7 +32,8 @@
   },
   "sideEffects": false,
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "exports": {
     ".": {
@@ -85,6 +90,10 @@
     "./posture-insights": {
       "types": "./dist/postureInsights.d.ts",
       "default": "./dist/postureInsights.js"
+    },
+    "./signal-clarity": {
+      "types": "./dist/signalClarity.d.ts",
+      "default": "./dist/signalClarity.js"
     },
     "./live-certificate": {
       "types": "./dist/certificate.d.ts",

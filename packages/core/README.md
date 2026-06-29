@@ -168,6 +168,7 @@ const digest = buildPostureDigest(result);
 console.log({
   grade: digest.posture.grade,
   score: digest.posture.score,
+  headline: digest.signalClarity.headline,
   topFindings: digest.findings.top,
   topFixes: digest.remediationPlan?.topActions,
   riskIndicators: digest.intelligence.riskIndicators,
@@ -215,7 +216,29 @@ console.log({
 
 Posture insights are derived from the action plan, so clients can render security judgement without reinterpreting raw findings, score drivers, exposure details, or vendor context.
 
-### 8. Live certificate checks
+### 8. Signal clarity summary
+
+Version `1.13.1+` includes a signal-clarity helper for clients that need a one-screen explanation of the grade, confidence, top score drivers, caveats, and next best action.
+
+```ts
+import { analyzeUrl } from "securl";
+import { buildSignalClaritySummary } from "securl/signal-clarity";
+
+const result = await analyzeUrl("https://example.com");
+const clarity = buildSignalClaritySummary(result);
+
+console.log({
+  headline: clarity.headline,
+  verdict: clarity.verdict,
+  confidence: clarity.confidence,
+  biggestDrivers: clarity.score.topNegativeDrivers,
+  nextBestAction: clarity.nextBestAction,
+});
+```
+
+Signal clarity is derived from the evidence quality summary, score drivers, and action plan. It is designed for mobile cards, API summaries, CLI reports, and future SaaS dashboards that need to explain "why this grade?" without loading or interpreting the full result.
+
+### 9. Live certificate checks
 
 Version `1.9.0+` includes a lightweight certificate helper for Cert Watch-style clients that only need the currently served TLS certificate.
 
@@ -232,7 +255,7 @@ console.log({
 });
 ```
 
-### 8. Machine-readable observation ledger
+### 10. Machine-readable observation ledger
 
 Version `1.10.0+` adds stable posture observations for monitoring, inventory, policy, and future SaaS integrations. Each observation records what was seen, whether it was observed, inferred, missing, or unavailable, its confidence and source, and when that evidence should be refreshed.
 
@@ -252,7 +275,7 @@ Version `1.11.0+` adds `diffObservationLedgers(current, previous)` from `securl/
 
 Use `evaluateObservationPolicy({ ledger, drift, policy })` from `securl/observation-policy` to apply bounded declarative rules. Rules can select an exact observation kind, kind prefix, or category, then assert equality, membership, or numeric thresholds against current observations or changes. `DEFAULT_OBSERVATION_POLICY` provides a maintained baseline for certificate validity/window, HSTS, CSP, DMARC, and critical regressions.
 
-### 9. Evidence-backed remediation plans
+### 11. Evidence-backed remediation plans
 
 Version `1.4.0+` includes a remediation plan helper that turns score drivers and findings into prioritized, owner-aware fix guidance. Findings can also carry structured evidence references so clients can show why a finding was raised.
 
@@ -312,6 +335,7 @@ Evidence quality is also included in `buildPostureDigest()` output, so mobile an
 - no install scripts
 - one runtime dependency (`node-html-parser`)
 - published MIT license, changelog, release notes, and security policy
+- explicit bounded network access through the scanner transport for target reads and public enrichment APIs such as Certificate Transparency and OSV
 
 Security disclosure guidance:
 
@@ -380,6 +404,7 @@ Primary exports:
 - `buildPostureDigest(result)` - reduce a full scan result to a compact API/mobile-friendly digest.
 - `buildActionPlan(result)` - turn remediation, score drivers, exposure, and vendor context into prioritized fix actions.
 - `buildPostureInsights(result)` - summarize risk themes, top insights, and next-best actions for client surfaces.
+- `buildSignalClaritySummary(result)` - explain the grade, confidence, top score drivers, caveats, and next best action in a compact client-ready payload.
 - `scanLiveCertificate(url)` - perform a TLS handshake-only certificate read for lightweight cert monitoring.
 - `buildObservationLedger(result)` - produce stable source, confidence, status, and freshness-aware posture observations.
 - `diffObservationLedgers(current, previous)` - compare stable observations and classify their operational impact.
@@ -396,6 +421,7 @@ Package subpath exports:
 - `securl/posture-digest`
 - `securl/action-plan`
 - `securl/posture-insights`
+- `securl/signal-clarity`
 - `securl/live-certificate`
 - `securl/observations`
 - `securl/observation-drift`

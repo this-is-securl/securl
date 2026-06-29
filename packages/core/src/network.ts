@@ -28,10 +28,16 @@ export interface RequestJsonResult<T = unknown> {
 }
 
 export type RequestTextFn = (targetUrl: URL, extraHeaders?: Record<string, string>) => Promise<RequestTextResult>;
-export type RequestJsonFn = (targetUrl: URL, extraHeaders?: Record<string, string>) => Promise<RequestJsonResult>;
+export type RequestJsonFn = (
+  targetUrl: URL,
+  extraHeaders?: Record<string, string>,
+  options?: RequestOptions,
+) => Promise<RequestJsonResult>;
 
-interface RequestOptions {
+export interface RequestOptions {
   timeoutMs?: number;
+  method?: "GET" | "POST";
+  body?: string;
 }
 
 export function requestOnce(targetUrl: URL, method = "HEAD", options: RequestOptions = {}): Promise<RequestHeadResult> {
@@ -91,18 +97,20 @@ export async function requestText(
   const isHttps = targetUrl.protocol === "https:";
   const transport = isHttps ? https : http;
   const timeoutMs = options.timeoutMs ?? REQUEST_TIMEOUT_MS;
+  const body = options.body ?? "";
 
   return new Promise((resolve, reject) => {
     const request = transport.request(
       targetUrl,
       {
-        method: "GET",
+        method: options.method ?? "GET",
         ...OBSERVATIONAL_TLS_OPTIONS,
         lookup: createPinnedLookup(validatedAddresses),
         headers: {
           "User-Agent": SCANNER_USER_AGENT,
           Accept: "text/plain,text/*;q=0.9,*/*;q=0.1",
           "Accept-Encoding": "identity",
+          ...(body ? { "Content-Length": Buffer.byteLength(body).toString() } : {}),
           ...extraHeaders,
         },
       },
@@ -129,6 +137,9 @@ export async function requestText(
     request.setTimeout(timeoutMs, () => {
       request.destroy(new Error("Request timed out."));
     });
+    if (body) {
+      request.write(body);
+    }
     request.end();
   });
 }

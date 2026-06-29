@@ -445,6 +445,47 @@ export interface PostureInsights {
   limitation: AssessmentLimitation | null;
 }
 
+export type SignalClarityVerdict = "strong" | "positive" | "mixed" | "weak" | "limited";
+export type SignalClarityDirection = "positive" | "negative" | "neutral";
+export type SignalClarityAudience = "developer" | "security" | "executive";
+
+export interface SignalClaritySignal {
+  id: string;
+  label: string;
+  detail: string;
+  direction: SignalClarityDirection;
+  severity: PostureInsightSeverity;
+  source: ScoreDriver["source"] | "action_plan" | "evidence_quality" | "limitation";
+  scoreImpact: number | null;
+}
+
+export interface SignalClaritySummary {
+  generatedAt: string;
+  headline: string;
+  verdict: SignalClarityVerdict;
+  summary: string;
+  target: {
+    host: string;
+    finalUrl: string;
+    scannedAt: string;
+    score: number;
+    grade: string;
+  };
+  confidence: {
+    level: EvidenceQualityLevel;
+    score: number;
+    summary: string;
+  };
+  score: {
+    driversReviewed: number;
+    topNegativeDrivers: SignalClaritySignal[];
+    topPositiveSignals: SignalClaritySignal[];
+  };
+  nextBestAction: PostureInsightAction | null;
+  caveats: string[];
+  audienceNotes: Record<SignalClarityAudience, string>;
+}
+
 export interface CrawlPageResult {
   label: string;
   path: string;
@@ -1235,6 +1276,7 @@ export interface AnalysisResult {
   vendorExposure?: VendorExposureBrief;
   actionPlan?: ActionPlan;
   postureInsights?: PostureInsights;
+  signalClarity?: SignalClaritySummary;
   crawl: CrawlSummary;
   securityTxt: SecurityTxtInfo;
   domainSecurity: DomainSecurityInfo;
