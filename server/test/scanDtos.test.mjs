@@ -411,6 +411,9 @@ test("mobile monitoring summary includes a compact latest digest preview", () =>
   assert.equal(digest.posture.grade, "A");
   assert.equal(digest.posture.score, 92);
   assert.equal(digest.posture.scoreDrivers.length, 1);
+  assert.ok(digest.signalClarity);
+  assert.equal(typeof digest.signalClarity.headline, "string");
+  assert.ok(Array.isArray(digest.signalClarity.topNegativeDrivers));
   assert.equal(digest.findings.total, 2);
   assert.equal(digest.findings.top.length, 2);
   assert.equal(digest.controls.tls.daysRemaining, 90);

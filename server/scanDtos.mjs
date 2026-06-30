@@ -482,6 +482,16 @@ function buildMobileDigestPreview(record) {
       bySeverity: digest.findings.bySeverity,
       top: normalizeArray(digest.findings.top).slice(0, 3),
     },
+    signalClarity: digest.signalClarity ? {
+      headline: digest.signalClarity.headline,
+      verdict: digest.signalClarity.verdict,
+      summary: digest.signalClarity.summary,
+      confidence: digest.signalClarity.confidence,
+      topNegativeDrivers: normalizeArray(digest.signalClarity.topNegativeDrivers).slice(0, 3),
+      topPositiveSignals: normalizeArray(digest.signalClarity.topPositiveSignals).slice(0, 3),
+      nextBestAction: digest.signalClarity.nextBestAction,
+      caveats: normalizeArray(digest.signalClarity.caveats).slice(0, 3),
+    } : null,
     controls: {
       headers: digest.controls.headers,
       tls: {
