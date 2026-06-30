@@ -7,7 +7,7 @@ Use this map when building web, iOS, CLI, report, or automation clients. The ful
 For web and mobile experiences, prefer:
 
 - `GET /api/scans/:id/summary`: scan lifecycle, score, grade, and target metadata.
-- `GET /api/scans/:id/digest`: compact posture overview, top findings, score drivers, controls, trust, evidence quality, and timing.
+- `GET /api/scans/:id/digest`: compact posture overview, signal clarity, top findings, score drivers, controls, trust, evidence quality, and timing.
 - `GET /api/scans/:id/insights`: display-ready risk themes, top insights, and next-best actions for mobile/web summary screens.
 - `GET /api/scans/:id/mobile-summary`: one-call app result payload containing scan summary, digest, and insights after scan completion.
 - `GET /api/scans/:id/brief`: outside-observer exposure brief with public entry points, trust gaps, abuse indicators, and next actions.
@@ -28,7 +28,7 @@ For mobile clients, use `/mobile-summary` for the main scan result screen after 
 
 - Register APNs tokens with `POST /api/notification-devices` using the same `X-Scan-Owner` or bearer session used for scans.
 - Add monitored URLs with `POST /api/monitoring-targets`; backend scheduler scans due targets and sends APNs alerts when meaningful drift appears.
-- Use `GET /api/monitoring-mobile-summary` for watch-list refreshes. It returns compact target state, next-check timing, posture/certificate change summaries, and stable action hints without loading full scan detail.
+- Use `GET /api/monitoring-mobile-summary` for watch-list refreshes. It returns compact target state, next-check timing, posture/certificate change summaries, signal-clarity headlines, and stable action hints without loading full scan detail.
 - Use `GET /api/certificates/live?url=...` for Cert Watch refreshes that only need the currently served TLS certificate.
 
 ## Investigation And Reporting

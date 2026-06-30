@@ -490,6 +490,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.scans.features.includes("evidence-quality"));
     assert.ok(payload.scans.features.includes("remediation-plan"));
     assert.ok(payload.scans.features.includes("posture-insights"));
+    assert.ok(payload.scans.features.includes("signal-clarity"));
     assert.ok(payload.scans.features.includes("mobile-scan-summary"));
     assert.ok(payload.scans.features.includes("exposure-brief"));
     assert.ok(payload.scans.features.includes("vendor-exposure"));
@@ -530,6 +531,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.equal(typeof payload.monitoring.scheduler.lastSweep.failed, "number");
     assert.ok(payload.monitoring.features.includes("mobile-posture-drift-summary"));
     assert.ok(payload.monitoring.features.includes("mobile-digest-preview"));
+    assert.ok(payload.monitoring.features.includes("mobile-signal-clarity"));
     assert.ok(payload.monitoring.features.includes("cert-attention-state"));
     assert.ok(payload.monitoring.features.includes("target-observation-policy"));
     assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-summary"));
@@ -2137,6 +2139,9 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.ok(digestPayload.digest.evidenceQuality);
     assert.equal(typeof digestPayload.digest.evidenceQuality.score, "number");
     assert.ok(["high", "medium", "low"].includes(digestPayload.digest.evidenceQuality.level));
+    assert.ok(digestPayload.digest.signalClarity);
+    assert.equal(typeof digestPayload.digest.signalClarity.headline, "string");
+    assert.ok(Array.isArray(digestPayload.digest.signalClarity.topNegativeDrivers));
     assert.ok(Array.isArray(digestPayload.digest.posture.scoreDrivers));
     assert.ok(Array.isArray(digestPayload.digest.intelligence.riskIndicators));
     assert.equal(insightsResponse.status, 200);
@@ -2153,6 +2158,7 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.equal(mobileSummaryPayload.ready, true);
     assert.equal(mobileSummaryPayload.digest.target.host, "example.com");
     assert.ok(mobileSummaryPayload.digest.evidenceQuality);
+    assert.ok(mobileSummaryPayload.digest.signalClarity);
     assert.equal(typeof mobileSummaryPayload.insights.summary, "string");
     assert.equal(mobileSummaryPayload.resources.mobileSummary, `/api/scans/${scanId}/mobile-summary`);
     assert.equal(briefResponse.status, 200);
