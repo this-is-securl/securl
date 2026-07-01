@@ -6,6 +6,17 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-07-01
+
+### Added
+- Surfaced signal clarity through backend API DTOs, capabilities, and mobile monitoring digest previews so clients can consume the grade explanation added in 1.13.1 without reading the full scan payload.
+- Added daily backend telemetry attribution by source, mode, client, and client version for aggregate product usage readouts across SecURL, Header Watch, Cert Watch, scheduler activity, and smoke checks.
+- Added aggregate live-certificate failure telemetry so Cert Watch and other mobile clients can distinguish successful certificate reads from endpoint or target validation failures.
+
+### Changed
+- Updated the telemetry CLI report to show today by backend event, app/client, client version, backend source, and recent backend events.
+- Refreshed workspace dependencies, including `pg`, `lucide-react`, Radix switch/radio-group primitives, and `globals`.
+
 ## [1.13.1] - 2026-06-29
 
 ### Added
