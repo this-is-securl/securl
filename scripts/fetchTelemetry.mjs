@@ -4,6 +4,17 @@ import { readRailwayVariables } from "./lib/readRailwayVariables.mjs";
 const DEFAULT_BASE_URL = "https://securl-app-production.up.railway.app";
 
 const formatMs = (value) => `${Math.round(value || 0).toLocaleString()}ms`;
+const sumEventCounts = (events = {}) => Object.values(events || {})
+  .reduce((sum, count) => sum + Number(count || 0), 0);
+const sortedEventBuckets = (buckets = {}) => Object.entries(buckets || {})
+  .map(([name, events]) => [name, events || {}, sumEventCounts(events)])
+  .filter(([, , total]) => total > 0)
+  .sort(([, , left], [, , right]) => right - left);
+const describeEventCounts = (events = {}) => Object.entries(events || {})
+  .filter(([, count]) => Number(count || 0) > 0)
+  .sort(([, left], [, right]) => Number(right || 0) - Number(left || 0))
+  .map(([event, count]) => `${event}: ${count}`)
+  .join(", ");
 
 const main = async () => {
   const vars = process.env.TELEMETRY_TOKEN ? {} : readRailwayVariables();
@@ -114,10 +125,42 @@ const main = async () => {
   console.log(`  Notification device health reads: ${clientConsumption.notificationDeviceHealthReads ?? 0}`);
   console.log(`  Notification test requests: ${clientConsumption.notificationTestRequests ?? 0}`);
   console.log(`  Live certificate reads: ${clientConsumption.liveCertificateReads ?? 0}`);
+  console.log(`  Live certificate failures: ${clientConsumption.liveCertificateFailures ?? 0}`);
+  const todayConsumption = clientConsumption.today || {};
+  const todayConsumptionRows = Object.entries(todayConsumption)
+    .filter(([, count]) => Number(count || 0) > 0)
+    .sort(([, left], [, right]) => Number(right || 0) - Number(left || 0));
+  if (todayConsumptionRows.length) {
+    console.log("  Today by event:");
+    for (const [event, count] of todayConsumptionRows) {
+      console.log(`    - ${event}: ${count}`);
+    }
+  }
   const activeSignals = Object.entries(clientConsumption.adoptionSignals || {})
     .filter(([, active]) => active)
     .map(([signal]) => signal);
   console.log(`  Active signals: ${activeSignals.length ? activeSignals.join(", ") : "none"}`);
+  const todayByClient = sortedEventBuckets(telemetry.funnel?.todayByClient);
+  if (todayByClient.length) {
+    console.log("  Today by app/client:");
+    for (const [client, events, total] of todayByClient.slice(0, 8)) {
+      console.log(`    - ${client}: ${total} (${describeEventCounts(events)})`);
+    }
+  }
+  const todayByVersion = sortedEventBuckets(telemetry.funnel?.todayByClientVersion);
+  if (todayByVersion.length) {
+    console.log("  Today by client version:");
+    for (const [version, events, total] of todayByVersion.slice(0, 8)) {
+      console.log(`    - ${version}: ${total} (${describeEventCounts(events)})`);
+    }
+  }
+  const todayBySource = sortedEventBuckets(telemetry.funnel?.todayBySource);
+  if (todayBySource.length) {
+    console.log("  Today by backend source:");
+    for (const [source, events, total] of todayBySource.slice(0, 8)) {
+      console.log(`    - ${source}: ${total} (${describeEventCounts(events)})`);
+    }
+  }
   const clientModes = Object.entries(clientConsumption.byMode || {})
     .map(([mode, events]) => [
       mode,
@@ -156,6 +199,19 @@ const main = async () => {
       const events = Object.values(clientIdentity.backendEventsByClientVersion?.[version] || {})
         .reduce((sum, count) => sum + Number(count || 0), 0);
       console.log(`    - ${version}: ${scans} scans / ${events} service events`);
+    }
+  }
+  const recentBackendEvents = (telemetry.funnel?.recent || [])
+    .filter((event) => event?.source === "backend_api")
+    .slice(0, 8);
+  if (recentBackendEvents.length) {
+    console.log("  Recent backend events:");
+    for (const event of recentBackendEvents) {
+      const clientLabel = event.client
+        ? `${event.client}${event.clientVersion ? `@${event.clientVersion}` : ""}`
+        : "unknown-client";
+      const targetLabel = event.target ? ` ${event.target}` : "";
+      console.log(`    - ${event.occurredAt} ${event.event} ${clientLabel}${targetLabel}`);
     }
   }
   const delivery = telemetry.notifications?.delivery || {};
