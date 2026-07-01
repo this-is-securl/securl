@@ -159,6 +159,12 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.funnel.byClientVersion["cert-watch-ios@1.1.0+8"].live_certificate_read, 1);
   assert.equal(snapshot.funnel.today.scan_started, 1);
   assert.equal(snapshot.funnel.today.handoff_started, 1);
+  assert.equal(snapshot.funnel.todayBySource.backend_api.live_certificate_read, 1);
+  assert.equal(snapshot.funnel.todayByMode["com.ktbatterham.securl"].notification_device_registered, 1);
+  assert.equal(snapshot.funnel.todayByClient["cert-watch-ios"].live_certificate_read, 1);
+  assert.equal(snapshot.funnel.todayByClientVersion["cert-watch-ios@1.1.0+8"].live_certificate_read, 1);
+  assert.equal(snapshot.funnel.recentDays.at(-1).clients["cert-watch-ios"].live_certificate_read, 1);
+  assert.equal(snapshot.funnel.recentDays.at(-1).clientVersions["cert-watch-ios@1.1.0+8"].live_certificate_read, 1);
   assert.equal(snapshot.funnel.recent.length, 7);
   assert.equal(snapshot.funnel.recent[0].event, "live_certificate_read");
   assert.equal(snapshot.clients.consumption.backendApiEvents, 4);
@@ -172,6 +178,8 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.clients.identity.scanRequestsByClient["securl-ios"], 1);
   assert.equal(snapshot.clients.identity.scanRequestsByClientVersion["securl-ios@1.2.0+19"], 1);
   assert.equal(snapshot.clients.identity.backendEventsByClient["cert-watch-ios"].live_certificate_read, 1);
+  assert.equal(snapshot.clients.identity.todayBackendEventsByClient["cert-watch-ios"].live_certificate_read, 1);
+  assert.equal(snapshot.clients.identity.todayBackendEventsByClientVersion["cert-watch-ios@1.1.0+8"].live_certificate_read, 1);
   assert.equal(snapshot.scans.engagement.clients["securl-ios"], 1);
   assert.equal(snapshot.scans.engagement.clientVersions["securl-ios@1.2.0+19"], 1);
   assert.deepEqual(snapshot.clients.consumption.adoptionSignals, {
@@ -239,6 +247,7 @@ test("telemetry tracker can persist counters to disk", () => {
     assert.equal(snapshot.funnel.events.report_viewed, 1);
     assert.equal(snapshot.funnel.bySource.reddit.report_viewed, 1);
     assert.equal(snapshot.funnel.byMode.ios.report_viewed, 1);
+    assert.equal(snapshot.funnel.recentDays.at(-1).modes.ios.report_viewed, 1);
     assert.equal(snapshot.funnel.recent[0].target, "https://example.com");
     assert.equal(snapshot.clients.consumption.backendApiEvents, 0);
     assert.deepEqual(snapshot.clients.consumption.adoptionSignals, {
@@ -275,8 +284,12 @@ test("client telemetry bounds attacker-controlled product cardinality", () => {
   const snapshot = telemetry.snapshot();
   assert.equal(Object.keys(snapshot.funnel.byClient).length, 100);
   assert.equal(Object.keys(snapshot.funnel.byClientVersion).length, 200);
+  assert.equal(Object.keys(snapshot.funnel.todayByClient).length, 100);
+  assert.equal(Object.keys(snapshot.funnel.todayByClientVersion).length, 200);
   assert.equal(snapshot.funnel.byClient.other.live_certificate_read, 111);
   assert.equal(snapshot.funnel.byClientVersion.other.live_certificate_read, 11);
+  assert.equal(snapshot.funnel.todayByClient.other.live_certificate_read, 111);
+  assert.equal(snapshot.funnel.todayByClientVersion.other.live_certificate_read, 11);
 });
 
 test("traffic source classification groups common public launch channels", () => {

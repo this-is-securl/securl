@@ -579,11 +579,26 @@ test("live certificate endpoint validates HTTPS targets before doing a cheap TLS
     assert.match(missingOwnerPayload.error, /scan owner token/i);
 
     const httpResponse = await fetch(`${server.baseUrl}/api/certificates/live?url=http://example.com`, {
-      headers: scanOwnerHeaders(),
+      headers: {
+        ...scanOwnerHeaders(),
+        "X-SecURL-Client": "cert-watch-ios",
+        "X-SecURL-Client-Version": "1.0.3+8",
+      },
     });
     const httpPayload = await httpResponse.json();
     assert.equal(httpResponse.status, 400);
     assert.match(httpPayload.error, /HTTPS URL/i);
+
+    const telemetryResponse = await fetch(`${server.baseUrl}/api/telemetry`);
+    const telemetryPayload = await telemetryResponse.json();
+    assert.equal(telemetryResponse.status, 200);
+    assert.equal(telemetryPayload.funnel.today.live_certificate_failed, 1);
+    assert.equal(telemetryPayload.funnel.todayByClient["cert-watch-ios"].live_certificate_failed, 1);
+    assert.equal(
+      telemetryPayload.funnel.todayByClientVersion["cert-watch-ios@1.0.3+8"].live_certificate_failed,
+      1,
+    );
+    assert.equal(telemetryPayload.clients.consumption.today.liveCertificateFailures, 1);
   } finally {
     await server.stop();
   }
