@@ -30,10 +30,20 @@ export async function handleLiveCertificateRequest({
     return true;
   }
 
+  const clientMetadata = readClientMetadata?.(request) || {};
+  const target = requestUrl.searchParams.get("url") || requestUrl.searchParams.get("target") || "";
+  let validatedTarget = null;
+
   try {
-    const target = requestUrl.searchParams.get("url") || requestUrl.searchParams.get("target") || "";
-    const validatedTarget = await assertPublicHttpUrl(target);
+    validatedTarget = await assertPublicHttpUrl(target);
     if (validatedTarget.protocol !== "https:") {
+      telemetry.recordFunnelEvent({
+        event: "live_certificate_failed",
+        source: "backend_api",
+        target,
+        client: clientMetadata.client,
+        clientVersion: clientMetadata.version,
+      });
       sendJson(response, 400, {
         error: "Live certificate checks require an HTTPS URL.",
       });
@@ -52,7 +62,6 @@ export async function handleLiveCertificateRequest({
     }
 
     const certificate = await scanLiveCertificate(validatedTarget);
-    const clientMetadata = readClientMetadata?.(request) || {};
     telemetry.recordFunnelEvent({
       event: "live_certificate_read",
       source: "backend_api",
@@ -70,7 +79,18 @@ export async function handleLiveCertificateRequest({
       certificate,
     });
   } catch (error) {
-    telemetry.recordFailure(classifyScanFailure(error));
+    telemetry.recordFunnelEvent({
+      event: "live_certificate_failed",
+      source: "backend_api",
+      target: validatedTarget?.toString?.() || target,
+      client: clientMetadata.client,
+      clientVersion: clientMetadata.version,
+    });
+    telemetry.recordFailure(classifyScanFailure(error), {
+      target: validatedTarget?.toString?.() || target,
+      message: normalizeScanErrorMessage(error),
+      source: "live_certificate",
+    });
     sendJson(response, 400, {
       error: normalizeScanErrorMessage(error),
     });

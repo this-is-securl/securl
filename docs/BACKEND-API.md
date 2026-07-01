@@ -157,7 +157,9 @@ Without APNs credentials, device registration and monitoring continue normally, 
 
 ## Telemetry readout
 
-When the production telemetry endpoint is explicitly exposed for admin use, `GET /api/telemetry` includes `clients.consumption` and `clients.identity`. The consumption readout rolls up backend-owned client activity that frontend analytics may miss: monitoring target registrations, mobile monitoring summary reads, APNs device registrations, notification health reads, and live certificate reads. Identity separates scan requests and service events by the optional product/version headers. It stores aggregate labels and counts only, not owner tokens, APNs tokens, device ids, IP addresses, or raw user agents.
+When the production telemetry endpoint is explicitly exposed for admin use, `GET /api/telemetry` includes `clients.consumption` and `clients.identity`. The consumption readout rolls up backend-owned client activity that frontend analytics may miss: monitoring target registrations, mobile monitoring summary reads, APNs device registrations, notification health reads, live certificate reads, and live certificate failures. Identity separates scan requests and service events by the optional product/version headers.
+
+Daily attribution is exposed as aggregate day buckets only: `funnel.todayBySource`, `funnel.todayByMode`, `funnel.todayByClient`, `funnel.todayByClientVersion`, `clients.identity.todayBackendEventsByClient`, and `clients.identity.todayBackendEventsByClientVersion`. These fields make it possible to distinguish Cert Watch, Header Watch, SecURL, smoke checks, and scheduler/API activity without retaining owner tokens, APNs tokens, device ids, IP addresses, or raw user agents.
 
 `notifications.delivery` reports aggregate batches, devices attempted, APNs attempts, sends, failures, retries, disabled invalid tokens, skipped reasons, channels, and today's counters. Notification payloads and device tokens are not retained in telemetry.
 
