@@ -160,6 +160,9 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         {
           events: { ...(bucket?.events || {}) },
           sources: { ...(bucket?.sources || {}) },
+          modes: { ...(bucket?.modes || {}) },
+          clients: { ...(bucket?.clients || {}) },
+          clientVersions: { ...(bucket?.clientVersions || {}) },
         },
       ]),
     );
@@ -232,8 +235,16 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       state.funnelDays[dateKey] = {
         events: {},
         sources: {},
+        modes: {},
+        clients: {},
+        clientVersions: {},
       };
     }
+    state.funnelDays[dateKey].events ||= {};
+    state.funnelDays[dateKey].sources ||= {};
+    state.funnelDays[dateKey].modes ||= {};
+    state.funnelDays[dateKey].clients ||= {};
+    state.funnelDays[dateKey].clientVersions ||= {};
     return state.funnelDays[dateKey];
   };
   const getScanDayBucket = (dateKey) => {
@@ -392,6 +403,27 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         dayBucket.sources[sanitized.source] = {};
       }
       incrementBucket(dayBucket.sources[sanitized.source], sanitized.event);
+      if (sanitized.mode) {
+        if (!dayBucket.modes[sanitized.mode]) {
+          dayBucket.modes[sanitized.mode] = {};
+        }
+        incrementBucket(dayBucket.modes[sanitized.mode], sanitized.event);
+      }
+      if (sanitized.client) {
+        const dayClientKey = boundedBucketKey(dayBucket.clients, sanitized.client, 100);
+        if (!dayBucket.clients[dayClientKey]) {
+          dayBucket.clients[dayClientKey] = {};
+        }
+        incrementBucket(dayBucket.clients[dayClientKey], sanitized.event);
+        if (sanitized.clientVersion) {
+          const versionKey = `${sanitized.client}@${sanitized.clientVersion}`;
+          const dayVersionKey = boundedBucketKey(dayBucket.clientVersions, versionKey, 200);
+          if (!dayBucket.clientVersions[dayVersionKey]) {
+            dayBucket.clientVersions[dayVersionKey] = {};
+          }
+          incrementBucket(dayBucket.clientVersions[dayVersionKey], sanitized.event);
+        }
+      }
       pushRecentFunnelEvent(sanitized);
       persist();
       return true;
@@ -552,7 +584,8 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         .slice(-14)
         .map(([date, bucket]) => serializeScanDayBucket(date, bucket));
       const todayScanBucket = getScanDayBucket(todayKey);
-      const todayFunnelEvents = getFunnelDayBucket(todayKey).events || {};
+      const todayFunnelBucket = getFunnelDayBucket(todayKey);
+      const todayFunnelEvents = todayFunnelBucket.events || {};
       const clientConsumptionEvents = {
         monitoringTargetRegistrations: state.funnelEvents.monitoring_target_registered || 0,
         monitoringMobileSummaryReads: state.funnelEvents.monitoring_mobile_summary_read || 0,
@@ -560,6 +593,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         notificationDeviceHealthReads: state.funnelEvents.notification_device_health_read || 0,
         notificationTestRequests: state.funnelEvents.notification_test_requested || 0,
         liveCertificateReads: state.funnelEvents.live_certificate_read || 0,
+        liveCertificateFailures: state.funnelEvents.live_certificate_failed || 0,
       };
       const todayClientConsumptionEvents = {
         monitoringTargetRegistrations: todayFunnelEvents.monitoring_target_registered || 0,
@@ -568,6 +602,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         notificationDeviceHealthReads: todayFunnelEvents.notification_device_health_read || 0,
         notificationTestRequests: todayFunnelEvents.notification_test_requested || 0,
         liveCertificateReads: todayFunnelEvents.live_certificate_read || 0,
+        liveCertificateFailures: todayFunnelEvents.live_certificate_failed || 0,
       };
       const clientConsumptionTotal = Object.values(clientConsumptionEvents)
         .reduce((total, count) => total + count, 0);
@@ -617,13 +652,61 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
               { ...events },
             ]),
           ),
-          today: { ...(getFunnelDayBucket(todayKey).events || {}) },
+          today: { ...(todayFunnelBucket.events || {}) },
+          todayBySource: Object.fromEntries(
+            Object.entries(todayFunnelBucket.sources || {}).map(([source, events]) => [
+              source,
+              { ...events },
+            ]),
+          ),
+          todayByMode: Object.fromEntries(
+            Object.entries(todayFunnelBucket.modes || {}).map(([mode, events]) => [
+              mode,
+              { ...events },
+            ]),
+          ),
+          todayByClient: Object.fromEntries(
+            Object.entries(todayFunnelBucket.clients || {}).map(([client, events]) => [
+              client,
+              { ...events },
+            ]),
+          ),
+          todayByClientVersion: Object.fromEntries(
+            Object.entries(todayFunnelBucket.clientVersions || {}).map(([clientVersion, events]) => [
+              clientVersion,
+              { ...events },
+            ]),
+          ),
           recentDays: Object.entries(state.funnelDays)
             .sort(([left], [right]) => left.localeCompare(right))
             .slice(-14)
             .map(([date, bucket]) => ({
               date,
               events: { ...bucket.events },
+              sources: Object.fromEntries(
+                Object.entries(bucket.sources || {}).map(([source, events]) => [
+                  source,
+                  { ...events },
+                ]),
+              ),
+              modes: Object.fromEntries(
+                Object.entries(bucket.modes || {}).map(([mode, events]) => [
+                  mode,
+                  { ...events },
+                ]),
+              ),
+              clients: Object.fromEntries(
+                Object.entries(bucket.clients || {}).map(([client, events]) => [
+                  client,
+                  { ...events },
+                ]),
+              ),
+              clientVersions: Object.fromEntries(
+                Object.entries(bucket.clientVersions || {}).map(([clientVersion, events]) => [
+                  clientVersion,
+                  { ...events },
+                ]),
+              ),
             })),
           recent: [...state.recentFunnelEvents].reverse(),
         },
@@ -643,6 +726,18 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
                 { ...events },
               ]),
             ),
+            todayBackendEventsByClient: Object.fromEntries(
+              Object.entries(todayFunnelBucket.clients || {}).map(([client, events]) => [
+                client,
+                { ...events },
+              ]),
+            ),
+            todayBackendEventsByClientVersion: Object.fromEntries(
+              Object.entries(todayFunnelBucket.clientVersions || {}).map(([clientVersion, events]) => [
+                clientVersion,
+                { ...events },
+              ]),
+            ),
           },
           consumption: {
             backendApiEvents: clientConsumptionTotal,
@@ -658,6 +753,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
                   || events.notification_device_health_read
                   || events.notification_test_requested
                   || events.live_certificate_read
+                  || events.live_certificate_failed
                 ))
                 .map(([mode, events]) => [
                   mode,
@@ -668,6 +764,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
                     notificationDeviceHealthReads: events.notification_device_health_read || 0,
                     notificationTestRequests: events.notification_test_requested || 0,
                     liveCertificateReads: events.live_certificate_read || 0,
+                    liveCertificateFailures: events.live_certificate_failed || 0,
                   },
                 ]),
             ),
@@ -676,7 +773,8 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
               mobileMonitoring: clientConsumptionEvents.monitoringMobileSummaryReads > 0,
               pushRegistration: clientConsumptionEvents.notificationDeviceRegistrations > 0,
               notificationHealth: clientConsumptionEvents.notificationDeviceHealthReads > 0,
-              certWatch: clientConsumptionEvents.liveCertificateReads > 0,
+              certWatch: clientConsumptionEvents.liveCertificateReads > 0
+                || clientConsumptionEvents.liveCertificateFailures > 0,
             },
           },
         },
@@ -803,6 +901,7 @@ const FUNNEL_EVENT_NAMES = new Set([
   "notification_device_health_read",
   "notification_test_requested",
   "live_certificate_read",
+  "live_certificate_failed",
 ]);
 
 function sanitizeFunnelEvent(value) {
