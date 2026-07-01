@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-07-01 — core 1.14.0 telemetry attribution and mobile API polish
+
+### Added
+
+- Surfaced signal clarity through backend API DTOs, capabilities, and mobile monitoring digest previews.
+- Added daily backend telemetry attribution by source, mode, client, and client version.
+- Added aggregate live-certificate failure telemetry for Cert Watch and other mobile clients.
+- Updated the telemetry CLI with today-by-event/client/version/source readouts and recent backend events.
+
+### Changed
+
+- Refreshed small dependency updates, including `pg`, `lucide-react`, Radix switch/radio-group primitives, and `globals`.
+
+### Verified
+
+- `npm run lint`
+- `npm run test:server`
+- Railway deploy and live API smoke test.
+
 ## 2026-06-24 — core 1.11.1 dependency refresh
 
 ### Changed
