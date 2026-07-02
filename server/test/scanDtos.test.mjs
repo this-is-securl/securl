@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildMonitoringCertSummaryPayload,
+  buildMonitoringHealthPayload,
   buildMonitoringMobileSummaryPayload,
   buildScanObservationDriftPayload,
 } from "../scanDtos.mjs";
@@ -331,6 +332,110 @@ test("cert monitoring summary focuses the Cert Watch watch list and push health"
   assert.equal(payload.targets[1].health.state, "healthy");
   assert.equal(payload.recentChanges.length, 1);
   assert.equal(payload.recentChanges[0].type, "cert_expiring");
+});
+
+test("monitoring health payload summarizes owner targets, scheduler, and push state", () => {
+  const payload = buildMonitoringHealthPayload({
+    now: new Date("2026-06-20T08:30:00.000Z"),
+    scheduler: {
+      enabled: true,
+      running: false,
+      mode: "quiet",
+      intervalMs: 900000,
+      limit: 20,
+      lastSweep: { checked: 2, due: 1, queued: 1, failed: 0 },
+    },
+    notifications: {
+      enabled: true,
+      provider: "apns",
+      credentialsConfigured: true,
+      topicConfigured: false,
+      outbox: { enabled: true, running: false },
+    },
+    targetEntries: [
+      {
+        target: {
+          id: "target-cert-expiring",
+          url: "https://expiring.example/",
+          label: "Expiring cert",
+          cadence: "daily",
+          kind: "cert",
+          appId: "com.ktbatterham.certwatch",
+          addedAt: "2026-06-18T08:00:00.000Z",
+          lastCheckedAt: "2026-06-19T08:00:00.000Z",
+          certState: {
+            reachable: true,
+            checkedAt: "2026-06-19T08:00:00.000Z",
+            host: "expiring.example",
+            validTo: "2026-06-25T00:00:00.000Z",
+            daysRemaining: 5,
+            attention: { type: "cert_expiring", severity: "critical" },
+          },
+        },
+        records: [],
+      },
+      {
+        target: {
+          id: "target-posture-failed",
+          url: "https://posture.example/",
+          label: "Posture",
+          cadence: "daily",
+          kind: "posture",
+          mode: "quiet",
+          appId: "com.ktbatterham.headerwatch",
+          addedAt: "2026-06-18T08:00:00.000Z",
+          lastScannedAt: "2026-06-19T08:00:00.000Z",
+        },
+        records: [{
+          id: "scan-failed",
+          status: "failed",
+          summary: {
+            id: "scan-failed",
+            status: "failed",
+            failedAt: "2026-06-19T08:01:00.000Z",
+            error: "scan failed",
+          },
+        }],
+      },
+    ],
+    pushDevices: [
+      {
+        id: "device-ready",
+        appId: "com.ktbatterham.certwatch",
+        platform: "ios",
+        environment: "sandbox",
+        lastSeenAt: "2026-06-20T08:00:00.000Z",
+        health: { status: "ready", needsRegistration: false },
+      },
+      {
+        id: "device-stale",
+        appId: "com.ktbatterham.headerwatch",
+        platform: "ios",
+        environment: "sandbox",
+        lastSeenAt: "2026-05-01T08:00:00.000Z",
+        health: { status: "stale", needsRegistration: true },
+      },
+    ],
+  });
+
+  assert.equal(payload.summary.totalTargets, 2);
+  assert.equal(payload.summary.certTargets, 1);
+  assert.equal(payload.summary.postureTargets, 1);
+  assert.equal(payload.summary.dueTargets, 2);
+  assert.equal(payload.summary.overdueTargets, 2);
+  assert.equal(payload.summary.targetsNeedingAttention, 2);
+  assert.equal(payload.summary.certAttentionTargets, 1);
+  assert.equal(payload.summary.postureFailureTargets, 1);
+  assert.equal(payload.summary.pushDevicesNeedingRegistration, 1);
+  assert.equal(payload.scheduler.lastSweepHealthy, true);
+  assert.equal(payload.notifications.devices.registeredDevices, 2);
+  assert.equal(payload.apps["com.ktbatterham.certwatch"].certTargets, 1);
+  assert.equal(payload.apps["com.ktbatterham.certwatch"].readyDevices, 1);
+  assert.equal(payload.apps["com.ktbatterham.headerwatch"].postureTargets, 1);
+  assert.equal(payload.apps["com.ktbatterham.headerwatch"].devicesNeedingRegistration, 1);
+  assert.equal(payload.attention.certTargets[0].id, "target-cert-expiring");
+  assert.equal(payload.attention.postureFailures[0].id, "target-posture-failed");
+  assert.equal(payload.attention.pushDevices[0].id, "device-stale");
 });
 
 test("mobile monitoring summary promotes latest certificate history metadata", () => {

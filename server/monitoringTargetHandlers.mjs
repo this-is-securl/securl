@@ -219,6 +219,86 @@ export async function handleMonitoringCertSummaryRequest({
   return true;
 }
 
+export async function handleMonitoringHealthRequest({
+  request,
+  response,
+  requestUrl,
+  scanRepository,
+  authorizeAnalysisRequest,
+  buildMonitoringHealthPayload,
+  monitoringScheduler = null,
+  notificationService = null,
+  sendJson,
+  sendMethodNotAllowed,
+  sendRepositoryUnavailable,
+  telemetry = null,
+  readClientMetadata = null,
+}) {
+  if (request.method !== "GET") {
+    sendMethodNotAllowed(response, ["GET"]);
+    return true;
+  }
+
+  const authState = await authorizeAnalysisRequest({
+    request,
+    response,
+    requestPath: requestUrl.pathname,
+    enforceRateLimit: false,
+    requireScanOwner: true,
+  });
+  if (!authState) {
+    return true;
+  }
+
+  try {
+    const clientMetadata = readClientMetadata?.(request) || {};
+    telemetry?.recordFunnelEvent?.({
+      event: "monitoring_health_read",
+      source: "backend_api",
+      client: clientMetadata.client,
+      clientVersion: clientMetadata.version,
+      clientKey: authState.ownerId || authState.requesterScope || null,
+    });
+
+    const limit = clampLimit(requestUrl.searchParams.get("limit"), 100, 250);
+    const targets = await scanRepository.listMonitoringTargets({
+      ownerId: authState.ownerId,
+      requesterScope: authState.ownerId ? null : authState.requesterScope,
+      limit,
+    });
+    const entries = await Promise.all(
+      targets.map(async (target) => ({
+        target,
+        records: target.kind === "cert"
+          ? []
+          : await listMonitoringTargetRecords(scanRepository, authState.ownerId, target, 3),
+      })),
+    );
+    const pushDevices = await scanRepository.listPushDevices({
+      ownerId: authState.ownerId,
+      requesterScope: authState.ownerId ? null : authState.requesterScope,
+      limit: 250,
+    });
+    const now = Date.now();
+    const devicesWithHealth = pushDevices.map((device) => ({
+      ...device,
+      health: classifyDeviceHealth(device, now),
+    }));
+
+    sendJson(response, 200, buildMonitoringHealthPayload({
+      targetEntries: entries,
+      pushDevices: devicesWithHealth,
+      scheduler: monitoringScheduler?.snapshot?.() ?? null,
+      notifications: notificationService?.snapshot?.() ?? null,
+      now: new Date(now),
+    }));
+  } catch (error) {
+    sendRepositoryUnavailable(response, error, "monitoring_health");
+  }
+
+  return true;
+}
+
 export async function handleMonitoringTargetCollectionRequest({
   request,
   response,

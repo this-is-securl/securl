@@ -120,6 +120,7 @@ const main = async () => {
   console.log(`  Backend API events: ${clientConsumption.backendApiEvents ?? 0}`);
   console.log(`  Today: ${clientConsumption.todayBackendApiEvents ?? 0}`);
   console.log(`  Monitoring target registrations: ${clientConsumption.monitoringTargetRegistrations ?? 0}`);
+  console.log(`  Monitoring health reads: ${clientConsumption.monitoringHealthReads ?? 0}`);
   console.log(`  Mobile monitoring summary reads: ${clientConsumption.monitoringMobileSummaryReads ?? 0}`);
   console.log(`  Notification device registrations: ${clientConsumption.notificationDeviceRegistrations ?? 0}`);
   console.log(`  Notification device health reads: ${clientConsumption.notificationDeviceHealthReads ?? 0}`);

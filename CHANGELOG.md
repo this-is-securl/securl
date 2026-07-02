@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-07-02 — core 1.15.0 monitoring health control plane
+
+### Added
+
+- Added an owner-scoped `GET /api/monitoring-health` control-plane payload for monitoring reliability, due and overdue targets, certificate attention, posture failures, scheduler state, notification outbox state, and per-app push registration health.
+- Added monitoring-health consumption telemetry so backend adoption can distinguish regular watch-list status reads from target registration and scan activity.
+- Documented the health endpoint alongside the mobile monitoring and Cert Watch API surfaces.
+
+### Verified
+
+- Focused DTO, telemetry, and monitoring endpoint tests.
+
 ## 2026-07-01 — core 1.14.0 telemetry attribution and mobile API polish
 
 ### Added

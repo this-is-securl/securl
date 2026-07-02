@@ -643,6 +643,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       const todayFunnelEvents = todayFunnelBucket.events || {};
       const clientConsumptionEvents = {
         monitoringTargetRegistrations: state.funnelEvents.monitoring_target_registered || 0,
+        monitoringHealthReads: state.funnelEvents.monitoring_health_read || 0,
         monitoringMobileSummaryReads: state.funnelEvents.monitoring_mobile_summary_read || 0,
         notificationDeviceRegistrations: state.funnelEvents.notification_device_registered || 0,
         notificationDeviceHealthReads: state.funnelEvents.notification_device_health_read || 0,
@@ -653,6 +654,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       };
       const todayClientConsumptionEvents = {
         monitoringTargetRegistrations: todayFunnelEvents.monitoring_target_registered || 0,
+        monitoringHealthReads: todayFunnelEvents.monitoring_health_read || 0,
         monitoringMobileSummaryReads: todayFunnelEvents.monitoring_mobile_summary_read || 0,
         notificationDeviceRegistrations: todayFunnelEvents.notification_device_registered || 0,
         notificationDeviceHealthReads: todayFunnelEvents.notification_device_health_read || 0,
@@ -815,6 +817,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
               Object.entries(state.funnelEventsByMode)
                 .filter(([, events]) => (
                   events.monitoring_mobile_summary_read
+                  || events.monitoring_health_read
                   || events.monitoring_target_registered
                   || events.notification_device_registered
                   || events.notification_device_health_read
@@ -827,6 +830,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
                   mode,
                   {
                     monitoringTargetRegistrations: events.monitoring_target_registered || 0,
+                    monitoringHealthReads: events.monitoring_health_read || 0,
                     monitoringMobileSummaryReads: events.monitoring_mobile_summary_read || 0,
                     notificationDeviceRegistrations: events.notification_device_registered || 0,
                     notificationDeviceHealthReads: events.notification_device_health_read || 0,
@@ -839,6 +843,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
             ),
             adoptionSignals: {
               monitoringRegistration: clientConsumptionEvents.monitoringTargetRegistrations > 0,
+              monitoringHealth: clientConsumptionEvents.monitoringHealthReads > 0,
               mobileMonitoring: clientConsumptionEvents.monitoringMobileSummaryReads > 0,
               pushRegistration: clientConsumptionEvents.notificationDeviceRegistrations > 0,
               notificationHealth: clientConsumptionEvents.notificationDeviceHealthReads > 0,
@@ -993,6 +998,7 @@ const FUNNEL_EVENT_NAMES = new Set([
   "export_clicked",
   "monitoring_saved",
   "monitoring_target_registered",
+  "monitoring_health_read",
   "monitoring_mobile_summary_read",
   "notification_device_registered",
   "notification_device_health_read",

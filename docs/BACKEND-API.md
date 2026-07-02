@@ -99,6 +99,7 @@ npm run smoke:api -- --base-url=https://securl-app-production.up.railway.app --t
 
 - `POST /api/monitoring-targets`
 - `GET /api/monitoring-targets`
+- `GET /api/monitoring-health`
 - `GET /api/monitoring-cert-summary`
 - `GET /api/monitoring-mobile-summary`
 - `GET /api/monitoring-targets/:id`
@@ -114,6 +115,8 @@ npm run smoke:api -- --base-url=https://securl-app-production.up.railway.app --t
 - `actions`: short stable action ids and labels, such as `review_posture_regression`, `review_certificate`, `check_tls_endpoint`, or `run_scheduled_check`.
 
 These fields are derived server-side from stored scan drift, certificate attention, and scheduler timing so mobile clients do not need to fetch full scan detail just to render watch-list state.
+
+`GET /api/monitoring-health` returns an owner-scoped monitoring control-plane summary. It includes target counts, due and overdue checks, certificate attention, latest posture scan failures, per-app target/device adoption, Cert Watch/Header Watch/SecURL push registration health, and service snapshots for the scheduler and notification outbox. It does not expose global service totals or raw APNs tokens.
 
 `GET /api/monitoring-cert-summary` is a Cert Watch-optimized owner-scoped summary. It returns only certificate monitoring targets, aggregate counts for healthy, expiring, expired, unreachable, and unknown certificates, the next scheduled check, recent certificate changes, and APNs health for active `com.ktbatterham.certwatch` device registrations. The endpoint also records privacy-safe active-client telemetry keyed by a hashed owner/scope value, so repeated watch-list refreshes can be separated from genuinely distinct Cert Watch users without storing device identifiers.
 
@@ -160,7 +163,7 @@ Without APNs credentials, device registration and monitoring continue normally, 
 
 ## Telemetry readout
 
-When the production telemetry endpoint is explicitly exposed for admin use, `GET /api/telemetry` includes `clients.consumption` and `clients.identity`. The consumption readout rolls up backend-owned client activity that frontend analytics may miss: monitoring target registrations, mobile monitoring summary reads, APNs device registrations, notification health reads, live certificate reads, and live certificate failures. Identity separates scan requests and service events by the optional product/version headers.
+When the production telemetry endpoint is explicitly exposed for admin use, `GET /api/telemetry` includes `clients.consumption` and `clients.identity`. The consumption readout rolls up backend-owned client activity that frontend analytics may miss: monitoring target registrations, monitoring health reads, mobile monitoring summary reads, APNs device registrations, notification health reads, live certificate reads, and live certificate failures. Identity separates scan requests and service events by the optional product/version headers.
 
 Daily attribution is exposed as aggregate day buckets only: `funnel.todayBySource`, `funnel.todayByMode`, `funnel.todayByClient`, `funnel.todayByClientVersion`, `clients.identity.todayBackendEventsByClient`, and `clients.identity.todayBackendEventsByClientVersion`. These fields make it possible to distinguish Cert Watch, Header Watch, SecURL, smoke checks, and scheduler/API activity without retaining owner tokens, APNs tokens, device ids, IP addresses, or raw user agents.
 

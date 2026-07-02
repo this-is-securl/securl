@@ -6,6 +6,12 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-07-02
+
+### Added
+- Added an owner-scoped backend monitoring health payload for reliability status across due and overdue targets, certificate attention, posture failures, scheduler state, notification outbox state, and per-app push registration health.
+- Added monitoring-health read telemetry so product clients can be measured separately from target registration, live certificate reads, and watch-list summary reads.
+
 ## [1.14.0] - 2026-07-01
 
 ### Added

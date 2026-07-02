@@ -18,6 +18,7 @@ import {
 import {
   buildMonitoringTargetDetailPayload,
   buildMonitoringCertSummaryPayload,
+  buildMonitoringHealthPayload,
   buildMonitoringMobileSummaryPayload,
   buildMonitoringSummaryPayload,
   buildMonitoringTargetView,
@@ -43,6 +44,7 @@ import {
 } from "./scanDtos.mjs";
 import {
   handleMonitoringCertSummaryRequest,
+  handleMonitoringHealthRequest,
   handleMonitoringMobileSummaryRequest,
   handleMonitoringSummaryRequest,
   handleMonitoringTargetCollectionRequest,
@@ -855,6 +857,29 @@ const server = http.createServer(async (request, response) => {
       sendJson: sendApiJson,
       sendMethodNotAllowed: sendApiMethodNotAllowed,
       sendRepositoryUnavailable: sendApiRepositoryUnavailable,
+    });
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/monitoring-health") {
+    await handleMonitoringHealthRequest({
+      request,
+      response,
+      requestUrl,
+      scanRepository,
+      authorizeAnalysisRequest: (options) => withAuthResolvers({
+        ...options,
+        sendJsonResponse: sendApiJson,
+        sendRateLimitedResponse: sendApiRateLimited,
+      }),
+      buildMonitoringHealthPayload,
+      monitoringScheduler,
+      notificationService,
+      sendJson: sendApiJson,
+      sendMethodNotAllowed: sendApiMethodNotAllowed,
+      sendRepositoryUnavailable: sendApiRepositoryUnavailable,
+      telemetry,
+      readClientMetadata,
     });
     return;
   }
