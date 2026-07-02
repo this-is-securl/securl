@@ -222,14 +222,57 @@ test("telemetry tracker counts privacy-safe active backend clients", () => {
     clientKey: "scan-owner-two",
     now: new Date("2026-07-02T08:10:00Z"),
   });
+  telemetry.recordFunnelEvent({
+    event: "monitoring_target_registered",
+    source: "backend_api",
+    mode: "com.ktbatterham.securl",
+    client: "securl-ios",
+    clientVersion: "1.0.3+12",
+    clientKey: "scan-owner-one",
+    target: "https://example.com/path?secret=hidden",
+    targetKind: "posture",
+    outcome: "created",
+    now: new Date("2026-07-02T09:00:00Z"),
+  });
+  telemetry.recordFunnelEvent({
+    event: "monitoring_target_registered",
+    source: "backend_api",
+    mode: "com.ktbatterham.securl",
+    client: "securl-ios",
+    clientVersion: "1.0.3+12",
+    clientKey: "scan-owner-two",
+    target: "https://example.com/other",
+    targetKind: "cert",
+    outcome: "updated",
+    now: new Date("2026-07-02T09:05:00Z"),
+  });
 
   const snapshot = telemetry.snapshot();
   assert.equal(snapshot.clients.consumption.certWatchlistSummaryReads, 3);
   assert.equal(snapshot.clients.consumption.byMode["com.ktbatterham.certwatch"].certWatchlistSummaryReads, 3);
+  assert.equal(snapshot.clients.consumption.monitoringTargetRegistrations, 2);
   assert.equal(snapshot.funnel.activeClientsByClient["cert-watch-ios"], 2);
   assert.equal(snapshot.funnel.activeClientsByClientVersion["cert-watch-ios@1.0.3+8"], 2);
+  assert.equal(snapshot.funnel.activeClientsByMode["com.ktbatterham.certwatch"], 2);
+  assert.equal(snapshot.funnel.activeClientsByMode["com.ktbatterham.securl"], 2);
+  assert.equal(snapshot.funnel.targetOriginsByMode["com.ktbatterham.securl"], 1);
+  assert.equal(snapshot.funnel.registrationOutcomesByMode["com.ktbatterham.securl"].created, 1);
+  assert.equal(snapshot.funnel.registrationOutcomesByMode["com.ktbatterham.securl"].updated, 1);
+  assert.equal(snapshot.funnel.targetKindsByMode["com.ktbatterham.securl"].posture, 1);
+  assert.equal(snapshot.funnel.targetKindsByMode["com.ktbatterham.securl"].cert, 1);
+  assert.equal(snapshot.funnel.todayActiveClientsByMode["com.ktbatterham.securl"], 2);
+  assert.equal(snapshot.funnel.todayTargetOriginsByMode["com.ktbatterham.securl"], 1);
   assert.equal(snapshot.clients.identity.activeBackendClientsByClient["cert-watch-ios"], 2);
   assert.equal(snapshot.clients.identity.activeBackendClientsByClientVersion["cert-watch-ios@1.0.3+8"], 2);
+  assert.equal(snapshot.productPulse.today.activeOwnersByApp["com.ktbatterham.securl"], 2);
+  assert.equal(snapshot.productPulse.today.uniqueTargetsByApp["com.ktbatterham.securl"], 1);
+  assert.equal(snapshot.productPulse.today.monitoringRegistrationOutcomesByApp["com.ktbatterham.securl"].created, 1);
+  assert.equal(snapshot.productPulse.today.monitoringRegistrationOutcomesByApp["com.ktbatterham.securl"].updated, 1);
+  assert.equal(snapshot.productPulse.today.monitoringTargetKindsByApp["com.ktbatterham.securl"].posture, 1);
+  assert.equal(snapshot.productPulse.today.monitoringTargetKindsByApp["com.ktbatterham.securl"].cert, 1);
+  assert.equal(snapshot.productPulse.today.recentMonitoringRegistrations.length, 2);
+  assert.equal(snapshot.productPulse.today.recentMonitoringRegistrations[0].target, "https://example.com");
+  assert.equal(snapshot.productPulse.today.recentMonitoringRegistrations[0].outcome, "updated");
 });
 
 test("telemetry tracker can persist counters to disk", () => {

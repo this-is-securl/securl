@@ -167,6 +167,10 @@ When the production telemetry endpoint is explicitly exposed for admin use, `GET
 
 Daily attribution is exposed as aggregate day buckets only: `funnel.todayBySource`, `funnel.todayByMode`, `funnel.todayByClient`, `funnel.todayByClientVersion`, `clients.identity.todayBackendEventsByClient`, and `clients.identity.todayBackendEventsByClientVersion`. These fields make it possible to distinguish Cert Watch, Header Watch, SecURL, smoke checks, and scheduler/API activity without retaining owner tokens, APNs tokens, device ids, IP addresses, or raw user agents.
 
+`GET /api/product-pulse` is the smaller admin readout for product usage. It is protected by the same telemetry token and returns today's app events, active owner counts by app, unique target-origin counts by app, monitoring registration outcomes (`created` or `updated`), target kind split (`posture` or `cert`), recent backend events, and notification delivery health. Target values are reduced to origin only and owner identities are counted through privacy-safe hashes.
+
+Use `npm run product:pulse` from the repository to print the compact pulse report against the configured Railway backend.
+
 `notifications.delivery` reports aggregate batches, devices attempted, APNs attempts, sends, failures, retries, disabled invalid tokens, skipped reasons, channels, and today's counters. Notification payloads and device tokens are not retained in telemetry.
 
 ## Current auth resources

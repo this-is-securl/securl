@@ -15,6 +15,11 @@ const describeEventCounts = (events = {}) => Object.entries(events || {})
   .sort(([, left], [, right]) => Number(right || 0) - Number(left || 0))
   .map(([event, count]) => `${event}: ${count}`)
   .join(", ");
+const describeSmallBucket = (bucket = {}) => Object.entries(bucket || {})
+  .filter(([, count]) => Number(count || 0) > 0)
+  .sort(([, left], [, right]) => Number(right || 0) - Number(left || 0))
+  .map(([name, count]) => `${name}: ${count}`)
+  .join(", ");
 
 const main = async () => {
   const vars = process.env.TELEMETRY_TOKEN ? {} : readRailwayVariables();
@@ -183,6 +188,36 @@ const main = async () => {
     console.log("  Apps / modes:");
     for (const [mode, count] of clientModes) {
       console.log(`    - ${mode}: ${count}`);
+    }
+  }
+  const productPulseToday = telemetry.productPulse?.today || {};
+  const pulseAppEvents = Object.entries(productPulseToday.appEvents || {})
+    .sort(([, left], [, right]) => Number(right?.total || 0) - Number(left?.total || 0));
+  if (pulseAppEvents.length) {
+    console.log("  Product pulse today:");
+    for (const [appId, summary] of pulseAppEvents.slice(0, 8)) {
+      const activeOwners = productPulseToday.activeOwnersByApp?.[appId] ?? 0;
+      const uniqueTargets = productPulseToday.uniqueTargetsByApp?.[appId] ?? 0;
+      const outcomes = describeSmallBucket(productPulseToday.monitoringRegistrationOutcomesByApp?.[appId]);
+      const kinds = describeSmallBucket(productPulseToday.monitoringTargetKindsByApp?.[appId]);
+      const details = [
+        `${summary.total} events`,
+        `${activeOwners} active owners`,
+        `${uniqueTargets} targets`,
+        outcomes ? `outcomes ${outcomes}` : null,
+        kinds ? `kinds ${kinds}` : null,
+      ].filter(Boolean).join("; ");
+      console.log(`    - ${appId}: ${details}`);
+    }
+  }
+  const recentRegistrations = productPulseToday.recentMonitoringRegistrations || [];
+  if (recentRegistrations.length) {
+    console.log("  Recent monitoring registrations:");
+    for (const event of recentRegistrations.slice(0, 8)) {
+      const appLabel = event.appId || event.client || "unknown-app";
+      const kind = event.targetKind ? ` ${event.targetKind}` : "";
+      const outcome = event.outcome ? ` ${event.outcome}` : "";
+      console.log(`    - ${event.occurredAt} ${appLabel}${kind}${outcome} ${event.target || ""}`.trimEnd());
     }
   }
   const clientIdentity = telemetry.clients?.identity || {};

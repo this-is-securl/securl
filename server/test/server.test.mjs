@@ -1610,6 +1610,21 @@ test("monitoring targets can be created, listed, and deleted", async () => {
     assert.equal(telemetryPayload.clients.consumption.certWatchlistSummaryReads, 1);
     assert.equal(telemetryPayload.clients.identity.activeBackendClientsByClient["cert-watch-ios"], 1);
     assert.equal(telemetryPayload.clients.identity.activeBackendClientsByClient["securl-ios"], 1);
+    assert.equal(telemetryPayload.productPulse.today.monitoringRegistrationOutcomesByApp["com.ktbatterham.headerwatch"].created, 1);
+    assert.equal(telemetryPayload.productPulse.today.monitoringRegistrationOutcomesByApp["com.ktbatterham.certwatch"].created, 1);
+    assert.equal(telemetryPayload.productPulse.today.monitoringTargetKindsByApp["com.ktbatterham.headerwatch"].posture, 1);
+    assert.equal(telemetryPayload.productPulse.today.monitoringTargetKindsByApp["com.ktbatterham.certwatch"].cert, 1);
+    assert.equal(telemetryPayload.productPulse.today.activeOwnersByApp["com.ktbatterham.headerwatch"], 1);
+    assert.equal(telemetryPayload.productPulse.today.uniqueTargetsByApp["com.ktbatterham.headerwatch"], 1);
+
+    const productPulseResponse = await fetch(`${server.baseUrl}/api/product-pulse`);
+    const productPulsePayload = await productPulseResponse.json();
+    assert.equal(productPulseResponse.status, 200);
+    assert.equal(productPulsePayload.productPulse.today.monitoringRegistrationOutcomesByApp["com.ktbatterham.headerwatch"].created, 1);
+    assert.equal(productPulsePayload.productPulse.today.recentMonitoringRegistrations.length, 2);
+    assert.equal(productPulsePayload.productPulse.today.recentMonitoringRegistrations[0].outcome, "created");
+    assert.equal(productPulsePayload.productPulse.today.recentMonitoringRegistrations[0].targetKind, "cert");
+    assert.equal(productPulsePayload.recentBackendEvents[0].source, "backend_api");
 
     const deleteResponse = await fetch(`${server.baseUrl}/api/monitoring-targets/${targetId}`, {
       method: "DELETE",

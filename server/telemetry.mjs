@@ -43,6 +43,10 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     funnelEventsByClientVersion: {},
     funnelClientKeysByClient: {},
     funnelClientKeysByClientVersion: {},
+    funnelClientKeysByMode: {},
+    funnelTargetOriginsByMode: {},
+    funnelRegistrationOutcomesByMode: {},
+    funnelTargetKindsByMode: {},
     funnelDays: {},
     recentFunnelEvents: [],
     notificationDeliveries: {
@@ -95,6 +99,8 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     ),
     funnelClientKeysByClient: serializeSetBuckets(state.funnelClientKeysByClient),
     funnelClientKeysByClientVersion: serializeSetBuckets(state.funnelClientKeysByClientVersion),
+    funnelClientKeysByMode: serializeSetBuckets(state.funnelClientKeysByMode),
+    funnelTargetOriginsByMode: serializeSetBuckets(state.funnelTargetOriginsByMode),
     funnelDays: Object.fromEntries(
       Object.entries(state.funnelDays).map(([date, bucket]) => [
         date,
@@ -104,11 +110,17 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
           modes: { ...(bucket.modes || {}) },
           clients: { ...(bucket.clients || {}) },
           clientVersions: { ...(bucket.clientVersions || {}) },
+          registrationOutcomesByMode: serializeNestedBuckets(bucket.registrationOutcomesByMode || {}),
+          targetKindsByMode: serializeNestedBuckets(bucket.targetKindsByMode || {}),
           clientKeysByClient: serializeSetBuckets(bucket.clientKeysByClient || {}),
           clientKeysByClientVersion: serializeSetBuckets(bucket.clientKeysByClientVersion || {}),
+          clientKeysByMode: serializeSetBuckets(bucket.clientKeysByMode || {}),
+          targetOriginsByMode: serializeSetBuckets(bucket.targetOriginsByMode || {}),
         },
       ]),
     ),
+    funnelRegistrationOutcomesByMode: serializeNestedBuckets(state.funnelRegistrationOutcomesByMode),
+    funnelTargetKindsByMode: serializeNestedBuckets(state.funnelTargetKindsByMode),
   });
 
   const hydrateState = (value) => {
@@ -174,6 +186,10 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     state.funnelEventsByClientVersion = { ...(value.funnelEventsByClientVersion || {}) };
     state.funnelClientKeysByClient = hydrateSetBuckets(value.funnelClientKeysByClient);
     state.funnelClientKeysByClientVersion = hydrateSetBuckets(value.funnelClientKeysByClientVersion);
+    state.funnelClientKeysByMode = hydrateSetBuckets(value.funnelClientKeysByMode);
+    state.funnelTargetOriginsByMode = hydrateSetBuckets(value.funnelTargetOriginsByMode);
+    state.funnelRegistrationOutcomesByMode = hydrateNestedBuckets(value.funnelRegistrationOutcomesByMode);
+    state.funnelTargetKindsByMode = hydrateNestedBuckets(value.funnelTargetKindsByMode);
     state.funnelDays = Object.fromEntries(
       Object.entries(value.funnelDays || {}).map(([date, bucket]) => [
         date,
@@ -183,8 +199,12 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
           modes: { ...(bucket?.modes || {}) },
           clients: { ...(bucket?.clients || {}) },
           clientVersions: { ...(bucket?.clientVersions || {}) },
+          registrationOutcomesByMode: hydrateNestedBuckets(bucket?.registrationOutcomesByMode),
+          targetKindsByMode: hydrateNestedBuckets(bucket?.targetKindsByMode),
           clientKeysByClient: hydrateSetBuckets(bucket?.clientKeysByClient),
           clientKeysByClientVersion: hydrateSetBuckets(bucket?.clientKeysByClientVersion),
+          clientKeysByMode: hydrateSetBuckets(bucket?.clientKeysByMode),
+          targetOriginsByMode: hydrateSetBuckets(bucket?.targetOriginsByMode),
         },
       ]),
     );
@@ -235,6 +255,23 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
   const incrementBucket = (bucket, key) => {
     bucket[key] = (bucket[key] ?? 0) + 1;
   };
+  const incrementNestedBucket = (buckets, bucketKey, key, maxKeys = 100) => {
+    const safeBucketKey = boundedBucketKey(buckets, bucketKey, maxKeys);
+    if (!buckets[safeBucketKey]) {
+      buckets[safeBucketKey] = {};
+    }
+    incrementBucket(buckets[safeBucketKey], key);
+  };
+  const addToSetBucket = (buckets, bucketKey, value, maxKeys = 100) => {
+    if (!value) {
+      return;
+    }
+    const safeBucketKey = boundedBucketKey(buckets, bucketKey, maxKeys);
+    if (!buckets[safeBucketKey]) {
+      buckets[safeBucketKey] = new Set();
+    }
+    buckets[safeBucketKey].add(value);
+  };
   const nonNegativeCount = (value) => (
     Number.isFinite(Number(value)) ? Math.max(0, Math.floor(Number(value))) : 0
   );
@@ -260,8 +297,12 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         modes: {},
         clients: {},
         clientVersions: {},
+        registrationOutcomesByMode: {},
+        targetKindsByMode: {},
         clientKeysByClient: {},
         clientKeysByClientVersion: {},
+        clientKeysByMode: {},
+        targetOriginsByMode: {},
       };
     }
     state.funnelDays[dateKey].events ||= {};
@@ -269,8 +310,12 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     state.funnelDays[dateKey].modes ||= {};
     state.funnelDays[dateKey].clients ||= {};
     state.funnelDays[dateKey].clientVersions ||= {};
+    state.funnelDays[dateKey].registrationOutcomesByMode ||= {};
+    state.funnelDays[dateKey].targetKindsByMode ||= {};
     state.funnelDays[dateKey].clientKeysByClient ||= {};
     state.funnelDays[dateKey].clientKeysByClientVersion ||= {};
+    state.funnelDays[dateKey].clientKeysByMode ||= {};
+    state.funnelDays[dateKey].targetOriginsByMode ||= {};
     return state.funnelDays[dateKey];
   };
   const getScanDayBucket = (dateKey) => {
@@ -380,6 +425,8 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       client = null,
       clientVersion = null,
       clientKey = null,
+      targetKind = null,
+      outcome = null,
       now = new Date(),
     } = {}) {
       const sanitized = sanitizeFunnelEvent({
@@ -392,6 +439,8 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         mode,
         client,
         clientVersion,
+        targetKind,
+        outcome,
       });
       if (!sanitized) {
         return false;
@@ -407,6 +456,17 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
           state.funnelEventsByMode[sanitized.mode] = {};
         }
         incrementBucket(state.funnelEventsByMode[sanitized.mode], sanitized.event);
+        if (safeTargetOrigin(sanitized.target)) {
+          addToSetBucket(state.funnelTargetOriginsByMode, sanitized.mode, sanitized.target, 100);
+        }
+        if (sanitized.event === "monitoring_target_registered") {
+          if (sanitized.outcome) {
+            incrementNestedBucket(state.funnelRegistrationOutcomesByMode, sanitized.mode, sanitized.outcome, 100);
+          }
+          if (sanitized.targetKind) {
+            incrementNestedBucket(state.funnelTargetKindsByMode, sanitized.mode, sanitized.targetKind, 100);
+          }
+        }
       }
       if (sanitized.client) {
         const clientBucketKey = boundedBucketKey(state.funnelEventsByClient, sanitized.client, 100);
@@ -424,6 +484,9 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         }
       }
       const safeBackendClientKey = hashPrivacyValue(clientKey, { prefix: "backend_client", length: 16 });
+      if (sanitized.mode && safeBackendClientKey !== "unknown") {
+        addToSetBucket(state.funnelClientKeysByMode, sanitized.mode, safeBackendClientKey, 100);
+      }
       if (sanitized.client && safeBackendClientKey !== "unknown") {
         const activeClientKey = boundedBucketKey(state.funnelClientKeysByClient, sanitized.client, 100);
         if (!state.funnelClientKeysByClient[activeClientKey]) {
@@ -451,6 +514,20 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
           dayBucket.modes[sanitized.mode] = {};
         }
         incrementBucket(dayBucket.modes[sanitized.mode], sanitized.event);
+        if (safeBackendClientKey !== "unknown") {
+          addToSetBucket(dayBucket.clientKeysByMode, sanitized.mode, safeBackendClientKey, 100);
+        }
+        if (safeTargetOrigin(sanitized.target)) {
+          addToSetBucket(dayBucket.targetOriginsByMode, sanitized.mode, sanitized.target, 100);
+        }
+        if (sanitized.event === "monitoring_target_registered") {
+          if (sanitized.outcome) {
+            incrementNestedBucket(dayBucket.registrationOutcomesByMode, sanitized.mode, sanitized.outcome, 100);
+          }
+          if (sanitized.targetKind) {
+            incrementNestedBucket(dayBucket.targetKindsByMode, sanitized.mode, sanitized.targetKind, 100);
+          }
+        }
       }
       if (sanitized.client) {
         const dayClientKey = boundedBucketKey(dayBucket.clients, sanitized.client, 100);
@@ -713,6 +790,10 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
           ),
           activeClientsByClient: countSetBuckets(state.funnelClientKeysByClient),
           activeClientsByClientVersion: countSetBuckets(state.funnelClientKeysByClientVersion),
+          activeClientsByMode: countSetBuckets(state.funnelClientKeysByMode),
+          targetOriginsByMode: countSetBuckets(state.funnelTargetOriginsByMode),
+          registrationOutcomesByMode: serializeNestedBuckets(state.funnelRegistrationOutcomesByMode),
+          targetKindsByMode: serializeNestedBuckets(state.funnelTargetKindsByMode),
           today: { ...(todayFunnelBucket.events || {}) },
           todayBySource: Object.fromEntries(
             Object.entries(todayFunnelBucket.sources || {}).map(([source, events]) => [
@@ -740,6 +821,10 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
           ),
           todayActiveClientsByClient: countSetBuckets(todayFunnelBucket.clientKeysByClient || {}),
           todayActiveClientsByClientVersion: countSetBuckets(todayFunnelBucket.clientKeysByClientVersion || {}),
+          todayActiveClientsByMode: countSetBuckets(todayFunnelBucket.clientKeysByMode || {}),
+          todayTargetOriginsByMode: countSetBuckets(todayFunnelBucket.targetOriginsByMode || {}),
+          todayRegistrationOutcomesByMode: serializeNestedBuckets(todayFunnelBucket.registrationOutcomesByMode || {}),
+          todayTargetKindsByMode: serializeNestedBuckets(todayFunnelBucket.targetKindsByMode || {}),
           recentDays: Object.entries(state.funnelDays)
             .sort(([left], [right]) => left.localeCompare(right))
             .slice(-14)
@@ -772,6 +857,10 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
               ),
               activeClientsByClient: countSetBuckets(bucket.clientKeysByClient || {}),
               activeClientsByClientVersion: countSetBuckets(bucket.clientKeysByClientVersion || {}),
+              activeClientsByMode: countSetBuckets(bucket.clientKeysByMode || {}),
+              targetOriginsByMode: countSetBuckets(bucket.targetOriginsByMode || {}),
+              registrationOutcomesByMode: serializeNestedBuckets(bucket.registrationOutcomesByMode || {}),
+              targetKindsByMode: serializeNestedBuckets(bucket.targetKindsByMode || {}),
             })),
           recent: [...state.recentFunnelEvents].reverse(),
         },
@@ -853,6 +942,12 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
             },
           },
         },
+        productPulse: buildProductPulseSnapshot({
+          todayKey,
+          todayClientConsumptionTotal,
+          todayFunnelBucket,
+          state,
+        }),
         notifications: {
           delivery: {
             ...state.notificationDeliveries,
@@ -917,6 +1012,24 @@ function serializeSetBuckets(buckets = {}) {
   );
 }
 
+function serializeNestedBuckets(buckets = {}) {
+  return Object.fromEntries(
+    Object.entries(buckets || {}).map(([key, values]) => [
+      key,
+      { ...(values || {}) },
+    ]),
+  );
+}
+
+function hydrateNestedBuckets(value = {}) {
+  return Object.fromEntries(
+    Object.entries(value || {}).map(([key, values]) => [
+      key,
+      { ...(values || {}) },
+    ]),
+  );
+}
+
 function hydrateSetBuckets(value = {}) {
   return Object.fromEntries(
     Object.entries(value || {}).map(([key, values]) => [
@@ -924,6 +1037,67 @@ function hydrateSetBuckets(value = {}) {
       new Set(Array.isArray(values) ? values : []),
     ]),
   );
+}
+
+function safeTargetOrigin(value) {
+  return typeof value === "string" && /^https?:\/\/[^/\s]+$/i.test(value);
+}
+
+function sumBucketValues(bucket = {}) {
+  return Object.values(bucket || {}).reduce((sum, count) => sum + Number(count || 0), 0);
+}
+
+function summarizeModeEvents(modes = {}) {
+  return Object.fromEntries(
+    Object.entries(modes || {})
+      .map(([mode, events]) => [mode, { events: { ...(events || {}) }, total: sumBucketValues(events) }])
+      .filter(([, summary]) => summary.total > 0)
+      .sort(([, left], [, right]) => right.total - left.total),
+  );
+}
+
+function recentMonitoringRegistrations(events = [], todayKey = null) {
+  return events
+    .filter((event) => event?.event === "monitoring_target_registered")
+    .filter((event) => !todayKey || String(event.occurredAt || "").startsWith(todayKey))
+    .slice(-20)
+    .reverse()
+    .map((event) => ({
+      occurredAt: event.occurredAt,
+      appId: event.mode,
+      client: event.client,
+      clientVersion: event.clientVersion,
+      target: event.target,
+      targetKind: event.targetKind,
+      outcome: event.outcome,
+    }));
+}
+
+function buildProductPulseSnapshot({
+  todayKey,
+  todayClientConsumptionTotal,
+  todayFunnelBucket,
+  state,
+}) {
+  return {
+    today: {
+      date: todayKey,
+      backendApiEvents: todayClientConsumptionTotal,
+      appEvents: summarizeModeEvents(todayFunnelBucket.modes || {}),
+      activeOwnersByApp: countSetBuckets(todayFunnelBucket.clientKeysByMode || {}),
+      uniqueTargetsByApp: countSetBuckets(todayFunnelBucket.targetOriginsByMode || {}),
+      monitoringRegistrationOutcomesByApp: serializeNestedBuckets(todayFunnelBucket.registrationOutcomesByMode || {}),
+      monitoringTargetKindsByApp: serializeNestedBuckets(todayFunnelBucket.targetKindsByMode || {}),
+      recentMonitoringRegistrations: recentMonitoringRegistrations(state.recentFunnelEvents, todayKey),
+    },
+    total: {
+      appEvents: summarizeModeEvents(state.funnelEventsByMode || {}),
+      activeOwnersByApp: countSetBuckets(state.funnelClientKeysByMode || {}),
+      uniqueTargetsByApp: countSetBuckets(state.funnelTargetOriginsByMode || {}),
+      monitoringRegistrationOutcomesByApp: serializeNestedBuckets(state.funnelRegistrationOutcomesByMode || {}),
+      monitoringTargetKindsByApp: serializeNestedBuckets(state.funnelTargetKindsByMode || {}),
+    },
+  };
 }
 
 function countSetBuckets(buckets = {}) {
@@ -987,6 +1161,14 @@ function sanitizeRecentScan(value) {
   };
 }
 
+function sanitizeTargetKind(value) {
+  return value === "cert" || value === "posture" ? value : null;
+}
+
+function sanitizeOutcome(value) {
+  return value === "created" || value === "updated" ? value : null;
+}
+
 const FUNNEL_EVENT_NAMES = new Set([
   "scan_started",
   "handoff_started",
@@ -1027,6 +1209,8 @@ function sanitizeFunnelEvent(value) {
     mode: sanitizeTelemetryText(value.mode, 40),
     client,
     clientVersion: client ? normalizeClientVersion(value.clientVersion) : null,
+    targetKind: sanitizeTargetKind(value.targetKind),
+    outcome: sanitizeOutcome(value.outcome),
   };
 }
 

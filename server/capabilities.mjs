@@ -28,6 +28,7 @@ export function buildCapabilitiesPayload({
         "GET /api/health",
         "GET /api/ready",
         "GET /api/capabilities",
+        "GET /api/product-pulse",
         "GET /api/certificates/live?url=:url",
       ],
       clientTelemetry: {

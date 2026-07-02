@@ -26,6 +26,7 @@
     "deploy:hostinger:live": "node scripts/deployHostinger.mjs --live",
     "deploy:railway": "node scripts/deployRailway.mjs",
     "telemetry": "node scripts/fetchTelemetry.mjs",
+    "product:pulse": "node scripts/fetchProductPulse.mjs",
     "telemetry:web": "node scripts/telemetryDashboard.mjs",
     "package:signals": "node scripts/fetchPackageSignals.mjs",
     "smoke:api": "node scripts/smokeLiveApi.mjs",
