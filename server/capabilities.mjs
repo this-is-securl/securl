@@ -153,6 +153,7 @@ export function buildCapabilitiesPayload({
         "mobile-signal-clarity",
         "mobile-monitoring-status-v1",
         "mobile-monitoring-actions-v1",
+        "monitoring-health-v1",
         "cert-watchlist-summary-v1",
         "cert-watchlist-push-health-v1",
         "cert-attention-state",
@@ -168,6 +169,7 @@ export function buildCapabilitiesPayload({
       resources: [
         "POST /api/monitoring-targets",
         "GET /api/monitoring-targets",
+        "GET /api/monitoring-health",
         "GET /api/monitoring-summary",
         "GET /api/monitoring-cert-summary",
         "GET /api/monitoring-mobile-summary",

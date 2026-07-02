@@ -1135,6 +1135,173 @@ export function buildMonitoringCertSummaryPayload(targetEntries = [], pushDevice
   };
 }
 
+function buildTargetHealthSummary(target, now = Date.now()) {
+  const nextDueTime = new Date(target.nextDueAt || 0).getTime();
+  const secondsUntilDue = Number.isFinite(nextDueTime)
+    ? Math.ceil((nextDueTime - now) / 1000)
+    : null;
+  const overdueSeconds = secondsUntilDue !== null && secondsUntilDue < 0
+    ? Math.abs(secondsUntilDue)
+    : 0;
+  const overdueThresholdSeconds = 15 * 60;
+  const health = target.kind === "cert"
+    ? classifyCertWatchHealth(target)
+    : target.latestFailure
+      ? { state: "failed", severity: "warning", reason: "latest_scan_failed" }
+      : target.due
+        ? { state: "due", severity: overdueSeconds > overdueThresholdSeconds ? "warning" : "info", reason: "check_due" }
+        : { state: "healthy", severity: "info", reason: null };
+
+  return {
+    id: target.id,
+    kind: target.kind,
+    appId: target.appId,
+    url: target.url,
+    label: target.label,
+    cadence: target.cadence,
+    lastCheckedAt: target.lastCheckedAt,
+    nextDueAt: target.nextDueAt,
+    due: target.due,
+    secondsUntilDue,
+    overdueSeconds,
+    health,
+    latestGrade: target.latestScan?.grade ?? null,
+    latestScore: target.latestScan?.score ?? null,
+    latestFailure: target.latestFailure ?? null,
+    certDaysRemaining: target.cert?.daysRemaining ?? null,
+    certAttention: target.cert?.attention ?? null,
+  };
+}
+
+function summarizeByApp({ targets = [], devices = [] } = {}) {
+  const apps = {};
+  const ensureApp = (appId) => {
+    const key = appId || "unknown";
+    apps[key] ||= {
+      appId: key,
+      targets: 0,
+      postureTargets: 0,
+      certTargets: 0,
+      dueTargets: 0,
+      needsAttention: 0,
+      registeredDevices: 0,
+      readyDevices: 0,
+      devicesNeedingRegistration: 0,
+    };
+    return apps[key];
+  };
+
+  for (const target of targets) {
+    const app = ensureApp(target.appId);
+    app.targets += 1;
+    if (target.kind === "cert") app.certTargets += 1;
+    else app.postureTargets += 1;
+    if (target.due) app.dueTargets += 1;
+    if (["critical", "warning"].includes(target.health?.severity)) app.needsAttention += 1;
+  }
+
+  for (const device of devices) {
+    const app = ensureApp(device.appId);
+    app.registeredDevices += 1;
+    if (device.health?.status === "ready") app.readyDevices += 1;
+    if (device.health?.needsRegistration) app.devicesNeedingRegistration += 1;
+  }
+
+  return Object.fromEntries(
+    Object.entries(apps)
+      .sort(([left], [right]) => left.localeCompare(right)),
+  );
+}
+
+export function buildMonitoringHealthPayload({
+  targetEntries = [],
+  pushDevices = [],
+  scheduler = null,
+  notifications = null,
+  now = new Date(),
+} = {}) {
+  const nowMs = now.getTime();
+  const targets = normalizeArray(targetEntries)
+    .map(({ target, records }) => {
+      const view = buildMonitoringTargetView(target, records);
+      const latestFailure = normalizeArray(records).find((record) => record?.status === "failed");
+      return {
+        ...view,
+        latestFailure: latestFailure?.summary
+          ? {
+              id: latestFailure.summary.id,
+              status: latestFailure.summary.status,
+              failedAt: latestFailure.summary.failedAt ?? latestFailure.summary.completedAt ?? null,
+              error: latestFailure.summary.error ?? null,
+            }
+          : null,
+      };
+    })
+    .map((target) => buildTargetHealthSummary(target, nowMs));
+  const devices = normalizeArray(pushDevices);
+  const deviceSummary = buildPushHealthSummary(devices);
+  const attentionTargets = targets.filter((target) => ["critical", "warning"].includes(target.health?.severity));
+  const overdueTargets = targets.filter((target) => target.overdueSeconds > 15 * 60);
+  const dueTargets = targets.filter((target) => target.due);
+  const certAttentionTargets = targets.filter((target) => target.kind === "cert" && target.health?.severity === "critical");
+  const postureFailureTargets = targets.filter((target) => target.kind !== "cert" && target.health?.state === "failed");
+
+  return {
+    apiVersion: API_VERSION,
+    generatedAt: now.toISOString(),
+    summary: {
+      totalTargets: targets.length,
+      postureTargets: targets.filter((target) => target.kind !== "cert").length,
+      certTargets: targets.filter((target) => target.kind === "cert").length,
+      dueTargets: dueTargets.length,
+      overdueTargets: overdueTargets.length,
+      targetsNeedingAttention: attentionTargets.length,
+      certAttentionTargets: certAttentionTargets.length,
+      postureFailureTargets: postureFailureTargets.length,
+      pushDevicesNeedingRegistration: deviceSummary.devicesNeedingRegistration,
+    },
+    scheduler: {
+      enabled: Boolean(scheduler?.enabled),
+      running: Boolean(scheduler?.running),
+      mode: scheduler?.mode ?? null,
+      intervalMs: scheduler?.intervalMs ?? null,
+      limit: scheduler?.limit ?? null,
+      lastSweep: scheduler?.lastSweep ?? null,
+      lastSweepHealthy: scheduler?.lastSweep
+        ? Number(scheduler.lastSweep.failed || 0) === 0
+        : null,
+    },
+    notifications: {
+      enabled: Boolean(notifications?.enabled),
+      provider: notifications?.provider ?? "apns",
+      credentialsConfigured: Boolean(notifications?.credentialsConfigured),
+      topicConfigured: Boolean(notifications?.topicConfigured),
+      outbox: notifications?.outbox ?? null,
+      devices: deviceSummary,
+    },
+    apps: summarizeByApp({ targets, devices }),
+    attention: {
+      dueTargets: dueTargets.slice(0, 10),
+      overdueTargets: overdueTargets.slice(0, 10),
+      certTargets: certAttentionTargets.slice(0, 10),
+      postureFailures: postureFailureTargets.slice(0, 10),
+      pushDevices: devices
+        .filter((device) => device.health?.needsRegistration)
+        .slice(0, 10)
+        .map((device) => ({
+          id: device.id,
+          appId: device.appId,
+          platform: device.platform,
+          environment: device.environment,
+          lastSeenAt: device.lastSeenAt,
+          lastPushStatus: device.lastPushStatus,
+          health: device.health,
+        })),
+    },
+    targets,
+  };
+}
+
 export function buildMonitoringTargetDetailPayload(target, records = [], events = []) {
   const view = buildMonitoringTargetView(target, records);
 
