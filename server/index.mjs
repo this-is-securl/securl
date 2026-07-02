@@ -631,6 +631,33 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
+  if (requestUrl.pathname === "/api/product-pulse") {
+    if (request.method !== "GET") {
+      sendApiMethodNotAllowed(response, ["GET", "OPTIONS"]);
+      return;
+    }
+
+    if (!exposeTelemetry || !isTelemetryRequestAuthorized(request)) {
+      sendApiJson(response, 404, {
+        error: "Product pulse is not available.",
+      });
+      return;
+    }
+
+    const snapshot = telemetry.snapshot();
+    sendApiJson(response, 200, {
+      apiVersion: snapshot.apiVersion || "2026-05-14",
+      generatedAt: new Date().toISOString(),
+      productPulse: snapshot.productPulse,
+      clients: snapshot.clients,
+      notifications: snapshot.notifications,
+      recentBackendEvents: (snapshot.funnel?.recent || [])
+        .filter((event) => event?.source === "backend_api")
+        .slice(0, 20),
+    });
+    return;
+  }
+
   if (requestUrl.pathname.startsWith("/api/auth/")) {
     await handleAuthRequest({
       request,

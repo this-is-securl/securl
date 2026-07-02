@@ -385,6 +385,16 @@ export async function handleMonitoringTargetCollectionRequest({
     const label = typeof body.label === "string" && body.label.trim()
       ? body.label.trim().slice(0, 200)
       : validatedTarget.hostname;
+    const existingTargets = await scanRepository.listMonitoringTargets({
+      ownerId: authState.ownerId,
+      requesterScope: authState.ownerId ? null : authState.requesterScope,
+      limit: 250,
+    });
+    const existingTarget = existingTargets.find((candidate) => (
+      candidate.url === validatedTarget.toString()
+      && (candidate.kind ?? "posture") === kind
+      && (candidate.appId ?? null) === (appId ?? null)
+    ));
 
     const savedTarget = await scanRepository.upsertMonitoringTarget({
       url: validatedTarget.toString(),
@@ -414,6 +424,9 @@ export async function handleMonitoringTargetCollectionRequest({
       target: validatedTarget.toString(),
       client: clientMetadata.client,
       clientVersion: clientMetadata.version,
+      clientKey: authState.ownerId || authState.requesterScope || null,
+      targetKind: kind,
+      outcome: existingTarget ? "updated" : "created",
     });
 
     const records = await scanRepository.listPersistedRecords({
