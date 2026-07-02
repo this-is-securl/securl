@@ -191,6 +191,46 @@ test("telemetry tracker records aggregate counts", () => {
   });
 });
 
+test("telemetry tracker counts privacy-safe active backend clients", () => {
+  const telemetry = createTelemetryTracker();
+
+  telemetry.recordFunnelEvent({
+    event: "cert_watchlist_summary_read",
+    source: "backend_api",
+    mode: "com.ktbatterham.certwatch",
+    client: "cert-watch-ios",
+    clientVersion: "1.0.3+8",
+    clientKey: "scan-owner-one",
+    now: new Date("2026-07-02T08:00:00Z"),
+  });
+  telemetry.recordFunnelEvent({
+    event: "cert_watchlist_summary_read",
+    source: "backend_api",
+    mode: "com.ktbatterham.certwatch",
+    client: "cert-watch-ios",
+    clientVersion: "1.0.3+8",
+    clientKey: "scan-owner-one",
+    now: new Date("2026-07-02T08:05:00Z"),
+  });
+  telemetry.recordFunnelEvent({
+    event: "cert_watchlist_summary_read",
+    source: "backend_api",
+    mode: "com.ktbatterham.certwatch",
+    client: "cert-watch-ios",
+    clientVersion: "1.0.3+8",
+    clientKey: "scan-owner-two",
+    now: new Date("2026-07-02T08:10:00Z"),
+  });
+
+  const snapshot = telemetry.snapshot();
+  assert.equal(snapshot.clients.consumption.certWatchlistSummaryReads, 3);
+  assert.equal(snapshot.clients.consumption.byMode["com.ktbatterham.certwatch"].certWatchlistSummaryReads, 3);
+  assert.equal(snapshot.funnel.activeClientsByClient["cert-watch-ios"], 2);
+  assert.equal(snapshot.funnel.activeClientsByClientVersion["cert-watch-ios@1.0.3+8"], 2);
+  assert.equal(snapshot.clients.identity.activeBackendClientsByClient["cert-watch-ios"], 2);
+  assert.equal(snapshot.clients.identity.activeBackendClientsByClientVersion["cert-watch-ios@1.0.3+8"], 2);
+});
+
 test("telemetry tracker can persist counters to disk", () => {
   const dir = mkdtempSync(join(tmpdir(), "securl-telemetry-"));
   const storagePath = join(dir, "telemetry.json");

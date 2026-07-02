@@ -29,6 +29,7 @@ For mobile clients, use `/mobile-summary` for the main scan result screen after 
 - Register APNs tokens with `POST /api/notification-devices` using the same `X-Scan-Owner` or bearer session used for scans.
 - Add monitored URLs with `POST /api/monitoring-targets`; backend scheduler scans due targets and sends APNs alerts when meaningful drift appears.
 - Use `GET /api/monitoring-mobile-summary` for watch-list refreshes. It returns compact target state, next-check timing, posture/certificate change summaries, signal-clarity headlines, and stable action hints without loading full scan detail.
+- Use `GET /api/monitoring-cert-summary` for the Cert Watch watch-list home screen. It returns only certificate targets, attention counts, next scheduled check, recent certificate changes, and Cert Watch push registration health.
 - Use `GET /api/certificates/live?url=...` for Cert Watch refreshes that only need the currently served TLS certificate.
 
 ## Investigation And Reporting

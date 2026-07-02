@@ -1014,6 +1014,127 @@ export function buildMonitoringMobileSummaryPayload(targetEntries = []) {
   };
 }
 
+function classifyCertWatchHealth(target) {
+  const cert = target.cert ?? null;
+  if (!cert) return { state: "unknown", severity: "info", reason: "not_checked" };
+  if (cert.reachable === false) return { state: "unreachable", severity: "critical", reason: "cert_unreachable" };
+  const attention = cert.attention ?? null;
+  if (attention?.type === "cert_expired" || Number(cert.daysRemaining) < 0) {
+    return { state: "expired", severity: "critical", reason: "cert_expired" };
+  }
+  if (attention?.type === "cert_expiring" || Number(cert.daysRemaining) <= 30) {
+    return {
+      state: "expiring",
+      severity: attention?.severity ?? (Number(cert.daysRemaining) <= 7 ? "critical" : "warning"),
+      reason: "cert_expiring",
+    };
+  }
+  if (cert.reachable === true) return { state: "healthy", severity: "info", reason: null };
+  return { state: "unknown", severity: "info", reason: "not_checked" };
+}
+
+function compareIsoDates(left, right) {
+  return new Date(left || 0).getTime() - new Date(right || 0).getTime();
+}
+
+function buildPushHealthSummary(pushDevices = []) {
+  const devices = normalizeArray(pushDevices);
+  const active = devices.filter((device) => !device.disabledAt);
+  const byStatus = {
+    ready: 0,
+    stale: 0,
+    push_failed: 0,
+    rejected: 0,
+    disabled: devices.length - active.length,
+  };
+  for (const device of active) {
+    const status = device.health?.status || device.status || "unknown";
+    if (status in byStatus) byStatus[status] += 1;
+  }
+  const lastSeenAt = active
+    .map((device) => device.lastSeenAt)
+    .filter(Boolean)
+    .sort(compareIsoDates)
+    .at(-1) ?? null;
+  const lastPushSentAt = active
+    .map((device) => device.lastPushSentAt)
+    .filter(Boolean)
+    .sort(compareIsoDates)
+    .at(-1) ?? null;
+  return {
+    configured: active.length > 0,
+    registeredDevices: devices.length,
+    activeDevices: active.length,
+    readyDevices: byStatus.ready,
+    devicesNeedingRegistration: active.filter((device) => (
+      device.health?.needsRegistration ?? device.needsRegistration ?? false
+    )).length,
+    byStatus,
+    lastSeenAt,
+    lastPushSentAt,
+  };
+}
+
+export function buildMonitoringCertSummaryPayload(targetEntries = [], pushDevices = []) {
+  const targets = normalizeArray(targetEntries)
+    .filter(({ target }) => (target?.kind ?? "posture") === "cert")
+    .map(({ target, records }) => buildMobileTargetSummary(target, records));
+  const healthCounts = {
+    healthy: 0,
+    expiring: 0,
+    expired: 0,
+    unreachable: 0,
+    unknown: 0,
+  };
+  const recentChanges = [];
+
+  for (const target of targets) {
+    const health = classifyCertWatchHealth(target);
+    if (health.state in healthCounts) healthCounts[health.state] += 1;
+    target.health = health;
+    if (target.change?.type && target.change.type !== "none") {
+      recentChanges.push({
+        targetId: target.id,
+        targetUrl: target.url,
+        targetLabel: target.label,
+        checkedAt: target.cert?.checkedAt ?? target.lastCheckedAt ?? null,
+        ...target.change,
+      });
+    }
+  }
+
+  const sortedTargets = targets.sort((left, right) => {
+    const severityOrder = { critical: 0, warning: 1, info: 2 };
+    const severityDelta = (severityOrder[left.health.severity] ?? 3) - (severityOrder[right.health.severity] ?? 3);
+    if (severityDelta !== 0) return severityDelta;
+    return compareIsoDates(left.nextDueAt, right.nextDueAt);
+  });
+  const nextDueTarget = sortedTargets
+    .filter((target) => target.nextDueAt)
+    .sort((left, right) => compareIsoDates(left.nextDueAt, right.nextDueAt))[0] ?? null;
+  recentChanges.sort((left, right) => compareIsoDates(right.checkedAt, left.checkedAt));
+
+  return {
+    apiVersion: API_VERSION,
+    summary: {
+      totalCerts: targets.length,
+      dueCerts: targets.filter((target) => target.due).length,
+      healthyCerts: healthCounts.healthy,
+      expiringCerts: healthCounts.expiring,
+      expiredCerts: healthCounts.expired,
+      unreachableCerts: healthCounts.unreachable,
+      unknownCerts: healthCounts.unknown,
+      needsAttention: healthCounts.expiring + healthCounts.expired + healthCounts.unreachable,
+      changes: recentChanges.length,
+      nextCheckAt: nextDueTarget?.nextDueAt ?? null,
+      nextCheckTargetId: nextDueTarget?.id ?? null,
+    },
+    push: buildPushHealthSummary(pushDevices),
+    recentChanges: recentChanges.slice(0, 10),
+    targets: sortedTargets,
+  };
+}
+
 export function buildMonitoringTargetDetailPayload(target, records = [], events = []) {
   const view = buildMonitoringTargetView(target, records);
 

@@ -7,6 +7,7 @@ import {
   normalizeMonitoringMode,
   runCertificateMonitorCheck,
 } from "./certMonitoring.mjs";
+import { classifyDeviceHealth } from "./pushDeviceHandlers.mjs";
 
 function clampLimit(value, fallback = 50, max = 100) {
   if (value === null || value === undefined || value === "") {
@@ -144,6 +145,75 @@ export async function handleMonitoringMobileSummaryRequest({
     sendJson(response, 200, buildMonitoringMobileSummaryPayload(entries));
   } catch (error) {
     sendRepositoryUnavailable(response, error, "monitoring_mobile_summary");
+  }
+
+  return true;
+}
+
+export async function handleMonitoringCertSummaryRequest({
+  request,
+  response,
+  requestUrl,
+  scanRepository,
+  authorizeAnalysisRequest,
+  buildMonitoringCertSummaryPayload,
+  sendJson,
+  sendMethodNotAllowed,
+  sendRepositoryUnavailable,
+  telemetry = null,
+  readClientMetadata = null,
+}) {
+  if (request.method !== "GET") {
+    sendMethodNotAllowed(response, ["GET"]);
+    return true;
+  }
+
+  const authState = await authorizeAnalysisRequest({
+    request,
+    response,
+    requestPath: requestUrl.pathname,
+    enforceRateLimit: false,
+    requireScanOwner: true,
+  });
+  if (!authState) {
+    return true;
+  }
+
+  try {
+    const clientMetadata = readClientMetadata?.(request, { fallbackClient: "com.ktbatterham.certwatch" }) || {};
+    const ownerOrScope = authState.ownerId || authState.requesterScope || null;
+    telemetry?.recordFunnelEvent?.({
+      event: "cert_watchlist_summary_read",
+      source: "backend_api",
+      mode: "com.ktbatterham.certwatch",
+      client: clientMetadata.client,
+      clientVersion: clientMetadata.version,
+      clientKey: ownerOrScope,
+    });
+
+    const limit = clampLimit(requestUrl.searchParams.get("limit"), 100, 250);
+    const targets = await scanRepository.listMonitoringTargets({
+      ownerId: authState.ownerId,
+      requesterScope: authState.ownerId ? null : authState.requesterScope,
+      limit,
+    });
+    const certTargets = targets.filter((target) => target.kind === "cert");
+    const pushDevices = await scanRepository.listPushDevices({
+      ownerId: authState.ownerId,
+      requesterScope: authState.ownerId ? null : authState.requesterScope,
+      appId: "com.ktbatterham.certwatch",
+      limit: 100,
+    });
+    const now = Date.now();
+    const devicesWithHealth = pushDevices.map((device) => ({
+      ...device,
+      health: classifyDeviceHealth(device, now),
+    }));
+    const entries = certTargets.map((target) => ({ target, records: [] }));
+
+    sendJson(response, 200, buildMonitoringCertSummaryPayload(entries, devicesWithHealth));
+  } catch (error) {
+    sendRepositoryUnavailable(response, error, "monitoring_cert_summary");
   }
 
   return true;
