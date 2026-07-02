@@ -52,6 +52,8 @@ const postMonitoringTarget = (baseUrl, url, options = {}) =>
     body: JSON.stringify({
       url,
       ...(options.cadence ? { cadence: options.cadence } : {}),
+      ...(options.kind ? { kind: options.kind } : {}),
+      ...(options.mode ? { mode: options.mode } : {}),
       ...(options.label ? { label: options.label } : {}),
       ...(options.appId ? { appId: options.appId } : {}),
       ...(options.policy ? { policy: options.policy } : {}),
@@ -532,9 +534,12 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.monitoring.features.includes("mobile-posture-drift-summary"));
     assert.ok(payload.monitoring.features.includes("mobile-digest-preview"));
     assert.ok(payload.monitoring.features.includes("mobile-signal-clarity"));
+    assert.ok(payload.monitoring.features.includes("cert-watchlist-summary-v1"));
+    assert.ok(payload.monitoring.features.includes("cert-watchlist-push-health-v1"));
     assert.ok(payload.monitoring.features.includes("cert-attention-state"));
     assert.ok(payload.monitoring.features.includes("target-observation-policy"));
     assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-summary"));
+    assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-cert-summary"));
     assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-mobile-summary"));
     assert.ok(payload.monitoring.resources.includes("POST /api/monitoring-targets/:id/run"));
     assert.ok(payload.certificates.resources.includes("GET /api/certificates/live?url=:url"));
@@ -1519,12 +1524,65 @@ test("monitoring targets can be created, listed, and deleted", async () => {
     assert.equal(mobileSummaryPayload.targets[0].id, targetId);
     assert.equal(mobileSummaryPayload.targets[0].latestScan, null);
 
+    const certDeviceResponse = await fetch(`${server.baseUrl}/api/notification-devices`, {
+      method: "POST",
+      headers: {
+        ...scanOwnerJsonHeaders(SCAN_OWNER_ONE),
+        "X-SecURL-Client": "cert-watch-ios",
+        "X-SecURL-Client-Version": "1.0.3+8",
+      },
+      body: JSON.stringify({
+        apnsToken: "b".repeat(64),
+        platform: "ios",
+        environment: "sandbox",
+        appId: "com.ktbatterham.certwatch",
+      }),
+    });
+    assert.equal(certDeviceResponse.status, 201);
+
+    const certTargetResponse = await postMonitoringTarget(server.baseUrl, "https://example.com", {
+      owner: SCAN_OWNER_ONE,
+      cadence: "daily",
+      kind: "cert",
+      label: "Example cert",
+      appId: "com.ktbatterham.certwatch",
+      headers: {
+        "X-SecURL-Client": "cert-watch-ios",
+        "X-SecURL-Client-Version": "1.0.3+8",
+      },
+    });
+    const certTargetPayload = await certTargetResponse.json();
+    assert.equal(certTargetResponse.status, 201);
+    assert.equal(certTargetPayload.target.kind, "cert");
+    assert.equal(certTargetPayload.target.cert.host, "example.com");
+
+    const certSummaryResponse = await fetch(`${server.baseUrl}/api/monitoring-cert-summary`, {
+      headers: {
+        ...scanOwnerHeaders(SCAN_OWNER_ONE),
+        "X-SecURL-Client": "cert-watch-ios",
+        "X-SecURL-Client-Version": "1.0.3+8",
+      },
+    });
+    const certSummaryPayload = await certSummaryResponse.json();
+    assert.equal(certSummaryResponse.status, 200);
+    assert.equal(certSummaryPayload.summary.totalCerts, 1);
+    assert.equal(certSummaryPayload.summary.healthyCerts, 1);
+    assert.equal(certSummaryPayload.push.registeredDevices, 1);
+    assert.equal(certSummaryPayload.push.readyDevices, 1);
+    assert.equal(certSummaryPayload.targets[0].id, certTargetPayload.target.id);
+    assert.equal(certSummaryPayload.targets[0].health.state, "healthy");
+
     const telemetryResponse = await fetch(`${server.baseUrl}/api/telemetry`);
     const telemetryPayload = await telemetryResponse.json();
     assert.equal(telemetryPayload.funnel.events.monitoring_mobile_summary_read, 1);
-    assert.equal(telemetryPayload.funnel.events.monitoring_target_registered, 1);
+    assert.equal(telemetryPayload.funnel.events.monitoring_target_registered, 2);
+    assert.equal(telemetryPayload.funnel.events.cert_watchlist_summary_read, 1);
     assert.equal(telemetryPayload.funnel.byClient["header-watch-ios"].monitoring_target_registered, 1);
     assert.equal(telemetryPayload.funnel.byClient["header-watch-ios"].monitoring_mobile_summary_read, 1);
+    assert.equal(telemetryPayload.funnel.byClient["cert-watch-ios"].monitoring_target_registered, 1);
+    assert.equal(telemetryPayload.funnel.byClient["cert-watch-ios"].cert_watchlist_summary_read, 1);
+    assert.equal(telemetryPayload.clients.consumption.certWatchlistSummaryReads, 1);
+    assert.equal(telemetryPayload.clients.identity.activeBackendClientsByClient["cert-watch-ios"], 1);
 
     const deleteResponse = await fetch(`${server.baseUrl}/api/monitoring-targets/${targetId}`, {
       method: "DELETE",
@@ -1534,6 +1592,14 @@ test("monitoring targets can be created, listed, and deleted", async () => {
     assert.equal(deleteResponse.status, 200);
     assert.equal(deletePayload.apiVersion, "2026-05-14");
     assert.equal(deletePayload.ok, true);
+
+    const deleteCertResponse = await fetch(`${server.baseUrl}/api/monitoring-targets/${certTargetPayload.target.id}`, {
+      method: "DELETE",
+      headers: scanOwnerHeaders(SCAN_OWNER_ONE),
+    });
+    const deleteCertPayload = await deleteCertResponse.json();
+    assert.equal(deleteCertResponse.status, 200);
+    assert.equal(deleteCertPayload.ok, true);
 
     const emptyListResponse = await fetch(`${server.baseUrl}/api/monitoring-targets`, {
       headers: scanOwnerHeaders(SCAN_OWNER_ONE),

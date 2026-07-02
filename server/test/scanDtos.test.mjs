@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildMonitoringMobileSummaryPayload, buildScanObservationDriftPayload } from "../scanDtos.mjs";
+import {
+  buildMonitoringCertSummaryPayload,
+  buildMonitoringMobileSummaryPayload,
+  buildScanObservationDriftPayload,
+} from "../scanDtos.mjs";
 
 function buildAnalysisResult(overrides = {}) {
   return {
@@ -222,6 +226,111 @@ test("mobile monitoring summary exposes certificate attention state", () => {
   assert.equal(payload.targets[0].nextCheck.cadence, "daily");
   assert.equal(payload.targets[0].nextCheck.scheduledAt, payload.targets[0].nextDueAt);
   assert.equal(payload.targets[0].actions[0].id, "review_certificate");
+});
+
+test("cert monitoring summary focuses the Cert Watch watch list and push health", () => {
+  const payload = buildMonitoringCertSummaryPayload([
+    {
+      target: {
+        id: "target-cert-expiring",
+        url: "https://expiring.example/",
+        label: "Expiring cert",
+        cadence: "daily",
+        kind: "cert",
+        appId: "com.ktbatterham.certwatch",
+        addedAt: "2026-06-19T08:00:00.000Z",
+        lastCheckedAt: "2026-06-19T08:01:00.000Z",
+        nextDueAt: "2026-06-20T08:01:00.000Z",
+        certState: {
+          reachable: true,
+          checkedAt: "2026-06-19T08:01:00.000Z",
+          host: "expiring.example",
+          issuer: "Example CA",
+          validTo: "2026-06-25T00:00:00.000Z",
+          daysRemaining: 6,
+          attention: {
+            type: "cert_expiring",
+            severity: "critical",
+            warningBand: 7,
+            title: "Certificate expiring: expiring.example",
+            body: "6 days remaining.",
+          },
+          history: [
+            {
+              eventType: "cert_expiring",
+              severity: "critical",
+              checkedAt: "2026-06-19T08:01:00.000Z",
+              title: "Certificate expiring: expiring.example",
+            },
+          ],
+        },
+      },
+      records: [],
+    },
+    {
+      target: {
+        id: "target-cert-healthy",
+        url: "https://healthy.example/",
+        label: "Healthy cert",
+        cadence: "weekly",
+        kind: "cert",
+        appId: "com.ktbatterham.certwatch",
+        addedAt: "2026-06-18T08:00:00.000Z",
+        lastCheckedAt: "2026-06-18T08:01:00.000Z",
+        nextDueAt: "2026-06-25T08:01:00.000Z",
+        certState: {
+          reachable: true,
+          checkedAt: "2026-06-18T08:01:00.000Z",
+          host: "healthy.example",
+          issuer: "Example CA",
+          validTo: "2026-09-25T00:00:00.000Z",
+          daysRemaining: 98,
+          attention: null,
+          history: [],
+        },
+      },
+      records: [],
+    },
+    {
+      target: {
+        id: "target-posture",
+        url: "https://posture.example/",
+        cadence: "daily",
+        kind: "posture",
+      },
+      records: [],
+    },
+  ], [
+    {
+      id: "device-ready",
+      appId: "com.ktbatterham.certwatch",
+      lastSeenAt: "2026-06-19T08:02:00.000Z",
+      lastPushSentAt: "2026-06-19T08:03:00.000Z",
+      health: { status: "ready", needsRegistration: false },
+    },
+    {
+      id: "device-stale",
+      appId: "com.ktbatterham.certwatch",
+      lastSeenAt: "2026-05-01T08:02:00.000Z",
+      health: { status: "stale", needsRegistration: true },
+    },
+  ]);
+
+  assert.equal(payload.summary.totalCerts, 2);
+  assert.equal(payload.summary.expiringCerts, 1);
+  assert.equal(payload.summary.healthyCerts, 1);
+  assert.equal(payload.summary.needsAttention, 1);
+  assert.equal(payload.summary.nextCheckTargetId, "target-cert-expiring");
+  assert.equal(payload.push.configured, true);
+  assert.equal(payload.push.registeredDevices, 2);
+  assert.equal(payload.push.readyDevices, 1);
+  assert.equal(payload.push.devicesNeedingRegistration, 1);
+  assert.equal(payload.targets[0].id, "target-cert-expiring");
+  assert.equal(payload.targets[0].health.state, "expiring");
+  assert.equal(payload.targets[0].health.severity, "critical");
+  assert.equal(payload.targets[1].health.state, "healthy");
+  assert.equal(payload.recentChanges.length, 1);
+  assert.equal(payload.recentChanges[0].type, "cert_expiring");
 });
 
 test("mobile monitoring summary promotes latest certificate history metadata", () => {

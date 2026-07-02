@@ -17,6 +17,7 @@ import {
 } from "./requestGuards.mjs";
 import {
   buildMonitoringTargetDetailPayload,
+  buildMonitoringCertSummaryPayload,
   buildMonitoringMobileSummaryPayload,
   buildMonitoringSummaryPayload,
   buildMonitoringTargetView,
@@ -41,6 +42,7 @@ import {
   buildTargetHistoryPayload,
 } from "./scanDtos.mjs";
 import {
+  handleMonitoringCertSummaryRequest,
   handleMonitoringMobileSummaryRequest,
   handleMonitoringSummaryRequest,
   handleMonitoringTargetCollectionRequest,
@@ -853,6 +855,27 @@ const server = http.createServer(async (request, response) => {
       sendJson: sendApiJson,
       sendMethodNotAllowed: sendApiMethodNotAllowed,
       sendRepositoryUnavailable: sendApiRepositoryUnavailable,
+    });
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/monitoring-cert-summary") {
+    await handleMonitoringCertSummaryRequest({
+      request,
+      response,
+      requestUrl,
+      scanRepository,
+      authorizeAnalysisRequest: (options) => withAuthResolvers({
+        ...options,
+        sendJsonResponse: sendApiJson,
+        sendRateLimitedResponse: sendApiRateLimited,
+      }),
+      buildMonitoringCertSummaryPayload,
+      sendJson: sendApiJson,
+      sendMethodNotAllowed: sendApiMethodNotAllowed,
+      sendRepositoryUnavailable: sendApiRepositoryUnavailable,
+      telemetry,
+      readClientMetadata,
     });
     return;
   }

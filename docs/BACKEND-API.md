@@ -99,6 +99,7 @@ npm run smoke:api -- --base-url=https://securl-app-production.up.railway.app --t
 
 - `POST /api/monitoring-targets`
 - `GET /api/monitoring-targets`
+- `GET /api/monitoring-cert-summary`
 - `GET /api/monitoring-mobile-summary`
 - `GET /api/monitoring-targets/:id`
 - `GET /api/monitoring-targets/:id/history`
@@ -113,6 +114,8 @@ npm run smoke:api -- --base-url=https://securl-app-production.up.railway.app --t
 - `actions`: short stable action ids and labels, such as `review_posture_regression`, `review_certificate`, `check_tls_endpoint`, or `run_scheduled_check`.
 
 These fields are derived server-side from stored scan drift, certificate attention, and scheduler timing so mobile clients do not need to fetch full scan detail just to render watch-list state.
+
+`GET /api/monitoring-cert-summary` is a Cert Watch-optimized owner-scoped summary. It returns only certificate monitoring targets, aggregate counts for healthy, expiring, expired, unreachable, and unknown certificates, the next scheduled check, recent certificate changes, and APNs health for active `com.ktbatterham.certwatch` device registrations. The endpoint also records privacy-safe active-client telemetry keyed by a hashed owner/scope value, so repeated watch-list refreshes can be separated from genuinely distinct Cert Watch users without storing device identifiers.
 
 ## Current notification resources
 

@@ -126,6 +126,7 @@ const main = async () => {
   console.log(`  Notification test requests: ${clientConsumption.notificationTestRequests ?? 0}`);
   console.log(`  Live certificate reads: ${clientConsumption.liveCertificateReads ?? 0}`);
   console.log(`  Live certificate failures: ${clientConsumption.liveCertificateFailures ?? 0}`);
+  console.log(`  Cert watchlist summary reads: ${clientConsumption.certWatchlistSummaryReads ?? 0}`);
   const todayConsumption = clientConsumption.today || {};
   const todayConsumptionRows = Object.entries(todayConsumption)
     .filter(([, count]) => Number(count || 0) > 0)
@@ -145,6 +146,15 @@ const main = async () => {
     console.log("  Today by app/client:");
     for (const [client, events, total] of todayByClient.slice(0, 8)) {
       console.log(`    - ${client}: ${total} (${describeEventCounts(events)})`);
+    }
+  }
+  const todayActiveClients = Object.entries(telemetry.funnel?.todayActiveClientsByClient || {})
+    .filter(([, count]) => Number(count || 0) > 0)
+    .sort(([, left], [, right]) => Number(right || 0) - Number(left || 0));
+  if (todayActiveClients.length) {
+    console.log("  Today active backend clients:");
+    for (const [client, count] of todayActiveClients.slice(0, 8)) {
+      console.log(`    - ${client}: ${count}`);
     }
   }
   const todayByVersion = sortedEventBuckets(telemetry.funnel?.todayByClientVersion);
