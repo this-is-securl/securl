@@ -37,7 +37,7 @@ Use the hosted scanner if you want the quickest feel for the product:
 
 - [securl.online](https://securl.online) — product and landing page
 - [app.securl.online](https://app.securl.online) — live scanner and report workspace
-- [SecURL on the App Store](https://apps.apple.com/app/securl/id6774322464) — iOS companion app
+- [SecURL on the App Store](https://apps.apple.com/app/securl/id6774322464) — iOS app
 - [`securl`](https://www.npmjs.com/package/securl) — reusable CLI and Node engine
 
 Follow product notes and practical posture write-ups at [@ThisIsSecURL on X](https://x.com/ThisIsSecURL) and [Dev.to/thisissecurl](https://dev.to/thisissecurl).
@@ -159,23 +159,23 @@ SecURL now has a clean split between:
 That makes it much easier to:
 
 - host the frontend separately from the backend
-- support the hosted web app, iOS companion, CLI, and future clients from the same backend/API shape
+- support the hosted web app, iOS suite, CLI, and future clients from the same backend/API shape
 - keep the scanner logic reusable in CLI and service contexts
 
 ## Roadmap
 
 ### Near term
 
-- Tighten the premium PDF export into a cleaner executive deliverable
-- Deepen monitoring detail and history views on top of the new backend resources
-- Continue improving report clarity, remediation language, and visual maturity
+- Keep the iOS apps and backend API contracts stable now that mobile is showing real usage
+- Deepen monitoring detail, push health, and history views on top of the backend resources
+- Continue improving report clarity, remediation language, and signal attribution
 
 ### Product direction
 
 - Keep the live scan and technical outputs strong and easy to try
 - Define clearer boundaries between free workflow value and premium workflow value
-- Treat premium reporting, recurring monitoring, and richer history as the most likely commercial foundations
-- Explore shared/team views, API access, and mobile companion access after the service model is stable
+- Treat mobile monitoring, premium reporting, recurring checks, and richer history as the most likely commercial foundations
+- Explore shared/team views and API access after the service model is stable
 
 ### Not yet
 
@@ -190,7 +190,7 @@ Sponsorship helps fund continued work on the passive analysis engine, hosted sca
 
 ## Package status
 
-- Latest published package: `securl@1.5.1`
+- Latest published package: `securl@1.15.0`
 - Previous package name: `@ktbatterham/external-posture-core` is deprecated in favour of `securl`
 - npm tag: `latest`
 - Package signal check: `npm run package:signals`

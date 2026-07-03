@@ -214,7 +214,7 @@ Registered clients can authenticate with:
 That mode gives us:
 
 - user-owned scans and monitoring targets
-- a stable ownership boundary across browsers and future mobile clients
+- a stable ownership boundary across browsers, iOS apps, and future clients
 - a cleaner path to shared SDKs and future paid tiers
 
 ### Transitional fallback: browser-owned scan token
