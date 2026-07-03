@@ -22,6 +22,8 @@ SecURL is not a URL shortener. It assesses the external security posture of URLs
   ·
   <a href="https://apps.apple.com/app/securl/id6774322464"><strong>Download the iOS app</strong></a>
   ·
+  <a href="https://securl.online/downloads"><strong>Download Android APKs</strong></a>
+  ·
   <a href="https://www.npmjs.com/package/securl"><strong>Use the npm package</strong></a>
   ·
   <a href="https://x.com/ThisIsSecURL"><strong>Follow @ThisIsSecURL</strong></a>
@@ -38,6 +40,7 @@ Use the hosted scanner if you want the quickest feel for the product:
 - [securl.online](https://securl.online) — product and landing page
 - [app.securl.online](https://app.securl.online) — live scanner and report workspace
 - [SecURL on the App Store](https://apps.apple.com/app/securl/id6774322464) — iOS app
+- [Android downloads](https://securl.online/downloads) — self-hosted APKs for the mobile suite
 - [`securl`](https://www.npmjs.com/package/securl) — reusable CLI and Node engine
 
 Follow product notes and practical posture write-ups at [@ThisIsSecURL on X](https://x.com/ThisIsSecURL) and [Dev.to/thisissecurl](https://dev.to/thisissecurl).
@@ -93,7 +96,7 @@ The short version:
 
 Open [app.securl.online](https://app.securl.online) and scan a public target. For the product overview first, start at [securl.online](https://securl.online).
 
-Prefer mobile? Install [SecURL on the App Store](https://apps.apple.com/app/securl/id6774322464).
+Prefer mobile? Install [SecURL on the App Store](https://apps.apple.com/app/securl/id6774322464) or use the [self-hosted Android APKs](https://securl.online/downloads).
 
 ### CLI
 

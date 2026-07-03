@@ -87,6 +87,7 @@ Run this checklist before every production ship. Use `/ship` or `/ship-marketing
 ### 14. CTA / conversion
 - [ ] At least one CTA link above the fold and one at the bottom of the page
 - [ ] All "Try it free" / "Try SecURL" links go to `https://app.securl.online`
+- [ ] Android downloads link goes to `https://securl.online/downloads`
 - [ ] No broken links (check with browser)
 
 ### 15. Trust & credibility
