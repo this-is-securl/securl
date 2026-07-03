@@ -11,6 +11,7 @@ import { useScanWorkspace } from "@/hooks/useScanWorkspace";
 import { OutputPreview } from "@/components/landing/OutputPreview";
 import { CapabilityStrip } from "@/components/landing/CapabilityStrip";
 import { AppStoreBadge } from "@/components/AppStoreBadge";
+import { AndroidDownloadsBadge } from "@/components/AndroidDownloadsBadge";
 import { recordTelemetryEvent } from "@/lib/apiClient";
 import { HERO_SAMPLE, type HeroSampleChip } from "@/data/heroSample";
 
@@ -563,12 +564,12 @@ const Index = () => {
               </div>
             </section>
 
-            {/* 5 — iOS app */}
+            {/* 5 — Mobile apps */}
             <section className="rounded-[1.75rem] border border-white/8 bg-white/3 px-4 py-8 shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] sm:px-8 sm:py-10">
               <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:justify-between sm:text-left">
                 <div className="space-y-1.5">
                   <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#d89a63]">
-                    SecURL on iPhone
+                    SecURL on mobile
                   </p>
                   <h2 className="text-xl font-black tracking-[-0.03em] text-white sm:text-2xl">
                     Check posture anywhere
@@ -578,7 +579,10 @@ const Index = () => {
                     changes — from your pocket.
                   </p>
                 </div>
-                <AppStoreBadge className="shrink-0" />
+                <div className="flex flex-col items-center gap-3 sm:items-end">
+                  <AppStoreBadge className="shrink-0" />
+                  <AndroidDownloadsBadge className="shrink-0" />
+                </div>
               </div>
             </section>
 
