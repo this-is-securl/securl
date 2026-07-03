@@ -483,7 +483,9 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.deepEqual(payload.service.clientTelemetry.headers, {
       client: "X-SecURL-Client",
       version: "X-SecURL-Client-Version",
+      channel: "X-SecURL-Client-Channel",
     });
+    assert.deepEqual(payload.service.clientTelemetry.channels, ["app-store", "testflight", "development", "automation"]);
     assert.equal(payload.service.clientTelemetry.optional, true);
     assert.equal(payload.service.clientTelemetry.privacySafe, true);
     assert.deepEqual(payload.scans.modes, ["standard", "quiet", "deep-passive"]);
@@ -590,6 +592,7 @@ test("live certificate endpoint validates HTTPS targets before doing a cheap TLS
         ...scanOwnerHeaders(),
         "X-SecURL-Client": "cert-watch-ios",
         "X-SecURL-Client-Version": "1.0.3+8",
+        "X-SecURL-Client-Channel": "testflight",
       },
     });
     const httpPayload = await httpResponse.json();
@@ -600,7 +603,10 @@ test("live certificate endpoint validates HTTPS targets before doing a cheap TLS
     const telemetryPayload = await telemetryResponse.json();
     assert.equal(telemetryResponse.status, 200);
     assert.equal(telemetryPayload.funnel.today.live_certificate_failed, 1);
+    assert.equal(telemetryPayload.funnel.todayByMode["com.ktbatterham.certwatch"].live_certificate_failed, 1);
     assert.equal(telemetryPayload.funnel.todayByClient["cert-watch-ios"].live_certificate_failed, 1);
+    assert.equal(telemetryPayload.funnel.todayActiveClientsByMode["com.ktbatterham.certwatch"], 1);
+    assert.equal(telemetryPayload.funnel.todayClientChannelsByMode["com.ktbatterham.certwatch"].testflight, 1);
     assert.equal(
       telemetryPayload.funnel.todayByClientVersion["cert-watch-ios@1.0.3+8"].live_certificate_failed,
       1,
@@ -909,6 +915,7 @@ test("api preflight allows the Hostinger frontend origins", async () => {
       assert.match(response.headers.get("access-control-allow-headers") || "", /X-Scan-Owner/i);
       assert.match(response.headers.get("access-control-allow-headers") || "", /X-SecURL-Client/i);
       assert.match(response.headers.get("access-control-allow-headers") || "", /X-SecURL-Client-Version/i);
+      assert.match(response.headers.get("access-control-allow-headers") || "", /X-SecURL-Client-Channel/i);
       assert.match(response.headers.get("access-control-allow-headers") || "", /Authorization/i);
     }
   } finally {
@@ -1262,6 +1269,7 @@ test("notification devices can be registered, listed, and disabled without echoi
         ...scanOwnerJsonHeaders(),
         "X-SecURL-Client": "securl-ios",
         "X-SecURL-Client-Version": "1.2.0+19",
+        "X-SecURL-Client-Channel": "testflight",
       },
       body: JSON.stringify({
         apnsToken,
@@ -1283,6 +1291,7 @@ test("notification devices can be registered, listed, and disabled without echoi
         ...scanOwnerJsonHeaders(),
         "X-SecURL-Client": "securl-ios",
         "X-SecURL-Client-Version": "1.2.0+19",
+        "X-SecURL-Client-Channel": "testflight",
       },
     });
     const testPayload = await testResponse.json();
@@ -1310,6 +1319,7 @@ test("notification devices can be registered, listed, and disabled without echoi
         ...scanOwnerHeaders(),
         "X-SecURL-Client": "securl-ios",
         "X-SecURL-Client-Version": "1.2.0+19",
+        "X-SecURL-Client-Channel": "testflight",
       },
     });
     const healthPayload = await healthResponse.json();
@@ -1334,6 +1344,8 @@ test("notification devices can be registered, listed, and disabled without echoi
     assert.equal(telemetryPayload.funnel.events.notification_test_requested, 1);
     assert.equal(telemetryPayload.funnel.byClient["securl-ios"].notification_device_registered, 1);
     assert.equal(telemetryPayload.funnel.byClient["securl-ios"].notification_device_health_read, 1);
+    assert.equal(telemetryPayload.funnel.activeClientsByMode["online.securl.app"], 1);
+    assert.equal(telemetryPayload.funnel.clientChannelsByMode["online.securl.app"].testflight, 2);
     assert.equal(
       telemetryPayload.clients.identity.backendEventsByClientVersion["securl-ios@1.2.0+19"].notification_device_registered,
       1,
@@ -1485,6 +1497,7 @@ test("monitoring targets can be created, listed, and deleted", async () => {
       headers: {
         "X-SecURL-Client": "header-watch-ios",
         "X-SecURL-Client-Version": "1.1.0+7",
+        "X-SecURL-Client-Channel": "app-store",
       },
     });
     const createPayload = await createResponse.json();
@@ -1517,6 +1530,7 @@ test("monitoring targets can be created, listed, and deleted", async () => {
         ...scanOwnerHeaders(SCAN_OWNER_ONE),
         "X-SecURL-Client": "header-watch-ios",
         "X-SecURL-Client-Version": "1.1.0+7",
+        "X-SecURL-Client-Channel": "app-store",
       },
     });
     const mobileSummaryPayload = await mobileSummaryResponse.json();
@@ -1532,6 +1546,7 @@ test("monitoring targets can be created, listed, and deleted", async () => {
         ...scanOwnerJsonHeaders(SCAN_OWNER_ONE),
         "X-SecURL-Client": "cert-watch-ios",
         "X-SecURL-Client-Version": "1.0.3+8",
+        "X-SecURL-Client-Channel": "app-store",
       },
       body: JSON.stringify({
         apnsToken: "b".repeat(64),
@@ -1551,6 +1566,7 @@ test("monitoring targets can be created, listed, and deleted", async () => {
       headers: {
         "X-SecURL-Client": "cert-watch-ios",
         "X-SecURL-Client-Version": "1.0.3+8",
+        "X-SecURL-Client-Channel": "app-store",
       },
     });
     const certTargetPayload = await certTargetResponse.json();
@@ -1563,6 +1579,7 @@ test("monitoring targets can be created, listed, and deleted", async () => {
         ...scanOwnerHeaders(SCAN_OWNER_ONE),
         "X-SecURL-Client": "cert-watch-ios",
         "X-SecURL-Client-Version": "1.0.3+8",
+        "X-SecURL-Client-Channel": "app-store",
       },
     });
     const certSummaryPayload = await certSummaryResponse.json();
@@ -1579,6 +1596,7 @@ test("monitoring targets can be created, listed, and deleted", async () => {
         ...scanOwnerHeaders(SCAN_OWNER_ONE),
         "X-SecURL-Client": "securl-ios",
         "X-SecURL-Client-Version": "1.0.3+12",
+        "X-SecURL-Client-Channel": "app-store",
       },
     });
     const healthPayload = await healthResponse.json();
@@ -1616,6 +1634,10 @@ test("monitoring targets can be created, listed, and deleted", async () => {
     assert.equal(telemetryPayload.productPulse.today.monitoringTargetKindsByApp["com.ktbatterham.certwatch"].cert, 1);
     assert.equal(telemetryPayload.productPulse.today.activeOwnersByApp["com.ktbatterham.headerwatch"], 1);
     assert.equal(telemetryPayload.productPulse.today.uniqueTargetsByApp["com.ktbatterham.headerwatch"], 1);
+    assert.equal(telemetryPayload.productPulse.today.activeOwnersByApp["com.ktbatterham.certwatch"], 1);
+    assert.equal(telemetryPayload.productPulse.today.uniqueTargetsByApp["com.ktbatterham.certwatch"], 1);
+    assert.equal(telemetryPayload.productPulse.today.clientChannelsByApp["com.ktbatterham.headerwatch"]["app-store"], 2);
+    assert.equal(telemetryPayload.productPulse.today.clientChannelsByApp["com.ktbatterham.certwatch"]["app-store"], 3);
 
     const productPulseResponse = await fetch(`${server.baseUrl}/api/product-pulse`);
     const productPulsePayload = await productPulseResponse.json();

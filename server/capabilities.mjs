@@ -37,7 +37,9 @@ export function buildCapabilitiesPayload({
         headers: {
           client: "X-SecURL-Client",
           version: "X-SecURL-Client-Version",
+          channel: "X-SecURL-Client-Channel",
         },
+        channels: ["app-store", "testflight", "development", "automation"],
       },
     },
     auth: {

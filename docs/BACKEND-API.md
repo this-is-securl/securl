@@ -18,10 +18,11 @@ First-party and third-party clients may identify their product and release on an
 
 - `X-SecURL-Client`: a stable product identifier such as `securl-ios`, `header-watch-ios`, `cert-watch-ios`, `securl-web`, or a reverse-domain app id.
 - `X-SecURL-Client-Version`: a release/build identifier such as `1.2.0+19`.
+- `X-SecURL-Client-Channel`: an optional release channel: `app-store`, `testflight`, `development`, or `automation`.
 
-Both headers are optional and additive. Existing clients require no changes. Values are treated as aggregate product telemetry only: identifiers are lowercased and limited to 64 characters, versions are limited to 40 characters, whitespace, free-form values, UUIDs, and long hexadecimal identifiers are rejected, and aggregate bucket cardinality is capped. No device identifier is requested or inferred. Invalid values are silently ignored rather than failing the API request.
+These headers are optional and additive. Existing clients require no changes. Values are treated as aggregate product telemetry only: identifiers are lowercased and limited to 64 characters, versions are limited to 40 characters, channel aliases are normalized to the four supported channel names, whitespace, free-form values, UUIDs, and long hexadecimal identifiers are rejected, and aggregate bucket cardinality is capped. No device identifier is requested or inferred. Invalid values are silently ignored rather than failing the API request.
 
-Mobile clients should set these headers alongside `X-Scan-Owner` on every request. The backend then separates scan requests and service usage by product/version without storing personal data. Support is advertised by `service.clientTelemetry` in `GET /api/capabilities`.
+Mobile clients should set these headers alongside `X-Scan-Owner` on every request. The backend then separates scan requests and service usage by product/version/channel without storing personal data. First-party app ids are inferred from `securl-ios`, `header-watch-ios`, and `cert-watch-ios` when an endpoint needs app-level product pulse attribution. Support is advertised by `service.clientTelemetry` in `GET /api/capabilities`.
 
 ## Current scan resources
 
@@ -165,9 +166,9 @@ Without APNs credentials, device registration and monitoring continue normally, 
 
 When the production telemetry endpoint is explicitly exposed for admin use, `GET /api/telemetry` includes `clients.consumption` and `clients.identity`. The consumption readout rolls up backend-owned client activity that frontend analytics may miss: monitoring target registrations, monitoring health reads, mobile monitoring summary reads, APNs device registrations, notification health reads, live certificate reads, and live certificate failures. Identity separates scan requests and service events by the optional product/version headers.
 
-Daily attribution is exposed as aggregate day buckets only: `funnel.todayBySource`, `funnel.todayByMode`, `funnel.todayByClient`, `funnel.todayByClientVersion`, `clients.identity.todayBackendEventsByClient`, and `clients.identity.todayBackendEventsByClientVersion`. These fields make it possible to distinguish Cert Watch, Header Watch, SecURL, smoke checks, and scheduler/API activity without retaining owner tokens, APNs tokens, device ids, IP addresses, or raw user agents.
+Daily attribution is exposed as aggregate day buckets only: `funnel.todayBySource`, `funnel.todayByMode`, `funnel.todayByClient`, `funnel.todayByClientVersion`, `funnel.todayClientChannelsByMode`, `clients.identity.todayBackendEventsByClient`, and `clients.identity.todayBackendEventsByClientVersion`. These fields make it possible to distinguish Cert Watch, Header Watch, SecURL, smoke checks, release channels, and scheduler/API activity without retaining owner tokens, APNs tokens, device ids, IP addresses, or raw user agents.
 
-`GET /api/product-pulse` is the smaller admin readout for product usage. It is protected by the same telemetry token and returns today's app events, active owner counts by app, unique target-origin counts by app, monitoring registration outcomes (`created` or `updated`), target kind split (`posture` or `cert`), recent backend events, and notification delivery health. Target values are reduced to origin only and owner identities are counted through privacy-safe hashes.
+`GET /api/product-pulse` is the smaller admin readout for product usage. It is protected by the same telemetry token and returns today's app events, active owner counts by app, unique target-origin counts by app, client channel split by app, monitoring registration outcomes (`created` or `updated`), target kind split (`posture` or `cert`), recent backend events, and notification delivery health. Target values are reduced to origin only and owner identities are counted through privacy-safe hashes.
 
 Use `npm run product:pulse` from the repository to print the compact pulse report against the configured Railway backend.
 

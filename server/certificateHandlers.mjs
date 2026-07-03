@@ -30,7 +30,10 @@ export async function handleLiveCertificateRequest({
     return true;
   }
 
-  const clientMetadata = readClientMetadata?.(request) || {};
+  const clientMetadata = readClientMetadata?.(request, {
+    fallbackClient: requestUrl.searchParams.get("appId"),
+  }) || {};
+  const ownerOrScope = authState.ownerId || authState.requesterScope || null;
   const target = requestUrl.searchParams.get("url") || requestUrl.searchParams.get("target") || "";
   let validatedTarget = null;
 
@@ -40,9 +43,12 @@ export async function handleLiveCertificateRequest({
       telemetry.recordFunnelEvent({
         event: "live_certificate_failed",
         source: "backend_api",
+        mode: clientMetadata.appId,
         target,
         client: clientMetadata.client,
         clientVersion: clientMetadata.version,
+        clientChannel: clientMetadata.channel,
+        clientKey: ownerOrScope,
       });
       sendJson(response, 400, {
         error: "Live certificate checks require an HTTPS URL.",
@@ -65,9 +71,12 @@ export async function handleLiveCertificateRequest({
     telemetry.recordFunnelEvent({
       event: "live_certificate_read",
       source: "backend_api",
+      mode: clientMetadata.appId,
       target: validatedTarget.toString(),
       client: clientMetadata.client,
       clientVersion: clientMetadata.version,
+      clientChannel: clientMetadata.channel,
+      clientKey: ownerOrScope,
     });
     sendJson(response, 200, {
       apiVersion: API_VERSION,
@@ -82,9 +91,12 @@ export async function handleLiveCertificateRequest({
     telemetry.recordFunnelEvent({
       event: "live_certificate_failed",
       source: "backend_api",
+      mode: clientMetadata.appId,
       target: validatedTarget?.toString?.() || target,
       client: clientMetadata.client,
       clientVersion: clientMetadata.version,
+      clientChannel: clientMetadata.channel,
+      clientKey: ownerOrScope,
     });
     telemetry.recordFailure(classifyScanFailure(error), {
       target: validatedTarget?.toString?.() || target,

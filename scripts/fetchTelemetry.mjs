@@ -198,12 +198,14 @@ const main = async () => {
     for (const [appId, summary] of pulseAppEvents.slice(0, 8)) {
       const activeOwners = productPulseToday.activeOwnersByApp?.[appId] ?? 0;
       const uniqueTargets = productPulseToday.uniqueTargetsByApp?.[appId] ?? 0;
+      const channels = describeSmallBucket(productPulseToday.clientChannelsByApp?.[appId]);
       const outcomes = describeSmallBucket(productPulseToday.monitoringRegistrationOutcomesByApp?.[appId]);
       const kinds = describeSmallBucket(productPulseToday.monitoringTargetKindsByApp?.[appId]);
       const details = [
         `${summary.total} events`,
         `${activeOwners} active owners`,
         `${uniqueTargets} targets`,
+        channels ? `channels ${channels}` : null,
         outcomes ? `outcomes ${outcomes}` : null,
         kinds ? `kinds ${kinds}` : null,
       ].filter(Boolean).join("; ");

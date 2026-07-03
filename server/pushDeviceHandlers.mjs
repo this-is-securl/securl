@@ -150,6 +150,8 @@ export async function handlePushDeviceCollectionRequest({
       mode: device.appId || "unknown",
       client: clientMetadata.client,
       clientVersion: clientMetadata.version,
+      clientChannel: clientMetadata.channel,
+      clientKey: authState.ownerId || authState.requesterScope || null,
     });
 
     sendJson(response, 201, {
@@ -201,8 +203,11 @@ export async function handlePushDeviceHealthRequest({
     telemetry?.recordFunnelEvent?.({
       event: "notification_device_health_read",
       source: "backend_api",
+      mode: clientMetadata.appId,
       client: clientMetadata.client,
       clientVersion: clientMetadata.version,
+      clientChannel: clientMetadata.channel,
+      clientKey: authState.ownerId || authState.requesterScope || null,
     });
     const activeDevices = devices.filter((device) => !device.disabledAt);
     const now = Date.now();
@@ -324,6 +329,8 @@ export async function handlePushDeviceItemRequest({
         mode: device.appId || "unknown",
         client: clientMetadata.client,
         clientVersion: clientMetadata.version,
+        clientChannel: clientMetadata.channel,
+        clientKey: authState.ownerId || authState.requesterScope || null,
       });
       sendJson(response, delivery.sent === 1 ? 200 : 503, {
         apiVersion: API_VERSION,

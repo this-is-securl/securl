@@ -47,9 +47,11 @@ const main = async () => {
   for (const [appId, summary] of appRows) {
     const activeOwners = today.activeOwnersByApp?.[appId] ?? 0;
     const uniqueTargets = today.uniqueTargetsByApp?.[appId] ?? 0;
+    const channels = describeBucket(today.clientChannelsByApp?.[appId]);
     const outcomes = describeBucket(today.monitoringRegistrationOutcomesByApp?.[appId]);
     const kinds = describeBucket(today.monitoringTargetKindsByApp?.[appId]);
     console.log(`  - ${appId}: ${summary.total} events / ${activeOwners} active owners / ${uniqueTargets} targets`);
+    if (channels) console.log(`    channels: ${channels}`);
     if (outcomes) console.log(`    outcomes: ${outcomes}`);
     if (kinds) console.log(`    kinds: ${kinds}`);
   }
@@ -63,7 +65,8 @@ const main = async () => {
     const app = event.appId || event.client || "unknown-app";
     const kind = event.targetKind ? ` ${event.targetKind}` : "";
     const outcome = event.outcome ? ` ${event.outcome}` : "";
-    console.log(`  - ${event.occurredAt} ${app}${kind}${outcome} ${event.target || ""}`.trimEnd());
+    const channel = event.clientChannel ? ` [${event.clientChannel}]` : "";
+    console.log(`  - ${event.occurredAt} ${app}${kind}${outcome}${channel} ${event.target || ""}`.trimEnd());
   }
 };
 
