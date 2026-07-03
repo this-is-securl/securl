@@ -19,7 +19,7 @@ SecURL is an external security posture product for public web targets. It gives 
   - consumes the executive-facing report output
 - **Security analyst / engineer**
   - runs scans, reviews detailed findings, and uses technical outputs
-- **iOS companion and future mobile clients**
+- **iOS suite and future mobile clients**
   - consume the same backend service model as the web client
 - **Public target website**
   - the system being scanned
@@ -32,7 +32,7 @@ SecURL is an external security posture product for public web targets. It gives 
 flowchart LR
   user_exec["Security leader / CISO / GRC reader"]
   user_analyst["Security analyst / engineer"]
-  mobile["iOS companion / future Android client"]
+  mobile["iOS suite / future Android client"]
   target["Public web target"]
   trust["DNS / TLS / CT / trust ecosystem"]
 
@@ -125,7 +125,8 @@ Main responsibilities:
 - expose monitoring target resources
 - own lifecycle transitions and event history
 - enforce request scoping
-- provide a stable service boundary for web and future mobile clients
+- provide a stable service boundary for web, iOS, CLI, and future mobile clients
+- expose privacy-safe product pulse and mobile adoption telemetry
 
 Current important resources:
 
@@ -134,16 +135,30 @@ Current important resources:
 - `GET /api/scans?url=...`
 - `GET /api/scans/:id`
 - `GET /api/scans/:id/summary`
+- `GET /api/scans/:id/digest`
+- `GET /api/scans/:id/insights`
+- `GET /api/scans/:id/mobile-summary`
+- `GET /api/scans/:id/brief`
+- `GET /api/scans/:id/vendors`
+- `GET /api/scans/:id/action-plan`
 - `GET /api/scans/:id/findings`
 - `GET /api/scans/:id/evidence`
 - `GET /api/scans/:id/history`
 - `GET /api/scans/:id/comparison`
+- `GET /api/scans/:id/events`
 - `GET /api/scans/:id/share` (public — no auth required)
+- `GET /api/certificates/live?url=:url`
 - `POST /api/monitoring-targets`
 - `GET /api/monitoring-targets`
+- `GET /api/monitoring-health`
+- `GET /api/monitoring-mobile-summary`
+- `GET /api/monitoring-cert-summary`
 - `GET /api/monitoring-targets/:id`
 - `POST /api/monitoring-targets/:id/run`
 - `DELETE /api/monitoring-targets/:id`
+- `POST /api/notification-devices`
+- `GET /api/notification-devices/health`
+- `POST /api/notification-devices/:id/test`
 
 ### 3. Shared Analysis Core
 
@@ -235,7 +250,7 @@ The backend should own:
 - target history
 - comparison/diff state
 
-This is the key boundary that makes the iOS companion and future Android clients realistic.
+This is the key boundary that makes the iOS suite and future Android clients realistic.
 
 ### Analysis boundary
 
@@ -265,7 +280,7 @@ The architecture is now materially stronger in a few important ways:
 - frontend and backend are properly separable
 - monitoring targets are backend-owned
 - target history and comparison are backend-owned
-- the service shape is now suitable for future mobile reuse
+- the service shape is now actively used by the iOS apps and suitable for future mobile reuse
 - the analysis core is reusable across web, backend, CLI, and export flows
 
 ## Current Transitional Areas
@@ -285,7 +300,7 @@ From here, the most sensible architecture moves are:
 2. durable Postgres-backed production persistence by default
 3. richer monitoring detail UI using the backend detail endpoint
 4. dedicated PDF render path once the premium report structure stabilizes
-5. mobile clients consuming the same monitoring and scan resources
+5. mobile clients continuing to consume the same monitoring, scan, certificate, and notification resources
 
 ## Related Docs
 

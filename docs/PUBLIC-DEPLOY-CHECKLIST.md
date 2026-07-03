@@ -60,14 +60,22 @@ In `multi-instance`, startup is blocked unless the rate-limit backend is distrib
 
 - `GET /api/health` returns `ok: true`.
 - Health payload includes deployment mode and rate-limit metadata.
+- `GET /api/capabilities` advertises `service.clientTelemetry.headers.channel` as `X-SecURL-Client-Channel`.
 - Run one known-safe scan and verify sanitized error responses for invalid targets.
-- For the Railway backend, deploy and smoke-check the current checkout with:
+- The normal backend path is the guarded GitHub Actions workflow `Deploy Railway Backend`, which runs after `SecURL Package Checks` passes on `main` when the `RAILWAY_TOKEN` repository secret is configured.
+- To force a local CLI deploy and smoke-check the current checkout, use:
 
 ```sh
 npm run deploy:railway -- --message "Deploy SecURL backend <version or commit>"
 ```
 
-The Railway service currently has no connected GitHub source (`source.repo` is `null`). The repo includes a guarded `Deploy Railway Backend` workflow, but it only performs deployments when a repository secret named `RAILWAY_TOKEN` is configured. Until then, use the CLI command above.
+After deploy, check the compact admin readouts:
+
+```sh
+npm run smoke:api
+npm run telemetry
+npm run product:pulse
+```
 
 ## 6) Hostinger static frontend deploy
 

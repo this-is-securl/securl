@@ -43,9 +43,12 @@ Hosted product/API telemetry remains separate:
 
 ```sh
 npm run telemetry
+npm run product:pulse
 ```
 
-The telemetry command first checks `TELEMETRY_TOKEN` and `TELEMETRY_BASE_URL` from the current shell, then falls back to Railway variables. If the local Railway project is not linked, it uses the production project/service defaults. Override those defaults with `RAILWAY_PROJECT_ID`, `RAILWAY_SERVICE_ID`, and `RAILWAY_ENVIRONMENT` when checking another deployment.
+The telemetry commands first check `TELEMETRY_TOKEN` and `TELEMETRY_BASE_URL` from the current shell, then fall back to Railway variables. If the local Railway project is not linked, they use the production project/service defaults. Override those defaults with `RAILWAY_PROJECT_ID`, `RAILWAY_SERVICE_ID`, and `RAILWAY_ENVIRONMENT` when checking another deployment.
+
+`npm run product:pulse` is the compact operational readout for backend/mobile adoption. It shows app-level events, privacy-safe active owner counts, unique target-origin counts, release-channel splits, monitoring registration outcomes, and recent monitoring registrations.
 
 ## Interpretation
 
@@ -58,6 +61,7 @@ The useful trend is consistency over time:
 - Socket/npm trust signals staying clean
 - no install scripts and minimal dependency surface remaining true
 - hosted scan telemetry showing real external API usage, not only owner smoke tests
+- product-pulse activity showing real app owners/targets outside local QA and automation
 
 ## Release Hygiene
 

@@ -24,6 +24,16 @@ These endpoints are stable additive resources. They are the safest shape for cli
 
 For mobile clients, use `/mobile-summary` for the main scan result screen after SSE terminal. Use `/digest` or `/insights` directly only when a specific view needs one part of that payload.
 
+## Client Telemetry Headers
+
+First-party clients should send the optional product metadata headers on every backend request:
+
+- `X-SecURL-Client`: `securl-ios`, `header-watch-ios`, `cert-watch-ios`, `securl-web`, or another stable product identifier.
+- `X-SecURL-Client-Version`: release/build identifier such as `1.0.4+19`.
+- `X-SecURL-Client-Channel`: `app-store`, `testflight`, `development`, or `automation`.
+
+These headers are additive and privacy-safe. They are used for aggregate product pulse and adoption readouts only. The backend rejects UUID-like or long hexadecimal values so clients do not accidentally send device identifiers.
+
 ## Mobile Monitoring And Cert Watch
 
 - Register APNs tokens with `POST /api/notification-devices` using the same `X-Scan-Owner` or bearer session used for scans.
@@ -49,4 +59,4 @@ For deeper technical views, export, or analyst workflows, use:
 
 ## Capability Discovery
 
-Clients should check `GET /api/capabilities` before assuming optional resources exist. The `scans.features` and `scans.resources` arrays advertise additive backend capabilities without requiring app releases.
+Clients should check `GET /api/capabilities` before assuming optional resources exist. The `service.clientTelemetry`, `scans.features`, and `scans.resources` arrays advertise additive backend capabilities without requiring app releases.

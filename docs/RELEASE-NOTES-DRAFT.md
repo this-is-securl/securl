@@ -1,4 +1,10 @@
-# Release Notes — app 0.9.0 / core 0.8.1
+# Archived Release Notes Draft — app 0.9.0 / core 0.8.1
+
+This draft is historical. Current backend and package release notes live in:
+
+- [`CHANGELOG.md`](../CHANGELOG.md)
+- [`packages/core/CHANGELOG.md`](../packages/core/CHANGELOG.md)
+- [`packages/core/RELEASING.md`](../packages/core/RELEASING.md)
 
 ## Highlights
 

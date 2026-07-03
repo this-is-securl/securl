@@ -1,6 +1,6 @@
-# iOS Companion Backend Notes
+# iOS Suite Backend Notes
 
-SecURL now has an iOS companion app, so the backend contract should stay stable for both the hosted web app and mobile clients.
+SecURL now has a small iOS suite, so the backend contract should stay stable for the hosted web app, SecURL, Header Watch, Cert Watch, CLI users, and future clients.
 
 This document defines the service boundary web, mobile clients, and background monitoring share through the same server-owned scan model.
 
@@ -25,6 +25,8 @@ That shift matters because it gives us:
 The current backend service exposes:
 
 - `GET /api/telemetry`
+- `GET /api/product-pulse`
+- `GET /api/capabilities`
 - `GET /api/scans`
 - `GET /api/scans?url=...`
 - `POST /api/scans`
@@ -40,15 +42,35 @@ The current backend service exposes:
 - `GET /api/scans/:id/events`
 - `GET /api/certificates/live?url=...`
 - `POST /api/notification-devices`
+- `GET /api/notification-devices`
+- `GET /api/notification-devices/health`
+- `POST /api/notification-devices/:id/test`
+- `DELETE /api/notification-devices/:id`
 - `GET /api/scans/:id/evidence`
 - `GET /api/scans/:id/history`
 - `GET /api/scans/:id/comparison`
 - `GET /api/scans/:id/drift`
+- `GET /api/scans/:id/observations`
+- `GET /api/scans/:id/observation-drift`
+- `GET /api/scans/:id/policy-evaluation`
 - `POST /api/monitoring-targets`
 - `GET /api/monitoring-targets`
+- `GET /api/monitoring-health`
+- `GET /api/monitoring-mobile-summary`
+- `GET /api/monitoring-cert-summary`
+- `GET /api/monitoring-targets/:id`
+- `POST /api/monitoring-targets/:id/run`
 - `DELETE /api/monitoring-targets/:id`
 
 These scan resources still default to **in-memory** storage for local development. Postgres deployments persist both scan state and queued work: workers claim jobs with leases, recover queued scans after restarts, and retry interrupted running scans without changing the mobile API contract.
+
+Mobile clients should send the optional aggregate telemetry headers on each request:
+
+- `X-SecURL-Client`: `securl-ios`, `header-watch-ios`, or `cert-watch-ios`
+- `X-SecURL-Client-Version`: release/build identifier such as `1.0.4+19`
+- `X-SecURL-Client-Channel`: `app-store`, `testflight`, `development`, or `automation`
+
+The backend uses these for product-pulse attribution only. UUID-like and long hexadecimal values are rejected so device identifiers are not collected by mistake.
 
 ## Target Service Model
 
@@ -93,8 +115,13 @@ Phase 3:
 - `GET /api/monitoring-targets/:id`
 - `DELETE /api/monitoring-targets/:id`
 - `POST /api/monitoring-targets/:id/run`
+- `GET /api/monitoring-health`
+- `GET /api/monitoring-mobile-summary`
+- `GET /api/monitoring-cert-summary`
 - `POST /api/notification-devices`
 - `GET /api/notification-devices`
+- `GET /api/notification-devices/health`
+- `POST /api/notification-devices/:id/test`
 - `DELETE /api/notification-devices/:id`
 
 Phase 4:
@@ -323,16 +350,20 @@ This will help both iOS and the web app.
 - distributed rate limiting for public multi-instance mode
 - bounded concurrency for queued scans
 - durable scan storage
-- telemetry that survives restarts
 - deeper production persistence and retention controls
+- richer mobile adoption dashboards once enough post-channel telemetry exists
 
 ## Completed Backend Milestones
 
 - telemetry foundation
+- privacy-safe product-pulse telemetry
 - server-owned scan resources
 - persisted scan records
 - async queue semantics and bounded concurrency
 - server-owned monitoring targets
+- Cert Watch live certificate and watch-list summary resources
+- monitoring health control-plane resource
+- APNs device registration, test notification, delivery audit, and per-app topic routing
 - auth sessions and API keys
 - mobile-friendly scan DTOs
 - direct scan comparison API

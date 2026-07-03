@@ -1,5 +1,35 @@
 # Changelog
 
+## 2026-07-03 — backend mobile telemetry attribution
+
+### Added
+
+- Added optional `X-SecURL-Client-Channel` support with normalized `app-store`, `testflight`, `development`, and `automation` channels.
+- Added first-party app-id inference for `securl-ios`, `header-watch-ios`, and `cert-watch-ios` so live certificate reads, push registration, push health, notification tests, monitoring health, and mobile summaries can be attributed by app without storing device identifiers.
+- Added product-pulse channel splits and better owner/target attribution for backend-owned mobile service events.
+
+### Verified
+
+- `npm run lint`
+- `npm run test:server`
+- GitHub package checks on PR #340.
+- Railway backend deploy and smoke check.
+
+## 2026-07-02 — backend product pulse telemetry
+
+### Added
+
+- Added protected `GET /api/product-pulse` for a compact admin readout of product usage, app events, active owner counts, unique target-origin counts, monitoring registration outcomes, target kinds, recent backend events, and notification delivery health.
+- Added `npm run product:pulse` and extended `npm run telemetry` with product-pulse readouts.
+- Added privacy-safe monitoring registration outcome and target-kind attribution by app.
+
+### Verified
+
+- `npm run lint`
+- `npm run test:server`
+- GitHub package checks on PR #339.
+- Railway backend deploy and smoke check.
+
 ## 2026-07-02 — core 1.15.0 monitoring health control plane
 
 ### Added
