@@ -17,6 +17,7 @@ const DEFAULT_ALLOWED_HEADERS = [
   "X-Scan-Owner",
   "X-SecURL-Client",
   "X-SecURL-Client-Version",
+  "X-SecURL-Client-Channel",
 ];
 
 const DEFAULT_ALLOWED_METHODS = [

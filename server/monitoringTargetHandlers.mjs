@@ -125,8 +125,11 @@ export async function handleMonitoringMobileSummaryRequest({
     telemetry?.recordFunnelEvent?.({
       event: "monitoring_mobile_summary_read",
       source: "backend_api",
+      mode: clientMetadata.appId,
       client: clientMetadata.client,
       clientVersion: clientMetadata.version,
+      clientChannel: clientMetadata.channel,
+      clientKey: authState.ownerId || authState.requesterScope || null,
     });
     const limit = clampLimit(requestUrl.searchParams.get("limit"), 100, 250);
     const targets = await scanRepository.listMonitoringTargets({
@@ -188,6 +191,7 @@ export async function handleMonitoringCertSummaryRequest({
       mode: "com.ktbatterham.certwatch",
       client: clientMetadata.client,
       clientVersion: clientMetadata.version,
+      clientChannel: clientMetadata.channel,
       clientKey: ownerOrScope,
     });
 
@@ -255,8 +259,10 @@ export async function handleMonitoringHealthRequest({
     telemetry?.recordFunnelEvent?.({
       event: "monitoring_health_read",
       source: "backend_api",
+      mode: clientMetadata.appId,
       client: clientMetadata.client,
       clientVersion: clientMetadata.version,
+      clientChannel: clientMetadata.channel,
       clientKey: authState.ownerId || authState.requesterScope || null,
     });
 
@@ -424,6 +430,7 @@ export async function handleMonitoringTargetCollectionRequest({
       target: validatedTarget.toString(),
       client: clientMetadata.client,
       clientVersion: clientMetadata.version,
+      clientChannel: clientMetadata.channel,
       clientKey: authState.ownerId || authState.requesterScope || null,
       targetKind: kind,
       outcome: existingTarget ? "updated" : "created",
