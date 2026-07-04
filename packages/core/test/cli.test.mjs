@@ -38,11 +38,61 @@ test("CLI cert command writes markdown output", async () => {
   assert.match(stdout, /TLS certificate data is only available for HTTPS targets\./);
 });
 
-test("CLI cert command rejects scan-only output and policy options", async () => {
+test("CLI cert command writes ci-json output with policy summary", async () => {
+  const { stdout } = await execFile(process.execPath, [cliPath, "cert", "http://example.com", "--format", "ci-json"]);
+  const output = JSON.parse(stdout);
+
+  assert.equal(output.mode, "cert");
+  assert.equal(output.certificate.host, "example.com");
+  assert.equal(output.certificate.available, false);
+  assert.equal(output.policy.passed, true);
+  assert.deepEqual(output.policy.failures, []);
+});
+
+test("CLI cert command fails policy when invalid certificates are blocked", async () => {
+  await assert.rejects(
+    execFile(process.execPath, [
+      cliPath,
+      "cert",
+      "http://example.com",
+      "--format",
+      "ci-json",
+      "--fail-if-invalid",
+    ]),
+    (error) => {
+      assert.match(error.stderr, /Policy failed: certificate is unavailable, invalid, or unauthorized\./);
+      const output = JSON.parse(error.stdout);
+      assert.equal(output.mode, "cert");
+      assert.equal(output.policy.passed, false);
+      assert.equal(output.policy.failIfInvalid, true);
+      assert.equal(output.policy.failures.length, 1);
+      return true;
+    },
+  );
+});
+
+test("CLI cert command fails policy when issuer expectation is not met", async () => {
+  await assert.rejects(
+    execFile(process.execPath, [
+      cliPath,
+      "cert",
+      "http://example.com",
+      "--expect-issuer",
+      "Example CA",
+    ]),
+    (error) => {
+      assert.match(error.stdout, /Policy: failed/);
+      assert.match(error.stderr, /Policy failed: issuer did not match expected value "Example CA"\./);
+      return true;
+    },
+  );
+});
+
+test("CLI cert command rejects scan-only output and scan policy options", async () => {
   await assert.rejects(
     execFile(process.execPath, [cliPath, "cert", "example.com", "--format", "sarif"]),
     (error) => {
-      assert.match(error.stderr, /Certificate checks support summary, json, or markdown output\./);
+      assert.match(error.stderr, /Certificate checks support summary, json, markdown, or ci-json output\./);
       return true;
     },
   );
@@ -50,7 +100,25 @@ test("CLI cert command rejects scan-only output and policy options", async () =>
   await assert.rejects(
     execFile(process.execPath, [cliPath, "cert", "example.com", "--fail-on", "warning"]),
     (error) => {
-      assert.match(error.stderr, /Certificate checks do not support scan comparison or CI policy options\./);
+      assert.match(error.stderr, /Certificate checks do not support scan comparison or scan score policy options\./);
+      return true;
+    },
+  );
+});
+
+test("CLI rejects malformed certificate policy options", async () => {
+  await assert.rejects(
+    execFile(process.execPath, [cliPath, "cert", "example.com", "--fail-if-expiring-within", "soon"]),
+    (error) => {
+      assert.match(error.stderr, /Invalid --fail-if-expiring-within value\. Use a non-negative whole number of days\./);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    execFile(process.execPath, [cliPath, "scan", "example.com", "--fail-if-invalid"]),
+    (error) => {
+      assert.match(error.stderr, /Certificate policy options are only supported by the cert command\./);
       return true;
     },
   );

@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-07-04 — core 1.17.0 certificate policy gates
+
+### Added
+
+- Added CI-friendly certificate policy gates to `securl cert`: fail on invalid/unavailable certificates, expiry windows, legacy TLS negotiation, or issuer mismatches.
+- Added `ci-json` output for certificate checks with a compact TLS summary and policy result envelope.
+- Documented certificate policy usage for release checks and Cert Watch-style automation.
+
+### Verified
+
+- `npm run build:core`
+- `node --test packages/core/test/cli.test.mjs packages/core/test/package-surface.test.mjs`
+- `npm run release:package:check`
+
 ## 2026-07-04 — core 1.16.1 CLI executable patch
 
 ### Fixed
