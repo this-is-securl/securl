@@ -9,6 +9,12 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 ### Backend and docs
 - Added protected product-pulse telemetry and optional release-channel attribution for hosted/mobile clients. These are backend/API-service changes and do not change the published `securl` package surface.
 
+## [1.17.0] - 2026-07-04
+
+### Added
+- Added certificate CLI policy gates for CI and release checks: `--fail-if-invalid`, `--fail-if-expiring-within`, `--fail-if-legacy-tls`, and `--expect-issuer`.
+- Added `ci-json` output for `securl cert` so automation can consume a compact certificate summary plus policy result without parsing human output.
+
 ## [1.16.1] - 2026-07-04
 
 ### Fixed

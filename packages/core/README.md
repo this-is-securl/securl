@@ -265,6 +265,17 @@ npx securl cert example.com --format markdown --output certificate.md
 
 Use this when you only need the served certificate's expiry, issuer, subject alternative names, negotiated TLS details, key hints, and chain summary without running a full posture scan.
 
+Version `1.17.0+` adds certificate policy gates for CI and release checks:
+
+```bash
+npx securl cert example.com --fail-if-invalid
+npx securl cert example.com --fail-if-expiring-within 21 --format ci-json
+npx securl cert example.com --fail-if-legacy-tls
+npx securl cert example.com --expect-issuer "Let's Encrypt"
+```
+
+Certificate policy gates set exit code `1` when the selected condition fails. Use `--format ci-json` when you want a compact machine-readable certificate summary plus policy result.
+
 ### 10. Machine-readable observation ledger
 
 Version `1.10.0+` adds stable posture observations for monitoring, inventory, policy, and future SaaS integrations. Each observation records what was seen, whether it was observed, inferred, missing, or unavailable, its confidence and source, and when that evidence should be refreshed.
@@ -468,6 +479,8 @@ Fast certificate checks:
 ```bash
 npx securl cert example.com
 npx securl cert example.com --format json
+npx securl cert example.com --format ci-json --fail-if-invalid
+npx securl cert example.com --fail-if-expiring-within 21 --expect-issuer "Let's Encrypt"
 npx securl cert example.com --format markdown --output certificate.md
 ```
 
@@ -499,6 +512,10 @@ npx securl compare current-report.json baseline-report.json --fail-on critical -
 - `--fail-on` sets exit code `1` when findings at or above the selected severity are present.
 - `--fail-on-regression` sets exit code `1` when the baseline comparison detects a regression (score drop, new issues, or worse HTTP status class).
 - `--fail-if-score-below` sets exit code `1` when any scanned target score is below the given threshold.
+- `--fail-if-invalid` sets exit code `1` for certificate checks when the served certificate is unavailable, invalid, or unauthorized.
+- `--fail-if-expiring-within` sets exit code `1` for certificate checks when the served certificate expires within the selected number of days.
+- `--fail-if-legacy-tls` sets exit code `1` for certificate checks when TLS 1.0 or TLS 1.1 is negotiated.
+- `--expect-issuer` sets exit code `1` for certificate checks when the observed issuer does not contain the expected text.
 
 Write results to a file:
 

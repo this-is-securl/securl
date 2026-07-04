@@ -8,6 +8,16 @@ import type { AnalysisResult, HistoryDiff, LiveCertificateResult, ScanIssue } fr
 type OutputFormat = "json" | "markdown" | "summary" | "sarif" | "ci-json";
 type FailOnSeverity = Exclude<ScanIssue["severity"], "good">;
 type ScanMode = "standard" | "quiet" | "deep-passive";
+type CertPolicyOptions = {
+  failIfInvalid: boolean;
+  failIfExpiringWithinDays: number | null;
+  failIfLegacyTls: boolean;
+  expectIssuer: string | null;
+};
+type CertPolicySummary = CertPolicyOptions & {
+  passed: boolean;
+  failures: string[];
+};
 type ParsedArgs =
   | { command: "help" }
   | {
@@ -34,8 +44,9 @@ type ParsedArgs =
   | {
       command: "cert";
       target: string;
-      format: Exclude<OutputFormat, "sarif" | "ci-json">;
+      format: Exclude<OutputFormat, "sarif">;
       outputPath: string | null;
+      policy: CertPolicyOptions;
     };
 
 const usage = `SecURL CLI
@@ -43,7 +54,7 @@ const usage = `SecURL CLI
 Usage:
   securl scan <target...> [--format json|markdown|summary|sarif|ci-json] [--baseline <report.json>] [--output <file>] [--quiet|--deep-passive] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
   securl compare <current-report.json> <baseline-report.json> [--format json|markdown|summary|sarif|ci-json] [--output <file>] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
-  securl cert <target> [--format json|markdown|summary] [--output <file>]
+  securl cert <target> [--format json|markdown|summary|ci-json] [--output <file>] [--fail-if-invalid] [--fail-if-expiring-within <days>] [--fail-if-legacy-tls] [--expect-issuer <text>]
 
 Examples:
   npx securl scan example.com
@@ -62,6 +73,7 @@ Examples:
   npx securl compare current-report.json baseline-report.json --format sarif --fail-on critical
   npx securl cert example.com
   npx securl cert example.com --format json
+  npx securl cert example.com --format ci-json --fail-if-expiring-within 21 --fail-if-invalid
 
 Scan modes:
   default scan   Fetches the primary response plus bounded passive enrichment: HTML, DNS/mail, CT, OSV, exposure, CORS, API-surface, and public trust signals.
@@ -72,12 +84,24 @@ CI policy modes:
   --fail-on warning          Fail when findings at or above the selected severity are present.
   --fail-on-regression       Fail when a baseline comparison finds score, issue, or status regressions.
   --fail-if-score-below 75   Fail when any scanned target falls below the selected score.
+  --fail-if-invalid          For cert checks, fail when the served certificate is unavailable, invalid, or unauthorized.
+  --fail-if-expiring-within 21
+                             For cert checks, fail when the served certificate expires within the selected number of days.
+  --fail-if-legacy-tls       For cert checks, fail when TLS 1.0 or TLS 1.1 is negotiated.
+  --expect-issuer "Let's Encrypt"
+                             For cert checks, fail when the observed issuer does not contain the expected text.
 `;
 
 process.once("SIGINT", () => {
   process.stderr.write("\nScan interrupted. No temporary files were created by the CLI.\n");
   process.exit(130);
 });
+
+const certPolicyActive = (policy: CertPolicyOptions) =>
+  policy.failIfInvalid
+  || policy.failIfExpiringWithinDays !== null
+  || policy.failIfLegacyTls
+  || policy.expectIssuer !== null;
 
 const parseArgs = (argv: string[]): ParsedArgs => {
   const args = [...argv];
@@ -98,6 +122,12 @@ const parseArgs = (argv: string[]): ParsedArgs => {
   let failOnRegression = false;
   let failIfScoreBelow: number | null = null;
   let scanMode: ScanMode = "standard";
+  const certPolicy: CertPolicyOptions = {
+    failIfInvalid: false,
+    failIfExpiringWithinDays: null,
+    failIfLegacyTls: false,
+    expectIssuer: null,
+  };
   const positionals: string[] = [];
 
   for (let index = 0; index < args.length; index += 1) {
@@ -179,6 +209,37 @@ const parseArgs = (argv: string[]): ParsedArgs => {
       continue;
     }
 
+    if (arg === "--fail-if-invalid") {
+      certPolicy.failIfInvalid = true;
+      continue;
+    }
+
+    if (arg === "--fail-if-expiring-within") {
+      const value = args[index + 1];
+      const threshold = value ? Number(value) : Number.NaN;
+      if (!value || !Number.isInteger(threshold) || threshold < 0) {
+        throw new Error("Invalid --fail-if-expiring-within value. Use a non-negative whole number of days.");
+      }
+      certPolicy.failIfExpiringWithinDays = threshold;
+      index += 1;
+      continue;
+    }
+
+    if (arg === "--fail-if-legacy-tls") {
+      certPolicy.failIfLegacyTls = true;
+      continue;
+    }
+
+    if (arg === "--expect-issuer") {
+      const value = args[index + 1];
+      if (!value) {
+        throw new Error("Missing --expect-issuer value.");
+      }
+      certPolicy.expectIssuer = value;
+      index += 1;
+      continue;
+    }
+
     if (arg.startsWith("--")) {
       throw new Error(`Unknown argument: ${arg}`);
     }
@@ -195,6 +256,9 @@ const parseArgs = (argv: string[]): ParsedArgs => {
     }
     if (failOnRegression && !baselinePath) {
       throw new Error("Regression policy mode requires --baseline for scan. Use compare for saved reports.");
+    }
+    if (certPolicyActive(certPolicy)) {
+      throw new Error("Certificate policy options are only supported by the cert command.");
     }
 
     return {
@@ -218,11 +282,11 @@ const parseArgs = (argv: string[]): ParsedArgs => {
     if (unexpected) {
       throw new Error("Certificate checks support one target at a time.");
     }
-    if (format === "sarif" || format === "ci-json") {
-      throw new Error("Certificate checks support summary, json, or markdown output.");
+    if (format === "sarif") {
+      throw new Error("Certificate checks support summary, json, markdown, or ci-json output.");
     }
     if (baselinePath || failOnSeverity || failOnRegression || failIfScoreBelow !== null) {
-      throw new Error("Certificate checks do not support scan comparison or CI policy options.");
+      throw new Error("Certificate checks do not support scan comparison or scan score policy options.");
     }
     if (scanMode !== "standard") {
       throw new Error("Certificate checks do not support scan modes; they only perform a TLS handshake.");
@@ -233,7 +297,12 @@ const parseArgs = (argv: string[]): ParsedArgs => {
       target,
       format,
       outputPath,
+      policy: certPolicy,
     };
+  }
+
+  if (certPolicyActive(certPolicy)) {
+    throw new Error("Certificate policy options are only supported by the cert command.");
   }
 
   const [currentPath, compareBaselinePath] = positionals;
@@ -496,17 +565,125 @@ const formatCertificateMarkdown = (certificate: LiveCertificateResult) =>
     ...(certificate.issues.length ? certificate.issues.map((issue) => `- ${issue}`) : ["- None recorded."]),
   ].join("\n");
 
+const isLegacyTlsProtocol = (protocol: string | null) => {
+  if (!protocol) {
+    return false;
+  }
+  const normalized = protocol.toLowerCase().replace(/\s+/g, "");
+  return normalized === "tlsv1" || normalized === "tlsv1.0" || normalized === "tlsv1.1";
+};
+
+const evaluateCertificatePolicy = (
+  certificate: LiveCertificateResult,
+  policy: CertPolicyOptions,
+): CertPolicySummary => {
+  const failures: string[] = [];
+
+  if (policy.failIfInvalid && (!certificate.available || !certificate.valid || !certificate.authorized)) {
+    failures.push("Policy failed: certificate is unavailable, invalid, or unauthorized.");
+  }
+
+  if (
+    policy.failIfExpiringWithinDays !== null
+    && certificate.daysRemaining !== null
+    && certificate.daysRemaining <= policy.failIfExpiringWithinDays
+  ) {
+    failures.push(
+      `Policy failed: certificate expires within ${policy.failIfExpiringWithinDays} days (${certificate.daysRemaining} days remaining).`,
+    );
+  }
+
+  if (policy.failIfLegacyTls && isLegacyTlsProtocol(certificate.protocol)) {
+    failures.push(`Policy failed: legacy TLS protocol negotiated (${certificate.protocol}).`);
+  }
+
+  if (policy.expectIssuer) {
+    const observedIssuer = certificate.issuer?.toLowerCase() ?? "";
+    if (!observedIssuer.includes(policy.expectIssuer.toLowerCase())) {
+      failures.push(`Policy failed: issuer did not match expected value "${policy.expectIssuer}".`);
+    }
+  }
+
+  return {
+    ...policy,
+    passed: failures.length === 0,
+    failures,
+  };
+};
+
+const formatCertificatePolicySummary = (policy: CertPolicySummary) =>
+  [
+    `Policy: ${policy.passed ? "passed" : "failed"}`,
+    `Fail if invalid: ${policy.failIfInvalid ? "yes" : "no"}`,
+    `Fail if expiring within: ${policy.failIfExpiringWithinDays ?? "not set"}`,
+    `Fail if legacy TLS: ${policy.failIfLegacyTls ? "yes" : "no"}`,
+    `Expected issuer: ${policy.expectIssuer ?? "not set"}`,
+    ...(policy.failures.length ? ["Policy failures:", ...policy.failures.map((failure) => `- ${failure}`)] : []),
+  ].join("\n");
+
+const formatCertificatePolicyMarkdown = (policy: CertPolicySummary) =>
+  [
+    "## Policy",
+    "",
+    `- Result: ${policy.passed ? "passed" : "failed"}`,
+    `- Fail if invalid: ${policy.failIfInvalid ? "yes" : "no"}`,
+    `- Fail if expiring within: ${policy.failIfExpiringWithinDays ?? "not set"}`,
+    `- Fail if legacy TLS: ${policy.failIfLegacyTls ? "yes" : "no"}`,
+    `- Expected issuer: ${policy.expectIssuer ?? "not set"}`,
+    "",
+    ...(policy.failures.length
+      ? ["### Policy Failures", "", ...policy.failures.map((failure) => `- ${failure}`)]
+      : ["### Policy Failures", "", "- None."]),
+  ].join("\n");
+
+const summarizeCertificateForCi = (certificate: LiveCertificateResult) => ({
+  host: certificate.host,
+  port: certificate.port,
+  available: certificate.available,
+  valid: certificate.valid,
+  authorized: certificate.authorized,
+  issuer: certificate.issuer,
+  subject: certificate.subject,
+  validFrom: certificate.validFrom,
+  validTo: certificate.validTo,
+  daysRemaining: certificate.daysRemaining,
+  protocol: certificate.protocol,
+  cipher: certificate.cipher,
+  keyBits: certificate.keyBits,
+  keyType: certificate.keyType,
+  chainLength: certificate.chain.length,
+  issueCount: certificate.issues.length,
+});
+
 const renderCertificateOutput = (
   certificate: LiveCertificateResult,
-  format: Exclude<OutputFormat, "sarif" | "ci-json">,
+  format: Exclude<OutputFormat, "sarif">,
+  policy: CertPolicySummary,
 ) => {
   if (format === "json") {
     return `${JSON.stringify(certificate, null, 2)}\n`;
   }
-  if (format === "markdown") {
-    return `${formatCertificateMarkdown(certificate)}\n`;
+  if (format === "ci-json") {
+    return `${JSON.stringify(
+      {
+        mode: "cert",
+        certificate: summarizeCertificateForCi(certificate),
+        policy,
+      },
+      null,
+      2,
+    )}\n`;
   }
-  return `${formatCertificateSummary(certificate)}\n`;
+  if (format === "markdown") {
+    return `${[
+      formatCertificateMarkdown(certificate),
+      ...(certPolicyActive(policy) ? ["", formatCertificatePolicyMarkdown(policy)] : []),
+    ].join("\n")}\n`;
+  }
+  return `${[
+    formatCertificateSummary(certificate),
+    ...(certPolicyActive(policy) ? ["", formatCertificatePolicySummary(policy)] : []),
+  ].join("\n")}\n`;
 };
 
 const severityRank: Record<FailOnSeverity, number> = {
@@ -900,11 +1077,16 @@ const main = async () => {
 
     if (parsed.command === "cert") {
       const certificate = await scanLiveCertificate(normalizeCertificateTarget(parsed.target));
-      output = renderCertificateOutput(certificate, parsed.format);
+      const policy = evaluateCertificatePolicy(certificate, parsed.policy);
+      output = renderCertificateOutput(certificate, parsed.format, policy);
       if (parsed.outputPath) {
         await writeFile(parsed.outputPath, output, "utf8");
       } else {
         process.stdout.write(output);
+      }
+      if (policy.failures.length) {
+        process.stderr.write(`${policy.failures.join("\n")}\n`);
+        process.exitCode = 1;
       }
       return;
     }
