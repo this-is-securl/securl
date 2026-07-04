@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-07-04 — core 1.16.1 CLI executable patch
+
+### Fixed
+
+- Added the Node shebang to the package CLI entrypoint so `npx securl`, `npm exec securl`, and global installs run the CLI with Node instead of the shell.
+- Added package-surface coverage for the compiled CLI shebang so npm binary execution is protected.
+
+### Verified
+
+- `npm run release:package:check`
+- `npm exec --yes securl@1.16.1 -- cert http://example.com`
+
 ## 2026-07-04 — core 1.16.0 certificate CLI
 
 ### Added
