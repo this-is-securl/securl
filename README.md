@@ -191,7 +191,7 @@ Sponsorship helps fund continued work on the passive analysis engine, hosted sca
 
 ## Package status
 
-- Latest package target: `securl@1.17.0`
+- Latest package target: `securl@1.18.0`
 - Previous package name: `@ktbatterham/external-posture-core` is deprecated in favour of `securl`
 - npm tag: `latest`
 - Package signal check: `npm run package:signals`

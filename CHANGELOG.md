@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-07-04 — core 1.18.0 monitoring event intelligence
+
+### Added
+
+- Added `buildMonitoringEventsFromSnapshots()` to convert posture drift into product-ready monitoring events with severity, changed evidence, next action, and push-safe copy.
+- Added `buildCertificateMonitoringEvents()` for lightweight Cert Watch-style events, including initial invalid/expiring certificate alerts without requiring a prior transition.
+- Added the `securl/monitoring-events` package export and documentation for backend schedulers, mobile push notifications, history timelines, and CI summaries.
+
+### Verified
+
+- `npm run build:core`
+- `node --test packages/core/test/monitoring-events.test.mjs packages/core/test/package-surface.test.mjs`
+- `npm run release:package:check`
+
 ## 2026-07-04 — core 1.17.0 certificate policy gates
 
 ### Added

@@ -144,6 +144,22 @@ const drift = buildPostureDriftReportFromSnapshots(
 console.log(drift.summary.direction, drift.summary.changedAreas);
 ```
 
+Version `1.18.0+` adds monitoring event intelligence for backend schedulers, mobile push notifications, and history timelines. It turns posture drift or lightweight certificate checks into compact event objects with severity, changed evidence, next action, and push-safe copy.
+
+```ts
+import {
+  buildCertificateMonitoringEvents,
+  buildMonitoringEventsFromSnapshots,
+} from "securl/monitoring-events";
+
+const events = buildMonitoringEventsFromSnapshots(currentSnapshot, previousSnapshot);
+const certEvents = buildCertificateMonitoringEvents(currentCertificate, previousCertificate);
+
+console.log(events[0]?.push, certEvents[0]?.nextAction);
+```
+
+Certificate monitoring events can fire on the first observation when a certificate is already invalid or expiring; they do not require a prior transition.
+
 Runnable examples are included in [`examples/`](./examples):
 
 ```bash
@@ -422,6 +438,8 @@ Primary exports:
 - `snapshotFromAnalysis(result)` - reduce a scan result to a comparison snapshot.
 - `buildHistoryDiffFromSnapshots(current, previous)` - build a structured diff between scans.
 - `buildPostureRiskEventsFromSnapshots(current, previous, diff)` - classify scan changes into alert-friendly risk events.
+- `buildMonitoringEventsFromSnapshots(current, previous, diff?)` - turn posture drift into push/API/CI-friendly monitoring event payloads.
+- `buildCertificateMonitoringEvents(current, previous?)` - turn live certificate observations into monitoring event payloads, including first-seen expiry and invalid-certificate alerts.
 - `buildPostureDigest(result)` - reduce a full scan result to a compact API/mobile-friendly digest.
 - `buildActionPlan(result)` - turn remediation, score drivers, exposure, and vendor context into prioritized fix actions.
 - `buildPostureInsights(result)` - summarize risk themes, top insights, and next-best actions for client surfaces.
@@ -444,6 +462,7 @@ Package subpath exports:
 - `securl/posture-insights`
 - `securl/signal-clarity`
 - `securl/live-certificate`
+- `securl/monitoring-events`
 - `securl/observations`
 - `securl/observation-drift`
 - `securl/observation-policy`

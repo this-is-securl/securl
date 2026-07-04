@@ -9,6 +9,13 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 ### Backend and docs
 - Added protected product-pulse telemetry and optional release-channel attribution for hosted/mobile clients. These are backend/API-service changes and do not change the published `securl` package surface.
 
+## [1.18.0] - 2026-07-04
+
+### Added
+- Added monitoring event intelligence helpers for turning posture drift and lightweight certificate observations into push/API/CI-friendly event payloads.
+- Added `buildMonitoringEventsFromSnapshots()` and `buildCertificateMonitoringEvents()` through the root package and the `securl/monitoring-events` subpath.
+- Certificate monitoring events can fire on first observation for already-invalid or expiring certificates, so monitoring clients do not need to wait for a transition.
+
 ## [1.17.0] - 2026-07-04
 
 ### Added
