@@ -9,6 +9,12 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 ### Backend and docs
 - Added protected product-pulse telemetry and optional release-channel attribution for hosted/mobile clients. These are backend/API-service changes and do not change the published `securl` package surface.
 
+## [1.16.0] - 2026-07-04
+
+### Added
+- Added `securl cert <target>` for fast TLS handshake-only certificate checks from the CLI, with `summary`, `json`, and `markdown` output.
+- Documented the certificate CLI workflow alongside the existing `scanLiveCertificate()` package export so Cert Watch-style checks are available to npm/CI users without running a full posture scan.
+
 ## [1.15.0] - 2026-07-02
 
 ### Added
