@@ -167,23 +167,21 @@ That makes it much easier to:
 
 ## Roadmap
 
-### Near term
+SecURL is growing from a one-shot scanner into a public security posture intelligence layer across CLI, CI/CD, API, web, and mobile.
 
-- Keep the iOS apps and backend API contracts stable now that mobile is showing real usage
-- Deepen monitoring detail, push health, and history views on top of the backend resources
-- Continue improving report clarity, remediation language, and signal attribution
+The current roadmap is organized around five product tracks:
 
-### Product direction
+- **Engine authority** — keep `securl` useful as a standalone npm package and CLI for passive outside-in posture checks.
+- **Monitoring as the product** — make recurring checks, certificate timelines, drift explanations, policies, and push alerts the core recurring value.
+- **Mobile-first companion suite** — treat SecURL, Header Watch, and Cert Watch as focused first-class clients over the same backend intelligence.
+- **Developer workflow** — make CLI, CI, SARIF, JSON, Markdown, cert checks, and saved-report comparison easy to adopt.
+- **Trust and signal layer** — keep provenance, privacy-safe telemetry, release discipline, passive boundaries, and public documentation strong.
 
-- Keep the live scan and technical outputs strong and easy to try
-- Define clearer boundaries between free workflow value and premium workflow value
-- Treat mobile monitoring, premium reporting, recurring checks, and richer history as the most likely commercial foundations
-- Explore shared/team views and API access after the service model is stable
+The path to `1.25` is intentionally more ambitious: certificate policy checks, richer observation/drift exports, vendor and exposure intelligence, better developer workflow templates, stronger monitoring explanations, policy presets, and mobile-ready monitoring resources.
 
-### Not yet
+The future `2.0` shape is a stable SecURL intelligence platform: engine, CLI, hosted backend, mobile suite, monitoring, policies, alerts, reports, and privacy-safe product signals all treated as one coherent system.
 
-- No public pricing or paywall yet
-- No commitment to a final commercial package until the premium experience is clearly strong enough to justify it
+Read the full roadmap in [docs/PRODUCT-ROADMAP.md](docs/PRODUCT-ROADMAP.md).
 
 ## Support SecURL
 
@@ -203,6 +201,7 @@ Sponsorship helps fund continued work on the passive analysis engine, hosted sca
 
 For the deeper operational and architecture material, go straight to:
 
+- [Product roadmap](docs/PRODUCT-ROADMAP.md)
 - [Architecture view (C4)](docs/ARCHITECTURE-C4.md)
 - [Backend API split-hosting notes](docs/BACKEND-API.md)
 - [Public deploy checklist](docs/PUBLIC-DEPLOY-CHECKLIST.md)
