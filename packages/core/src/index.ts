@@ -74,6 +74,10 @@ import { analyzeWafFingerprint } from "./wafFingerprint.js";
 import type { AnalysisResult, AnalyzeTargetOptions, HtmlSecurityInfo } from "./types.js";
 
 export { buildPostureRiskEventsFromDiff, buildPostureRiskEventsFromSnapshots } from "./riskEvents.js";
+export {
+  buildCertificateMonitoringEvents,
+  buildMonitoringEventsFromSnapshots,
+} from "./monitoringEvents.js";
 export { buildPostureDigest } from "./postureDigest.js";
 export {
   buildPostureDriftReport,
@@ -86,7 +90,15 @@ export {
   buildPostureEvidenceSummary,
   buildPostureRemediationPlan,
 } from "./postureRemediation.js";
-export type { PostureRiskEvent, PostureRiskEventSeverity } from "./types.js";
+export type {
+  MonitoringEvent,
+  MonitoringEventEvidence,
+  MonitoringEventSeverity,
+  MonitoringEventSource,
+  MonitoringEventTarget,
+  PostureRiskEvent,
+  PostureRiskEventSeverity,
+} from "./types.js";
 
 type ScanMode = NonNullable<AnalyzeTargetOptions["scanMode"]>;
 type CoreScanResult = Awaited<ReturnType<typeof analyzeUrlCore>>;

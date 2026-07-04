@@ -18,6 +18,7 @@ test("package surface exports expected public functions", async () => {
   const postureInsights = await import("../dist/postureInsights.js");
   const signalClarity = await import("../dist/signalClarity.js");
   const certificate = await import("../dist/certificate.js");
+  const monitoringEvents = await import("../dist/monitoringEvents.js");
   const observations = await import("../dist/observations.js");
   const observationDrift = await import("../dist/observationDrift.js");
   const observationPolicy = await import("../dist/observationPolicy.js");
@@ -52,6 +53,10 @@ test("package surface exports expected public functions", async () => {
   assert.equal(typeof signalClarity.buildSignalClaritySummary, "function");
   assert.equal(typeof pkg.scanLiveCertificate, "function");
   assert.equal(typeof certificate.scanLiveCertificate, "function");
+  assert.equal(typeof pkg.buildMonitoringEventsFromSnapshots, "function");
+  assert.equal(typeof pkg.buildCertificateMonitoringEvents, "function");
+  assert.equal(typeof monitoringEvents.buildMonitoringEventsFromSnapshots, "function");
+  assert.equal(typeof monitoringEvents.buildCertificateMonitoringEvents, "function");
   assert.equal(typeof pkg.buildObservationLedger, "function");
   assert.equal(typeof observations.buildObservationLedger, "function");
   assert.equal(typeof pkg.diffObservationLedgers, "function");
@@ -98,6 +103,7 @@ test("package surface exposes both long and short CLI binary names", async () =>
   assert.equal(packageJson.bin.securl, "dist/cli.js");
   assert.equal(packageJson.bin.epi, "dist/cli.js");
   assert.equal(packageJson.bin["external-posture-insight"], "dist/cli.js");
+  assert.equal(packageJson.exports["./monitoring-events"].default, "./dist/monitoringEvents.js");
 });
 
 test("library risk lookups use the shared scanner transport rather than raw fetch", async () => {

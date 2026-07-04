@@ -621,6 +621,53 @@ export interface PostureDriftReport {
   summary: PostureDriftSummary;
 }
 
+export type MonitoringEventSeverity = PostureRiskEventSeverity;
+export type MonitoringEventSource = "posture" | "certificate";
+
+export interface MonitoringEventEvidence {
+  label: string;
+  previous: string | number | boolean | null;
+  current: string | number | boolean | null;
+}
+
+export interface MonitoringEventTarget {
+  host: string;
+  finalUrl: string | null;
+}
+
+export interface MonitoringEvent {
+  id: string;
+  source: MonitoringEventSource;
+  eventType: string;
+  severity: MonitoringEventSeverity;
+  title: string;
+  message: string;
+  detail: string;
+  target: MonitoringEventTarget;
+  current: {
+    observedAt: string;
+    score?: number;
+    grade?: string;
+    statusCode?: number;
+    certificateDaysRemaining?: number | null;
+  };
+  previous: {
+    observedAt: string | null;
+    score?: number | null;
+    grade?: string | null;
+    statusCode?: number | null;
+    certificateDaysRemaining?: number | null;
+  };
+  changedEvidence: MonitoringEventEvidence[];
+  nextAction: string;
+  push: {
+    title: string;
+    body: string;
+  };
+  dedupeKey: string;
+  metadata: Record<string, unknown>;
+}
+
 export type SecurityTxtStatus = "present_valid" | "present_expired" | "present_incomplete" | "missing";
 
 export interface SecurityTxtInfo {

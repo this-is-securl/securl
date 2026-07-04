@@ -19,6 +19,7 @@
     "src/html-extraction.ts",
     "src/identityProvider.ts",
     "src/libraryRisk.ts",
+    "src/monitoringEvents.ts",
     "src/network-validation.ts",
     "src/network.ts",
     "src/path-discovery.ts",
