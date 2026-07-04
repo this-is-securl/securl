@@ -8,7 +8,9 @@ import type { AnalysisResult, HistoryDiff, LiveCertificateResult, ScanIssue } fr
 type OutputFormat = "json" | "markdown" | "summary" | "sarif" | "ci-json";
 type FailOnSeverity = Exclude<ScanIssue["severity"], "good">;
 type ScanMode = "standard" | "quiet" | "deep-passive";
+type CertPolicyProfile = "production" | "strict" | "renewal-watch";
 type CertPolicyOptions = {
+  profile: CertPolicyProfile | null;
   failIfInvalid: boolean;
   failIfExpiringWithinDays: number | null;
   failIfLegacyTls: boolean;
@@ -54,7 +56,7 @@ const usage = `SecURL CLI
 Usage:
   securl scan <target...> [--format json|markdown|summary|sarif|ci-json] [--baseline <report.json>] [--output <file>] [--quiet|--deep-passive] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
   securl compare <current-report.json> <baseline-report.json> [--format json|markdown|summary|sarif|ci-json] [--output <file>] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
-  securl cert <target> [--format json|markdown|summary|ci-json] [--output <file>] [--fail-if-invalid] [--fail-if-expiring-within <days>] [--fail-if-legacy-tls] [--expect-issuer <text>]
+  securl cert <target> [--format json|markdown|summary|ci-json] [--output <file>] [--policy production|strict|renewal-watch] [--fail-if-invalid] [--fail-if-expiring-within <days>] [--fail-if-legacy-tls] [--expect-issuer <text>]
 
 Examples:
   npx securl scan example.com
@@ -73,6 +75,7 @@ Examples:
   npx securl compare current-report.json baseline-report.json --format sarif --fail-on critical
   npx securl cert example.com
   npx securl cert example.com --format json
+  npx securl cert example.com --policy production --format ci-json
   npx securl cert example.com --format ci-json --fail-if-expiring-within 21 --fail-if-invalid
 
 Scan modes:
@@ -84,6 +87,9 @@ CI policy modes:
   --fail-on warning          Fail when findings at or above the selected severity are present.
   --fail-on-regression       Fail when a baseline comparison finds score, issue, or status regressions.
   --fail-if-score-below 75   Fail when any scanned target falls below the selected score.
+  --policy production        For cert checks, apply a named policy profile. production requires a valid authorized certificate, at least 14 days remaining, and no legacy TLS.
+  --policy strict            For cert checks, require a valid authorized certificate, at least 30 days remaining, and no legacy TLS.
+  --policy renewal-watch     For cert checks, require a valid authorized certificate and at least 30 days remaining.
   --fail-if-invalid          For cert checks, fail when the served certificate is unavailable, invalid, or unauthorized.
   --fail-if-expiring-within 21
                              For cert checks, fail when the served certificate expires within the selected number of days.
@@ -98,10 +104,35 @@ process.once("SIGINT", () => {
 });
 
 const certPolicyActive = (policy: CertPolicyOptions) =>
-  policy.failIfInvalid
+  policy.profile !== null
+  || policy.failIfInvalid
   || policy.failIfExpiringWithinDays !== null
   || policy.failIfLegacyTls
   || policy.expectIssuer !== null;
+
+const CERT_POLICY_PROFILES: Record<CertPolicyProfile, CertPolicyOptions> = {
+  production: {
+    profile: "production",
+    failIfInvalid: true,
+    failIfExpiringWithinDays: 14,
+    failIfLegacyTls: true,
+    expectIssuer: null,
+  },
+  strict: {
+    profile: "strict",
+    failIfInvalid: true,
+    failIfExpiringWithinDays: 30,
+    failIfLegacyTls: true,
+    expectIssuer: null,
+  },
+  "renewal-watch": {
+    profile: "renewal-watch",
+    failIfInvalid: true,
+    failIfExpiringWithinDays: 30,
+    failIfLegacyTls: false,
+    expectIssuer: null,
+  },
+};
 
 const parseArgs = (argv: string[]): ParsedArgs => {
   const args = [...argv];
@@ -123,6 +154,7 @@ const parseArgs = (argv: string[]): ParsedArgs => {
   let failIfScoreBelow: number | null = null;
   let scanMode: ScanMode = "standard";
   const certPolicy: CertPolicyOptions = {
+    profile: null,
     failIfInvalid: false,
     failIfExpiringWithinDays: null,
     failIfLegacyTls: false,
@@ -206,6 +238,16 @@ const parseArgs = (argv: string[]): ParsedArgs => {
         throw new Error("Choose either --quiet or --deep-passive, not both.");
       }
       scanMode = "deep-passive";
+      continue;
+    }
+
+    if (arg === "--policy") {
+      const value = args[index + 1];
+      if (!value || !["production", "strict", "renewal-watch"].includes(value)) {
+        throw new Error("Invalid --policy value. Use production, strict, or renewal-watch.");
+      }
+      Object.assign(certPolicy, CERT_POLICY_PROFILES[value as CertPolicyProfile]);
+      index += 1;
       continue;
     }
 
@@ -614,6 +656,7 @@ const evaluateCertificatePolicy = (
 const formatCertificatePolicySummary = (policy: CertPolicySummary) =>
   [
     `Policy: ${policy.passed ? "passed" : "failed"}`,
+    `Policy profile: ${policy.profile ?? "custom"}`,
     `Fail if invalid: ${policy.failIfInvalid ? "yes" : "no"}`,
     `Fail if expiring within: ${policy.failIfExpiringWithinDays ?? "not set"}`,
     `Fail if legacy TLS: ${policy.failIfLegacyTls ? "yes" : "no"}`,
@@ -626,6 +669,7 @@ const formatCertificatePolicyMarkdown = (policy: CertPolicySummary) =>
     "## Policy",
     "",
     `- Result: ${policy.passed ? "passed" : "failed"}`,
+    `- Profile: ${policy.profile ?? "custom"}`,
     `- Fail if invalid: ${policy.failIfInvalid ? "yes" : "no"}`,
     `- Fail if expiring within: ${policy.failIfExpiringWithinDays ?? "not set"}`,
     `- Fail if legacy TLS: ${policy.failIfLegacyTls ? "yes" : "no"}`,

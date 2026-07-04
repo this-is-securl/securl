@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-07-04 — core 1.19.0 certificate policy profiles
+
+### Added
+
+- Added named certificate policy profiles to `securl cert`: `production`, `strict`, and `renewal-watch`.
+- Allowed explicit certificate policy flags to tighten a selected profile for local release checks.
+- Documented profile semantics for CI, Cert Watch-style automation, and release gates.
+
+### Verified
+
+- `npm run build:core`
+- `node --test packages/core/test/cli.test.mjs packages/core/test/package-surface.test.mjs`
+- `npm run release:package:check`
+
 ## 2026-07-04 — core 1.18.0 monitoring event intelligence
 
 ### Added
