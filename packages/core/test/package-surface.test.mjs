@@ -80,6 +80,9 @@ test("package surface includes a working CLI help entrypoint", async () => {
   assert.match(stdout, /--fail-on info\|warning\|critical/);
   assert.match(stdout, /--fail-on-regression/);
   assert.match(stdout, /--fail-if-score-below <0-100>/);
+  assert.match(stdout, /--policy production/);
+  assert.match(stdout, /--policy strict/);
+  assert.match(stdout, /--policy renewal-watch/);
   assert.match(stdout, /--fail-if-invalid/);
   assert.match(stdout, /--fail-if-expiring-within 21/);
   assert.match(stdout, /--fail-if-legacy-tls/);

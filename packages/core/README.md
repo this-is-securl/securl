@@ -284,6 +284,9 @@ Use this when you only need the served certificate's expiry, issuer, subject alt
 Version `1.17.0+` adds certificate policy gates for CI and release checks:
 
 ```bash
+npx securl cert example.com --policy production
+npx securl cert example.com --policy strict --format ci-json
+npx securl cert example.com --policy renewal-watch
 npx securl cert example.com --fail-if-invalid
 npx securl cert example.com --fail-if-expiring-within 21 --format ci-json
 npx securl cert example.com --fail-if-legacy-tls
@@ -291,6 +294,14 @@ npx securl cert example.com --expect-issuer "Let's Encrypt"
 ```
 
 Certificate policy gates set exit code `1` when the selected condition fails. Use `--format ci-json` when you want a compact machine-readable certificate summary plus policy result.
+
+Version `1.19.0+` adds named certificate policy profiles:
+
+- `production`: valid and authorized certificate, at least 14 days remaining, no legacy TLS.
+- `strict`: valid and authorized certificate, at least 30 days remaining, no legacy TLS.
+- `renewal-watch`: valid and authorized certificate, at least 30 days remaining.
+
+Explicit flags such as `--fail-if-expiring-within`, `--fail-if-legacy-tls`, and `--expect-issuer` can be combined with a profile when a release check needs a tighter local rule.
 
 ### 10. Machine-readable observation ledger
 
@@ -498,6 +509,8 @@ Fast certificate checks:
 ```bash
 npx securl cert example.com
 npx securl cert example.com --format json
+npx securl cert example.com --policy production
+npx securl cert example.com --policy strict --format ci-json
 npx securl cert example.com --format ci-json --fail-if-invalid
 npx securl cert example.com --fail-if-expiring-within 21 --expect-issuer "Let's Encrypt"
 npx securl cert example.com --format markdown --output certificate.md
@@ -531,6 +544,7 @@ npx securl compare current-report.json baseline-report.json --fail-on critical -
 - `--fail-on` sets exit code `1` when findings at or above the selected severity are present.
 - `--fail-on-regression` sets exit code `1` when the baseline comparison detects a regression (score drop, new issues, or worse HTTP status class).
 - `--fail-if-score-below` sets exit code `1` when any scanned target score is below the given threshold.
+- `--policy` applies a named certificate profile: `production`, `strict`, or `renewal-watch`.
 - `--fail-if-invalid` sets exit code `1` for certificate checks when the served certificate is unavailable, invalid, or unauthorized.
 - `--fail-if-expiring-within` sets exit code `1` for certificate checks when the served certificate expires within the selected number of days.
 - `--fail-if-legacy-tls` sets exit code `1` for certificate checks when TLS 1.0 or TLS 1.1 is negotiated.

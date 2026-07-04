@@ -71,6 +71,54 @@ test("CLI cert command fails policy when invalid certificates are blocked", asyn
   );
 });
 
+test("CLI cert command applies named policy profiles", async () => {
+  await assert.rejects(
+    execFile(process.execPath, [
+      cliPath,
+      "cert",
+      "http://example.com",
+      "--format",
+      "ci-json",
+      "--policy",
+      "production",
+    ]),
+    (error) => {
+      assert.match(error.stderr, /Policy failed: certificate is unavailable, invalid, or unauthorized\./);
+      const output = JSON.parse(error.stdout);
+      assert.equal(output.policy.profile, "production");
+      assert.equal(output.policy.failIfInvalid, true);
+      assert.equal(output.policy.failIfExpiringWithinDays, 14);
+      assert.equal(output.policy.failIfLegacyTls, true);
+      assert.equal(output.policy.passed, false);
+      return true;
+    },
+  );
+});
+
+test("CLI cert command lets explicit options tighten named policy profiles", async () => {
+  await assert.rejects(
+    execFile(process.execPath, [
+      cliPath,
+      "cert",
+      "http://example.com",
+      "--format",
+      "ci-json",
+      "--policy",
+      "renewal-watch",
+      "--fail-if-expiring-within",
+      "45",
+      "--fail-if-legacy-tls",
+    ]),
+    (error) => {
+      const output = JSON.parse(error.stdout);
+      assert.equal(output.policy.profile, "renewal-watch");
+      assert.equal(output.policy.failIfExpiringWithinDays, 45);
+      assert.equal(output.policy.failIfLegacyTls, true);
+      return true;
+    },
+  );
+});
+
 test("CLI cert command fails policy when issuer expectation is not met", async () => {
   await assert.rejects(
     execFile(process.execPath, [
@@ -107,6 +155,14 @@ test("CLI cert command rejects scan-only output and scan policy options", async 
 });
 
 test("CLI rejects malformed certificate policy options", async () => {
+  await assert.rejects(
+    execFile(process.execPath, [cliPath, "cert", "example.com", "--policy", "whatever"]),
+    (error) => {
+      assert.match(error.stderr, /Invalid --policy value\. Use production, strict, or renewal-watch\./);
+      return true;
+    },
+  );
+
   await assert.rejects(
     execFile(process.execPath, [cliPath, "cert", "example.com", "--fail-if-expiring-within", "soon"]),
     (error) => {

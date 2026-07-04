@@ -9,6 +9,12 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 ### Backend and docs
 - Added protected product-pulse telemetry and optional release-channel attribution for hosted/mobile clients. These are backend/API-service changes and do not change the published `securl` package surface.
 
+## [1.19.0] - 2026-07-04
+
+### Added
+- Added named certificate policy profiles for the CLI: `production`, `strict`, and `renewal-watch`.
+- `securl cert --policy <profile>` now applies opinionated certificate gates while still allowing explicit local overrides such as issuer expectations or a tighter expiry window.
+
 ## [1.18.0] - 2026-07-04
 
 ### Added
