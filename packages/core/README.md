@@ -255,6 +255,16 @@ console.log({
 });
 ```
 
+Version `1.16.0+` exposes the same TLS handshake-only workflow through the CLI:
+
+```bash
+npx securl cert example.com
+npx securl cert example.com --format json
+npx securl cert example.com --format markdown --output certificate.md
+```
+
+Use this when you only need the served certificate's expiry, issuer, subject alternative names, negotiated TLS details, key hints, and chain summary without running a full posture scan.
+
 ### 10. Machine-readable observation ledger
 
 Version `1.10.0+` adds stable posture observations for monitoring, inventory, policy, and future SaaS integrations. Each observation records what was seen, whether it was observed, inferred, missing, or unavailable, its confidence and source, and when that evidence should be refreshed.
@@ -452,6 +462,16 @@ npx securl scan example.com --format markdown
 npx securl scan example.com --format sarif
 npx securl scan example.com --format ci-json
 ```
+
+Fast certificate checks:
+
+```bash
+npx securl cert example.com
+npx securl cert example.com --format json
+npx securl cert example.com --format markdown --output certificate.md
+```
+
+`securl cert` performs a bounded TLS handshake only. It is useful for Cert Watch-style automation, release checks, and lightweight inventory tasks where a full posture scan would be unnecessary.
 
 The CLI writes machine-readable report output to stdout, and lightweight multi-target progress to stderr only when running interactively. This keeps JSON/SARIF output pipe-friendly.
 

@@ -1,8 +1,8 @@
 import { writeFile } from "node:fs/promises";
 import { readFile } from "node:fs/promises";
 import process from "node:process";
-import { analyzeUrl, buildHistoryDiffFromSnapshots, formatErrorMessage, snapshotFromAnalysis } from "./index.js";
-import type { AnalysisResult, HistoryDiff, ScanIssue } from "./types.js";
+import { analyzeUrl, buildHistoryDiffFromSnapshots, formatErrorMessage, scanLiveCertificate, snapshotFromAnalysis } from "./index.js";
+import type { AnalysisResult, HistoryDiff, LiveCertificateResult, ScanIssue } from "./types.js";
 
 type OutputFormat = "json" | "markdown" | "summary" | "sarif" | "ci-json";
 type FailOnSeverity = Exclude<ScanIssue["severity"], "good">;
@@ -29,6 +29,12 @@ type ParsedArgs =
       failOnSeverity: FailOnSeverity | null;
       failOnRegression: boolean;
       failIfScoreBelow: number | null;
+    }
+  | {
+      command: "cert";
+      target: string;
+      format: Exclude<OutputFormat, "sarif" | "ci-json">;
+      outputPath: string | null;
     };
 
 const usage = `SecURL CLI
@@ -36,6 +42,7 @@ const usage = `SecURL CLI
 Usage:
   securl scan <target...> [--format json|markdown|summary|sarif|ci-json] [--baseline <report.json>] [--output <file>] [--quiet|--deep-passive] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
   securl compare <current-report.json> <baseline-report.json> [--format json|markdown|summary|sarif|ci-json] [--output <file>] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
+  securl cert <target> [--format json|markdown|summary] [--output <file>]
 
 Examples:
   npx securl scan example.com
@@ -52,6 +59,8 @@ Examples:
   npx securl scan example.com github.com --fail-if-score-below 75
   npx securl compare current-report.json baseline-report.json
   npx securl compare current-report.json baseline-report.json --format sarif --fail-on critical
+  npx securl cert example.com
+  npx securl cert example.com --format json
 
 Scan modes:
   default scan   Fetches the primary response plus bounded passive enrichment: HTML, DNS/mail, CT, OSV, exposure, CORS, API-surface, and public trust signals.
@@ -77,7 +86,7 @@ const parseArgs = (argv: string[]): ParsedArgs => {
     return { command: "help" as const };
   }
 
-  if (!["scan", "compare"].includes(command)) {
+  if (!["scan", "compare", "cert"].includes(command)) {
     throw new Error(`Unknown command: ${command}`);
   }
 
@@ -200,6 +209,32 @@ const parseArgs = (argv: string[]): ParsedArgs => {
     };
   }
 
+  if (command === "cert") {
+    const [target, unexpected] = positionals;
+    if (!target) {
+      throw new Error("Missing target. Usage: securl cert <target>");
+    }
+    if (unexpected) {
+      throw new Error("Certificate checks support one target at a time.");
+    }
+    if (format === "sarif" || format === "ci-json") {
+      throw new Error("Certificate checks support summary, json, or markdown output.");
+    }
+    if (baselinePath || failOnSeverity || failOnRegression || failIfScoreBelow !== null) {
+      throw new Error("Certificate checks do not support scan comparison or CI policy options.");
+    }
+    if (scanMode !== "standard") {
+      throw new Error("Certificate checks do not support scan modes; they only perform a TLS handshake.");
+    }
+
+    return {
+      command: "cert",
+      target,
+      format,
+      outputPath,
+    };
+  }
+
   const [currentPath, compareBaselinePath] = positionals;
   if (!currentPath || !compareBaselinePath) {
     throw new Error("Missing report paths. Usage: securl compare <current-report.json> <baseline-report.json>");
@@ -215,6 +250,14 @@ const parseArgs = (argv: string[]): ParsedArgs => {
     failOnRegression,
     failIfScoreBelow,
   };
+};
+
+const normalizeCertificateTarget = (target: string) => {
+  try {
+    return new URL(target.includes("://") ? target : `https://${target}`);
+  } catch {
+    throw new Error("Certificate target must be a valid URL or hostname.");
+  }
 };
 
 const parseBaselineAnalysis = async (baselinePath: string) => {
@@ -387,6 +430,82 @@ const formatBatchMarkdown = (analyses: AnalysisResult[]) => {
         `| ${analysis.host} | ${analysis.score}/100 | ${analysis.grade} | ${analysis.statusCode} | ${analysis.finalUrl} |`,
     ),
   ].join("\n");
+};
+
+const formatCertificateSummary = (certificate: LiveCertificateResult) => {
+  const key = certificate.keyType || certificate.keyBits
+    ? [certificate.keyType, certificate.keyBits ? `${certificate.keyBits} bits` : null].filter(Boolean).join(" / ")
+    : "Not observed";
+
+  return [
+    `Target: ${certificate.host}:${certificate.port}`,
+    `Checked: ${certificate.checkedAt}`,
+    `Available: ${certificate.available ? "yes" : "no"}`,
+    `Valid: ${certificate.valid ? "yes" : "no"}`,
+    `Authorized: ${certificate.authorized ? "yes" : "no"}`,
+    `Issuer: ${certificate.issuer ?? "Not observed"}`,
+    `Subject: ${certificate.subject ?? "Not observed"}`,
+    `Valid from: ${certificate.validFrom ?? "Not observed"}`,
+    `Valid to: ${certificate.validTo ?? "Not observed"}`,
+    `Days remaining: ${certificate.daysRemaining ?? "Unknown"}`,
+    `Protocol: ${certificate.protocol ?? "Not negotiated"}`,
+    `Cipher: ${certificate.cipher ?? "Not negotiated"}`,
+    `Key: ${key}`,
+    `SANs: ${certificate.subjectAltName.length ? certificate.subjectAltName.slice(0, 12).join(", ") : "None observed"}`,
+    `Chain entries: ${certificate.chain.length}`,
+    `Issues: ${certificate.issues.length ? certificate.issues.join("; ") : "None recorded"}`,
+  ].join("\n");
+};
+
+const formatCertificateMarkdown = (certificate: LiveCertificateResult) =>
+  [
+    `# SecURL Certificate Check: ${certificate.host}`,
+    "",
+    `- Target: ${certificate.host}:${certificate.port}`,
+    `- Checked: ${certificate.checkedAt}`,
+    `- Available: ${certificate.available ? "yes" : "no"}`,
+    `- Valid: ${certificate.valid ? "yes" : "no"}`,
+    `- Authorized: ${certificate.authorized ? "yes" : "no"}`,
+    `- Issuer: ${certificate.issuer ?? "Not observed"}`,
+    `- Subject: ${certificate.subject ?? "Not observed"}`,
+    `- Valid from: ${certificate.validFrom ?? "Not observed"}`,
+    `- Valid to: ${certificate.validTo ?? "Not observed"}`,
+    `- Days remaining: ${certificate.daysRemaining ?? "Unknown"}`,
+    `- Protocol: ${certificate.protocol ?? "Not negotiated"}`,
+    `- Cipher: ${certificate.cipher ?? "Not negotiated"}`,
+    `- Key: ${[certificate.keyType, certificate.keyBits ? `${certificate.keyBits} bits` : null].filter(Boolean).join(" / ") || "Not observed"}`,
+    "",
+    "## Subject Alternative Names",
+    "",
+    ...(certificate.subjectAltName.length
+      ? certificate.subjectAltName.slice(0, 20).map((name) => `- ${name}`)
+      : ["- None observed."]),
+    "",
+    "## Chain",
+    "",
+    ...(certificate.chain.length
+      ? certificate.chain.map(
+          (entry, index) =>
+            `- ${index + 1}. ${entry.subject ?? "Unknown subject"} issued by ${entry.issuer ?? "unknown issuer"}; valid to ${entry.validTo ?? "unknown"}`,
+        )
+      : ["- No chain entries observed."]),
+    "",
+    "## Issues",
+    "",
+    ...(certificate.issues.length ? certificate.issues.map((issue) => `- ${issue}`) : ["- None recorded."]),
+  ].join("\n");
+
+const renderCertificateOutput = (
+  certificate: LiveCertificateResult,
+  format: Exclude<OutputFormat, "sarif" | "ci-json">,
+) => {
+  if (format === "json") {
+    return `${JSON.stringify(certificate, null, 2)}\n`;
+  }
+  if (format === "markdown") {
+    return `${formatCertificateMarkdown(certificate)}\n`;
+  }
+  return `${formatCertificateSummary(certificate)}\n`;
 };
 
 const severityRank: Record<FailOnSeverity, number> = {
@@ -774,6 +893,17 @@ const main = async () => {
       if (policyMessages.length) {
         process.stderr.write(`${policyMessages.join("\n")}\n`);
         process.exitCode = 1;
+      }
+      return;
+    }
+
+    if (parsed.command === "cert") {
+      const certificate = await scanLiveCertificate(normalizeCertificateTarget(parsed.target));
+      output = renderCertificateOutput(certificate, parsed.format);
+      if (parsed.outputPath) {
+        await writeFile(parsed.outputPath, output, "utf8");
+      } else {
+        process.stdout.write(output);
       }
       return;
     }

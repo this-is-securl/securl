@@ -9,6 +9,53 @@ import { promisify } from "node:util";
 const execFile = promisify(execFileCallback);
 const cliPath = new URL("../dist/cli.js", import.meta.url).pathname;
 
+test("CLI cert command renders a fast certificate summary", async () => {
+  const { stdout } = await execFile(process.execPath, [cliPath, "cert", "http://example.com"]);
+
+  assert.match(stdout, /Target: example\.com:443/);
+  assert.match(stdout, /Available: no/);
+  assert.match(stdout, /TLS certificate data is only available for HTTPS targets\./);
+});
+
+test("CLI cert command writes structured JSON output", async () => {
+  const tempDir = await mkdtemp(join(tmpdir(), "epi-cli-"));
+  const outputPath = join(tempDir, "cert.json");
+
+  await execFile(process.execPath, [cliPath, "cert", "http://example.com", "--format", "json", "--output", outputPath]);
+  const output = JSON.parse(await readFile(outputPath, "utf8"));
+
+  assert.equal(output.host, "example.com");
+  assert.equal(output.port, 443);
+  assert.equal(output.available, false);
+  assert.equal(output.issues[0], "TLS certificate data is only available for HTTPS targets.");
+});
+
+test("CLI cert command writes markdown output", async () => {
+  const { stdout } = await execFile(process.execPath, [cliPath, "cert", "http://example.com", "--format", "markdown"]);
+
+  assert.match(stdout, /# SecURL Certificate Check: example\.com/);
+  assert.match(stdout, /## Issues/);
+  assert.match(stdout, /TLS certificate data is only available for HTTPS targets\./);
+});
+
+test("CLI cert command rejects scan-only output and policy options", async () => {
+  await assert.rejects(
+    execFile(process.execPath, [cliPath, "cert", "example.com", "--format", "sarif"]),
+    (error) => {
+      assert.match(error.stderr, /Certificate checks support summary, json, or markdown output\./);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    execFile(process.execPath, [cliPath, "cert", "example.com", "--fail-on", "warning"]),
+    (error) => {
+      assert.match(error.stderr, /Certificate checks do not support scan comparison or CI policy options\./);
+      return true;
+    },
+  );
+});
+
 test("CLI compare command renders a diff summary from saved reports", async () => {
   const tempDir = await mkdtemp(join(tmpdir(), "epi-cli-"));
   const baselinePath = join(tempDir, "baseline.json");

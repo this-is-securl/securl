@@ -68,6 +68,7 @@ test("package surface includes a working CLI help entrypoint", async () => {
 
   assert.match(stdout, /SecURL CLI/);
   assert.match(stdout, /securl scan <target\.\.\.>/);
+  assert.match(stdout, /securl cert <target>/);
   assert.match(stdout, /scan <target\.\.\.>/);
   assert.match(stdout, /--baseline/);
   assert.match(stdout, /json\|markdown\|summary\|sarif\|ci-json/);

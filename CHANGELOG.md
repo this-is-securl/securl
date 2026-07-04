@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-07-04 — core 1.16.0 certificate CLI
+
+### Added
+
+- Added `securl cert <target>` for fast TLS handshake-only certificate checks from the npm CLI.
+- Added summary, JSON, and Markdown output modes for certificate checks so developers can inspect expiry, issuer, SANs, negotiated TLS details, key hints, chain entries, and issues without running a full posture scan.
+- Documented the CLI workflow alongside the existing `scanLiveCertificate()` package API.
+
+### Verified
+
+- `npm run build:core`
+- `node --test packages/core/test/cli.test.mjs packages/core/test/package-surface.test.mjs`
+- `npm run release:package:check`
+
 ## 2026-07-03 — backend mobile telemetry attribution
 
 ### Added
