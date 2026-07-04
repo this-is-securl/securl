@@ -82,6 +82,12 @@ test("package surface includes a working CLI help entrypoint", async () => {
   assert.match(stdout, /compare <current-report\.json> <baseline-report\.json>/);
 });
 
+test("package CLI entrypoint includes a Node shebang for npm bin execution", async () => {
+  const cliSource = await readFile(new URL("../dist/cli.js", import.meta.url), "utf8");
+
+  assert.ok(cliSource.startsWith("#!/usr/bin/env node\n"));
+});
+
 test("package surface exposes both long and short CLI binary names", async () => {
   const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 
