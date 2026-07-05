@@ -194,6 +194,218 @@ export interface ScanComparisonResponse extends VersionedApiResponse {
   comparison: TargetHistoryComparison | null;
 }
 
+export interface ScanDigest {
+  generatedAt: string;
+  posture: {
+    score: number;
+    grade: string;
+    summary: string;
+    overview: string | null;
+    mainRisk: string | null;
+    limited: boolean;
+    scoreDrivers: Array<{
+      label?: string;
+      title?: string;
+      detail?: string;
+      impact?: number;
+      scoreImpact?: number;
+      direction?: "positive" | "negative" | "neutral";
+      source?: string;
+    }>;
+  };
+  findings: {
+    total: number;
+    bySeverity: {
+      critical: number;
+      warning: number;
+      info: number;
+    };
+    top: Array<{
+      severity: "critical" | "warning" | "info";
+      title: string;
+      detail: string;
+      confidence?: string;
+      source?: string;
+    }>;
+  };
+  signalClarity: {
+    headline: string;
+    verdict: "strong" | "positive" | "mixed" | "weak" | "limited";
+    summary: string;
+    confidence: string;
+    topNegativeDrivers: Array<{ label: string; detail: string; severity: string; scoreImpact: number | null }>;
+    topPositiveSignals: Array<{ label: string; detail: string; severity: string; scoreImpact: number | null }>;
+    nextBestAction: string | null;
+    caveats: string[];
+  } | null;
+  trust: {
+    thirdPartyProviders: string[];
+    highRiskThirdPartyProviders: number;
+    identityProvider: string | null;
+    wafProviders: string[];
+    infrastructureProviders: string[];
+  };
+  intelligence: {
+    compromisePosture: string | null;
+    riskIndicators: Array<{ severity: string; title: string; detail: string; confidence?: string }>;
+    ctPriorityHosts: string[];
+    aiVendors: string[];
+  };
+}
+
+export interface ScanInsightAction {
+  id: string;
+  label: string;
+  theme: string;
+  owner: string;
+  effort: string;
+  impact: string;
+  severity: "critical" | "warning" | "info";
+  verify: string;
+}
+
+export interface ScanInsights {
+  generatedAt: string;
+  summary: string;
+  themes: Array<{
+    theme: string;
+    label: string;
+    count: number;
+    highestSeverity: "critical" | "warning" | "info";
+    highImpactActions: number;
+    quickWins: number;
+    owners: string[];
+    scoreImpact: number;
+  }>;
+  topInsights: Array<{
+    id: string;
+    title: string;
+    summary: string;
+    severity: "critical" | "warning" | "info";
+    theme: string;
+    owner: string;
+    effort: string;
+    impact: string;
+    scoreImpact: number | null;
+    nextAction: string;
+    verify: string;
+  }>;
+  nextBestActions: ScanInsightAction[];
+}
+
+export interface ScanVendorBrief {
+  generatedAt: string;
+  risk: "low" | "medium" | "high";
+  summary: string;
+  counts: {
+    totalProviders: number;
+    highRiskProviders: number;
+    mediumRiskProviders: number;
+    sessionReplayProviders: number;
+    analyticsProviders: number;
+    aiProviders: number;
+    paymentProviders: number;
+    supportProviders: number;
+    missingSriScripts: number;
+  };
+  highPriorityProviders: Array<{
+    name: string;
+    domain: string;
+    risk: string;
+    reviewPriority: string;
+    dataFlow: string;
+    action: string;
+  }>;
+  nextActions: string[];
+}
+
+export interface ScanActionPlan {
+  generatedAt: string;
+  summary: string;
+  totalActions: number;
+  highImpactActions: number;
+  quickWins: number;
+  items: Array<{
+    id: string;
+    priority: number;
+    title: string;
+    whyNow: string;
+    action: string;
+    verify: string;
+    owner: string;
+    effort: string;
+    impact: string;
+    scoreImpact: number | null;
+    theme: string;
+  }>;
+}
+
+export interface MonitoringEvent {
+  id: string;
+  source: "posture" | "certificate";
+  eventType: string;
+  severity: "critical" | "warning" | "info";
+  title: string;
+  message: string;
+  detail?: string;
+  changedEvidence: Array<{
+    label: string;
+    previous: string | number | boolean | null;
+    current: string | number | boolean | null;
+  }>;
+  nextAction: string;
+  dedupeKey: string;
+}
+
+export interface ScanDriftResponse extends VersionedApiResponse {
+  scan: ApiScanSummary;
+  scans: ApiScanSummary[];
+  drift: (Record<string, unknown> & {
+    monitoringEvents?: MonitoringEvent[];
+  }) | null;
+}
+
+export interface ScanObservationDriftResponse extends VersionedApiResponse {
+  observationDrift: Record<string, unknown> | null;
+}
+
+export interface ScanResourceEnvelope extends VersionedApiResponse {
+  scan: {
+    id: string;
+    status: ApiScanStatus;
+    url: string;
+    mode: string;
+    requestedAt: string;
+    completedAt: string | null;
+  };
+  [key: string]: unknown;
+}
+
+export interface ScanDigestResponse extends ScanResourceEnvelope {
+  digest: ScanDigest | null;
+}
+
+export interface ScanInsightsResponse extends ScanResourceEnvelope {
+  insights: ScanInsights | null;
+}
+
+export interface ScanVendorsResponse extends ScanResourceEnvelope {
+  vendors: ScanVendorBrief | null;
+}
+
+export interface ScanActionPlanResponse extends ScanResourceEnvelope {
+  actionPlan: ScanActionPlan | null;
+}
+
+export interface ScanWebIntelligence {
+  digest: ScanDigest | null;
+  insights: ScanInsights | null;
+  vendors: ScanVendorBrief | null;
+  actionPlan: ScanActionPlan | null;
+  monitoringEvents: MonitoringEvent[];
+  observationDriftAvailable: boolean;
+}
+
 export interface ApiMonitoringTarget {
   id: string;
   ownerId: string | null;

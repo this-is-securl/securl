@@ -12,9 +12,15 @@ export const useMonitoredTargets = () => {
   const [monitoredTargets, setMonitoredTargets] = useState<ApiMonitoringTarget[]>([]);
 
   const loadMonitoredTargets = useCallback(async () => {
-    const payload = await getMonitoringTargets();
-    setMonitoredTargets(payload.targets);
-    return payload.targets;
+    try {
+      const payload = await getMonitoringTargets();
+      setMonitoredTargets(payload.targets);
+      return payload.targets;
+    } catch (error) {
+      console.warn("Unable to load monitoring targets.", error);
+      setMonitoredTargets([]);
+      return [];
+    }
   }, []);
 
   const saveCurrentAsMonitored = useCallback(
@@ -39,8 +45,12 @@ export const useMonitoredTargets = () => {
   }, []);
 
   const syncMonitoredTarget = useCallback(async () => {
-    const payload = await getMonitoringTargets();
-    setMonitoredTargets(payload.targets);
+    try {
+      const payload = await getMonitoringTargets();
+      setMonitoredTargets(payload.targets);
+    } catch (error) {
+      console.warn("Unable to refresh monitoring targets.", error);
+    }
   }, []);
 
   const clearMonitoredTargets = useCallback(() => {

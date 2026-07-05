@@ -3,6 +3,7 @@ import {
   ArrowRight,
   BellRing,
   Download,
+  Eye,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
@@ -15,6 +16,7 @@ import { PriorityActionsPanel } from "@/components/PriorityActionsPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AnalysisResult, HistoryDiff, HistorySnapshot } from "@/types/analysis";
+import type { MonitoringEvent, ScanWebIntelligence } from "@/types/api";
 import { getHttpStatusDetails } from "@/lib/httpStatus";
 import { getMonitoringAlerts, getPriorityActions } from "@/lib/priorities";
 import { sectionTitleClass } from "./ReportSectionHeader";
@@ -57,6 +59,7 @@ interface OverviewSectionProps {
     score: number;
     status: TrafficLightStatus;
   }>;
+  scanIntelligence?: ScanWebIntelligence | null;
   exportPdf: () => void;
   exportMarkdown: () => void;
   exportReport: () => void;
@@ -68,12 +71,43 @@ const subCard = "rounded-[1.75rem] border border-white/9 bg-white/4 px-6 py-6 sh
 const eyebrow  = "text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500";
 const cardTitle = "mt-2 text-xl font-black tracking-[-0.03em] text-white";
 
+const severityAccent: Record<MonitoringEvent["severity"], string> = {
+  critical: "#f87171",
+  warning: "#fbbf24",
+  info: "#94a3b8",
+};
+
+const formatTitleCase = (value: string) =>
+  value
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (match) => match.toUpperCase());
+
+const displayValue = (value: unknown, fallback = "Not specified", depth = 0): string => {
+  if (typeof value === "string" && value.trim()) {
+    return value;
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  if (value && typeof value === "object") {
+    if (depth > 2) {
+      return fallback;
+    }
+    const candidate = value as Record<string, unknown>;
+    return displayValue(candidate.label ?? candidate.action ?? candidate.title ?? candidate.summary, fallback, depth + 1);
+  }
+  return fallback;
+};
+
+const displayTitleCase = (value: unknown, fallback: string) => formatTitleCase(displayValue(value, fallback));
+
 export const OverviewSection = ({
   analysisData,
   scanWasCached = false,
   historyDiff,
   history,
   areaScores,
+  scanIntelligence,
   exportPdf,
   exportMarkdown,
   exportReport,
@@ -90,6 +124,10 @@ export const OverviewSection = ({
   const donutOffset = DONUT_CIRCUMFERENCE - (overallPercent / 100) * DONUT_CIRCUMFERENCE;
   const priorityActions = getPriorityActions(analysisData).slice(0, 3);
   const monitoringAlerts = getMonitoringAlerts(analysisData, historyDiff);
+  const backendMonitoringEvents = scanIntelligence?.monitoringEvents ?? [];
+  const nextServerAction = scanIntelligence?.insights?.nextBestActions?.[0] ?? scanIntelligence?.actionPlan?.items?.[0] ?? null;
+  const signalClarity = scanIntelligence?.digest?.signalClarity ?? null;
+  const vendorBrief = scanIntelligence?.vendors ?? null;
   const topTakeaways = analysisData.executiveSummary.takeaways.slice(0, 3);
   const criticalCount = analysisData.issues.filter((issue) => issue.severity === "critical").length;
   const warningCount  = analysisData.issues.filter((issue) => issue.severity === "warning").length;
@@ -450,6 +488,94 @@ export const OverviewSection = ({
             )}
           </div>
         </div>
+
+        {(signalClarity || nextServerAction || vendorBrief || backendMonitoringEvents.length > 0) ? (
+          <div className="mt-5 rounded-[1.75rem] border border-[#7aa6b6]/15 bg-[#7aa6b6]/6 px-6 py-6 shadow-[0_4px_16px_rgba(0,0,0,0.24)]">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className={eyebrow + " text-[#9fc7d4]"}>Server intelligence</p>
+                <p className={cardTitle}>Live backend read</p>
+              </div>
+              <Badge variant="outline" className="w-fit border-[#7aa6b6]/25 bg-[#7aa6b6]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#bfe0e8]">
+                Synced with API
+              </Badge>
+            </div>
+
+            <div className="mt-5 grid gap-3 lg:grid-cols-3">
+              {signalClarity ? (
+                <div className="rounded-[1.25rem] border border-white/8 bg-zinc-950/50 px-4 py-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className={eyebrow}>Signal clarity</p>
+                    <Eye className="h-3.5 w-3.5 text-[#9fc7d4]" />
+                  </div>
+                  <p className="mt-2 text-sm font-semibold leading-6 text-white">{signalClarity.headline}</p>
+                  <p className="mt-1 text-xs leading-5 text-zinc-400">{signalClarity.summary}</p>
+                  {signalClarity.nextBestAction ? (
+                    <p className="mt-3 text-xs font-semibold leading-5 text-[#bfe0e8]">
+                      {displayValue(signalClarity.nextBestAction)}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {nextServerAction ? (
+                <div className="rounded-[1.25rem] border border-white/8 bg-zinc-950/50 px-4 py-4">
+                  <p className={eyebrow}>Next best action</p>
+                  <p className="mt-2 text-sm font-semibold leading-6 text-white">
+                    {displayValue("label" in nextServerAction ? nextServerAction.label : nextServerAction.action)}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Badge variant="outline" className="rounded-full border-white/10 text-[10px] text-zinc-300">
+                      {displayTitleCase("theme" in nextServerAction ? nextServerAction.theme : null, "Action")}
+                    </Badge>
+                    <Badge variant="outline" className="rounded-full border-white/10 text-[10px] text-zinc-300">
+                      {displayTitleCase("owner" in nextServerAction ? nextServerAction.owner : null, "Owner")}
+                    </Badge>
+                  </div>
+                </div>
+              ) : null}
+
+              {vendorBrief ? (
+                <div className="rounded-[1.25rem] border border-white/8 bg-zinc-950/50 px-4 py-4">
+                  <p className={eyebrow}>Vendor surface</p>
+                  <p className="mt-2 text-sm font-semibold leading-6 text-white">
+                    {vendorBrief.counts.totalProviders} provider{vendorBrief.counts.totalProviders === 1 ? "" : "s"} observed
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-zinc-400">
+                    {vendorBrief.counts.highRiskProviders} high risk · {vendorBrief.counts.missingSriScripts} SRI gap{vendorBrief.counts.missingSriScripts === 1 ? "" : "s"}
+                  </p>
+                  {vendorBrief.highPriorityProviders[0] ? (
+                    <p className="mt-3 truncate text-xs font-semibold text-[#bfe0e8]">
+                      Review: {vendorBrief.highPriorityProviders[0].name}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+
+            {backendMonitoringEvents.length > 0 ? (
+              <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                {backendMonitoringEvents.slice(0, 2).map((event) => (
+                  <div key={event.id} className="rounded-[1.25rem] border border-white/8 bg-zinc-950/50 px-4 py-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-white">{event.title}</p>
+                        <p className="mt-1 text-xs leading-5 text-zinc-400">{event.message}</p>
+                      </div>
+                      <span
+                        className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em]"
+                        style={{ color: severityAccent[event.severity], background: `${severityAccent[event.severity]}1a` }}
+                      >
+                        {event.severity}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-xs font-semibold leading-5 text-[#bfe0e8]">{event.nextAction}</p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         {/* ── BOTTOM ROW 2: Scan facts + Export ── */}
         <div className="mt-5 grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">

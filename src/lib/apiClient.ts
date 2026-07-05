@@ -13,10 +13,17 @@ import type {
   MonitoringTargetsResponse,
   ScansResponse,
   ScanComparisonResponse,
+  ScanActionPlanResponse,
+  ScanDigestResponse,
   ScanEvidenceResponse,
   ScanFindingsResponse,
   ScanHistoryResponse,
+  ScanInsightsResponse,
+  ScanDriftResponse,
+  ScanObservationDriftResponse,
   ScanSummaryResponse,
+  ScanVendorsResponse,
+  ScanWebIntelligence,
   TargetHistoryResponse,
 } from "@/types/api";
 import { readBrowserStorage, writeBrowserStorage } from "@/lib/browserStorage";
@@ -506,6 +513,54 @@ export const getScanComparison = async (scanId: string) => {
     headers: await buildRequestAuthHeaders({ requireScanOwner: true }),
   });
   return readJsonResponse<ScanComparisonResponse>(response);
+};
+
+const getScanResource = async <T,>(scanId: string, resource: string, scanOwnerToken: string) => {
+  const response = await fetch(buildApiUrl(`/api/scans/${encodeURIComponent(scanId)}/${resource}`), {
+    headers: await buildRequestAuthHeaders({ scanOwnerToken, requireScanOwner: true }),
+  });
+  return readJsonResponse<T>(response);
+};
+
+export const getScanDigest = (scanId: string, scanOwnerToken: string) =>
+  getScanResource<ScanDigestResponse>(scanId, "digest", scanOwnerToken);
+
+export const getScanInsights = (scanId: string, scanOwnerToken: string) =>
+  getScanResource<ScanInsightsResponse>(scanId, "insights", scanOwnerToken);
+
+export const getScanVendors = (scanId: string, scanOwnerToken: string) =>
+  getScanResource<ScanVendorsResponse>(scanId, "vendors", scanOwnerToken);
+
+export const getScanActionPlan = (scanId: string, scanOwnerToken: string) =>
+  getScanResource<ScanActionPlanResponse>(scanId, "action-plan", scanOwnerToken);
+
+export const getScanDrift = (scanId: string, scanOwnerToken: string) =>
+  getScanResource<ScanDriftResponse>(scanId, "drift", scanOwnerToken);
+
+export const getScanObservationDrift = (scanId: string, scanOwnerToken: string) =>
+  getScanResource<ScanObservationDriftResponse>(scanId, "observation-drift", scanOwnerToken);
+
+export const getScanWebIntelligence = async (
+  scanId: string,
+  scanOwnerToken: string,
+): Promise<ScanWebIntelligence> => {
+  const [digest, insights, vendors, actionPlan, drift, observationDrift] = await Promise.all([
+    getScanDigest(scanId, scanOwnerToken),
+    getScanInsights(scanId, scanOwnerToken),
+    getScanVendors(scanId, scanOwnerToken),
+    getScanActionPlan(scanId, scanOwnerToken),
+    getScanDrift(scanId, scanOwnerToken),
+    getScanObservationDrift(scanId, scanOwnerToken),
+  ]);
+
+  return {
+    digest: digest.digest,
+    insights: insights.insights,
+    vendors: vendors.vendors,
+    actionPlan: actionPlan.actionPlan,
+    monitoringEvents: drift.drift?.monitoringEvents ?? [],
+    observationDriftAvailable: Boolean(observationDrift.observationDrift),
+  };
 };
 
 export const getMonitoringTargets = async () => {
