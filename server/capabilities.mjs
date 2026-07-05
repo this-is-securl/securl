@@ -156,6 +156,7 @@ export function buildCapabilitiesPayload({
         "mobile-signal-clarity",
         "mobile-monitoring-status-v1",
         "mobile-monitoring-actions-v1",
+        "monitoring-events-v1",
         "monitoring-health-v1",
         "cert-watchlist-summary-v1",
         "cert-watchlist-push-health-v1",

@@ -4,6 +4,7 @@ import {
   buildMonitoringCertSummaryPayload,
   buildMonitoringHealthPayload,
   buildMonitoringMobileSummaryPayload,
+  buildScanDriftPayload,
   buildScanObservationDriftPayload,
 } from "../scanDtos.mjs";
 
@@ -224,6 +225,10 @@ test("mobile monitoring summary exposes certificate attention state", () => {
   assert.equal(payload.targets[0].status.reason, "cert_expiring");
   assert.equal(payload.targets[0].change.type, "cert_expiring");
   assert.equal(payload.targets[0].change.severity, "critical");
+  assert.equal(payload.targets[0].events[0].eventType, "certificate_expiring");
+  assert.equal(payload.targets[0].events[0].severity, "critical");
+  assert.match(payload.targets[0].events[0].nextAction, /Renew the certificate/);
+  assert.equal(payload.targets[0].cert.monitoringEvents.length, 0);
   assert.equal(payload.targets[0].nextCheck.cadence, "daily");
   assert.equal(payload.targets[0].nextCheck.scheduledAt, payload.targets[0].nextDueAt);
   assert.equal(payload.targets[0].actions[0].id, "review_certificate");
@@ -546,6 +551,10 @@ test("mobile monitoring summary exposes compact posture drift for apps", () => {
   assert.ok(target.posture.changedAreas.includes("certificate"));
   assert.ok(target.posture.eventCounts.critical >= 4);
   assert.ok(target.posture.topEvents.length > 0);
+  assert.ok(target.posture.monitoringEvents.length > 0);
+  assert.equal(target.events[0].source, "posture");
+  assert.equal(typeof target.events[0].push.title, "string");
+  assert.equal(typeof target.events[0].nextAction, "string");
   assert.equal(target.status.state, "needs_attention");
   assert.equal(target.status.reason, "posture_regressed");
   assert.equal(target.change.type, "posture_regressed");
@@ -553,7 +562,45 @@ test("mobile monitoring summary exposes compact posture drift for apps", () => {
   assert.equal(target.actions[0].id, "review_posture_regression");
   assert.equal(target.nextCheck.due, target.due);
   assert.equal(target.changes.postureRiskEvents, 6);
+  assert.ok(target.changes.monitoringEvents > 0);
   assert.equal(payload.summary.changes, target.changes.postureRiskEvents);
+});
+
+test("scan drift payload includes monitoring events alongside legacy risk events", () => {
+  const previous = buildCompletedRecord("previous");
+  const current = buildCompletedRecord("current", {
+    scannedAt: "2026-06-20T08:00:00.000Z",
+    score: 60,
+    grade: "D",
+    certificate: {
+      daysRemaining: 5,
+    },
+    headers: [
+      {
+        label: "Strict-Transport-Security",
+        status: "missing",
+        value: null,
+      },
+    ],
+    issues: [
+      {
+        severity: "critical",
+        title: "Expired certificate",
+        detail: "The observed certificate is expired.",
+        confidence: "high",
+        source: "observed",
+      },
+    ],
+  });
+
+  const payload = buildScanDriftPayload(current, [current, previous]);
+
+  assert.equal(payload.drift.currentScanId, "current");
+  assert.ok(Array.isArray(payload.drift.riskEvents));
+  assert.ok(Array.isArray(payload.drift.monitoringEvents));
+  assert.ok(payload.drift.monitoringEvents.length > 0);
+  assert.equal(payload.drift.monitoringEvents[0].target.host, "example.com");
+  assert.equal(typeof payload.drift.monitoringEvents[0].push.body, "string");
 });
 
 test("mobile monitoring summary includes a compact latest digest preview", () => {

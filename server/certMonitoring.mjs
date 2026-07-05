@@ -1,4 +1,5 @@
 import { scanLiveCertificate } from "../packages/core/dist/certificate.js";
+import { buildCertificateMonitoringEvents } from "../packages/core/dist/monitoringEvents.js";
 
 const EXPIRY_WARNING_BANDS = [30, 14, 7, 1];
 const APP_ID_ALIASES = {
@@ -64,6 +65,34 @@ function certSnapshotFromResult(target, certificate) {
     keyType: certificate?.keyType ?? null,
     issues: Array.isArray(certificate?.issues) ? certificate.issues : [],
     chain: Array.isArray(certificate?.chain) ? certificate.chain : [],
+  };
+}
+
+function liveCertificateFromCertState(state) {
+  if (!state) {
+    return null;
+  }
+  return {
+    host: state.host ?? "unknown",
+    port: state.port ?? 443,
+    checkedAt: state.checkedAt ?? new Date().toISOString(),
+    available: state.reachable ?? false,
+    valid: state.valid ?? (state.reachable ?? false),
+    authorized: state.authorized ?? (state.reachable ?? false),
+    issuer: state.issuer ?? null,
+    subject: state.subject ?? null,
+    validFrom: state.validFrom ?? null,
+    validTo: state.validTo ?? null,
+    daysRemaining: typeof state.daysRemaining === "number" ? state.daysRemaining : null,
+    protocol: state.protocol ?? null,
+    cipher: state.cipher ?? null,
+    fingerprint: state.fingerprint ?? null,
+    serialNumber: state.serialNumber ?? null,
+    keyBits: typeof state.keyBits === "number" ? state.keyBits : null,
+    keyType: state.keyType ?? null,
+    subjectAltName: [],
+    issues: Array.isArray(state.issues) ? state.issues : [],
+    chain: Array.isArray(state.chain) ? state.chain : [],
   };
 }
 
@@ -289,6 +318,7 @@ function appendCertHistory(previousState, nextState, event, attention) {
     previousDaysRemaining: eventDetails?.previous?.daysRemaining ?? null,
     daysRemainingDelta: eventDetails?.delta?.daysRemaining ?? null,
     issues: nextState.issues,
+    monitoringEvent: eventDetails?.monitoringEvent ?? null,
   };
   return [entry, ...history].slice(0, 50);
 }
@@ -310,7 +340,14 @@ export async function runCertificateMonitorCheck({
   }
 
   const event = detectCertMonitoringEvent(previousState, nextState);
+  const monitoringEvents = buildCertificateMonitoringEvents(
+    liveCertificateFromCertState(nextState),
+    liveCertificateFromCertState(previousState),
+  );
   const eventDetails = buildCertMonitoringEventDetails(event, previousState, nextState);
+  if (eventDetails && monitoringEvents[0]) {
+    eventDetails.monitoringEvent = monitoringEvents[0];
+  }
   const lastWarnedBand = event?.resetWarningBand
     ? null
     : event?.warningBand ?? previousState?.lastWarnedBand ?? null;
@@ -320,6 +357,7 @@ export async function runCertificateMonitorCheck({
     attention,
     lastWarnedBand,
     lastEventType: event?.type ?? previousState?.lastEventType ?? null,
+    monitoringEvents: monitoringEvents.slice(0, 5),
     history: appendCertHistory(previousState, nextState, eventDetails, attention),
   };
 

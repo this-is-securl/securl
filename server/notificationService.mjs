@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import http2 from "node:http2";
 import { buildHistoryDiffFromSnapshots, snapshotFromAnalysis } from "../packages/core/dist/historyDiff.js";
+import { buildMonitoringEventsFromSnapshots } from "../packages/core/dist/monitoringEvents.js";
 import { buildPostureRiskEventsFromDiff } from "../packages/core/dist/riskEvents.js";
 
 function base64Url(input) {
@@ -173,19 +174,23 @@ async function buildMonitoringPushPayload({ scanRepository, completedScan, resul
   }
 
   const [current, previous] = completed;
-  const diff = buildHistoryDiffFromSnapshots(snapshotFromAnalysis(current.result), snapshotFromAnalysis(previous.result));
+  const currentSnapshot = snapshotFromAnalysis(current.result);
+  const previousSnapshot = snapshotFromAnalysis(previous.result);
+  const diff = buildHistoryDiffFromSnapshots(currentSnapshot, previousSnapshot);
   const riskEvents = buildPostureRiskEventsFromDiff(diff);
+  const monitoringEvents = buildMonitoringEventsFromSnapshots(currentSnapshot, previousSnapshot, diff);
   const changes = buildNotificationChangeSummary(diff, riskEvents);
-  if (changes.length === 0) {
+  if (changes.length === 0 && monitoringEvents.length === 0) {
     return null;
   }
 
   const host = result.host || new URL(completedScan.url).hostname;
+  const topMonitoringEvent = monitoringEvents[0] ?? null;
   return {
     aps: {
       alert: {
-        title: `SecURL changed: ${host}`,
-        body: changes.slice(0, 2).join(", "),
+        title: topMonitoringEvent?.push?.title ?? `SecURL changed: ${host}`,
+        body: topMonitoringEvent?.push?.body ?? changes.slice(0, 2).join(", "),
       },
       sound: "default",
       "thread-id": host,
@@ -197,6 +202,17 @@ async function buildMonitoringPushPayload({ scanRepository, completedScan, resul
     grade: result.grade,
     score: result.score,
     changes,
+    monitoringEvents: monitoringEvents.slice(0, 5).map((event) => ({
+      id: event.id,
+      source: event.source,
+      eventType: event.eventType,
+      severity: event.severity,
+      title: event.title,
+      message: event.message,
+      nextAction: event.nextAction,
+      changedEvidence: event.changedEvidence.slice(0, 5),
+      dedupeKey: event.dedupeKey,
+    })),
     riskEvents: riskEvents.slice(0, 5).map((event) => ({
       eventType: event.eventType,
       severity: event.severity,
@@ -466,11 +482,12 @@ export function createNotificationService({
       limit: 50,
     });
     const host = certState?.host || target.label || target.url;
+    const monitoringEvent = event.monitoringEvent ?? null;
     const payload = {
       aps: {
         alert: {
-          title: event.title,
-          body: event.body,
+          title: monitoringEvent?.push?.title ?? event.title,
+          body: monitoringEvent?.push?.body ?? event.body,
         },
         sound: "default",
         "thread-id": host,
@@ -481,6 +498,17 @@ export function createNotificationService({
       host,
       appId: target.appId ?? null,
       severity: event.severity,
+      monitoringEvent: monitoringEvent ? {
+        id: monitoringEvent.id,
+        source: monitoringEvent.source,
+        eventType: monitoringEvent.eventType,
+        severity: monitoringEvent.severity,
+        title: monitoringEvent.title,
+        message: monitoringEvent.message,
+        nextAction: monitoringEvent.nextAction,
+        changedEvidence: monitoringEvent.changedEvidence.slice(0, 5),
+        dedupeKey: monitoringEvent.dedupeKey,
+      } : null,
       event: {
         type: event.type,
         severity: event.severity,

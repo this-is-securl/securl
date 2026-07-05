@@ -4,6 +4,10 @@ import { buildExposureBrief } from "../packages/core/dist/exposureBrief.js";
 import { buildPostureInsights } from "../packages/core/dist/postureInsights.js";
 import { buildPostureDigest } from "../packages/core/dist/postureDigest.js";
 import { buildPostureDriftReportFromDiff } from "../packages/core/dist/postureDrift.js";
+import {
+  buildCertificateMonitoringEvents,
+  buildMonitoringEventsFromSnapshots,
+} from "../packages/core/dist/monitoringEvents.js";
 import { buildVendorExposureBrief } from "../packages/core/dist/vendorExposure.js";
 import { buildObservationLedger } from "../packages/core/dist/observations.js";
 import { diffObservationLedgers } from "../packages/core/dist/observationDrift.js";
@@ -246,11 +250,13 @@ function buildStoredTargetDrift(records) {
   const previousSnapshot = snapshotFromAnalysis(previous.result);
   const diff = buildHistoryDiffFromSnapshots(currentSnapshot, previousSnapshot);
   const report = buildPostureDriftReportFromDiff(currentSnapshot, previousSnapshot, diff);
+  const monitoringEvents = buildMonitoringEventsFromSnapshots(currentSnapshot, previousSnapshot, diff);
 
   return {
     currentScanId: current.id,
     previousScanId: previous.id,
     report,
+    monitoringEvents,
   };
 }
 
@@ -265,6 +271,7 @@ function buildStoredTargetDiff(records) {
     previousScanId: drift.previousScanId,
     diff: drift.report.diff,
     riskEvents: drift.report.riskEvents,
+    monitoringEvents: drift.monitoringEvents,
     drift: drift.report.summary,
   };
 }
@@ -296,6 +303,7 @@ function buildMobilePostureDriftSummary(comparison) {
       title: event.title,
       detail: event.detail,
     })),
+    monitoringEvents: normalizeArray(comparison.monitoringEvents).slice(0, 5),
   };
 }
 
@@ -346,6 +354,58 @@ function buildCertChangeSummary(view, certEventCount) {
     detail: attention?.body ?? latestEvent?.eventDetail ?? null,
     occurredAt: latestEvent?.checkedAt ?? view.cert.checkedAt ?? view.lastCheckedAt,
   };
+}
+
+function certResultFromState(state) {
+  if (!state) {
+    return null;
+  }
+  return {
+    host: state.host ?? "unknown",
+    port: state.port ?? 443,
+    checkedAt: state.checkedAt ?? new Date().toISOString(),
+    available: state.reachable ?? false,
+    valid: state.valid ?? (state.reachable ?? false),
+    authorized: state.authorized ?? (state.reachable ?? false),
+    issuer: state.issuer ?? null,
+    subject: state.subject ?? null,
+    validFrom: state.validFrom ?? null,
+    validTo: state.validTo ?? null,
+    daysRemaining: typeof state.daysRemaining === "number" ? state.daysRemaining : null,
+    protocol: state.protocol ?? null,
+    cipher: state.cipher ?? null,
+    fingerprint: state.fingerprint ?? null,
+    serialNumber: state.serialNumber ?? null,
+    keyBits: typeof state.keyBits === "number" ? state.keyBits : null,
+    keyType: state.keyType ?? null,
+    subjectAltName: [],
+    issues: normalizeArray(state.issues),
+    chain: normalizeArray(state.chain),
+  };
+}
+
+function buildCertMonitoringEventsFromView(view) {
+  if (Array.isArray(view.cert?.monitoringEvents) && view.cert.monitoringEvents.length) {
+    return view.cert.monitoringEvents;
+  }
+  const current = certResultFromState(view.cert);
+  if (!current) {
+    return [];
+  }
+  const latestPrevious = normalizeArray(view.cert?.history)
+    .find((entry) => entry?.previousDaysRemaining !== null || entry?.previousIssuer || entry?.previousSerialNumber);
+  const previous = latestPrevious
+    ? certResultFromState({
+        ...view.cert,
+        checkedAt: latestPrevious.checkedAt ?? null,
+        reachable: latestPrevious.previousReachable ?? null,
+        issuer: latestPrevious.previousIssuer ?? null,
+        serialNumber: latestPrevious.previousSerialNumber ?? null,
+        validTo: latestPrevious.previousValidTo ?? null,
+        daysRemaining: latestPrevious.previousDaysRemaining ?? null,
+      })
+    : null;
+  return buildCertificateMonitoringEvents(current, previous);
 }
 
 function buildPostureChangeSummary(posture, riskEventCount) {
@@ -790,6 +850,7 @@ export function buildScanDriftPayload(scan, records) {
       currentScanId: drift.currentScanId,
       previousScanId: drift.previousScanId,
       ...drift.report,
+      monitoringEvents: drift.monitoringEvents,
     } : null,
   };
 }
@@ -940,6 +1001,10 @@ function buildMobileTargetSummary(target, records = []) {
   const certEventCount = certHistory.filter((entry) => entry?.eventType).length;
   const posture = buildMobilePostureDriftSummary(comparison);
   const certChange = buildCertChangeSummary(view, certEventCount);
+  const certMonitoringEvents = buildCertMonitoringEventsFromView(view);
+  const monitoringEvents = view.kind === "cert"
+    ? certMonitoringEvents
+    : normalizeArray(posture?.monitoringEvents);
   const postureChange = buildPostureChangeSummary(posture, comparison?.riskEvents?.length ?? 0);
   const status = buildMobileTargetStatus({ view, posture, certChange, postureChange, latestRecord });
 
@@ -982,15 +1047,18 @@ function buildMobileTargetSummary(target, records = []) {
           lastEventType: view.cert.lastEventType ?? null,
           lastWarnedBand: view.cert.lastWarnedBand ?? null,
           attention: view.cert.attention ?? null,
+          monitoringEvents: normalizeArray(view.cert.monitoringEvents).slice(0, 5),
           issues: normalizeArray(view.cert.issues).slice(0, 5),
       }
       : null,
     posture,
+    events: monitoringEvents.slice(0, 5),
     change: view.kind === "cert" ? certChange : postureChange,
     actions: buildMobileTargetActions({ view, status, posture, certChange, latestRecord }),
     changes: {
       postureRiskEvents: comparison?.riskEvents?.length ?? 0,
       certEvents: certEventCount,
+      monitoringEvents: monitoringEvents.length,
     },
   };
 }
