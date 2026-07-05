@@ -313,7 +313,64 @@ test("durable outbox delivers idempotently for repeated monitoring events", asyn
   assert.equal(deliveredPayload.event.previous.daysRemaining, 29);
   assert.equal(deliveredPayload.event.current.daysRemaining, 12);
   assert.equal(deliveredPayload.event.delta.daysRemaining, -17);
+  assert.equal(deliveredPayload.monitoringEvent, null);
   assert.equal((await repository.getNotificationOutboxStats()).byStatus.sent, 1);
+});
+
+test("certificate monitoring pushes include enriched monitoring event copy when available", async () => {
+  const repository = createInMemoryScanRepository();
+  await repository.upsertPushDevice({
+    token: "e".repeat(64),
+    appId: "com.ktbatterham.certwatch",
+    requesterScope: "scope-1",
+    ownerId: "owner-1",
+  });
+  let deliveredPayload = null;
+  const service = createService({
+    repository,
+    transport: async ({ payload }) => {
+      deliveredPayload = payload;
+      return { statusCode: 200, body: null };
+    },
+  });
+
+  await service.notifyCertMonitoringEvent({
+    target: {
+      id: "target-1",
+      ownerId: "owner-1",
+      requesterScope: "scope-1",
+      appId: "com.ktbatterham.certwatch",
+      url: "https://example.com/",
+      label: "example.com",
+    },
+    event: {
+      type: "cert_expired",
+      severity: "critical",
+      title: "Certificate expired",
+      body: "The certificate has expired.",
+      monitoringEvent: {
+        id: "certificate_expired:example.com:443",
+        source: "certificate",
+        eventType: "certificate_expired",
+        severity: "critical",
+        title: "Certificate expired",
+        message: "example.com is serving an expired certificate.",
+        nextAction: "Renew the certificate and verify the deployed chain.",
+        changedEvidence: [{ label: "Days remaining", previous: 1, current: -1 }],
+        dedupeKey: "certificate_expired:example.com:443",
+        push: {
+          title: "Certificate expired: example.com",
+          body: "Renew the certificate and verify the deployed chain.",
+        },
+      },
+    },
+    certState: { host: "example.com", daysRemaining: -1, reachable: true },
+  });
+
+  assert.equal(deliveredPayload.aps.alert.title, "Certificate expired: example.com");
+  assert.equal(deliveredPayload.monitoringEvent.eventType, "certificate_expired");
+  assert.equal(deliveredPayload.monitoringEvent.changedEvidence[0].label, "Days remaining");
+  assert.equal(deliveredPayload.event.type, "cert_expired");
 });
 
 test("durable outbox drains work left behind by an interrupted worker", async () => {

@@ -112,6 +112,7 @@ npm run smoke:api -- --base-url=https://securl-app-production.up.railway.app --t
 
 - `status`: stable machine state such as `stable`, `pending`, `due`, `changed`, or `needs_attention`, with severity and reason.
 - `change`: the most relevant posture or certificate change summary for compact list/detail UI.
+- `events`: push-safe monitoring events with severity, changed evidence, next action, and copy suitable for list rows or notification detail screens.
 - `nextCheck`: cadence, scheduled time, due flag, seconds until due, and last checked time.
 - `actions`: short stable action ids and labels, such as `review_posture_regression`, `review_certificate`, `check_tls_endpoint`, or `run_scheduled_check`.
 
@@ -119,7 +120,7 @@ These fields are derived server-side from stored scan drift, certificate attenti
 
 `GET /api/monitoring-health` returns an owner-scoped monitoring control-plane summary. It includes target counts, due and overdue checks, certificate attention, latest posture scan failures, per-app target/device adoption, Cert Watch/Header Watch/SecURL push registration health, and service snapshots for the scheduler and notification outbox. It does not expose global service totals or raw APNs tokens.
 
-`GET /api/monitoring-cert-summary` is a Cert Watch-optimized owner-scoped summary. It returns only certificate monitoring targets, aggregate counts for healthy, expiring, expired, unreachable, and unknown certificates, the next scheduled check, recent certificate changes, and APNs health for active `com.ktbatterham.certwatch` device registrations. The endpoint also records privacy-safe active-client telemetry keyed by a hashed owner/scope value, so repeated watch-list refreshes can be separated from genuinely distinct Cert Watch users without storing device identifiers.
+`GET /api/monitoring-cert-summary` is a Cert Watch-optimized owner-scoped summary. It returns only certificate monitoring targets, aggregate counts for healthy, expiring, expired, unreachable, and unknown certificates, the next scheduled check, recent certificate changes, monitoring events, and APNs health for active `com.ktbatterham.certwatch` device registrations. The endpoint also records privacy-safe active-client telemetry keyed by a hashed owner/scope value, so repeated watch-list refreshes can be separated from genuinely distinct Cert Watch users without storing device identifiers.
 
 ## Current notification resources
 
@@ -129,7 +130,7 @@ These fields are derived server-side from stored scan drift, certificate attenti
 - `POST /api/notification-devices/:id/test`
 - `DELETE /api/notification-devices/:id`
 
-`POST /api/notification-devices` registers an iOS APNs device token against the same owner boundary used for scans and monitoring targets. The backend never echoes the raw token in list responses. When `MONITORING_SCHEDULER_ENABLED=true`, scheduled monitoring scans can send APNs alerts when a registered target's grade, score, headers, certificate window, or risk events change.
+`POST /api/notification-devices` registers an iOS APNs device token against the same owner boundary used for scans and monitoring targets. The backend never echoes the raw token in list responses. When `MONITORING_SCHEDULER_ENABLED=true`, scheduled monitoring scans can send APNs alerts when a registered target's grade, score, headers, certificate window, or risk events change. Push payloads keep the existing summary fields and now include `monitoringEvents` so newer clients can render the same server-authored title, body, changed evidence, and next action used by the summary endpoints.
 
 `POST /api/notification-devices/:id/test` sends one owner-scoped test notification to an active registration. It returns `200` only when APNs accepts the notification and `503` with a sanitized delivery result when delivery is unavailable or fails. The raw device token is never returned.
 

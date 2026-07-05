@@ -536,6 +536,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.monitoring.features.includes("mobile-posture-drift-summary"));
     assert.ok(payload.monitoring.features.includes("mobile-digest-preview"));
     assert.ok(payload.monitoring.features.includes("mobile-signal-clarity"));
+    assert.ok(payload.monitoring.features.includes("monitoring-events-v1"));
     assert.ok(payload.monitoring.features.includes("monitoring-health-v1"));
     assert.ok(payload.monitoring.features.includes("cert-watchlist-summary-v1"));
     assert.ok(payload.monitoring.features.includes("cert-watchlist-push-health-v1"));
