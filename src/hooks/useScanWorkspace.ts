@@ -8,8 +8,11 @@ import {
   ApiClientError,
   getSavedScan,
   getScanComparison,
+  getScanOwnerToken,
+  getScanWebIntelligence,
   recordTelemetryEvent,
 } from "@/lib/apiClient";
+import type { ScanWebIntelligence } from "@/types/api";
 import type { RecentScan } from "@/lib/scanWorkspace";
 
 import { useRecentScans } from "./useRecentScans";
@@ -50,6 +53,7 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
   const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null);
   const [activeReportSection, setActiveReportSection] = useState<ReportWorkspaceSectionKey>("overview");
   const [currentScanWasCached, setCurrentScanWasCached] = useState(false);
+  const [scanIntelligence, setScanIntelligence] = useState<ScanWebIntelligence | null>(null);
   const [scanStage, setScanStage] = useState<ScanLifecycleStage | null>(null);
   const [currentScanId, setCurrentScanId] = useState<string | null>(null);
   const autoScanRanRef = useRef(false);
@@ -92,6 +96,7 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
 
     setAnalysisData(null);
     setCurrentScanWasCached(false);
+    setScanIntelligence(null);
     setActiveRecentScanUrl(null);
     setActiveReportSection("overview");
     clearRecentScans();
@@ -167,6 +172,20 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
     void syncMonitoredTarget();
   };
 
+  const refreshScanIntelligence = async (scanId: string, scanOwnerToken: string) => {
+    try {
+      const intelligence = await getScanWebIntelligence(scanId, scanOwnerToken);
+      startTransition(() => {
+        setScanIntelligence(intelligence);
+      });
+    } catch (error) {
+      if (error instanceof ApiClientError && [404, 409].includes(error.status)) {
+        return;
+      }
+      console.warn("Unable to load server-backed scan intelligence.", error);
+    }
+  };
+
   const refreshServerComparison = async (scanId: string, result: AnalysisResult) => {
     try {
       const comparison = await getScanComparison(scanId);
@@ -183,12 +202,16 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
 
   const analyzeUrl = async (url: string, setAsCurrent = true) => {
     setCurrentScanId(null);
+    if (setAsCurrent) {
+      setScanIntelligence(null);
+    }
     recordTelemetryEvent("scan_started", { target: url, mode: "standard" });
     const payload = await analyzeTargetWithMetadata(url);
     setCurrentScanId(payload.scanId);
     persistAnalysis(payload.result, setAsCurrent, payload.fromCache);
     if (setAsCurrent) {
       void refreshServerComparison(payload.scanId, payload.result);
+      void refreshScanIntelligence(payload.scanId, payload.scanOwnerToken);
     }
     recordTelemetryEvent("scan_completed", {
       target: telemetryTargetForResult(payload.result),
@@ -243,10 +266,12 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
       startTransition(() => {
         setAnalysisData(payload.scan.result);
         setCurrentScanWasCached(false);
+        setScanIntelligence(null);
         addHistorySnapshot(payload.scan.result, true);
       });
       setCurrentScanId(scan.id);
       void refreshServerComparison(scan.id, payload.scan.result);
+      void getScanOwnerToken().then((scanOwnerToken) => refreshScanIntelligence(scan.id as string, scanOwnerToken));
       recordTelemetryEvent("report_viewed", {
         target: telemetryTargetForResult(payload.scan.result),
         scanId: scan.id,
@@ -342,6 +367,7 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
     activeRecentScanUrl,
     activeReportSection,
     currentScanWasCached,
+    scanIntelligence,
     areaScores,
     monitoredViews,
     setActiveReportSection,

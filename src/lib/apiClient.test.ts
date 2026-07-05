@@ -391,4 +391,42 @@ describe("api client URL helpers", () => {
       },
     });
   });
+
+  it("loads the web intelligence bundle from lightweight scan resources", async () => {
+    const browserStorage = await import("@/lib/browserStorage");
+    vi.mocked(browserStorage.readBrowserStorage).mockResolvedValue("owner-token-123");
+
+    const payloads = [
+      { digest: { signalClarity: { headline: "Clear signal" } } },
+      { insights: { nextBestActions: [{ id: "a1", label: "Fix DNS" }] } },
+      { vendors: { counts: { totalProviders: 1 } } },
+      { actionPlan: { totalActions: 2 } },
+      { drift: { monitoringEvents: [{ id: "event-1", title: "Grade dropped" }] } },
+      { observationDrift: { changed: [] } },
+    ];
+    const fetchMock = vi.fn()
+      .mockImplementation(() => Promise.resolve(new Response(JSON.stringify(payloads.shift()), { status: 200 })));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { getScanWebIntelligence } = await import("./apiClient");
+    const intelligence = await getScanWebIntelligence("scan-3", "owner-token-123");
+
+    expect(intelligence.digest?.signalClarity?.headline).toBe("Clear signal");
+    expect(intelligence.insights?.nextBestActions[0].label).toBe("Fix DNS");
+    expect(intelligence.vendors?.counts.totalProviders).toBe(1);
+    expect(intelligence.actionPlan?.totalActions).toBe(2);
+    expect(intelligence.monitoringEvents).toEqual([{ id: "event-1", title: "Grade dropped" }]);
+    expect(intelligence.observationDriftAvailable).toBe(true);
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/api/scans/scan-3/digest",
+      "/api/scans/scan-3/insights",
+      "/api/scans/scan-3/vendors",
+      "/api/scans/scan-3/action-plan",
+      "/api/scans/scan-3/drift",
+      "/api/scans/scan-3/observation-drift",
+    ]);
+    for (const [, options] of fetchMock.mock.calls) {
+      expect(options.headers).toEqual({ "X-Scan-Owner": "owner-token-123" });
+    }
+  });
 });

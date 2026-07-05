@@ -37,6 +37,7 @@ import { OverviewSection } from "@/components/report/OverviewSection";
 import type { AreaScore } from "@/lib/posture";
 import { getPriorityActions } from "@/lib/priorities";
 import type { AnalysisResult, HistoryDiff } from "@/types/analysis";
+import type { ScanWebIntelligence } from "@/types/api";
 import type { StoredHistorySnapshot } from "@/lib/scanWorkspace";
 
 export type ReportWorkspaceSectionKey =
@@ -65,6 +66,7 @@ interface BuildReportWorkspaceSectionsOptions {
   historyDiff: HistoryDiff | null;
   history: StoredHistorySnapshot[];
   areaScores: AreaScore[];
+  scanIntelligence?: ScanWebIntelligence | null;
   exportPdf: () => void;
   exportMarkdown: () => void;
   exportReport: () => void;
@@ -76,6 +78,7 @@ export const buildReportWorkspaceSections = ({
   historyDiff,
   history,
   areaScores,
+  scanIntelligence,
   exportPdf,
   exportMarkdown,
   exportReport,
@@ -118,6 +121,7 @@ export const buildReportWorkspaceSections = ({
         historyDiff={historyDiff}
         history={history}
         areaScores={areaScores}
+        scanIntelligence={scanIntelligence}
         exportPdf={exportPdf}
         exportMarkdown={exportMarkdown}
         exportReport={exportReport}
