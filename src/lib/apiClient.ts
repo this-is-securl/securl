@@ -77,6 +77,7 @@ export const recordPageLoad = () => {
 
 export type TelemetryEventName =
   | "scan_started"
+  | "handoff_started"
   | "scan_completed"
   | "scan_failed"
   | "report_viewed"

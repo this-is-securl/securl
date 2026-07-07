@@ -1023,6 +1023,8 @@ const server = http.createServer(async (request, response) => {
       sendJson: sendApiJson,
       sendMethodNotAllowed: sendApiMethodNotAllowed,
       sendRepositoryUnavailable: sendApiRepositoryUnavailable,
+      telemetry,
+      readClientMetadata,
       requireScanOwner: true,
     });
     return;

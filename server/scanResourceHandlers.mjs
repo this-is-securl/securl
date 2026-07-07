@@ -521,6 +521,8 @@ export async function handleScanResourceRequest({
   sendJson,
   sendMethodNotAllowed,
   sendRepositoryUnavailable,
+  telemetry = null,
+  readClientMetadata = null,
   requireScanOwner = false,
 }) {
   if (request.method !== "GET") {
@@ -570,6 +572,17 @@ export async function handleScanResourceRequest({
         sendJson(response, 409, payload);
         return true;
       }
+      const clientMetadata = readClientMetadata?.(request) || {};
+      telemetry?.recordFunnelEvent?.({
+        event: "share_card_read",
+        source: "backend_api",
+        target: scan.url,
+        scanId: scan.id,
+        mode: clientMetadata.appId,
+        client: clientMetadata.client,
+        clientVersion: clientMetadata.version,
+        clientChannel: clientMetadata.channel,
+      });
       sendJson(response, 200, payload);
     } catch (error) {
       sendRepositoryUnavailable(response, error, "get_shared_scan_card");
