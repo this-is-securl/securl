@@ -20,6 +20,14 @@ const describeSmallBucket = (bucket = {}) => Object.entries(bucket || {})
   .sort(([, left], [, right]) => Number(right || 0) - Number(left || 0))
   .map(([name, count]) => `${name}: ${count}`)
   .join(", ");
+const growthLoopTotal = (summary = {}) => Object.values(summary || {})
+  .reduce((sum, count) => sum + Number(count || 0), 0);
+const describeGrowthLoop = (summary = {}) => [
+  `handoffs ${summary.handoffsStarted ?? 0}`,
+  `shared views ${summary.sharedReportViews ?? 0}`,
+  `share cards ${summary.shareCardReads ?? 0}`,
+  `copied links ${summary.shareLinksCopied ?? 0}`,
+].join(", ");
 
 const main = async () => {
   const vars = process.env.TELEMETRY_TOKEN ? {} : readRailwayVariables();
@@ -119,6 +127,41 @@ const main = async () => {
       console.log(`    - ${source}: ${count}`);
     }
   }
+  const growthLoop = telemetry.growthLoop || {};
+  console.log("");
+  console.log("Growth loop");
+  console.log(`  Today: ${describeGrowthLoop(growthLoop.today)}`);
+  console.log(`  Total: ${describeGrowthLoop(growthLoop.total)}`);
+  const todayGrowthSources = Object.entries(growthLoop.todayBySource || {})
+    .filter(([, summary]) => growthLoopTotal(summary) > 0)
+    .sort(([, left], [, right]) => growthLoopTotal(right) - growthLoopTotal(left))
+    .slice(0, 6);
+  if (todayGrowthSources.length) {
+    console.log("  Today by source:");
+    for (const [source, summary] of todayGrowthSources) {
+      console.log(`    - ${source}: ${describeGrowthLoop(summary)}`);
+    }
+  }
+  const todayGrowthApps = Object.entries(growthLoop.todayByApp || {})
+    .filter(([, summary]) => growthLoopTotal(summary) > 0)
+    .sort(([, left], [, right]) => growthLoopTotal(right) - growthLoopTotal(left))
+    .slice(0, 6);
+  if (todayGrowthApps.length) {
+    console.log("  Today by app:");
+    for (const [app, summary] of todayGrowthApps) {
+      console.log(`    - ${app}: ${describeGrowthLoop(summary)}`);
+    }
+  }
+  const todayGrowthClients = Object.entries(growthLoop.todayByClient || {})
+    .filter(([, summary]) => growthLoopTotal(summary) > 0)
+    .sort(([, left], [, right]) => growthLoopTotal(right) - growthLoopTotal(left))
+    .slice(0, 6);
+  if (todayGrowthClients.length) {
+    console.log("  Today by client:");
+    for (const [client, summary] of todayGrowthClients) {
+      console.log(`    - ${client}: ${describeGrowthLoop(summary)}`);
+    }
+  }
   console.log("");
   console.log("Client consumption");
   const clientConsumption = telemetry.clients?.consumption || {};
@@ -133,6 +176,7 @@ const main = async () => {
   console.log(`  Live certificate reads: ${clientConsumption.liveCertificateReads ?? 0}`);
   console.log(`  Live certificate failures: ${clientConsumption.liveCertificateFailures ?? 0}`);
   console.log(`  Cert watchlist summary reads: ${clientConsumption.certWatchlistSummaryReads ?? 0}`);
+  console.log(`  Share-card reads: ${clientConsumption.shareCardReads ?? 0}`);
   const todayConsumption = clientConsumption.today || {};
   const todayConsumptionRows = Object.entries(todayConsumption)
     .filter(([, count]) => Number(count || 0) > 0)

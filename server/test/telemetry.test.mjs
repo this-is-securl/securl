@@ -67,6 +67,15 @@ test("telemetry tracker records aggregate counts", () => {
     target: "https://example.com/",
   });
   telemetry.recordFunnelEvent({
+    event: "share_card_read",
+    source: "backend_api",
+    target: "https://example.com/",
+    scanId: "scan-one",
+    mode: "securl_web",
+    client: "securl-web",
+    clientVersion: "1.15.0",
+  });
+  telemetry.recordFunnelEvent({
     event: "export_clicked",
     source: "hacker_news",
     target: "https://example.com/",
@@ -152,6 +161,7 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.notifications.delivery.today.sent, 1);
   assert.equal(snapshot.funnel.events.scan_started, 1);
   assert.equal(snapshot.funnel.events.handoff_started, 1);
+  assert.equal(snapshot.funnel.events.share_card_read, 1);
   assert.equal(snapshot.funnel.events.export_clicked, 1);
   assert.equal(snapshot.funnel.events.monitoring_mobile_summary_read, 1);
   assert.equal(snapshot.funnel.events.notification_device_registered, 1);
@@ -160,7 +170,9 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.funnel.bySource.hacker_news.scan_started, 1);
   assert.equal(snapshot.funnel.bySource.backend_api.monitoring_mobile_summary_read, 1);
   assert.equal(snapshot.funnel.bySource["utm:landing"].handoff_started, 1);
+  assert.equal(snapshot.funnel.bySource.backend_api.share_card_read, 1);
   assert.equal(snapshot.funnel.byMode.standard.scan_started, 1);
+  assert.equal(snapshot.funnel.byMode.securl_web.share_card_read, 1);
   assert.equal(snapshot.funnel.byMode["com.ktbatterham.securl"].notification_device_registered, 1);
   assert.equal(snapshot.funnel.byMode["com.ktbatterham.certwatch"].live_certificate_read, 1);
   assert.equal(snapshot.funnel.byClient["cert-watch-ios"].live_certificate_read, 1);
@@ -171,6 +183,7 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.funnel.clientChannelsByMode["com.ktbatterham.securl"]["app-store"], 1);
   assert.equal(snapshot.funnel.today.scan_started, 1);
   assert.equal(snapshot.funnel.today.handoff_started, 1);
+  assert.equal(snapshot.funnel.today.share_card_read, 1);
   assert.equal(snapshot.funnel.todayBySource.backend_api.live_certificate_read, 1);
   assert.equal(snapshot.funnel.todayByMode["com.ktbatterham.securl"].notification_device_registered, 1);
   assert.equal(snapshot.funnel.todayByMode["com.ktbatterham.certwatch"].live_certificate_read, 1);
@@ -181,10 +194,11 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.funnel.todayClientChannelsByMode["com.ktbatterham.certwatch"].testflight, 1);
   assert.equal(snapshot.funnel.recentDays.at(-1).clients["cert-watch-ios"].live_certificate_read, 1);
   assert.equal(snapshot.funnel.recentDays.at(-1).clientVersions["cert-watch-ios@1.1.0+8"].live_certificate_read, 1);
-  assert.equal(snapshot.funnel.recent.length, 7);
+  assert.equal(snapshot.funnel.recent.length, 8);
   assert.equal(snapshot.funnel.recent[0].event, "live_certificate_read");
-  assert.equal(snapshot.clients.consumption.backendApiEvents, 4);
-  assert.equal(snapshot.clients.consumption.todayBackendApiEvents, 4);
+  assert.equal(snapshot.clients.consumption.backendApiEvents, 5);
+  assert.equal(snapshot.clients.consumption.todayBackendApiEvents, 5);
+  assert.equal(snapshot.clients.consumption.shareCardReads, 1);
   assert.equal(snapshot.clients.consumption.monitoringMobileSummaryReads, 1);
   assert.equal(snapshot.clients.consumption.notificationDeviceRegistrations, 1);
   assert.equal(snapshot.clients.consumption.notificationDeviceHealthReads, 1);
@@ -194,11 +208,16 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.clients.identity.scanRequestsByClient["securl-ios"], 1);
   assert.equal(snapshot.clients.identity.scanRequestsByClientVersion["securl-ios@1.2.0+19"], 1);
   assert.equal(snapshot.clients.identity.backendEventsByClient["cert-watch-ios"].live_certificate_read, 1);
+  assert.equal(snapshot.clients.identity.backendEventsByClient["securl-web"].share_card_read, 1);
   assert.equal(snapshot.clients.identity.todayBackendEventsByClient["cert-watch-ios"].live_certificate_read, 1);
   assert.equal(snapshot.clients.identity.todayBackendEventsByClientVersion["cert-watch-ios@1.1.0+8"].live_certificate_read, 1);
   assert.equal(snapshot.productPulse.today.activeOwnersByApp["com.ktbatterham.certwatch"], 1);
   assert.equal(snapshot.productPulse.today.uniqueTargetsByApp["com.ktbatterham.certwatch"], 1);
   assert.equal(snapshot.productPulse.today.clientChannelsByApp["com.ktbatterham.certwatch"].testflight, 1);
+  assert.equal(snapshot.growthLoop.today.handoffsStarted, 1);
+  assert.equal(snapshot.growthLoop.today.shareCardReads, 1);
+  assert.equal(snapshot.growthLoop.todayBySource.backend_api.shareCardReads, 1);
+  assert.equal(snapshot.growthLoop.todayByApp.securl_web.shareCardReads, 1);
   assert.equal(snapshot.scans.engagement.clients["securl-ios"], 1);
   assert.equal(snapshot.scans.engagement.clientVersions["securl-ios@1.2.0+19"], 1);
   assert.deepEqual(snapshot.clients.consumption.adoptionSignals, {
@@ -208,6 +227,7 @@ test("telemetry tracker records aggregate counts", () => {
     pushRegistration: true,
     notificationHealth: true,
     certWatch: true,
+    shareCards: true,
   });
 });
 
@@ -361,6 +381,7 @@ test("telemetry tracker can persist counters to disk", () => {
       pushRegistration: false,
       notificationHealth: false,
       certWatch: false,
+      shareCards: false,
     });
     assert.equal(snapshot.failures.classes.requester_rate_limited, 1);
     assert.equal(snapshot.failures.recent.length, 1);

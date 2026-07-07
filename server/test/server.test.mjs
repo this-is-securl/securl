@@ -2342,6 +2342,11 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.match(shareCardPayload.shareCard.share.text, /SecURL report for example\.com/);
     assert.ok(Array.isArray(shareCardPayload.shareCard.topIssues));
     assert.ok(Array.isArray(shareCardPayload.shareCard.scoreDrivers));
+    const telemetryResponse = await fetch(`${server.baseUrl}/api/telemetry`);
+    const telemetryPayload = await telemetryResponse.json();
+    assert.equal(telemetryPayload.funnel.events.share_card_read, 1);
+    assert.equal(telemetryPayload.funnel.bySource.backend_api.share_card_read, 1);
+    assert.equal(telemetryPayload.growthLoop.total.shareCardReads, 1);
     assert.equal(evidenceResponse.status, 200);
     assert.equal(evidencePayload.apiVersion, "2026-05-14");
     assert.ok(Array.isArray(evidencePayload.evidence.headers));

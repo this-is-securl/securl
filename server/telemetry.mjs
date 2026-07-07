@@ -743,6 +743,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         liveCertificateReads: state.funnelEvents.live_certificate_read || 0,
         liveCertificateFailures: state.funnelEvents.live_certificate_failed || 0,
         certWatchlistSummaryReads: state.funnelEvents.cert_watchlist_summary_read || 0,
+        shareCardReads: state.funnelEvents.share_card_read || 0,
       };
       const todayClientConsumptionEvents = {
         monitoringTargetRegistrations: todayFunnelEvents.monitoring_target_registered || 0,
@@ -754,6 +755,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         liveCertificateReads: todayFunnelEvents.live_certificate_read || 0,
         liveCertificateFailures: todayFunnelEvents.live_certificate_failed || 0,
         certWatchlistSummaryReads: todayFunnelEvents.cert_watchlist_summary_read || 0,
+        shareCardReads: todayFunnelEvents.share_card_read || 0,
       };
       const clientConsumptionTotal = Object.values(clientConsumptionEvents)
         .reduce((total, count) => total + count, 0);
@@ -932,6 +934,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
                   || events.live_certificate_read
                   || events.live_certificate_failed
                   || events.cert_watchlist_summary_read
+                  || events.share_card_read
                 ))
                 .map(([mode, events]) => [
                   mode,
@@ -945,6 +948,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
                     liveCertificateReads: events.live_certificate_read || 0,
                     liveCertificateFailures: events.live_certificate_failed || 0,
                     certWatchlistSummaryReads: events.cert_watchlist_summary_read || 0,
+                    shareCardReads: events.share_card_read || 0,
                   },
                 ]),
             ),
@@ -957,9 +961,14 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
               certWatch: clientConsumptionEvents.liveCertificateReads > 0
                 || clientConsumptionEvents.liveCertificateFailures > 0
                 || clientConsumptionEvents.certWatchlistSummaryReads > 0,
+              shareCards: clientConsumptionEvents.shareCardReads > 0,
             },
           },
         },
+        growthLoop: buildGrowthLoopSnapshot({
+          todayFunnelBucket,
+          state,
+        }),
         productPulse: buildProductPulseSnapshot({
           todayKey,
           todayClientConsumptionTotal,
@@ -1121,6 +1130,42 @@ function buildProductPulseSnapshot({
   };
 }
 
+const GROWTH_LOOP_EVENTS = {
+  handoff_started: "handoffsStarted",
+  shared_report_viewed: "sharedReportViews",
+  share_link_copied: "shareLinksCopied",
+  share_card_read: "shareCardReads",
+};
+
+function summarizeGrowthLoopEvents(events = {}) {
+  return Object.fromEntries(
+    Object.entries(GROWTH_LOOP_EVENTS).map(([event, label]) => [
+      label,
+      Number(events?.[event] || 0),
+    ]),
+  );
+}
+
+function summarizeGrowthLoopBuckets(buckets = {}) {
+  return Object.fromEntries(
+    Object.entries(buckets || {})
+      .map(([bucket, events]) => [bucket, summarizeGrowthLoopEvents(events)])
+      .filter(([, summary]) => Object.values(summary).some((count) => count > 0)),
+  );
+}
+
+function buildGrowthLoopSnapshot({ todayFunnelBucket, state }) {
+  return {
+    total: summarizeGrowthLoopEvents(state.funnelEvents || {}),
+    today: summarizeGrowthLoopEvents(todayFunnelBucket.events || {}),
+    todayBySource: summarizeGrowthLoopBuckets(todayFunnelBucket.sources || {}),
+    todayByApp: summarizeGrowthLoopBuckets(todayFunnelBucket.modes || {}),
+    todayByClient: summarizeGrowthLoopBuckets(todayFunnelBucket.clients || {}),
+    totalByApp: summarizeGrowthLoopBuckets(state.funnelEventsByMode || {}),
+    totalByClient: summarizeGrowthLoopBuckets(state.funnelEventsByClient || {}),
+  };
+}
+
 function countSetBuckets(buckets = {}) {
   return Object.fromEntries(
     Object.entries(buckets || {}).map(([key, values]) => [
@@ -1198,6 +1243,7 @@ const FUNNEL_EVENT_NAMES = new Set([
   "report_viewed",
   "shared_report_viewed",
   "share_link_copied",
+  "share_card_read",
   "export_clicked",
   "monitoring_saved",
   "monitoring_target_registered",
