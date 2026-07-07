@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Sparkles } from "lucide-react";
-import { getSharedScan, recordTelemetryEvent } from "@/lib/apiClient";
+import { getSharedScan, getSharedScanCard, recordTelemetryEvent } from "@/lib/apiClient";
 import { buildScannerHandoffUrl } from "@/lib/deepLinks";
 import { buildReportWorkspaceSections } from "@/lib/reportWorkspace";
 import { getAreaScores } from "@/lib/posture";
 import { ReportSectionNav } from "@/components/report/ReportSectionNav";
 import type { ReportWorkspaceSectionKey } from "@/lib/reportWorkspace";
 import type { AnalysisResult } from "@/types/analysis";
+import type { ScanShareCard } from "@/types/api";
 
 export function ReportPage() {
   const { scanId } = useParams<{ scanId: string }>();
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [shareCard, setShareCard] = useState<ScanShareCard | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [activeSection, setActiveSection] = useState<ReportWorkspaceSectionKey>("overview");
@@ -19,10 +21,14 @@ export function ReportPage() {
   useEffect(() => {
     if (!scanId) return;
     setLoading(true);
-    getSharedScan(scanId).then((data) => {
+    Promise.all([
+      getSharedScan(scanId),
+      getSharedScanCard(scanId),
+    ]).then(([data, cardPayload]) => {
       if (!data) setNotFound(true);
       else {
         setResult(data);
+        setShareCard(cardPayload?.shareCard ?? null);
         recordTelemetryEvent("shared_report_viewed", {
           target: data.finalUrl ?? data.normalizedUrl,
           scanId,
@@ -31,6 +37,15 @@ export function ReportPage() {
       setLoading(false);
     });
   }, [scanId]);
+
+  useEffect(() => {
+    if (!shareCard) return;
+    const previousTitle = document.title;
+    document.title = shareCard.title;
+    return () => {
+      document.title = previousTitle;
+    };
+  }, [shareCard]);
 
   if (loading) {
     return (
@@ -72,6 +87,12 @@ export function ReportPage() {
   });
 
   const currentSection = sections.find((s) => s.key === activeSection) ?? sections[0];
+  const scannerHref = shareCard?.share.scannerUrl
+    ?? buildScannerHandoffUrl("https://app.securl.online", result.finalUrl ?? result.normalizedUrl, {
+      source: "shared_report",
+      medium: "web",
+      campaign: "scan_your_site_cta",
+    });
 
   return (
     <div className="min-h-screen overflow-hidden bg-[#070b14] text-zinc-100">
@@ -101,11 +122,7 @@ export function ReportPage() {
             Shared report
           </span>
           <a
-            href={buildScannerHandoffUrl("https://app.securl.online", result.finalUrl ?? result.normalizedUrl, {
-              source: "shared_report",
-              medium: "web",
-              campaign: "scan_your_site_cta",
-            })}
+            href={scannerHref}
             className="rounded-xl bg-[#b56a2c] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#9d5a23]"
           >
             Scan your site →
@@ -114,6 +131,28 @@ export function ReportPage() {
       </header>
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {shareCard && (
+          <div className="mb-6 rounded-3xl border border-white/8 bg-white/4 px-4 py-4 shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] sm:px-6">
+            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#d89a63]">
+              Share preview
+            </p>
+            <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h1 className="text-lg font-black tracking-[-0.03em] text-white sm:text-2xl">
+                  {shareCard.title}
+                </h1>
+                <p className="mt-1 max-w-3xl text-sm leading-6 text-zinc-300">
+                  {shareCard.summary}
+                </p>
+              </div>
+              {shareCard.nextBestAction && (
+                <p className="max-w-sm rounded-2xl border border-[#b56a2c]/20 bg-[#b56a2c]/8 px-3 py-2 text-xs leading-5 text-[#f0d5bc]">
+                  {shareCard.nextBestAction}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
         <ReportSectionNav
           sections={sections}
           activeKey={currentSection?.key}

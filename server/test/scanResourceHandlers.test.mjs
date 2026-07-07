@@ -36,5 +36,6 @@ test("scan resource links point clients at lightweight follow-up endpoints", () 
     comparison: "/api/scans/scan-one/comparison",
     drift: "/api/scans/scan-one/drift",
     share: "/api/scans/scan-one/share",
+    shareCard: "/api/scans/scan-one/share-card",
   });
 });

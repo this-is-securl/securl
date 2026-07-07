@@ -21,6 +21,7 @@ import type {
   ScanInsightsResponse,
   ScanDriftResponse,
   ScanObservationDriftResponse,
+  ScanShareCardResponse,
   ScanSummaryResponse,
   ScanVendorsResponse,
   ScanWebIntelligence,
@@ -459,6 +460,13 @@ export const getSharedScan = async (scanId: string): Promise<AnalysisResult | nu
   const result = payload?.scan?.result;
   if (!isAnalysisResult(result)) return null;
   return result;
+};
+
+export const getSharedScanCard = async (scanId: string): Promise<ScanShareCardResponse | null> => {
+  const response = await fetch(buildApiUrl(`/api/scans/${encodeURIComponent(scanId)}/share-card`));
+  if (!response.ok) return null;
+  const payload = await response.json().catch(() => null) as ScanShareCardResponse | null;
+  return payload?.ready && payload.shareCard ? payload : null;
 };
 
 export const analyzeTarget = async (url: string, setMode: ScanMode = "standard"): Promise<AnalysisResult> =>

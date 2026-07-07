@@ -59,6 +59,7 @@ export function buildScanResourceLinks(scanId) {
     comparison: `${basePath}/comparison`,
     drift: `${basePath}/drift`,
     share: `${basePath}/share`,
+    shareCard: `${basePath}/share-card`,
   };
 }
 
@@ -515,6 +516,7 @@ export async function handleScanResourceRequest({
   buildScanDriftPayload,
   buildScanObservationDriftPayload,
   buildScanPolicyEvaluationPayload,
+  buildScanShareCardPayload,
   sendBody,
   sendJson,
   sendMethodNotAllowed,
@@ -552,6 +554,25 @@ export async function handleScanResourceRequest({
       });
     } catch (error) {
       sendRepositoryUnavailable(response, error, "get_shared_scan");
+    }
+    return true;
+  }
+
+  if (parsed.resource === "share-card") {
+    try {
+      const scan = await scanRepository.getScanById(parsed.scanId);
+      if (!scan) {
+        sendJson(response, 404, { error: "not_found" });
+        return true;
+      }
+      const payload = buildScanShareCardPayload(scan);
+      if (!payload.ready) {
+        sendJson(response, 409, payload);
+        return true;
+      }
+      sendJson(response, 200, payload);
+    } catch (error) {
+      sendRepositoryUnavailable(response, error, "get_shared_scan_card");
     }
     return true;
   }
