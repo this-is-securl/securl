@@ -151,6 +151,8 @@ The live deploy creates a remote backup, syncs `dist/` to `/home/u765511792/doma
 
 Completed scans are available at `/report/:scanId` via the public `GET /api/scans/:id/share` endpoint. No auth token is required to view a shared link.
 
+Mobile clients can hand users into the web app with attributed scanner links and public report links. See [`docs/MOBILE-WEB-GROWTH-CONTRACT.md`](docs/MOBILE-WEB-GROWTH-CONTRACT.md) for the exact URL templates and app-specific `utm_source` values.
+
 ## Architecture
 
 SecURL now has a clean split between:

@@ -24,6 +24,8 @@ These endpoints are stable additive resources. They are the safest shape for cli
 
 For mobile clients, use `/mobile-summary` for the main scan result screen after SSE terminal. Use `/digest` or `/insights` directly only when a specific view needs one part of that payload.
 
+For mobile-to-web acquisition and sharing, use the scanner handoff and public report URL templates in [`MOBILE-WEB-GROWTH-CONTRACT.md`](MOBILE-WEB-GROWTH-CONTRACT.md). The hosted web app accepts `?url=` for auto-starting a scan and still supports the older `?target=` fallback.
+
 ## Client Telemetry Headers
 
 First-party clients should send the optional product metadata headers on every backend request:
