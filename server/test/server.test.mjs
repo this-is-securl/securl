@@ -527,6 +527,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/comparison"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/drift"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/export?format=json|markdown|sarif|ci-json"));
+    assert.ok(payload.scans.resources.includes("GET /api/scans/:id/share-card"));
     assert.equal(payload.monitoring.enabled, true);
     assert.equal(payload.monitoring.scheduler.enabled, true);
     assert.equal(payload.monitoring.scheduler.mode, "quiet");
@@ -2238,6 +2239,7 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     const invalidExportResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/export?format=pdf`, {
       headers: scanOwnerHeaders(),
     });
+    const shareCardResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/share-card`);
 
     const summaryPayload = await summaryResponse.json();
     const findingsPayload = await findingsResponse.json();
@@ -2256,6 +2258,7 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     const sarifExport = await sarifExportResponse.json();
     const ciJsonExport = await ciJsonExportResponse.json();
     const invalidExportPayload = await invalidExportResponse.json();
+    const shareCardPayload = await shareCardResponse.json();
 
     assert.equal(summaryResponse.status, 200);
     assert.equal(summaryPayload.apiVersion, "2026-05-14");
@@ -2328,6 +2331,17 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.equal(typeof actionPlanPayload.actionPlan.summary, "string");
     assert.ok(Array.isArray(actionPlanPayload.actionPlan.items));
     assert.equal(typeof actionPlanPayload.actionPlan.highImpactActions, "number");
+    assert.equal(shareCardResponse.status, 200);
+    assert.equal(shareCardPayload.apiVersion, "2026-05-14");
+    assert.equal(shareCardPayload.ready, true);
+    assert.equal(shareCardPayload.scan.id, scanId);
+    assert.equal(shareCardPayload.shareCard.target.host, "example.com");
+    assert.match(shareCardPayload.shareCard.title, /SecURL report for example\.com/);
+    assert.match(shareCardPayload.shareCard.share.reportUrl, new RegExp(`/report/${scanId}`));
+    assert.match(shareCardPayload.shareCard.share.scannerUrl, /utm_campaign=scan_handoff/);
+    assert.match(shareCardPayload.shareCard.share.text, /SecURL report for example\.com/);
+    assert.ok(Array.isArray(shareCardPayload.shareCard.topIssues));
+    assert.ok(Array.isArray(shareCardPayload.shareCard.scoreDrivers));
     assert.equal(evidenceResponse.status, 200);
     assert.equal(evidencePayload.apiVersion, "2026-05-14");
     assert.ok(Array.isArray(evidencePayload.evidence.headers));

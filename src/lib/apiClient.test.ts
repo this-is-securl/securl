@@ -429,4 +429,53 @@ describe("api client URL helpers", () => {
       expect(options.headers).toEqual({ "X-Scan-Owner": "owner-token-123" });
     }
   });
+
+  it("loads public shared scan cards without auth headers", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      apiVersion: "2026-05-14",
+      ready: true,
+      scan: {
+        id: "scan-card",
+        status: "completed",
+        url: "https://example.com/",
+        mode: "standard",
+        completedAt: "2026-07-07T00:00:00.000Z",
+        grade: "B",
+        score: 82,
+      },
+      shareCard: {
+        title: "SecURL report for example.com: B (82/100)",
+        summary: "Looks mostly healthy.",
+        target: { host: "example.com", finalUrl: "https://example.com/" },
+        posture: { grade: "B", score: 82, mainRisk: null, signalClarity: null },
+        topIssues: [],
+        scoreDrivers: [],
+        nextBestAction: "Add HSTS",
+        share: {
+          text: "SecURL report for example.com: B (82/100)",
+          shortText: "SecURL report for example.com: B (82/100)",
+          reportUrl: "https://app.securl.online/report/scan-card",
+          scannerUrl: "https://app.securl.online/?url=https%3A%2F%2Fexample.com%2F",
+        },
+        links: {
+          report: "/report/scan-card",
+          webReport: "https://app.securl.online/report/scan-card",
+          scannerHandoff: "https://app.securl.online/?url=https%3A%2F%2Fexample.com%2F",
+          apiShare: "/api/scans/scan-card/share",
+        },
+        generatedAt: "2026-07-07T00:00:00.000Z",
+      },
+      resources: {},
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { getSharedScanCard } = await import("./apiClient");
+    await expect(getSharedScanCard("scan-card")).resolves.toMatchObject({
+      ready: true,
+      shareCard: {
+        title: "SecURL report for example.com: B (82/100)",
+      },
+    });
+    expect(fetchMock).toHaveBeenCalledWith("/api/scans/scan-card/share-card");
+  });
 });

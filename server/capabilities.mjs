@@ -126,6 +126,7 @@ export function buildCapabilitiesPayload({
         "GET /api/scans/:id/drift",
         "GET /api/scans/:id/export?format=json|markdown|sarif|ci-json",
         "GET /api/scans/:id/share",
+        "GET /api/scans/:id/share-card",
         "GET /api/scans/:id/events",
       ],
     },

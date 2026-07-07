@@ -397,6 +397,67 @@ export interface ScanActionPlanResponse extends ScanResourceEnvelope {
   actionPlan: ScanActionPlan | null;
 }
 
+export interface ScanShareCard {
+  title: string;
+  summary: string;
+  target: {
+    host: string;
+    finalUrl: string;
+  };
+  posture: {
+    grade: string;
+    score: number | null;
+    mainRisk: string | null;
+    signalClarity: {
+      headline: string;
+      verdict: string;
+      confidence: string;
+    } | null;
+  };
+  topIssues: Array<{
+    severity: "critical" | "warning" | "info";
+    title: string;
+    detail: string | null;
+    area: string | null;
+    confidence: string | null;
+  }>;
+  scoreDrivers: Array<{
+    label: string;
+    detail: string | null;
+    impact: number | null;
+    direction: string | null;
+  }>;
+  nextBestAction: string | null;
+  share: {
+    text: string;
+    shortText: string;
+    reportUrl: string;
+    scannerUrl: string;
+  };
+  links: {
+    report: string;
+    webReport: string;
+    scannerHandoff: string;
+    apiShare: string;
+  };
+  generatedAt: string;
+}
+
+export interface ScanShareCardResponse extends VersionedApiResponse {
+  ready: boolean;
+  scan: {
+    id: string;
+    status: ApiScanStatus;
+    url: string;
+    mode: string;
+    completedAt: string | null;
+    grade?: string;
+    score?: number | null;
+  };
+  shareCard: ScanShareCard | null;
+  resources: Record<string, string>;
+}
+
 export interface ScanWebIntelligence {
   digest: ScanDigest | null;
   insights: ScanInsights | null;

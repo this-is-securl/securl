@@ -56,6 +56,30 @@ View the SecURL report: {shareUrl}
 
 For Cert Watch-only flows where no posture scan exists yet, prefer the scanner handoff URL instead of inventing a report URL.
 
+### Share Card Metadata
+
+Before opening the native share sheet, clients can fetch a lightweight public payload:
+
+```text
+GET https://securl-app-production.up.railway.app/api/scans/{scanId}/share-card
+```
+
+The response includes:
+
+- `shareCard.title`
+- `shareCard.summary`
+- `shareCard.target.host`
+- `shareCard.posture.grade`
+- `shareCard.posture.score`
+- `shareCard.topIssues`
+- `shareCard.scoreDrivers`
+- `shareCard.nextBestAction`
+- `shareCard.share.text`
+- `shareCard.share.reportUrl`
+- `shareCard.share.scannerUrl`
+
+Use `shareCard.share.text` as the default native share message. If the endpoint returns `404` or `409`, fall back to the scanner handoff URL.
+
 ## Suggested Placement
 
 ### SecURL iOS

@@ -16,6 +16,7 @@ For web and mobile experiences, prefer:
 - `GET /api/scans/:id/observations`: stable source, confidence, status, and freshness-aware observations for monitoring, inventory, and integrations.
 - `GET /api/scans/:id/observation-drift`: observation-level added, removed, status, value, and confidence changes against the previous completed scan.
 - `GET /api/scans/:id/policy-evaluation`: current policy result, violation severity, expected assertion, and observed value.
+- `GET /api/scans/:id/share-card`: public, lightweight share metadata for mobile/web share sheets, including title, summary, grade, score, top issues, next best action, and web links.
 
 Authenticated automation clients can manage signed webhook or email routes through `/api/alert-destinations`. APNs clients continue to use `/api/notification-devices`. Destination test endpoints provide forceable delivery checks without waiting for a real policy transition. Policy alert payloads include a display-ready `brief`, severity counts, categorized violations, and stable `actions` alongside the raw policy details.
 - `GET /api/scans/:id/events`: Server-Sent Events lifecycle stream so apps can stop polling once a scan reaches `completed` or `failed`.
@@ -24,7 +25,7 @@ These endpoints are stable additive resources. They are the safest shape for cli
 
 For mobile clients, use `/mobile-summary` for the main scan result screen after SSE terminal. Use `/digest` or `/insights` directly only when a specific view needs one part of that payload.
 
-For mobile-to-web acquisition and sharing, use the scanner handoff and public report URL templates in [`MOBILE-WEB-GROWTH-CONTRACT.md`](MOBILE-WEB-GROWTH-CONTRACT.md). The hosted web app accepts `?url=` for auto-starting a scan and still supports the older `?target=` fallback.
+For mobile-to-web acquisition and sharing, use the scanner handoff, public report URL, and `/share-card` templates in [`MOBILE-WEB-GROWTH-CONTRACT.md`](MOBILE-WEB-GROWTH-CONTRACT.md). The hosted web app accepts `?url=` for auto-starting a scan and still supports the older `?target=` fallback.
 
 ## Client Telemetry Headers
 
