@@ -4,6 +4,8 @@ SecURL is evolving from a one-shot scanner into a public security posture intell
 
 The product thesis is simple: people should be able to understand how a public URL, service, vendor, or certificate looks from the outside without credentials, agents, invasive probing, or noisy reconnaissance. SecURL should make that read fast, repeatable, explainable, and useful everywhere: CLI, CI/CD, API, web, and mobile.
 
+A useful mental model is the external security "recipe card." SBOMs help teams understand what an application is made of internally; SecURL should help them understand what that application exposes externally: public services, headers, cookies, TLS, DNS trust, certificate posture, third-party surface, visible vendors, policy fit, and what changed since the last known-good scan.
+
 ## Current Signals
 
 The roadmap is based on the signals now visible across the product system:
@@ -24,16 +26,19 @@ Near-term work:
 
 - Improve package-visible workflows that npm users can run without the hosted backend.
 - Keep CLI, JSON, Markdown, SARIF, and CI outputs stable and useful.
+- Promote `observationPolicy` into a first-class policy engine with named profiles, assertion results, and stable failure semantics.
+- Add a `posture-manifest` output: a machine-readable external posture recipe card that records what was checked, what was skipped, evidence quality, signal clarity, engine version, policy profile, and timestamps.
+- Treat CycloneDX/SBOM-style interoperability as a later export target for the posture manifest, not as a claim that SecURL is producing a dependency SBOM.
 - Expand fast single-purpose commands where the engine already has focused capability, such as `securl cert`.
 - Continue reducing false positives and making passive findings easier to trust.
 - Keep package trust strong: provenance, no install scripts, small dependency surface, clear changelog, and explicit passive boundaries.
 
 Candidate releases:
 
-- `1.17`: certificate comparison and expiry-policy output for CLI/CI.
-- `1.18`: richer machine-readable observation and drift exports for scheduled jobs.
-- `1.19`: tighter vendor/supply-chain summaries and lightweight dependency-risk reporting.
-- `1.20`: stable package-level integration examples for GitHub Actions, local cron, and vendor review workflows.
+- `1.20`: posture manifest v1 and policy profile output for CLI/API consumers.
+- `1.21`: richer SARIF/CI exports with evidence references and policy failures.
+- `1.22`: certificate comparison and expiry-policy output folded into manifest/policy results.
+- `1.23`: vendor, third-party, and external recipe-card summaries that are stable enough for reports and scheduled jobs.
 
 ### 2. Monitoring As The Product
 
@@ -43,15 +48,15 @@ Near-term work:
 
 - Deepen certificate timelines, renewal events, issuer/serial changes, expiry bands, and unreachable-state explanations.
 - Make posture drift explanations more readable: what changed, why it matters, what to do next.
-- Expand policy-based monitoring so users can define what matters to them without writing code.
+- Expand policy-based monitoring so users can define what matters to them without writing code, then monitor against that policy over time.
+- Use posture manifests as the stored baseline for "what changed since last time" and "does this still meet the expected recipe card?"
 - Keep push notifications quiet, deduplicated, and transition-driven.
 - Add service-level health and user-facing confidence so apps can show whether monitoring is working.
 
 Candidate releases:
 
-- `1.21`: monitoring event explanations and alert payload polish.
-- `1.22`: policy templates for common posture expectations.
-- `1.23`: richer monitoring history summaries and stable timeline DTOs.
+- `1.24`: monitoring event explanations and alert payload polish.
+- `1.25`: policy-based monitoring templates and stable timeline DTOs.
 
 ### 3. Mobile-First Companion Suite
 
@@ -61,6 +66,7 @@ Near-term work:
 
 - Prioritize APIs that reduce mobile polling, payload weight, and battery/network use.
 - Keep `/mobile-summary`, `/monitoring-cert-summary`, `/monitoring-mobile-summary`, and push resources stable.
+- Let mobile apps consume policy/manifest summaries as insight delivery, not local rule engines.
 - Feed mobile-specific telemetry into product decisions without storing personal identifiers.
 - Use Cert Watch usage as the sharpest signal for what mobile users currently understand and value.
 - Keep Android self-hosted downloads discoverable while iOS distribution matures.
@@ -68,7 +74,7 @@ Near-term work:
 Candidate releases:
 
 - `1.24`: mobile result resources that cover the complete scan-to-watch-list lifecycle.
-- `1.25`: mobile monitoring polish milestone: concise summaries, clear drift, push reliability, and certificate attention states.
+- `1.25`: mobile monitoring polish milestone: concise policy summaries, clear drift, push reliability, and certificate attention states.
 
 ### 4. Developer Workflow
 
@@ -77,15 +83,15 @@ Goal: make SecURL useful before shipping, during CI, and inside lightweight inte
 Near-term work:
 
 - Improve examples for `npx securl`, global installs, JSON/SARIF outputs, and saved report comparison.
-- Add GitHub Actions examples that show score thresholds, regression checks, cert expiry checks, and SARIF upload.
+- Add GitHub Actions examples that show policy profiles, score thresholds, regression checks, cert expiry checks, posture manifest upload, and SARIF upload.
 - Make report artifacts useful for pull requests and vendor/supplier assessment notes.
 - Keep CLI commands fast and narrowly scoped where possible.
 
 Candidate releases:
 
-- `1.17`: certificate CLI policy checks.
-- `1.18`: scheduled-job friendly output formats and stable exit codes.
-- `1.20`: complete CI examples and templates.
+- `1.20`: posture manifest and policy-gate CLI examples.
+- `1.21`: complete CI examples and templates.
+- `1.22`: evidence-backed SARIF and PR annotation polish.
 
 ### 5. Trust And Signal Layer
 
@@ -109,25 +115,25 @@ The path to `1.25` should make the current product thesis obvious:
 
 | Version range | Theme | Intended outcome |
 | --- | --- | --- |
-| `1.16.x` | Certificate CLI | npm users can run fast Cert Watch-style checks without full scans. |
-| `1.17` | Certificate policy | CLI/CI can fail on expiry windows, invalid certs, weak protocol, or issuer changes. |
-| `1.18` | Drift and observations | Scheduled jobs can consume stable observation and drift artifacts. |
-| `1.19` | Vendor and exposure intelligence | Reports better explain third-party, SRI, analytics, session replay, AI, and visible exposure risk. |
-| `1.20` | Developer workflow | GitHub Actions and CI examples become first-class, copy-pasteable workflows. |
-| `1.21` | Monitoring explanations | Push and monitoring timelines explain what changed and why it matters. |
-| `1.22` | Policy templates | Common monitoring expectations become reusable policy presets. |
-| `1.23` | History and timelines | Monitoring history becomes compact, readable, and app/API friendly. |
-| `1.24` | Mobile resource maturity | Mobile clients can render most screens from compact purpose-built resources. |
-| `1.25` | Mobile monitoring milestone | Cert Watch, Header Watch, and SecURL share a reliable, push-driven monitoring foundation. |
+| `1.16.x`-`1.19` | Certificate, monitoring, and growth loop foundations | npm, backend, web, and mobile clients share stable posture, certificate, sharing, and telemetry primitives. |
+| `1.20` | Posture manifest v1 | Every scan can emit an external posture recipe card: checks run/skipped, evidence quality, signal clarity, engine version, timestamps, and policy profile. |
+| `1.21` | Policy Pack v1 | Built-in baseline, production, strict, and vendor-review profiles can evaluate observations and fail CLI/CI runs deterministically. |
+| `1.22` | Evidence-backed integrations | SARIF, CI JSON, Markdown, and future SBOM-adjacent exports carry evidence references, policy outcomes, and manifest metadata. |
+| `1.23` | External exposure intelligence | Reports better explain third-party, SRI, analytics, session replay, AI, visible vendors, and supply-chain posture. |
+| `1.24` | Monitoring explanations | Push and monitoring timelines explain what changed, why it matters, which policy moved, and what to do next. |
+| `1.25` | Mobile monitoring milestone | Cert Watch, Header Watch, and SecURL share a reliable, push-driven monitoring foundation with concise policy and manifest summaries. |
 
 ## Future 2.0 Shape
 
 SecURL 2.0 should not mean "more checks." It should mean a stable product system:
 
 - A stable engine API for public URL posture intelligence.
+- A stable external posture manifest that acts as a public-facing security recipe card for apps, services, and vendors.
+- A policy engine that can evaluate those manifests consistently across CLI, CI, API, web, and mobile.
 - A mature CLI for CI, scheduled jobs, reports, and local checks.
 - A hosted backend that owns scans, monitoring, push notifications, policies, and history.
 - A mobile suite that gives focused lenses over the same intelligence layer.
+- Optional interoperability exports for security teams that want posture data alongside SBOM, vendor-risk, or compliance evidence workflows.
 - Clear privacy boundaries, passive collection limits, and trustworthy package/deployment practices.
 - A coherent commercial foundation around recurring monitoring, history, reporting, API usage, and team workflows.
 
@@ -140,4 +146,3 @@ The 2.0 bar is crossed when SecURL is no longer primarily a scanner. It is the l
 - No hidden install-time package telemetry.
 - No storing raw personal/device identifiers for product analytics.
 - No package bumps for backend-only or marketing-only changes unless npm consumers benefit.
-
