@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import type { AnalysisResult } from "@/types/analysis";
 import { getAreaScores } from "@/lib/posture";
 import type { ReportWorkspaceSectionKey } from "@/lib/reportWorkspace";
+import { getInitialScanHandoff } from "@/lib/deepLinks";
 import {
   analyzeTargetWithMetadata,
   ApiClientError,
@@ -290,9 +291,8 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
       return;
     }
 
-    const params = new URLSearchParams(window.location.search);
-    const target = params.get("target");
-    if (!target) {
+    const handoff = getInitialScanHandoff(window.location.search);
+    if (!handoff) {
       return;
     }
 
@@ -300,9 +300,16 @@ export const useScanWorkspace = ({ authScopeKey = null }: { authScopeKey?: strin
     void (async () => {
       setIsLoading(true);
       try {
-        await analyzeUrlRef.current?.(target, true);
+        recordTelemetryEvent("handoff_started", {
+          target: handoff.target,
+          mode: `${handoff.source}:${handoff.campaign}`,
+        });
+        await analyzeUrlRef.current?.(handoff.target, true);
       } catch (error) {
-        recordTelemetryEvent("scan_failed", { target, mode: "standard" });
+        recordTelemetryEvent("scan_failed", {
+          target: handoff.target,
+          mode: `${handoff.source}:${handoff.campaign}`,
+        });
         toast.error(error instanceof Error ? error.message : "Unable to scan that site.");
       } finally {
         setIsLoading(false);

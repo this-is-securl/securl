@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import { getSharedScan, recordTelemetryEvent } from "@/lib/apiClient";
+import { buildScannerHandoffUrl } from "@/lib/deepLinks";
 import { buildReportWorkspaceSections } from "@/lib/reportWorkspace";
 import { getAreaScores } from "@/lib/posture";
 import { ReportSectionNav } from "@/components/report/ReportSectionNav";
@@ -100,7 +101,11 @@ export function ReportPage() {
             Shared report
           </span>
           <a
-            href="https://app.securl.online"
+            href={buildScannerHandoffUrl("https://app.securl.online", result.finalUrl ?? result.normalizedUrl, {
+              source: "shared_report",
+              medium: "web",
+              campaign: "scan_your_site_cta",
+            })}
             className="rounded-xl bg-[#b56a2c] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#9d5a23]"
           >
             Scan your site →

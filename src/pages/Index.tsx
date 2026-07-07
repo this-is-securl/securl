@@ -13,6 +13,7 @@ import { CapabilityStrip } from "@/components/landing/CapabilityStrip";
 import { AppStoreBadge } from "@/components/AppStoreBadge";
 import { AndroidDownloadsBadge } from "@/components/AndroidDownloadsBadge";
 import { recordTelemetryEvent } from "@/lib/apiClient";
+import { buildReportShareUrl } from "@/lib/deepLinks";
 import { HERO_SAMPLE, type HeroSampleChip } from "@/data/heroSample";
 
 // ── Mini ring preview (hero right column, pre-scan) ──────────────────────────
@@ -333,7 +334,7 @@ const Index = () => {
                     <button
                       type="button"
                       onClick={() => {
-                        navigator.clipboard.writeText(`${window.location.origin}/report/${currentScanId}`);
+                        navigator.clipboard.writeText(buildReportShareUrl(window.location.origin, currentScanId));
                         recordTelemetryEvent("share_link_copied", {
                           target: analysisData.finalUrl ?? analysisData.normalizedUrl,
                           scanId: currentScanId,
