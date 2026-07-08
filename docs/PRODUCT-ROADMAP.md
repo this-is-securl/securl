@@ -16,6 +16,18 @@ The roadmap is based on the signals now visible across the product system:
 - The web landing page is useful for positioning, but mobile and npm currently show the clearest engagement signals.
 - The deprecated scoped package still receives residual downloads, which suggests historical discovery and automation paths are still alive.
 
+## Current Operating Focus - July 2026
+
+After a fast sequence of mobile releases and backend contract work, the next short window deliberately lets the mobile suite settle while the engine and public-facing surfaces get ahead again.
+
+For the next few days, priority order is:
+
+1. **Engine/package/API first**: improve the npm-consumable engine, hosted API contracts, policy/manifest examples, release evidence, and architecture/safety documentation.
+2. **Public websites second**: make `securl.online` and `app.securl.online` explain the product system clearly, link to downloads and docs, and route interested users toward the web app, npm package, and self-hosted/mobile surfaces.
+3. **Mobile later**: keep mobile contracts stable and additive, but avoid new mobile feature pressure until the current app wave has had time to settle in production.
+
+This does not reduce the importance of the mobile suite. It preserves the principle that the engine is the source of truth, with web and mobile acting as increasingly polished views over the same passive posture intelligence.
+
 ## Product Tracks
 
 ### 1. Engine Authority
