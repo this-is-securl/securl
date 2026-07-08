@@ -268,6 +268,7 @@ test("scan repository stores cert monitoring state separately from posture targe
     cadence: "hourly",
     kind: "cert",
     appId: "com.ktbatterham.certwatch",
+    certPolicy: "strict",
     requesterScope: "ip:test",
     ownerId: "scan-owner:test",
   });
@@ -275,6 +276,7 @@ test("scan repository stores cert monitoring state separately from posture targe
   assert.notEqual(posture.id, cert.id);
   assert.equal(cert.kind, "cert");
   assert.equal(cert.appId, "com.ktbatterham.certwatch");
+  assert.equal(cert.certPolicy, "strict");
 
   const updated = await repository.updateMonitoringTargetCertState(cert.id, {
     ownerId: "scan-owner:test",
@@ -616,6 +618,8 @@ test("scan repository schema statements create the scans table and scoped indexe
   assert.ok(statements.some((statement) => /monitoring_targets_owner_added_idx/i.test(statement)));
   assert.ok(statements.some((statement) => /monitoring_targets_requester_added_idx/i.test(statement)));
   assert.ok(statements.some((statement) => /monitoring_targets_owner_url_kind_uidx/i.test(statement)));
+  assert.ok(statements.some((statement) => /cert_policy text null/i.test(statement)));
+  assert.ok(statements.some((statement) => /add column if not exists cert_policy/i.test(statement)));
   assert.ok(statements.some((statement) => /cert_state jsonb null/i.test(statement)));
   assert.ok(statements.some((statement) => /auth_sessions_user_idx/i.test(statement)));
   assert.ok(statements.some((statement) => /api_keys_user_created_idx/i.test(statement)));

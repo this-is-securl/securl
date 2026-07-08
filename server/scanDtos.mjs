@@ -539,9 +539,29 @@ function certResultFromState(state) {
   };
 }
 
+function certPolicyExpiryDays(policy) {
+  if (policy === "production") return 14;
+  if (policy === "strict" || policy === "renewal-watch") return 30;
+  return null;
+}
+
+function filterCertMonitoringEventsForPolicy(events, view) {
+  const expiryDays = certPolicyExpiryDays(view.certPolicy ?? view.cert?.policyProfile ?? null);
+  if (expiryDays === null) {
+    return events;
+  }
+  return normalizeArray(events).filter((event) => (
+    event?.eventType !== "certificate_expiring"
+    || (
+      typeof view.cert?.daysRemaining === "number"
+      && view.cert.daysRemaining <= expiryDays
+    )
+  ));
+}
+
 function buildCertMonitoringEventsFromView(view) {
   if (Array.isArray(view.cert?.monitoringEvents) && view.cert.monitoringEvents.length) {
-    return view.cert.monitoringEvents;
+    return filterCertMonitoringEventsForPolicy(view.cert.monitoringEvents, view);
   }
   const current = certResultFromState(view.cert);
   if (!current) {
@@ -560,7 +580,7 @@ function buildCertMonitoringEventsFromView(view) {
         daysRemaining: latestPrevious.previousDaysRemaining ?? null,
       })
     : null;
-  return buildCertificateMonitoringEvents(current, previous);
+  return filterCertMonitoringEventsForPolicy(buildCertificateMonitoringEvents(current, previous), view);
 }
 
 function buildPostureChangeSummary(posture, riskEventCount) {
@@ -761,6 +781,8 @@ export function buildMonitoringTargetView(target, records = []) {
     kind: target.kind ?? "posture",
     mode: target.mode ?? null,
     appId: target.appId ?? null,
+    certPolicy: target.certPolicy ?? target.certState?.policyProfile ?? null,
+    policy: (target.kind ?? "posture") === "cert" ? target.certPolicy ?? target.certState?.policyProfile ?? null : null,
     observationPolicy: target.observationPolicy ?? null,
     addedAt: target.addedAt,
     lastScannedAt: target.lastScannedAt ?? null,
@@ -1178,6 +1200,10 @@ function buildMobileTargetSummary(target, records = []) {
   const posture = buildMobilePostureDriftSummary(comparison);
   const certChange = buildCertChangeSummary(view, certEventCount);
   const certMonitoringEvents = buildCertMonitoringEventsFromView(view);
+  const storedCertMonitoringEvents = filterCertMonitoringEventsForPolicy(
+    normalizeArray(view.cert?.monitoringEvents),
+    view,
+  );
   const monitoringEvents = view.kind === "cert"
     ? certMonitoringEvents
     : normalizeArray(posture?.monitoringEvents);
@@ -1192,6 +1218,7 @@ function buildMobileTargetSummary(target, records = []) {
     cadence: view.cadence,
     mode: view.mode,
     appId: view.appId,
+    policy: view.kind === "cert" ? view.certPolicy : null,
     addedAt: view.addedAt,
     lastCheckedAt: view.lastCheckedAt,
     nextDueAt: view.nextDueAt,
@@ -1222,8 +1249,9 @@ function buildMobileTargetSummary(target, records = []) {
           serialNumber: view.cert.serialNumber ?? null,
           lastEventType: view.cert.lastEventType ?? null,
           lastWarnedBand: view.cert.lastWarnedBand ?? null,
+          policyProfile: view.cert.policyProfile ?? view.certPolicy ?? null,
           attention: view.cert.attention ?? null,
-          monitoringEvents: normalizeArray(view.cert.monitoringEvents).slice(0, 5),
+          monitoringEvents: storedCertMonitoringEvents.slice(0, 5),
           issues: normalizeArray(view.cert.issues).slice(0, 5),
       }
       : null,
@@ -1400,6 +1428,7 @@ function buildTargetHealthSummary(target, now = Date.now()) {
     id: target.id,
     kind: target.kind,
     appId: target.appId,
+    policy: target.kind === "cert" ? target.certPolicy : null,
     url: target.url,
     label: target.label,
     cadence: target.cadence,

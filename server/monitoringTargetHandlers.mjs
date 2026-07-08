@@ -3,6 +3,7 @@ import { validateObservationPolicy } from "../packages/core/dist/observationPoli
 import {
   normalizeMonitoringAppId,
   normalizeMonitoringCadence,
+  normalizeCertPolicyProfile,
   normalizeMonitoringKind,
   normalizeMonitoringMode,
   runCertificateMonitorCheck,
@@ -378,9 +379,18 @@ export async function handleMonitoringTargetCollectionRequest({
     const cadence = normalizeMonitoringCadence(body.cadence, "daily");
     const mode = kind === "posture" ? normalizeMonitoringMode(body.mode, "quiet") : null;
     const appId = normalizeMonitoringAppId(body.appId);
-    const observationPolicy = body.policy === undefined || body.policy === null
-      ? undefined
-      : validateObservationPolicy(body.policy);
+    const certPolicy = kind === "cert" && body.policy !== undefined && body.policy !== null
+      ? normalizeCertPolicyProfile(body.policy)
+      : null;
+    if (kind === "cert" && body.policy !== undefined && body.policy !== null && !certPolicy) {
+      sendJson(response, 400, {
+        error: "Invalid certificate policy. Use production, strict, or renewal-watch.",
+      });
+      return true;
+    }
+    const postureObservationPolicy = kind === "posture" && body.policy !== undefined && body.policy !== null
+      ? validateObservationPolicy(body.policy)
+      : undefined;
     const validatedTarget = await assertPublicHttpUrl(target);
     if (kind === "cert" && validatedTarget.protocol !== "https:") {
       sendJson(response, 400, {
@@ -409,7 +419,8 @@ export async function handleMonitoringTargetCollectionRequest({
       kind,
       mode,
       appId,
-      observationPolicy,
+      certPolicy,
+      observationPolicy: postureObservationPolicy,
       requesterScope: authState.requesterScope,
       ownerId: authState.ownerId,
     });

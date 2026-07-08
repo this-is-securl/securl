@@ -164,6 +164,7 @@ export function buildCapabilitiesPayload({
         "cert-watchlist-summary-v1",
         "cert-watchlist-push-health-v1",
         "cert-attention-state",
+        "cert-policy-profiles-v1",
         "target-observation-policy",
       ],
       scheduler: {

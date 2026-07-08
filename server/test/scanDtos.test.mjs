@@ -234,6 +234,51 @@ test("mobile monitoring summary exposes certificate attention state", () => {
   assert.equal(payload.targets[0].actions[0].id, "review_certificate");
 });
 
+test("mobile monitoring summary filters certificate events by policy profile", () => {
+  const payload = buildMonitoringMobileSummaryPayload([
+    {
+      target: {
+        id: "target-cert-policy",
+        url: "https://example.com/",
+        label: "Example cert",
+        cadence: "daily",
+        kind: "cert",
+        mode: null,
+        appId: "com.ktbatterham.certwatch",
+        certPolicy: "production",
+        addedAt: "2026-06-19T08:00:00.000Z",
+        lastCheckedAt: "2026-06-19T08:01:00.000Z",
+        certState: {
+          reachable: true,
+          checkedAt: "2026-06-19T08:01:00.000Z",
+          host: "example.com",
+          issuer: "Example CA",
+          validTo: "2026-07-10T00:00:00.000Z",
+          daysRemaining: 21,
+          serialNumber: "ABC123",
+          policyProfile: "production",
+          monitoringEvents: [
+            {
+              source: "certificate",
+              eventType: "certificate_expiring",
+              severity: "warning",
+              title: "Certificate expires soon",
+            },
+          ],
+          issues: [],
+          history: [],
+        },
+      },
+      records: [],
+    },
+  ]);
+
+  assert.equal(payload.targets[0].policy, "production");
+  assert.equal(payload.targets[0].cert.policyProfile, "production");
+  assert.equal(payload.targets[0].events.length, 0);
+  assert.equal(payload.targets[0].cert.monitoringEvents.length, 0);
+});
+
 test("cert monitoring summary focuses the Cert Watch watch list and push health", () => {
   const payload = buildMonitoringCertSummaryPayload([
     {
