@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-07-08 — backend certificate monitoring policy profiles
+
+### Added
+
+- Added per-target certificate policy profiles for `kind:"cert"` monitoring targets: `production`, `strict`, and `renewal-watch`.
+- Echoed active cert profiles as `target.policy` and `target.cert.policyProfile` in monitoring target and Cert Watch summary payloads.
+- Applied profile-specific server-side expiry warning thresholds while preserving legacy 30/14/7/1-day bands for existing cert targets with no profile.
+
+### Verified
+
+- `node --test server/test/certMonitoring.test.mjs server/test/scanStore.test.mjs server/test/server.test.mjs`
+- `npm run test:server`
+- `npm run test:core`
+- `npm run lint`
+
 ## 2026-07-04 — core 1.19.0 certificate policy profiles
 
 ### Added

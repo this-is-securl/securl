@@ -4,6 +4,8 @@ import {
   buildCertAttention,
   buildCertMonitoringEventDetails,
   detectCertMonitoringEvent,
+  getCertPolicyProfile,
+  normalizeCertPolicyProfile,
   normalizeMonitoringAppId,
   normalizeMonitoringCadence,
   normalizeMonitoringKind,
@@ -16,6 +18,13 @@ test("monitoring normalizers accept mobile aliases and cert cadences", () => {
   assert.equal(normalizeMonitoringCadence("6h"), "6h");
   assert.equal(normalizeMonitoringCadence("nonsense"), "daily");
   assert.equal(normalizeMonitoringAppId("cert-watch"), "com.ktbatterham.certwatch");
+});
+
+test("cert policy profiles normalize and expose expiry thresholds", () => {
+  assert.equal(normalizeCertPolicyProfile(" STRICT "), "strict");
+  assert.equal(normalizeCertPolicyProfile("invalid"), null);
+  assert.equal(getCertPolicyProfile("production").expiryWarningDays, 14);
+  assert.equal(getCertPolicyProfile("renewal-watch").failIfLegacyTls, false);
 });
 
 test("cert monitoring detects renewal before issuer-only changes", () => {
@@ -109,6 +118,22 @@ test("cert monitoring only emits tighter expiry bands", () => {
     ),
     null,
   );
+});
+
+test("cert monitoring applies policy-specific expiry thresholds", () => {
+  const previous = { reachable: true, serialNumber: "ABC", issuer: "CA", lastWarnedBand: null };
+  const next = { reachable: true, serialNumber: "ABC", issuer: "CA", host: "example.com", daysRemaining: 21 };
+
+  assert.equal(
+    detectCertMonitoringEvent(previous, next, { policyProfile: "production" }),
+    null,
+  );
+  assert.deepEqual(
+    detectCertMonitoringEvent(previous, next, { policyProfile: "strict" }),
+    { type: "cert_expiring", severity: "warning", warningBand: 30 },
+  );
+  assert.equal(buildCertAttention(next, "production"), null);
+  assert.equal(buildCertAttention(next, "renewal-watch").warningBand, 30);
 });
 
 test("cert monitoring surfaces initial certificate attention without firing an event", () => {

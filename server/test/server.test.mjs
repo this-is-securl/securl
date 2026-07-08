@@ -544,6 +544,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.monitoring.features.includes("cert-watchlist-summary-v1"));
     assert.ok(payload.monitoring.features.includes("cert-watchlist-push-health-v1"));
     assert.ok(payload.monitoring.features.includes("cert-attention-state"));
+    assert.ok(payload.monitoring.features.includes("cert-policy-profiles-v1"));
     assert.ok(payload.monitoring.features.includes("target-observation-policy"));
     assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-summary"));
     assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-health"));
@@ -1567,6 +1568,7 @@ test("monitoring targets can be created, listed, and deleted", async () => {
       kind: "cert",
       label: "Example cert",
       appId: "com.ktbatterham.certwatch",
+      policy: "strict",
       headers: {
         "X-SecURL-Client": "cert-watch-ios",
         "X-SecURL-Client-Version": "1.0.3+8",
@@ -1576,7 +1578,9 @@ test("monitoring targets can be created, listed, and deleted", async () => {
     const certTargetPayload = await certTargetResponse.json();
     assert.equal(certTargetResponse.status, 201);
     assert.equal(certTargetPayload.target.kind, "cert");
+    assert.equal(certTargetPayload.target.policy, "strict");
     assert.equal(certTargetPayload.target.cert.host, "example.com");
+    assert.equal(certTargetPayload.target.cert.policyProfile, "strict");
 
     const certSummaryResponse = await fetch(`${server.baseUrl}/api/monitoring-cert-summary`, {
       headers: {
@@ -1593,6 +1597,8 @@ test("monitoring targets can be created, listed, and deleted", async () => {
     assert.equal(certSummaryPayload.push.registeredDevices, 1);
     assert.equal(certSummaryPayload.push.readyDevices, 1);
     assert.equal(certSummaryPayload.targets[0].id, certTargetPayload.target.id);
+    assert.equal(certSummaryPayload.targets[0].policy, "strict");
+    assert.equal(certSummaryPayload.targets[0].cert.policyProfile, "strict");
     assert.equal(certSummaryPayload.targets[0].health.state, "healthy");
 
     const healthResponse = await fetch(`${server.baseUrl}/api/monitoring-health`, {
@@ -2376,7 +2382,7 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.equal(manifestPayload.postureManifest.version, "1.0");
     assert.match(manifestPayload.postureManifest.manifestId, /^pm_[a-f0-9]{24}$/);
     assert.equal(manifestPayload.postureManifest.target.host, "example.com");
-    assert.equal(manifestPayload.postureManifest.engine.version, "1.19.0");
+    assert.equal(manifestPayload.postureManifest.engine.version, "1.21.0");
     assert.equal(manifestPayload.postureManifest.policy.evaluation.version, "1.0");
     assert.equal(
       manifestPayload.postureManifest.checks.observationLedger.summary.total,
