@@ -79,6 +79,7 @@ export {
   buildMonitoringEventsFromSnapshots,
 } from "./monitoringEvents.js";
 export { buildPostureDigest } from "./postureDigest.js";
+export { buildPostureManifest } from "./postureManifest.js";
 export {
   buildPostureDriftReport,
   buildPostureDriftReportFromDiff,

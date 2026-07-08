@@ -323,7 +323,21 @@ Version `1.11.0+` adds `diffObservationLedgers(current, previous)` from `securl/
 
 Use `evaluateObservationPolicy({ ledger, drift, policy })` from `securl/observation-policy` to apply bounded declarative rules. Rules can select an exact observation kind, kind prefix, or category, then assert equality, membership, or numeric thresholds against current observations or changes. `DEFAULT_OBSERVATION_POLICY` provides a maintained baseline for certificate validity/window, HSTS, CSP, DMARC, and critical regressions.
 
-### 11. Evidence-backed remediation plans
+### 11. Posture manifest / external recipe card
+
+Use `buildPostureManifest(result)` from `securl/posture-manifest` to produce a machine-readable external posture manifest. This is SecURL's SBOM-adjacent "recipe card" for what a public target exposes from the outside: target metadata, scan mode and timing, score drivers, observation ledger, skipped assessment context, evidence quality, signal clarity, and policy evaluation.
+
+```js
+import { analyzeTarget } from "securl";
+import { buildPostureManifest } from "securl/posture-manifest";
+
+const result = await analyzeTarget("https://example.com", { scanMode: "quiet" });
+const manifest = buildPostureManifest(result, { engineVersion: "1.20.0" });
+
+console.log(manifest.manifestId, manifest.policy.evaluation.passed);
+```
+
+### 12. Evidence-backed remediation plans
 
 Version `1.4.0+` includes a remediation plan helper that turns score drivers and findings into prioritized, owner-aware fix guidance. Findings can also carry structured evidence references so clients can show why a finding was raised.
 
@@ -459,6 +473,7 @@ Primary exports:
 - `buildObservationLedger(result)` - produce stable source, confidence, status, and freshness-aware posture observations.
 - `diffObservationLedgers(current, previous)` - compare stable observations and classify their operational impact.
 - `evaluateObservationPolicy({ ledger, drift, policy })` - evaluate bounded declarative posture and change rules.
+- `buildPostureManifest(result, options?)` - produce a machine-readable external posture recipe card for CI, audit, mobile, and reporting clients.
 - `buildPostureDriftReportFromSnapshots(current, previous)` - produce a complete scan-to-scan drift report for monitoring, alerting, and history views.
 - `buildPostureRemediationPlan(result)` - generate prioritized, owner-aware remediation actions from findings and score drivers.
 - `attachIssueEvidence(result)` - add structured evidence references to findings without changing their existing fields.
@@ -477,6 +492,7 @@ Package subpath exports:
 - `securl/observations`
 - `securl/observation-drift`
 - `securl/observation-policy`
+- `securl/posture-manifest`
 - `securl/posture-drift`
 - `securl/remediation-plan`
 - `securl/evidence-quality`

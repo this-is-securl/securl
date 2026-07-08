@@ -16,6 +16,7 @@ For web and mobile experiences, prefer:
 - `GET /api/scans/:id/observations`: stable source, confidence, status, and freshness-aware observations for monitoring, inventory, and integrations.
 - `GET /api/scans/:id/observation-drift`: observation-level added, removed, status, value, and confidence changes against the previous completed scan.
 - `GET /api/scans/:id/policy-evaluation`: current policy result, violation severity, expected assertion, and observed value.
+- `GET /api/scans/:id/manifest`: Posture Manifest v1, the external security recipe card for audit, CI, reporting, and mobile policy summaries.
 - `GET /api/scans/:id/share-card`: public, lightweight share metadata for mobile/web share sheets, including title, summary, grade, score, top issues, next best action, and web links.
 
 Authenticated automation clients can manage signed webhook or email routes through `/api/alert-destinations`. APNs clients continue to use `/api/notification-devices`. Destination test endpoints provide forceable delivery checks without waiting for a real policy transition. Policy alert payloads include a display-ready `brief`, severity counts, categorized violations, and stable `actions` alongside the raw policy details.
@@ -52,6 +53,7 @@ For deeper technical views, export, or analyst workflows, use:
 
 - `GET /api/scans/:id/findings`: raw findings plus remediation and evidence summaries.
 - `GET /api/scans/:id/evidence`: full supporting evidence from headers, TLS, DNS, HTML, exposure probes, vendors, CT discovery, and passive intelligence.
+- `GET /api/scans/:id/manifest`: one resolved artifact combining target metadata, scan timing/mode, score drivers, observation ledger, skipped checks, evidence quality, signal clarity, and policy evaluation.
 - `GET /api/scans/:id/drift`: scan-to-scan drift and risk events.
 - `GET /api/scans/:id/comparison`: current and previous scan summaries with direct diff context.
 - `GET /api/scans/:id/export?format=json|markdown|sarif|ci-json`: downloadable report and automation formats.

@@ -82,6 +82,7 @@ export function buildCapabilitiesPayload({
         "observation-ledger-v1",
         "observation-drift-v1",
         "observation-policy-v1",
+        "posture-manifest-v1",
       ],
       scoring: {
         model: "weighted-passive-posture",
@@ -121,6 +122,7 @@ export function buildCapabilitiesPayload({
         "GET /api/scans/:id/observations",
         "GET /api/scans/:id/observation-drift",
         "GET /api/scans/:id/policy-evaluation",
+        "GET /api/scans/:id/manifest",
         "GET /api/scans/:id/history",
         "GET /api/scans/:id/comparison",
         "GET /api/scans/:id/drift",

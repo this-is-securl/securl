@@ -1,8 +1,10 @@
+import { createRequire } from "node:module";
 import { buildHistoryDiffFromSnapshots, snapshotFromAnalysis } from "../packages/core/dist/historyDiff.js";
 import { buildActionPlan } from "../packages/core/dist/actionPlan.js";
 import { buildExposureBrief } from "../packages/core/dist/exposureBrief.js";
 import { buildPostureInsights } from "../packages/core/dist/postureInsights.js";
 import { buildPostureDigest } from "../packages/core/dist/postureDigest.js";
+import { buildPostureManifest } from "../packages/core/dist/postureManifest.js";
 import { buildPostureDriftReportFromDiff } from "../packages/core/dist/postureDrift.js";
 import {
   buildCertificateMonitoringEvents,
@@ -13,8 +15,11 @@ import { buildObservationLedger } from "../packages/core/dist/observations.js";
 import { diffObservationLedgers } from "../packages/core/dist/observationDrift.js";
 import { DEFAULT_OBSERVATION_POLICY, evaluateObservationPolicy } from "../packages/core/dist/observationPolicy.js";
 
+const require = createRequire(import.meta.url);
+const corePackage = require("../packages/core/package.json");
 export const API_VERSION = "2026-05-14";
 export const SCAN_EXPORT_FORMATS = ["json", "markdown", "sarif", "ci-json"];
+const CORE_ENGINE_VERSION = corePackage.version;
 const DEFAULT_WEB_APP_ORIGIN = "https://app.securl.online";
 
 function normalizeArray(value) {
@@ -1056,6 +1061,27 @@ export function buildScanPolicyEvaluationPayload(scan, records, policy = null, p
     scan: scan.summary,
     policySource,
     policyEvaluation: buildPolicyEvaluation(comparisonRecords, policy),
+  };
+}
+
+export function buildScanManifestPayload(scan, records, policy = null, policySource = "default") {
+  if (scan.status !== "completed" || !scan.result) {
+    return {
+      apiVersion: API_VERSION,
+      scan: scan.summary,
+      postureManifest: null,
+    };
+  }
+  const policyEvaluation = buildScanPolicyEvaluationPayload(scan, records, policy, policySource).policyEvaluation;
+  return {
+    apiVersion: API_VERSION,
+    scan: scan.summary,
+    postureManifest: buildPostureManifest(scan.result, {
+      engineVersion: CORE_ENGINE_VERSION,
+      scanMode: scan.mode,
+      policySource,
+      policyEvaluation,
+    }),
   };
 }
 

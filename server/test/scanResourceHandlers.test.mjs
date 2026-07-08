@@ -32,6 +32,7 @@ test("scan resource links point clients at lightweight follow-up endpoints", () 
     observations: "/api/scans/scan-one/observations",
     observationDrift: "/api/scans/scan-one/observation-drift",
     policyEvaluation: "/api/scans/scan-one/policy-evaluation",
+    manifest: "/api/scans/scan-one/manifest",
     history: "/api/scans/scan-one/history",
     comparison: "/api/scans/scan-one/comparison",
     drift: "/api/scans/scan-one/drift",

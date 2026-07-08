@@ -505,6 +505,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.scans.features.includes("observation-ledger-v1"));
     assert.ok(payload.scans.features.includes("observation-drift-v1"));
     assert.ok(payload.scans.features.includes("observation-policy-v1"));
+    assert.ok(payload.scans.features.includes("posture-manifest-v1"));
     assert.equal(payload.scans.scoring.model, "weighted-passive-posture");
     assert.equal(payload.scans.scoring.version, "2026-06-14");
     assert.deepEqual(payload.scans.scoring.scoreRange, { min: 0, max: 100 });
@@ -523,6 +524,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/observations"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/observation-drift"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/policy-evaluation"));
+    assert.ok(payload.scans.resources.includes("GET /api/scans/:id/manifest"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/events"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/comparison"));
     assert.ok(payload.scans.resources.includes("GET /api/scans/:id/drift"));
@@ -2221,6 +2223,9 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     const policyEvaluationResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/policy-evaluation`, {
       headers: scanOwnerHeaders(),
     });
+    const manifestResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/manifest`, {
+      headers: scanOwnerHeaders(),
+    });
     const historyResponse = await fetch(`${server.baseUrl}/api/scans/${scanId}/history`, {
       headers: scanOwnerHeaders(),
     });
@@ -2252,6 +2257,7 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     const evidencePayload = await evidenceResponse.json();
     const observationsPayload = await observationsResponse.json();
     const policyEvaluationPayload = await policyEvaluationResponse.json();
+    const manifestPayload = await manifestResponse.json();
     const historyPayload = await historyResponse.json();
     const eventsText = await eventsResponse.text();
     const markdownExport = await markdownExportResponse.text();
@@ -2365,6 +2371,17 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.equal(policyEvaluationPayload.policySource, "default");
     assert.equal(policyEvaluationPayload.policyEvaluation.version, "1.0");
     assert.equal(typeof policyEvaluationPayload.policyEvaluation.passed, "boolean");
+    assert.equal(manifestResponse.status, 200);
+    assert.equal(manifestPayload.apiVersion, "2026-05-14");
+    assert.equal(manifestPayload.postureManifest.version, "1.0");
+    assert.match(manifestPayload.postureManifest.manifestId, /^pm_[a-f0-9]{24}$/);
+    assert.equal(manifestPayload.postureManifest.target.host, "example.com");
+    assert.equal(manifestPayload.postureManifest.engine.version, "1.19.0");
+    assert.equal(manifestPayload.postureManifest.policy.evaluation.version, "1.0");
+    assert.equal(
+      manifestPayload.postureManifest.checks.observationLedger.summary.total,
+      manifestPayload.postureManifest.checks.observationLedger.observations.length,
+    );
     assert.equal(historyResponse.status, 200);
     assert.equal(historyPayload.apiVersion, "2026-05-14");
     assert.equal(historyPayload.scan.id, scanId);

@@ -1294,6 +1294,58 @@ export interface ObservationPolicyEvaluation {
   };
 }
 
+export interface PostureManifestSkippedCheck {
+  id: string;
+  category: ObservationCategory | "assessment";
+  reason: string;
+  detail: string | null;
+}
+
+export interface PostureManifest {
+  version: "1.0";
+  manifestId: string;
+  generatedAt: string;
+  engine: {
+    name: "securl";
+    version: string | null;
+  };
+  target: {
+    inputUrl: string;
+    normalizedUrl: string;
+    finalUrl: string;
+    host: string;
+  };
+  scan: {
+    mode: AnalyzeTargetOptions["scanMode"];
+    scannedAt: string;
+    responseTimeMs: number;
+    statusCode: number;
+    timing: ScanTimingInfo | null;
+    assessmentLimitation: AssessmentLimitation;
+  };
+  posture: {
+    score: number;
+    grade: string;
+    summary: string;
+    issueCounts: Record<string, number>;
+    strengthCount: number;
+    scoreDrivers: ScoreDriver[];
+  };
+  checks: {
+    observationLedger: ObservationLedger;
+    skipped: PostureManifestSkippedCheck[];
+  };
+  evidence: {
+    evidenceSummary: PostureEvidenceSummary | null;
+    evidenceQuality: EvidenceQualitySummary | null;
+    signalClarity: SignalClaritySummary | null;
+  };
+  policy: {
+    source: string;
+    evaluation: ObservationPolicyEvaluation;
+  };
+}
+
 export interface AnalysisResult {
   inputUrl: string;
   normalizedUrl: string;
