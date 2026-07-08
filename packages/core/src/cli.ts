@@ -1,11 +1,23 @@
 #!/usr/bin/env node
+import { createRequire } from "node:module";
 import { writeFile } from "node:fs/promises";
 import { readFile } from "node:fs/promises";
 import process from "node:process";
-import { analyzeUrl, buildHistoryDiffFromSnapshots, formatErrorMessage, scanLiveCertificate, snapshotFromAnalysis } from "./index.js";
+import {
+  analyzeUrl,
+  buildHistoryDiffFromSnapshots,
+  buildPostureManifest,
+  formatErrorMessage,
+  scanLiveCertificate,
+  snapshotFromAnalysis,
+} from "./index.js";
 import type { AnalysisResult, HistoryDiff, LiveCertificateResult, ScanIssue } from "./types.js";
 
-type OutputFormat = "json" | "markdown" | "summary" | "sarif" | "ci-json";
+const require = createRequire(import.meta.url);
+const corePackage = require("../package.json") as { version?: string };
+const CORE_ENGINE_VERSION = corePackage.version ?? null;
+
+type OutputFormat = "json" | "markdown" | "summary" | "sarif" | "ci-json" | "manifest";
 type FailOnSeverity = Exclude<ScanIssue["severity"], "good">;
 type ScanMode = "standard" | "quiet" | "deep-passive";
 type CertPolicyProfile = "production" | "strict" | "renewal-watch";
@@ -54,7 +66,7 @@ type ParsedArgs =
 const usage = `SecURL CLI
 
 Usage:
-  securl scan <target...> [--format json|markdown|summary|sarif|ci-json] [--baseline <report.json>] [--output <file>] [--quiet|--deep-passive] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
+  securl scan <target...> [--format json|markdown|summary|sarif|ci-json|manifest] [--baseline <report.json>] [--output <file>] [--quiet|--deep-passive] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
   securl compare <current-report.json> <baseline-report.json> [--format json|markdown|summary|sarif|ci-json] [--output <file>] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
   securl cert <target> [--format json|markdown|summary|ci-json] [--output <file>] [--policy production|strict|renewal-watch] [--fail-if-invalid] [--fail-if-expiring-within <days>] [--fail-if-legacy-tls] [--expect-issuer <text>]
 
@@ -64,6 +76,7 @@ Examples:
   npx securl scan https://example.com --format markdown
   npx securl scan example.com --format sarif --output findings.sarif
   npx securl scan example.com --format ci-json --output ci.json
+  npx securl scan example.com --format manifest --output posture-manifest.json
   npx securl scan example.com --format json --output report.json
   npx securl scan example.com --quiet
   npx securl scan example.com --deep-passive
@@ -167,8 +180,8 @@ const parseArgs = (argv: string[]): ParsedArgs => {
 
     if (arg === "--format") {
       const value = args[index + 1];
-      if (!value || !["json", "markdown", "summary", "sarif", "ci-json"].includes(value)) {
-        throw new Error("Invalid --format value. Use json, markdown, summary, sarif, or ci-json.");
+      if (!value || !["json", "markdown", "summary", "sarif", "ci-json", "manifest"].includes(value)) {
+        throw new Error("Invalid --format value. Use json, markdown, summary, sarif, ci-json, or manifest.");
       }
       format = value as OutputFormat;
       index += 1;
@@ -324,7 +337,7 @@ const parseArgs = (argv: string[]): ParsedArgs => {
     if (unexpected) {
       throw new Error("Certificate checks support one target at a time.");
     }
-    if (format === "sarif") {
+    if (format === "sarif" || format === "manifest") {
       throw new Error("Certificate checks support summary, json, markdown, or ci-json output.");
     }
     if (baselinePath || failOnSeverity || failOnRegression || failIfScoreBelow !== null) {
@@ -345,6 +358,9 @@ const parseArgs = (argv: string[]): ParsedArgs => {
 
   if (certPolicyActive(certPolicy)) {
     throw new Error("Certificate policy options are only supported by the cert command.");
+  }
+  if (format === "manifest") {
+    throw new Error("Manifest output is only supported by the scan command.");
   }
 
   const [currentPath, compareBaselinePath] = positionals;
@@ -935,9 +951,24 @@ const buildSarifLog = (
   };
 };
 
-const renderSingleOutput = (analysis: AnalysisResult, format: OutputFormat, diff: HistoryDiff | null = null) => {
+const buildCliManifest = (analysis: AnalysisResult, scanMode: ScanMode) =>
+  buildPostureManifest(analysis, {
+    engineVersion: CORE_ENGINE_VERSION,
+    scanMode,
+    policySource: "default",
+  });
+
+const renderSingleOutput = (
+  analysis: AnalysisResult,
+  format: OutputFormat,
+  diff: HistoryDiff | null = null,
+  scanMode: ScanMode = "standard",
+) => {
   if (format === "json") {
     return `${JSON.stringify(diff ? { analysis, diff } : analysis, null, 2)}\n`;
+  }
+  if (format === "manifest") {
+    return `${JSON.stringify({ postureManifest: buildCliManifest(analysis, scanMode) }, null, 2)}\n`;
   }
   if (format === "sarif") {
     return `${JSON.stringify(buildSarifLog([analysis]), null, 2)}\n`;
@@ -948,9 +979,12 @@ const renderSingleOutput = (analysis: AnalysisResult, format: OutputFormat, diff
   return `${formatSummary(analysis, diff)}\n`;
 };
 
-const renderBatchOutput = (analyses: AnalysisResult[], format: OutputFormat) => {
+const renderBatchOutput = (analyses: AnalysisResult[], format: OutputFormat, scanMode: ScanMode = "standard") => {
   if (format === "json") {
     return `${JSON.stringify({ analyses }, null, 2)}\n`;
+  }
+  if (format === "manifest") {
+    return `${JSON.stringify({ manifests: analyses.map((analysis) => buildCliManifest(analysis, scanMode)) }, null, 2)}\n`;
   }
   if (format === "sarif") {
     return `${JSON.stringify(buildSarifLog(analyses), null, 2)}\n`;
@@ -1071,7 +1105,7 @@ const main = async () => {
             2,
           )}\n`;
         } else {
-          output = renderSingleOutput(analysis, parsed.format, diff);
+          output = renderSingleOutput(analysis, parsed.format, diff, parsed.scanMode);
         }
       } else {
         policyMessages = formatPolicyFailureMessages(analyses, {
@@ -1103,7 +1137,7 @@ const main = async () => {
             2,
           )}\n`;
         } else {
-          output = renderBatchOutput(analyses, parsed.format);
+          output = renderBatchOutput(analyses, parsed.format, parsed.scanMode);
         }
       }
 

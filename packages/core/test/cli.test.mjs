@@ -8,6 +8,51 @@ import { promisify } from "node:util";
 
 const execFile = promisify(execFileCallback);
 const cliPath = new URL("../dist/cli.js", import.meta.url).pathname;
+const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+
+test("CLI scan command writes posture manifest output", async () => {
+  const tempDir = await mkdtemp(join(tmpdir(), "epi-cli-"));
+  const outputPath = join(tempDir, "manifest.json");
+
+  await execFile(process.execPath, [
+    cliPath,
+    "scan",
+    "http://example.com",
+    "--quiet",
+    "--format",
+    "manifest",
+    "--output",
+    outputPath,
+  ]);
+  const output = JSON.parse(await readFile(outputPath, "utf8"));
+
+  assert.equal(output.postureManifest.version, "1.0");
+  assert.match(output.postureManifest.manifestId, /^pm_[a-f0-9]{24}$/);
+  assert.equal(output.postureManifest.engine.name, "securl");
+  assert.equal(output.postureManifest.engine.version, packageJson.version);
+  assert.equal(output.postureManifest.target.host, "example.com");
+  assert.equal(output.postureManifest.scan.mode, "quiet");
+  assert.equal(typeof output.postureManifest.posture.score, "number");
+  assert.ok(output.postureManifest.checks.observationLedger.observations.length > 0);
+  assert.equal(output.postureManifest.policy.evaluation.version, "1.0");
+});
+
+test("CLI scan command writes batched posture manifest output", async () => {
+  const { stdout } = await execFile(process.execPath, [
+    cliPath,
+    "scan",
+    "http://example.com",
+    "http://example.org",
+    "--quiet",
+    "--format",
+    "manifest",
+  ]);
+  const output = JSON.parse(stdout);
+
+  assert.equal(output.manifests.length, 2);
+  assert.deepEqual(output.manifests.map((manifest) => manifest.target.host).sort(), ["example.com", "example.org"]);
+  assert.ok(output.manifests.every((manifest) => manifest.scan.mode === "quiet"));
+});
 
 test("CLI cert command renders a fast certificate summary", async () => {
   const { stdout } = await execFile(process.execPath, [cliPath, "cert", "http://example.com"]);
@@ -152,6 +197,14 @@ test("CLI cert command rejects scan-only output and scan policy options", async 
       return true;
     },
   );
+
+  await assert.rejects(
+    execFile(process.execPath, [cliPath, "cert", "example.com", "--format", "manifest"]),
+    (error) => {
+      assert.match(error.stderr, /Certificate checks support summary, json, markdown, or ci-json output\./);
+      return true;
+    },
+  );
 });
 
 test("CLI rejects malformed certificate policy options", async () => {
@@ -222,6 +275,41 @@ test("CLI compare command renders a diff summary from saved reports", async () =
   assert.match(stdout, /Current: https:\/\/example.com/);
   assert.match(stdout, /Baseline: https:\/\/example.com/);
   assert.match(stdout, /Score change: 80\/100 \(B\) -> 72\/100 \(C\)/);
+});
+
+test("CLI compare command rejects manifest output", async () => {
+  const tempDir = await mkdtemp(join(tmpdir(), "epi-cli-"));
+  const baselinePath = join(tempDir, "baseline.json");
+  const currentPath = join(tempDir, "current.json");
+  const baseline = {
+    inputUrl: "https://example.com",
+    finalUrl: "https://example.com",
+    host: "example.com",
+    scannedAt: "2026-04-16T08:00:00.000Z",
+    score: 90,
+    grade: "A",
+    statusCode: 200,
+    responseTimeMs: 120,
+    certificate: { daysRemaining: 30 },
+    thirdPartyTrust: { providers: [] },
+    aiSurface: { vendors: [] },
+    identityProvider: { provider: null },
+    wafFingerprint: { providers: [] },
+    ctDiscovery: { prioritizedHosts: [] },
+    headers: [],
+    issues: [],
+  };
+  const current = { ...baseline, scannedAt: "2026-04-16T09:00:00.000Z" };
+  await writeFile(baselinePath, JSON.stringify(baseline), "utf8");
+  await writeFile(currentPath, JSON.stringify(current), "utf8");
+
+  await assert.rejects(
+    execFile(process.execPath, [cliPath, "compare", currentPath, baselinePath, "--format", "manifest"]),
+    (error) => {
+      assert.match(error.stderr, /Manifest output is only supported by the scan command\./);
+      return true;
+    },
+  );
 });
 
 test("CLI compare command writes structured JSON output", async () => {

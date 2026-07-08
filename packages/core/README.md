@@ -518,6 +518,7 @@ npx securl scan example.com --format json
 npx securl scan example.com --format markdown
 npx securl scan example.com --format sarif
 npx securl scan example.com --format ci-json
+npx securl scan example.com --format manifest
 ```
 
 Fast certificate checks:
@@ -534,7 +535,7 @@ npx securl cert example.com --format markdown --output certificate.md
 
 `securl cert` performs a bounded TLS handshake only. It is useful for Cert Watch-style automation, release checks, and lightweight inventory tasks where a full posture scan would be unnecessary.
 
-The CLI writes machine-readable report output to stdout, and lightweight multi-target progress to stderr only when running interactively. This keeps JSON/SARIF output pipe-friendly.
+The CLI writes machine-readable report output to stdout, and lightweight multi-target progress to stderr only when running interactively. This keeps JSON/SARIF/manifest output pipe-friendly. Use `--format manifest` when CI, self-hosted monitoring, or evidence archives need the same Posture Manifest v1 recipe card exposed by the hosted API.
 
 Scan modes:
 
@@ -570,6 +571,7 @@ Write results to a file:
 
 ```bash
 npx securl scan example.com --format json --output report.json
+npx securl scan example.com --format manifest --output posture-manifest.json
 ```
 
 Compare against a previously saved JSON report:
