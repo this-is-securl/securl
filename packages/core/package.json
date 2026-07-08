@@ -59,6 +59,10 @@
       "types": "./dist/postureDigest.d.ts",
       "default": "./dist/postureDigest.js"
     },
+    "./posture-manifest": {
+      "types": "./dist/postureManifest.d.ts",
+      "default": "./dist/postureManifest.js"
+    },
     "./posture-drift": {
       "types": "./dist/postureDrift.d.ts",
       "default": "./dist/postureDrift.js"

@@ -9,6 +9,7 @@ const execFile = promisify(execFileCallback);
 test("package surface exports expected public functions", async () => {
   const pkg = await import("../dist/index.js");
   const postureDigest = await import("../dist/postureDigest.js");
+  const postureManifest = await import("../dist/postureManifest.js");
   const postureDrift = await import("../dist/postureDrift.js");
   const remediationPlan = await import("../dist/postureRemediation.js");
   const evidenceQuality = await import("../dist/evidenceQuality.js");
@@ -33,6 +34,8 @@ test("package surface exports expected public functions", async () => {
   assert.equal(typeof pkg.buildPostureRiskEventsFromDiff, "function");
   assert.equal(typeof pkg.buildPostureDigest, "function");
   assert.equal(typeof postureDigest.buildPostureDigest, "function");
+  assert.equal(typeof pkg.buildPostureManifest, "function");
+  assert.equal(typeof postureManifest.buildPostureManifest, "function");
   assert.equal(typeof pkg.buildPostureDriftReportFromSnapshots, "function");
   assert.equal(typeof postureDrift.buildPostureDriftReportFromSnapshots, "function");
   assert.equal(typeof pkg.buildPostureRemediationPlan, "function");
@@ -107,6 +110,7 @@ test("package surface exposes both long and short CLI binary names", async () =>
   assert.equal(packageJson.bin.epi, "dist/cli.js");
   assert.equal(packageJson.bin["external-posture-insight"], "dist/cli.js");
   assert.equal(packageJson.exports["./monitoring-events"].default, "./dist/monitoringEvents.js");
+  assert.equal(packageJson.exports["./posture-manifest"].default, "./dist/postureManifest.js");
 });
 
 test("library risk lookups use the shared scanner transport rather than raw fetch", async () => {

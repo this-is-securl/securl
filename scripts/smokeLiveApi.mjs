@@ -88,6 +88,10 @@ function assertCapabilities(payload) {
     "GET /api/scans/:id/action-plan",
     "GET /api/scans/:id/events",
     "GET /api/scans/:id/evidence",
+    "GET /api/scans/:id/observations",
+    "GET /api/scans/:id/observation-drift",
+    "GET /api/scans/:id/policy-evaluation",
+    "GET /api/scans/:id/manifest",
     "GET /api/scans/:id/history",
     "GET /api/scans/:id/comparison",
     "GET /api/scans/:id/drift",
@@ -105,7 +109,7 @@ function assertCapabilities(payload) {
     }
   }
 
-  for (const feature of ["evidence-summary", "evidence-quality", "posture-digest", "posture-insights", "mobile-scan-summary", "posture-drift", "exposure-brief", "vendor-exposure", "action-plan", "scan-events", "scan-resource-links", "durable-scan-jobs", "observation-ledger-v1", "observation-drift-v1", "observation-policy-v1"]) {
+  for (const feature of ["evidence-summary", "evidence-quality", "posture-digest", "posture-insights", "mobile-scan-summary", "posture-drift", "exposure-brief", "vendor-exposure", "action-plan", "scan-events", "scan-resource-links", "durable-scan-jobs", "observation-ledger-v1", "observation-drift-v1", "observation-policy-v1", "posture-manifest-v1"]) {
     if (!features.includes(feature)) {
       throw new Error(`Capabilities missing scan feature: ${feature}`);
     }
@@ -152,6 +156,7 @@ function assertScanResourceLinks(payload, scanId) {
     observations: `/api/scans/${scanId}/observations`,
     observationDrift: `/api/scans/${scanId}/observation-drift`,
     policyEvaluation: `/api/scans/${scanId}/policy-evaluation`,
+    manifest: `/api/scans/${scanId}/manifest`,
     history: `/api/scans/${scanId}/history`,
     comparison: `/api/scans/${scanId}/comparison`,
     drift: `/api/scans/${scanId}/drift`,
@@ -246,6 +251,7 @@ async function main() {
     ["observations", `/api/scans/${encodeURIComponent(scanId)}/observations`, ownerHeaders],
     ["observation-drift", `/api/scans/${encodeURIComponent(scanId)}/observation-drift`, ownerHeaders],
     ["policy-evaluation", `/api/scans/${encodeURIComponent(scanId)}/policy-evaluation`, ownerHeaders],
+    ["manifest", `/api/scans/${encodeURIComponent(scanId)}/manifest`, ownerHeaders],
     ["history", `/api/scans/${encodeURIComponent(scanId)}/history`, ownerHeaders],
     ["comparison", `/api/scans/${encodeURIComponent(scanId)}/comparison`, ownerHeaders],
     ["drift", `/api/scans/${encodeURIComponent(scanId)}/drift`, ownerHeaders],
@@ -291,6 +297,12 @@ async function main() {
     }
     if (label === "policy-evaluation" && !payload.policyEvaluation?.summary) {
       throw new Error("Policy evaluation endpoint returned no evaluation summary");
+    }
+    if (label === "manifest" && !payload.postureManifest?.checks?.observationLedger?.observations?.length) {
+      throw new Error("Manifest endpoint returned no observation ledger");
+    }
+    if (label === "manifest" && !payload.postureManifest?.policy?.evaluation?.summary) {
+      throw new Error("Manifest endpoint returned no policy evaluation");
     }
     if (label === "share" && !payload.scan?.result) {
       throw new Error("Share endpoint returned an empty scan result");

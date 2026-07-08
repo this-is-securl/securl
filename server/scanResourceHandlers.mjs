@@ -55,6 +55,7 @@ export function buildScanResourceLinks(scanId) {
     observations: `${basePath}/observations`,
     observationDrift: `${basePath}/observation-drift`,
     policyEvaluation: `${basePath}/policy-evaluation`,
+    manifest: `${basePath}/manifest`,
     history: `${basePath}/history`,
     comparison: `${basePath}/comparison`,
     drift: `${basePath}/drift`,
@@ -516,6 +517,7 @@ export async function handleScanResourceRequest({
   buildScanDriftPayload,
   buildScanObservationDriftPayload,
   buildScanPolicyEvaluationPayload,
+  buildScanManifestPayload,
   buildScanShareCardPayload,
   sendBody,
   sendJson,
@@ -759,6 +761,32 @@ export async function handleScanResourceRequest({
       const target = targets.find((candidate) => (candidate.kind ?? "posture") === "posture"
         && (candidate.url === scan.url || candidate.url === scan.result.finalUrl));
       sendJson(response, 200, buildScanPolicyEvaluationPayload(
+        scan,
+        records,
+        target?.observationPolicy ?? null,
+        target?.observationPolicy ? "monitoring_target" : "default",
+      ));
+      return true;
+    }
+
+    if (resource === "manifest") {
+      if (scan.status !== "completed" || !scan.result) {
+        sendJson(response, 409, {
+          error: "Posture manifest is only available once the scan has completed.",
+        });
+        return true;
+      }
+      const [records, targets] = await Promise.all([
+        scanRepository.listPersistedRecords({
+          limit: clampLimit(requestUrl.searchParams.get("limit"), 20, 100),
+          ownerId: authState.ownerId,
+          url: scan.url,
+        }),
+        scanRepository.listMonitoringTargets({ ownerId: authState.ownerId, limit: 250 }),
+      ]);
+      const target = targets.find((candidate) => (candidate.kind ?? "posture") === "posture"
+        && (candidate.url === scan.url || candidate.url === scan.result.finalUrl));
+      sendJson(response, 200, buildScanManifestPayload(
         scan,
         records,
         target?.observationPolicy ?? null,
