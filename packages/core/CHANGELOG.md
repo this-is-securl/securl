@@ -6,11 +6,13 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
-### Added
-- Added `securl scan --format manifest` so CLI and CI users can emit Posture Manifest v1 directly from local scans.
-
 ### Backend and docs
 - Added protected product-pulse telemetry and optional release-channel attribution for hosted/mobile clients. These are backend/API-service changes and do not change the published `securl` package surface.
+
+## [1.21.0] - 2026-07-08
+
+### Added
+- Added `securl scan --format manifest` so CLI and CI users can emit Posture Manifest v1 directly from local scans.
 
 ## [1.20.0] - 2026-07-08
 
