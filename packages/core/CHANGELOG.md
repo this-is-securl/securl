@@ -9,6 +9,12 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 ### Backend and docs
 - Added protected product-pulse telemetry and optional release-channel attribution for hosted/mobile clients. These are backend/API-service changes and do not change the published `securl` package surface.
 
+## [1.20.0] - 2026-07-08
+
+### Added
+- Added Posture Manifest v1 through `buildPostureManifest()` and the `securl/posture-manifest` package subpath.
+- The manifest acts as a machine-readable external security recipe card for CI, audit, reporting, mobile, and future policy workflows: target metadata, scan mode/timing, score drivers, observation ledger, skipped assessment context, evidence quality, signal clarity, engine version, and policy evaluation.
+
 ## [1.19.0] - 2026-07-04
 
 ### Added
