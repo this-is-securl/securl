@@ -1,4 +1,5 @@
-import { Activity, Clock3, Layers3, Sparkles } from "lucide-react";
+import { Activity, BookOpen, Clock3, Code2, GitBranch, Layers3, Package, Sparkles } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { GRADE_PALETTE } from "@/components/SecurityGrade";
 import { toast } from "sonner";
 import { AuthCard } from "@/components/AuthCard";
@@ -31,6 +32,40 @@ const sampleChipStyle = (sev: HeroSampleChip["sev"]) => {
     return { background: "rgba(217,119,6,0.10)", borderColor: "rgba(217,119,6,0.25)", color: "#fbbf24" };
   return { background: "rgba(100,116,139,0.08)", borderColor: "rgba(100,116,139,0.20)", color: "#94a3b8" };
 };
+
+interface EngineLink {
+  icon: LucideIcon;
+  label: string;
+  detail: string;
+  href: string;
+}
+
+const ENGINE_LINKS: EngineLink[] = [
+  {
+    icon: Package,
+    label: "npm package",
+    detail: "Run securl in CLI, CI, or Node.",
+    href: "https://www.npmjs.com/package/securl",
+  },
+  {
+    icon: BookOpen,
+    label: "Integrator docs",
+    detail: "API resources, manifests, and client flows.",
+    href: "https://github.com/this-is-securl/securl/blob/main/docs/API-INTEGRATION-GUIDE.md",
+  },
+  {
+    icon: Code2,
+    label: "Safety model",
+    detail: "Passive boundary and hosted API controls.",
+    href: "https://github.com/this-is-securl/securl/blob/main/docs/ARCHITECTURE-SAFETY.md",
+  },
+  {
+    icon: GitBranch,
+    label: "Source code",
+    detail: "MIT licensed engine and web app.",
+    href: "https://github.com/this-is-securl/securl",
+  },
+];
 
 const HeroPreviewCard = () => {
   const palette = GRADE_PALETTE[HERO_SAMPLE.grade] ?? GRADE_PALETTE.U;
@@ -454,7 +489,45 @@ const Index = () => {
               <CapabilityStrip />
             </section>
 
-            {/* 4 — Account + history section */}
+            {/* 4 — Engine and integration links */}
+            <section className="rounded-[1.75rem] border border-white/8 bg-white/3 px-4 py-8 shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] sm:px-8 sm:py-10">
+              <div className="grid gap-7 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
+                <div>
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#d89a63]">
+                    Engine first
+                  </p>
+                  <h2 className="text-2xl font-black tracking-[-0.04em] text-white sm:text-3xl">
+                    One engine behind every surface
+                  </h2>
+                  <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-300">
+                    Use the same passive posture intelligence from the hosted scanner,
+                    npm package, CI jobs, API clients, and mobile apps.
+                  </p>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {ENGINE_LINKS.map(({ icon: Icon, label, detail, href }) => (
+                    <a
+                      key={label}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group flex min-h-24 items-start gap-3 rounded-[1.15rem] border border-white/[0.07] bg-zinc-950/35 p-4 text-left transition-colors duration-200 hover:border-[#b56a2c]/35 hover:bg-[#b56a2c]/8"
+                    >
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.75rem] bg-[#b56a2c]/12 text-[#d89a63] transition-colors group-hover:bg-[#b56a2c]/18">
+                        <Icon className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                      <span>
+                        <span className="block text-sm font-bold text-zinc-100">{label}</span>
+                        <span className="mt-1 block text-xs leading-5 text-zinc-400">{detail}</span>
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* 5 — Account + history section */}
             <section>
               <div className="mb-6">
                 <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">
@@ -567,7 +640,7 @@ const Index = () => {
               </div>
             </section>
 
-            {/* 5 — Mobile apps */}
+            {/* 6 — Mobile apps */}
             <section className="rounded-[1.75rem] border border-white/8 bg-white/3 px-4 py-8 shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] sm:px-8 sm:py-10">
               <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:justify-between sm:text-left">
                 <div className="space-y-1.5">

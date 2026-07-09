@@ -167,6 +167,8 @@ That makes it much easier to:
 - support the hosted web app, iOS suite, CLI, and future clients from the same backend/API shape
 - keep the scanner logic reusable in CLI and service contexts
 
+For a reviewer-friendly explanation of the passive boundary, hosted API safety controls, privacy posture, and integration model, read [docs/ARCHITECTURE-SAFETY.md](docs/ARCHITECTURE-SAFETY.md).
+
 ## Roadmap
 
 SecURL is growing from a one-shot scanner into a public security posture intelligence layer across CLI, CI/CD, API, web, and mobile.
@@ -193,7 +195,7 @@ Sponsorship helps fund continued work on the passive analysis engine, hosted sca
 
 ## Package status
 
-- Latest package target: `securl@1.19.0`
+- Latest package target: `securl@1.21.0`
 - Previous package name: `@ktbatterham/external-posture-core` is deprecated in favour of `securl`
 - npm tag: `latest`
 - Package signal check: `npm run package:signals`
@@ -205,7 +207,10 @@ For the deeper operational and architecture material, go straight to:
 
 - [Product roadmap](docs/PRODUCT-ROADMAP.md)
 - [Architecture view (C4)](docs/ARCHITECTURE-C4.md)
+- [Architecture and safety truth](docs/ARCHITECTURE-SAFETY.md)
+- [API integration guide](docs/API-INTEGRATION-GUIDE.md)
 - [Backend API split-hosting notes](docs/BACKEND-API.md)
+- [Consumer API map](docs/CONSUMER-API-MAP.md)
 - [Public deploy checklist](docs/PUBLIC-DEPLOY-CHECKLIST.md)
 - [iOS-capable backend notes](docs/IOS-CAPABLE-BACKEND.md)
 - [Abuse and alerting notes](docs/ABUSE-ALERTING.md)
