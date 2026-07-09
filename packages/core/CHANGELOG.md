@@ -9,6 +9,12 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 ### Backend and docs
 - Added protected product-pulse telemetry and optional release-channel attribution for hosted/mobile clients. These are backend/API-service changes and do not change the published `securl` package surface.
 
+## [1.22.0] - 2026-07-09
+
+### Added
+- Added `POSTURE_MANIFEST_SCHEMA` through the root package and `securl/posture-manifest` so consumers can validate Posture Manifest v1 artifacts.
+- Added `securl schema manifest` to print or write the JSON Schema contract without running a scan.
+
 ## [1.21.0] - 2026-07-08
 
 ### Added

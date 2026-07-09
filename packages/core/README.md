@@ -327,14 +327,27 @@ Use `evaluateObservationPolicy({ ledger, drift, policy })` from `securl/observat
 
 Use `buildPostureManifest(result)` from `securl/posture-manifest` to produce a machine-readable external posture manifest. This is SecURL's SBOM-adjacent "recipe card" for what a public target exposes from the outside: target metadata, scan mode and timing, score drivers, observation ledger, skipped assessment context, evidence quality, signal clarity, and policy evaluation.
 
+Version `1.22.0+` exports `POSTURE_MANIFEST_SCHEMA` and the CLI command `securl schema manifest`, giving CI systems and consumers a stable JSON Schema for validating stored posture manifests.
+
 ```js
 import { analyzeTarget } from "securl";
-import { buildPostureManifest } from "securl/posture-manifest";
+import {
+  buildPostureManifest,
+  POSTURE_MANIFEST_SCHEMA,
+} from "securl/posture-manifest";
 
 const result = await analyzeTarget("https://example.com", { scanMode: "quiet" });
-const manifest = buildPostureManifest(result, { engineVersion: "1.20.0" });
+const manifest = buildPostureManifest(result, { engineVersion: "1.22.0" });
 
-console.log(manifest.manifestId, manifest.policy.evaluation.passed);
+console.log(
+  manifest.manifestId,
+  manifest.policy.evaluation.passed,
+  POSTURE_MANIFEST_SCHEMA.$id,
+);
+```
+
+```sh
+npx securl schema manifest --output posture-manifest.schema.json
 ```
 
 ### 12. Evidence-backed remediation plans
@@ -519,6 +532,7 @@ npx securl scan example.com --format markdown
 npx securl scan example.com --format sarif
 npx securl scan example.com --format ci-json
 npx securl scan example.com --format manifest
+npx securl schema manifest
 ```
 
 Fast certificate checks:
@@ -535,7 +549,7 @@ npx securl cert example.com --format markdown --output certificate.md
 
 `securl cert` performs a bounded TLS handshake only. It is useful for Cert Watch-style automation, release checks, and lightweight inventory tasks where a full posture scan would be unnecessary.
 
-The CLI writes machine-readable report output to stdout, and lightweight multi-target progress to stderr only when running interactively. This keeps JSON/SARIF/manifest output pipe-friendly. Use `--format manifest` when CI, self-hosted monitoring, or evidence archives need the same Posture Manifest v1 recipe card exposed by the hosted API.
+The CLI writes machine-readable report output to stdout, and lightweight multi-target progress to stderr only when running interactively. This keeps JSON/SARIF/manifest output pipe-friendly. Use `--format manifest` when CI, self-hosted monitoring, or evidence archives need the same Posture Manifest v1 recipe card exposed by the hosted API. Use `securl schema manifest` when downstream tools need the JSON Schema contract without running a scan.
 
 Scan modes:
 
@@ -572,6 +586,7 @@ Write results to a file:
 ```bash
 npx securl scan example.com --format json --output report.json
 npx securl scan example.com --format manifest --output posture-manifest.json
+npx securl schema manifest --output posture-manifest.schema.json
 ```
 
 Compare against a previously saved JSON report:

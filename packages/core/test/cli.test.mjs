@@ -10,6 +10,56 @@ const execFile = promisify(execFileCallback);
 const cliPath = new URL("../dist/cli.js", import.meta.url).pathname;
 const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 
+test("CLI schema command prints the posture manifest JSON Schema", async () => {
+  const { stdout } = await execFile(process.execPath, [cliPath, "schema", "manifest"]);
+  const output = JSON.parse(stdout);
+
+  assert.equal(output.$id, "https://securl.online/schemas/posture-manifest-v1.json");
+  assert.equal(output.title, "SecURL Posture Manifest v1");
+  assert.equal(output.properties.version.const, "1.0");
+  assert.deepEqual(output.required, [
+    "version",
+    "manifestId",
+    "generatedAt",
+    "engine",
+    "target",
+    "scan",
+    "posture",
+    "checks",
+    "evidence",
+    "policy",
+  ]);
+});
+
+test("CLI schema command writes the posture manifest JSON Schema", async () => {
+  const tempDir = await mkdtemp(join(tmpdir(), "epi-cli-"));
+  const outputPath = join(tempDir, "posture-manifest.schema.json");
+
+  await execFile(process.execPath, [cliPath, "schema", "manifest", "--output", outputPath]);
+  const output = JSON.parse(await readFile(outputPath, "utf8"));
+
+  assert.equal(output.$schema, "https://json-schema.org/draft/2020-12/schema");
+  assert.equal(output.properties.manifestId.pattern, "^pm_[a-f0-9]{24}$");
+});
+
+test("CLI schema command rejects scan-only options", async () => {
+  await assert.rejects(
+    execFile(process.execPath, [cliPath, "schema", "manifest", "--quiet"]),
+    (error) => {
+      assert.match(error.stderr, /Schema command only supports --output\./);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    execFile(process.execPath, [cliPath, "schema", "report"]),
+    (error) => {
+      assert.match(error.stderr, /Schema command supports exactly one target: securl schema manifest/);
+      return true;
+    },
+  );
+});
+
 test("CLI scan command writes posture manifest output", async () => {
   const tempDir = await mkdtemp(join(tmpdir(), "epi-cli-"));
   const outputPath = join(tempDir, "manifest.json");
