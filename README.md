@@ -51,6 +51,18 @@ Or run the engine directly:
 npx securl scan example.com
 ```
 
+## Current Engine Surface
+
+`securl@1.22.0` is the current npm package release. It includes:
+
+- `securl scan --format manifest` for generating Posture Manifest v1, SecURL's SBOM-adjacent external posture recipe card.
+- `securl schema manifest` for printing the JSON Schema contract without running a scan.
+- `POSTURE_MANIFEST_SCHEMA` from both `securl` and `securl/posture-manifest` for CI, evidence archives, vendor-risk tooling, and future reporting clients.
+- `securl cert` for fast TLS certificate checks without running a full posture scan.
+- Named certificate policy profiles for automation: `production`, `strict`, and `renewal-watch`.
+
+Read the package integration notes in [`packages/core/README.md`](packages/core/README.md) and the hosted API guide in [`docs/API-INTEGRATION-GUIDE.md`](docs/API-INTEGRATION-GUIDE.md).
+
 ## Why SecURL
 
 - Passive-first posture review without broad reconnaissance noise
