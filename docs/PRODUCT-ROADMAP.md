@@ -13,7 +13,7 @@ The roadmap is based on the signals now visible across the product system:
 - The `securl` npm package is getting meaningful weekly downloads, with provenance enabled and no install scripts.
 - The iOS apps have real backend activity, especially Cert Watch live certificate reads.
 - APNs delivery has been reliable in production, with zero observed failed or disabled-token delivery in recent telemetry.
-- The web landing page is useful for positioning, but mobile and npm currently show the clearest engagement signals.
+- The web landing page is now instrumented as a routing funnel, but mobile and npm currently show the clearest engagement signals.
 - The deprecated scoped package still receives residual downloads, which suggests historical discovery and automation paths are still alive.
 
 ## Current Operating Focus - July 2026
