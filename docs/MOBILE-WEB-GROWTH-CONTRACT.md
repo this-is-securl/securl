@@ -39,6 +39,38 @@ Suggested UI labels:
 - Header Watch: `Run full SecURL scan`
 - Cert Watch: `Check full site posture`
 
+## Landing Page Funnel
+
+`https://securl.online` now acts as the public routing surface for the product suite. It should make four paths obvious without requiring users to understand the repo structure:
+
+- Run a browser scan at `https://app.securl.online`
+- Install the iOS apps from the App Store
+- Download self-hosted Android APKs from `https://securl.online/downloads`
+- Use the npm engine at `https://www.npmjs.com/package/securl`
+
+Landing-page scanner links use:
+
+```text
+https://app.securl.online/?url={percentEncodedTargetUrl}&utm_source=securl_landing&utm_medium=web&utm_campaign=landing_scan
+```
+
+When no target URL is supplied, use:
+
+```text
+https://app.securl.online/?utm_source=securl_landing&utm_medium=web&utm_campaign=landing_open_app
+```
+
+Landing page handoff telemetry reuses the privacy-safe `handoff_started` event with modes such as:
+
+- `landing:hero_scan`
+- `landing:open_scanner`
+- `landing:ios_suite`
+- `landing:android_downloads`
+- `landing:npm`
+- `landing:footer_app`
+
+Local development records these events in a browser-local debug array instead of sending them to production telemetry, so QA does not distort live engagement.
+
 ## Public Report Sharing
 
 Use this when the mobile app has a completed `scanId` from the backend and wants to share a public read-only report.
