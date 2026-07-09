@@ -100,6 +100,12 @@ CLI users can produce the same artifact without the hosted API:
 npx securl scan https://example.com --format manifest --output posture-manifest.json
 ```
 
+Use the package schema when you need to validate stored manifests or wire the artifact into CI, evidence archives, or vendor-risk tooling:
+
+```sh
+npx securl schema manifest --output posture-manifest.schema.json
+```
+
 ## Monitoring Flow
 
 Register a target:

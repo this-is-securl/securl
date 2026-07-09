@@ -8,6 +8,7 @@ import {
   buildHistoryDiffFromSnapshots,
   buildPostureManifest,
   formatErrorMessage,
+  POSTURE_MANIFEST_SCHEMA,
   scanLiveCertificate,
   snapshotFromAnalysis,
 } from "./index.js";
@@ -34,6 +35,11 @@ type CertPolicySummary = CertPolicyOptions & {
 };
 type ParsedArgs =
   | { command: "help" }
+  | {
+      command: "schema";
+      schema: "manifest";
+      outputPath: string | null;
+    }
   | {
       command: "scan";
       targets: string[];
@@ -69,6 +75,7 @@ Usage:
   securl scan <target...> [--format json|markdown|summary|sarif|ci-json|manifest] [--baseline <report.json>] [--output <file>] [--quiet|--deep-passive] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
   securl compare <current-report.json> <baseline-report.json> [--format json|markdown|summary|sarif|ci-json] [--output <file>] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
   securl cert <target> [--format json|markdown|summary|ci-json] [--output <file>] [--policy production|strict|renewal-watch] [--fail-if-invalid] [--fail-if-expiring-within <days>] [--fail-if-legacy-tls] [--expect-issuer <text>]
+  securl schema manifest [--output <file>]
 
 Examples:
   npx securl scan example.com
@@ -77,6 +84,7 @@ Examples:
   npx securl scan example.com --format sarif --output findings.sarif
   npx securl scan example.com --format ci-json --output ci.json
   npx securl scan example.com --format manifest --output posture-manifest.json
+  npx securl schema manifest --output posture-manifest.schema.json
   npx securl scan example.com --format json --output report.json
   npx securl scan example.com --quiet
   npx securl scan example.com --deep-passive
@@ -155,7 +163,7 @@ const parseArgs = (argv: string[]): ParsedArgs => {
     return { command: "help" as const };
   }
 
-  if (!["scan", "compare", "cert"].includes(command)) {
+  if (!["scan", "compare", "cert", "schema"].includes(command)) {
     throw new Error(`Unknown command: ${command}`);
   }
 
@@ -300,6 +308,30 @@ const parseArgs = (argv: string[]): ParsedArgs => {
     }
 
     positionals.push(arg);
+  }
+
+  if (command === "schema") {
+    const [schema, unexpected] = positionals;
+    if (schema !== "manifest" || unexpected) {
+      throw new Error("Schema command supports exactly one target: securl schema manifest");
+    }
+    if (
+      format !== "summary"
+      || baselinePath
+      || failOnSeverity
+      || failOnRegression
+      || failIfScoreBelow !== null
+      || scanMode !== "standard"
+      || certPolicyActive(certPolicy)
+    ) {
+      throw new Error("Schema command only supports --output.");
+    }
+
+    return {
+      command: "schema",
+      schema,
+      outputPath,
+    };
   }
 
   if (command === "scan") {
@@ -1065,6 +1097,16 @@ const main = async () => {
 
     let output: string;
     let policyMessages: string[] = [];
+
+    if (parsed.command === "schema") {
+      output = `${JSON.stringify(POSTURE_MANIFEST_SCHEMA, null, 2)}\n`;
+      if (parsed.outputPath) {
+        await writeFile(parsed.outputPath, output, "utf8");
+      } else {
+        process.stdout.write(output);
+      }
+      return;
+    }
 
     if (parsed.command === "scan") {
       const analyses = await scanTargets(parsed);

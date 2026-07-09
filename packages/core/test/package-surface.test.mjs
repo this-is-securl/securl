@@ -36,6 +36,8 @@ test("package surface exports expected public functions", async () => {
   assert.equal(typeof postureDigest.buildPostureDigest, "function");
   assert.equal(typeof pkg.buildPostureManifest, "function");
   assert.equal(typeof postureManifest.buildPostureManifest, "function");
+  assert.equal(pkg.POSTURE_MANIFEST_SCHEMA.$id, "https://securl.online/schemas/posture-manifest-v1.json");
+  assert.equal(postureManifest.POSTURE_MANIFEST_SCHEMA.title, "SecURL Posture Manifest v1");
   assert.equal(typeof pkg.buildPostureDriftReportFromSnapshots, "function");
   assert.equal(typeof postureDrift.buildPostureDriftReportFromSnapshots, "function");
   assert.equal(typeof pkg.buildPostureRemediationPlan, "function");

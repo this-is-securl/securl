@@ -130,7 +130,7 @@ The path to `1.25` should make the current product thesis obvious:
 | `1.16.x`-`1.19` | Certificate, monitoring, and growth loop foundations | npm, backend, web, and mobile clients share stable posture, certificate, sharing, and telemetry primitives. |
 | `1.20` | Posture manifest v1 | Every scan can emit an external posture recipe card: checks run/skipped, evidence quality, signal clarity, engine version, timestamps, and policy profile. |
 | `1.21` | Policy Pack v1 | Built-in baseline, production, strict, and vendor-review profiles can evaluate observations and fail CLI/CI runs deterministically. |
-| `1.22` | Evidence-backed integrations | SARIF, CI JSON, Markdown, and future SBOM-adjacent exports carry evidence references, policy outcomes, and manifest metadata. |
+| `1.22` | Manifest schema contract | CI, evidence archives, and integrators can validate Posture Manifest v1 with the exported JSON Schema and `securl schema manifest`. |
 | `1.23` | External exposure intelligence | Reports better explain third-party, SRI, analytics, session replay, AI, visible vendors, and supply-chain posture. |
 | `1.24` | Monitoring explanations | Push and monitoring timelines explain what changed, why it matters, which policy moved, and what to do next. |
 | `1.25` | Mobile monitoring milestone | Cert Watch, Header Watch, and SecURL share a reliable, push-driven monitoring foundation with concise policy and manifest summaries. |

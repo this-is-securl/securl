@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-07-09 — core 1.22.0 posture manifest schema
+
+### Added
+
+- Added `POSTURE_MANIFEST_SCHEMA` to the root `securl` package and `securl/posture-manifest` subpath.
+- Added `securl schema manifest` so CI systems, evidence archives, and integrators can fetch the Posture Manifest v1 JSON Schema contract without running a scan.
+- Documented schema usage alongside the API integration guide and npm package README.
+
+### Verified
+
+- `npm run test:core`
+- `npm run lint -- --max-warnings=0`
+- `npm run build`
+
 ## 2026-07-08 — backend certificate monitoring policy profiles
 
 ### Added
