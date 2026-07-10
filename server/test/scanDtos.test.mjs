@@ -6,6 +6,7 @@ import {
   buildMonitoringMobileSummaryPayload,
   buildScanDriftPayload,
   buildScanObservationDriftPayload,
+  buildScanVendorsPayload,
 } from "../scanDtos.mjs";
 
 function buildAnalysisResult(overrides = {}) {
@@ -135,6 +136,45 @@ function buildCompletedRecord(id, resultOverrides = {}) {
     },
   };
 }
+
+test("vendor payload upgrades persisted pre-inventory scan results", () => {
+  const scan = buildCompletedRecord("legacy-vendors", {
+    vendorExposure: {
+      generatedAt: "2026-06-19T08:00:00.000Z",
+      risk: "low",
+      summary: "Legacy vendor brief.",
+      counts: { total: 0, high: 0, medium: 0, low: 0 },
+      providers: [],
+      highPriorityProviders: [],
+      issues: [],
+      strengths: [],
+      nextActions: [],
+      collectionBoundary: "Legacy boundary.",
+      limitation: null,
+    },
+  });
+
+  const payload = buildScanVendorsPayload(scan);
+
+  assert.equal(payload.vendors.schemaVersion, "1.0");
+  assert.ok(Array.isArray(payload.vendors.inventory));
+  assert.equal(typeof payload.vendors.inventoryCounts.total, "number");
+});
+
+test("vendor payload preserves current inventory scan results", () => {
+  const currentInventory = {
+    schemaVersion: "1.0",
+    inventory: [{ id: "exposure:service:example:example.com" }],
+    inventoryCounts: { total: 1 },
+  };
+  const scan = buildCompletedRecord("current-vendors", {
+    vendorExposure: currentInventory,
+  });
+
+  const payload = buildScanVendorsPayload(scan);
+
+  assert.equal(payload.vendors, currentInventory);
+});
 
 test("scan observation drift compares the selected scan with its predecessor", () => {
   const previous = buildCompletedRecord("previous", {

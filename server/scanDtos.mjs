@@ -860,6 +860,11 @@ export function buildScanBriefPayload(scan) {
 
 export function buildScanVendorsPayload(scan) {
   const result = scan.result;
+  const vendors = result
+    ? result.vendorExposure?.schemaVersion === "1.0"
+      ? result.vendorExposure
+      : buildVendorExposureBrief(result)
+    : null;
   return {
     apiVersion: API_VERSION,
     scan: {
@@ -870,7 +875,7 @@ export function buildScanVendorsPayload(scan) {
       requestedAt: scan.requestedAt,
       completedAt: scan.completedAt,
     },
-    vendors: result ? result.vendorExposure ?? buildVendorExposureBrief(result) : null,
+    vendors,
   };
 }
 
