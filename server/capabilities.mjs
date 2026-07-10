@@ -75,6 +75,7 @@ export function buildCapabilitiesPayload({
         "posture-drift",
         "exposure-brief",
         "vendor-exposure",
+        "external-exposure-inventory-v1",
         "action-plan",
         "scan-events",
         "scan-resource-links",

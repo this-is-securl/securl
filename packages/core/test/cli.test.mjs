@@ -104,6 +104,23 @@ test("CLI scan command writes batched posture manifest output", async () => {
   assert.ok(output.manifests.every((manifest) => manifest.scan.mode === "quiet"));
 });
 
+test("CLI scan command writes the external exposure inventory", async () => {
+  const { stdout } = await execFile(process.execPath, [
+    cliPath,
+    "scan",
+    "http://example.com",
+    "--quiet",
+    "--format",
+    "exposure",
+  ]);
+  const output = JSON.parse(stdout);
+
+  assert.equal(output.externalExposure.schemaVersion, "1.0");
+  assert.ok(Array.isArray(output.externalExposure.inventory));
+  assert.equal(typeof output.externalExposure.inventoryCounts.total, "number");
+  assert.equal(typeof output.externalExposure.collectionBoundary, "string");
+});
+
 test("CLI cert command renders a fast certificate summary", async () => {
   const { stdout } = await execFile(process.execPath, [cliPath, "cert", "http://example.com"]);
 
@@ -255,6 +272,14 @@ test("CLI cert command rejects scan-only output and scan policy options", async 
       return true;
     },
   );
+
+  await assert.rejects(
+    execFile(process.execPath, [cliPath, "cert", "example.com", "--format", "exposure"]),
+    (error) => {
+      assert.match(error.stderr, /Certificate checks support summary, json, markdown, or ci-json output\./);
+      return true;
+    },
+  );
 });
 
 test("CLI rejects malformed certificate policy options", async () => {
@@ -327,7 +352,7 @@ test("CLI compare command renders a diff summary from saved reports", async () =
   assert.match(stdout, /Score change: 80\/100 \(B\) -> 72\/100 \(C\)/);
 });
 
-test("CLI compare command rejects manifest output", async () => {
+test("CLI compare command rejects scan-only outputs", async () => {
   const tempDir = await mkdtemp(join(tmpdir(), "epi-cli-"));
   const baselinePath = join(tempDir, "baseline.json");
   const currentPath = join(tempDir, "current.json");
@@ -356,7 +381,15 @@ test("CLI compare command rejects manifest output", async () => {
   await assert.rejects(
     execFile(process.execPath, [cliPath, "compare", currentPath, baselinePath, "--format", "manifest"]),
     (error) => {
-      assert.match(error.stderr, /Manifest output is only supported by the scan command\./);
+      assert.match(error.stderr, /Manifest and exposure output are only supported by the scan command\./);
+      return true;
+    },
+  );
+
+  await assert.rejects(
+    execFile(process.execPath, [cliPath, "compare", currentPath, baselinePath, "--format", "exposure"]),
+    (error) => {
+      assert.match(error.stderr, /Manifest and exposure output are only supported by the scan command\./);
       return true;
     },
   );

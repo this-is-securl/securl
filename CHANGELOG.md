@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-07-10 — core 1.23.0 external exposure inventory
+
+### Added
+
+- Added External Exposure Inventory v1 with stable IDs for third-party, infrastructure, identity, and AI provider signals.
+- Added data-flow, SRI integrity, confidence, evidence, review-priority, and inventory-count context to the existing vendor brief and hosted `/vendors` resource.
+- Added `buildExternalExposureInventory()`, the `securl/exposure-inventory` subpath, and `securl scan --format exposure`.
+- Advertised the additive `external-exposure-inventory-v1` capability without changing released web or mobile contracts.
+
+### Verified
+
+- `npm run test:core`
+- `npm run test:server`
+- `npm run test:app:unit`
+- `npm run lint -- --max-warnings=0`
+- `npm run release:package:check`
+
 ## 2026-07-09 — core 1.22.0 posture manifest schema
 
 ### Added

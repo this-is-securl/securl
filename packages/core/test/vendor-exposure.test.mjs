@@ -63,6 +63,32 @@ function buildAnalysis(overrides = {}) {
         },
       ],
     },
+    infrastructure: {
+      providers: [
+        {
+          provider: "Cloudflare",
+          category: "edge",
+          confidence: "high",
+          source: "headers",
+          evidence: "cf-ray response header",
+        },
+      ],
+      waf: {
+        detected: true,
+        provider: "Cloudflare",
+        confidence: "high",
+        evidence: "Observed Cloudflare edge headers.",
+      },
+    },
+    identityProvider: {
+      detected: true,
+      provider: "Okta",
+      protocol: "oidc",
+      redirectOrigins: ["https://example.okta.com"],
+      openIdConfigurationUrl: "https://example.okta.com/.well-known/openid-configuration",
+      issuer: "https://example.okta.com",
+      authorizationEndpoint: "https://example.okta.com/oauth2/v1/authorize",
+    },
     assessmentLimitation: {
       limited: false,
       kind: null,
@@ -77,6 +103,7 @@ test("vendor exposure brief prioritizes high-risk providers and data flows", () 
   const brief = buildVendorExposureBrief(buildAnalysis());
 
   assert.equal(brief.risk, "high");
+  assert.equal(brief.schemaVersion, "1.0");
   assert.equal(brief.counts.totalProviders, 4);
   assert.equal(brief.counts.highRiskProviders, 2);
   assert.equal(brief.counts.mediumRiskProviders, 1);
@@ -88,6 +115,28 @@ test("vendor exposure brief prioritizes high-risk providers and data flows", () 
   assert.equal(brief.providers[0].reviewPriority, "urgent");
   assert.ok(brief.highPriorityProviders.some((provider) => provider.name === "Stripe"));
   assert.ok(brief.nextActions.some((action) => /Subresource Integrity/i.test(action)));
+  assert.equal(brief.inventoryCounts.total, 7);
+  assert.equal(brief.inventoryCounts.thirdParty, 4);
+  assert.equal(brief.inventoryCounts.infrastructure, 1);
+  assert.equal(brief.inventoryCounts.identity, 1);
+  assert.equal(brief.inventoryCounts.aiSurface, 1);
+  assert.equal(brief.inventoryCounts.urgent, 2);
+  assert.equal(brief.inventoryCounts.telemetryFlows, 2);
+  assert.equal(brief.inventoryCounts.integrityGaps, 2);
+  assert.ok(brief.inventory.every((item) => item.id.startsWith("exposure:")));
+  assert.equal(
+    brief.inventory.find((item) => item.name === "Stripe")?.integrity,
+    "missing",
+  );
+  assert.equal(
+    brief.inventory.find((item) => item.name === "Okta")?.dataFlow,
+    "identity",
+  );
+  assert.equal(
+    brief.inventory.filter((item) => item.name === "Cloudflare").length,
+    1,
+  );
+  assert.match(brief.collectionBoundary, /do not prove internal dependency/i);
   assert.equal(brief.limitation, null);
 });
 
@@ -103,11 +152,15 @@ test("vendor exposure brief handles clean pages", () => {
     },
     htmlSecurity: { missingSriScriptUrls: [] },
     aiSurface: { vendors: [] },
+    infrastructure: { providers: [], waf: { detected: false, provider: null } },
+    identityProvider: { detected: false, provider: null },
   }));
 
   assert.equal(brief.risk, "low");
   assert.equal(brief.providers.length, 0);
   assert.equal(brief.highPriorityProviders.length, 0);
+  assert.equal(brief.inventory.length, 0);
+  assert.equal(brief.inventoryCounts.total, 0);
   assert.deepEqual(brief.nextActions, [
     "Keep monitoring vendor drift after frontend, analytics, support, payment, or AI changes.",
   ]);

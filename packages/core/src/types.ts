@@ -313,18 +313,47 @@ export interface ExposureBrief {
 
 export type VendorExposureRisk = "low" | "medium" | "high";
 
+export type ExternalExposureRole = "third_party" | "infrastructure" | "identity" | "ai_surface";
+export type ExternalExposureDataFlow =
+  | "content_delivery"
+  | "telemetry"
+  | "user_interaction"
+  | "payment"
+  | "security"
+  | "identity"
+  | "ai"
+  | "unknown";
+export type ExternalExposureIntegrity = "covered" | "missing" | "unknown" | "not_applicable";
+export type ExternalExposureReviewPriority = "routine" | "review" | "urgent";
+
+export interface ExternalExposureInventoryItem {
+  id: string;
+  name: string;
+  domain: string | null;
+  role: ExternalExposureRole;
+  category: string;
+  risk: VendorExposureRisk;
+  confidence: IssueConfidence;
+  evidence: string[];
+  reviewPriority: ExternalExposureReviewPriority;
+  dataFlow: ExternalExposureDataFlow;
+  integrity: ExternalExposureIntegrity;
+  action: string;
+}
+
 export interface VendorExposureProvider {
   name: string;
   domain: string;
   category: ThirdPartyProvider["category"];
   risk: ThirdPartyProvider["risk"];
   evidence: string;
-  reviewPriority: "routine" | "review" | "urgent";
-  dataFlow: "content_delivery" | "telemetry" | "user_interaction" | "payment" | "security" | "ai" | "unknown";
+  reviewPriority: ExternalExposureReviewPriority;
+  dataFlow: ExternalExposureDataFlow;
   action: string;
 }
 
 export interface VendorExposureBrief {
+  schemaVersion: "1.0";
   generatedAt: string;
   risk: VendorExposureRisk;
   summary: string;
@@ -341,6 +370,19 @@ export interface VendorExposureBrief {
   };
   providers: VendorExposureProvider[];
   highPriorityProviders: VendorExposureProvider[];
+  inventory: ExternalExposureInventoryItem[];
+  inventoryCounts: {
+    total: number;
+    thirdParty: number;
+    infrastructure: number;
+    identity: number;
+    aiSurface: number;
+    urgent: number;
+    review: number;
+    telemetryFlows: number;
+    unknownFlows: number;
+    integrityGaps: number;
+  };
   issues: string[];
   strengths: string[];
   nextActions: string[];

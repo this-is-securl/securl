@@ -1327,7 +1327,7 @@ export { buildPostureInsights } from "./postureInsights.js";
 export { buildSignalClaritySummary } from "./signalClarity.js";
 export { scanLiveCertificate } from "./certificate.js";
 export { buildExposureBrief } from "./exposureBrief.js";
-export { buildVendorExposureBrief } from "./vendorExposure.js";
+export { buildExternalExposureInventory, buildVendorExposureBrief } from "./vendorExposure.js";
 export { analyzeInfrastructure } from "./infrastructure.js";
 export { buildHistoryDiff, buildHistoryDiffFromSnapshots, snapshotFromAnalysis } from "./historyDiff.js";
 export {
