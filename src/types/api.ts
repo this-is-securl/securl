@@ -294,6 +294,7 @@ export interface ScanInsights {
 }
 
 export interface ScanVendorBrief {
+  schemaVersion?: "1.0";
   generatedAt: string;
   risk: "low" | "medium" | "high";
   summary: string;
@@ -316,6 +317,32 @@ export interface ScanVendorBrief {
     dataFlow: string;
     action: string;
   }>;
+  inventory?: Array<{
+    id: string;
+    name: string;
+    domain: string | null;
+    role: "third_party" | "infrastructure" | "identity" | "ai_surface";
+    category: string;
+    risk: "low" | "medium" | "high";
+    confidence: "low" | "medium" | "high";
+    evidence: string[];
+    reviewPriority: "routine" | "review" | "urgent";
+    dataFlow: "content_delivery" | "telemetry" | "user_interaction" | "payment" | "security" | "identity" | "ai" | "unknown";
+    integrity: "covered" | "missing" | "unknown" | "not_applicable";
+    action: string;
+  }>;
+  inventoryCounts?: {
+    total: number;
+    thirdParty: number;
+    infrastructure: number;
+    identity: number;
+    aiSurface: number;
+    urgent: number;
+    review: number;
+    telemetryFlows: number;
+    unknownFlows: number;
+    integrityGaps: number;
+  };
   nextActions: string[];
 }
 

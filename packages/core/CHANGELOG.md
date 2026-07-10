@@ -9,6 +9,14 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 ### Backend and docs
 - Added protected product-pulse telemetry and optional release-channel attribution for hosted/mobile clients. These are backend/API-service changes and do not change the published `securl` package surface.
 
+## [1.23.0] - 2026-07-10
+
+### Added
+- Added External Exposure Inventory v1 to `buildVendorExposureBrief()`, with stable drift-friendly IDs across visible third-party, infrastructure, identity, and AI providers.
+- Added role, data-flow, confidence, evidence, SRI integrity, review-priority, and inventory-count fields while preserving the existing vendor brief contract.
+- Added `buildExternalExposureInventory()` through the root package and `securl/exposure-inventory` package subpath.
+- Added `securl scan --format exposure` for compact JSON inventory output in local, CI, audit, and scheduled workflows.
+
 ## [1.22.0] - 2026-07-09
 
 ### Added

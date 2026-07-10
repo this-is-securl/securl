@@ -76,7 +76,7 @@ After completion, choose the right read:
 | Evaluate policy fit | `/policy-evaluation` or `/manifest` |
 | Store an audit artifact | `/manifest` |
 | Feed GitHub or security tooling | `/export?format=sarif` or `/export?format=ci-json` |
-| Review vendors and supply-chain exposure | `/vendors` |
+| Review visible vendors, infrastructure, identity, AI, and supply-chain exposure | `/vendors` (External Exposure Inventory v1) |
 | Review certificate only | `/api/certificates/live?url=...` |
 
 ## Posture Manifest

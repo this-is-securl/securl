@@ -7,6 +7,7 @@ import { promisify } from "node:util";
 const execFile = promisify(execFileCallback);
 
 test("package surface exports expected public functions", async () => {
+  const packageManifest = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
   const pkg = await import("../dist/index.js");
   const postureDigest = await import("../dist/postureDigest.js");
   const postureManifest = await import("../dist/postureManifest.js");
@@ -49,7 +50,9 @@ test("package surface exports expected public functions", async () => {
   assert.equal(typeof pkg.buildExposureBrief, "function");
   assert.equal(typeof exposureBrief.buildExposureBrief, "function");
   assert.equal(typeof pkg.buildVendorExposureBrief, "function");
+  assert.equal(typeof pkg.buildExternalExposureInventory, "function");
   assert.equal(typeof vendorExposure.buildVendorExposureBrief, "function");
+  assert.equal(typeof vendorExposure.buildExternalExposureInventory, "function");
   assert.equal(typeof pkg.buildActionPlan, "function");
   assert.equal(typeof actionPlan.buildActionPlan, "function");
   assert.equal(typeof pkg.buildPostureInsights, "function");
@@ -70,6 +73,7 @@ test("package surface exports expected public functions", async () => {
   assert.equal(typeof observationPolicy.evaluateObservationPolicy, "function");
   assert.equal(typeof observationPolicy.validateObservationPolicy, "function");
   assert.equal(typeof pkg.formatErrorMessage, "function");
+  assert.equal(packageManifest.exports["./exposure-inventory"].default, "./dist/vendorExposure.js");
 });
 
 test("package surface includes a working CLI help entrypoint", async () => {
@@ -82,6 +86,7 @@ test("package surface includes a working CLI help entrypoint", async () => {
   assert.match(stdout, /scan <target\.\.\.>/);
   assert.match(stdout, /--baseline/);
   assert.match(stdout, /json\|markdown\|summary\|sarif\|ci-json/);
+  assert.match(stdout, /manifest\|exposure/);
   assert.match(stdout, /--fail-on info\|warning\|critical/);
   assert.match(stdout, /--fail-on-regression/);
   assert.match(stdout, /--fail-if-score-below <0-100>/);

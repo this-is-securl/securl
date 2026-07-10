@@ -11,7 +11,7 @@ For web and mobile experiences, prefer:
 - `GET /api/scans/:id/insights`: display-ready risk themes, top insights, and next-best actions for mobile/web summary screens.
 - `GET /api/scans/:id/mobile-summary`: one-call app result payload containing scan summary, digest, and insights after scan completion.
 - `GET /api/scans/:id/brief`: outside-observer exposure brief with public entry points, trust gaps, abuse indicators, and next actions.
-- `GET /api/scans/:id/vendors`: vendor and supply-chain exposure brief with third-party providers, data-flow categories, SRI gaps, and review priorities.
+- `GET /api/scans/:id/vendors`: External Exposure Inventory v1 with stable IDs across visible third-party, infrastructure, identity, and AI providers, plus data-flow, evidence, confidence, SRI integrity, and review priority.
 - `GET /api/scans/:id/action-plan`: prioritized fix narrative combining remediation, evidence, score drivers, exposure, and vendor context.
 - `GET /api/scans/:id/observations`: stable source, confidence, status, and freshness-aware observations for monitoring, inventory, and integrations.
 - `GET /api/scans/:id/observation-drift`: observation-level added, removed, status, value, and confidence changes against the previous completed scan.

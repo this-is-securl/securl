@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { readFile } from "node:fs/promises";
 import http from "node:http";
 import net from "node:net";
 import test from "node:test";
 import { once } from "node:events";
 
 const SERVER_ENTRY = new URL("../index.mjs", import.meta.url);
+const CORE_PACKAGE = JSON.parse(await readFile(new URL("../../packages/core/package.json", import.meta.url), "utf8"));
 const SCAN_OWNER_ONE = "test-scan-owner-token-one";
 const SCAN_OWNER_TWO = "test-scan-owner-token-two";
 
@@ -498,6 +500,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.scans.features.includes("mobile-scan-summary"));
     assert.ok(payload.scans.features.includes("exposure-brief"));
     assert.ok(payload.scans.features.includes("vendor-exposure"));
+    assert.ok(payload.scans.features.includes("external-exposure-inventory-v1"));
     assert.ok(payload.scans.features.includes("action-plan"));
     assert.ok(payload.scans.features.includes("scan-events"));
     assert.ok(payload.scans.features.includes("scan-resource-links"));
@@ -2333,8 +2336,11 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.equal(vendorsPayload.apiVersion, "2026-05-14");
     assert.equal(vendorsPayload.scan.id, scanId);
     assert.ok(vendorsPayload.vendors);
+    assert.equal(vendorsPayload.vendors.schemaVersion, "1.0");
     assert.equal(typeof vendorsPayload.vendors.summary, "string");
     assert.ok(Array.isArray(vendorsPayload.vendors.providers));
+    assert.ok(Array.isArray(vendorsPayload.vendors.inventory));
+    assert.equal(typeof vendorsPayload.vendors.inventoryCounts.total, "number");
     assert.ok(Array.isArray(vendorsPayload.vendors.nextActions));
     assert.equal(actionPlanResponse.status, 200);
     assert.equal(actionPlanPayload.apiVersion, "2026-05-14");
@@ -2382,7 +2388,7 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
     assert.equal(manifestPayload.postureManifest.version, "1.0");
     assert.match(manifestPayload.postureManifest.manifestId, /^pm_[a-f0-9]{24}$/);
     assert.equal(manifestPayload.postureManifest.target.host, "example.com");
-    assert.equal(manifestPayload.postureManifest.engine.version, "1.21.0");
+    assert.equal(manifestPayload.postureManifest.engine.version, CORE_PACKAGE.version);
     assert.equal(manifestPayload.postureManifest.policy.evaluation.version, "1.0");
     assert.equal(
       manifestPayload.postureManifest.checks.observationLedger.summary.total,

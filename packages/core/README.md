@@ -39,6 +39,12 @@ Run a scan without installing:
 npx securl scan example.com
 ```
 
+Emit a compact, drift-friendly external exposure inventory:
+
+```bash
+npx securl scan example.com --format exposure --output external-exposure.json
+```
+
 Install globally for the `securl` command:
 
 ```bash
@@ -337,7 +343,7 @@ import {
 } from "securl/posture-manifest";
 
 const result = await analyzeTarget("https://example.com", { scanMode: "quiet" });
-const manifest = buildPostureManifest(result, { engineVersion: "1.22.0" });
+const manifest = buildPostureManifest(result, { engineVersion: "1.23.0" });
 
 console.log(
   manifest.manifestId,
@@ -350,7 +356,23 @@ console.log(
 npx securl schema manifest --output posture-manifest.schema.json
 ```
 
-### 12. Evidence-backed remediation plans
+### 12. External Exposure Inventory v1
+
+Version `1.23.0+` turns the existing vendor brief into a stable external inventory covering visible third-party, infrastructure, identity, and AI providers. Entries carry deterministic IDs, role, data-flow purpose, SRI integrity status, confidence, evidence, review priority, and an owner-oriented action without claiming that passive evidence proves an internal dependency relationship.
+
+```js
+import { analyzeTarget } from "securl";
+import { buildExternalExposureInventory } from "securl/exposure-inventory";
+
+const result = await analyzeTarget("https://example.com");
+const exposure = buildExternalExposureInventory(result);
+
+console.log(exposure.schemaVersion, exposure.inventoryCounts, exposure.inventory);
+```
+
+The existing `buildVendorExposureBrief()` and `securl/vendor-exposure` export remain supported aliases over the same additive contract.
+
+### 13. Evidence-backed remediation plans
 
 Version `1.4.0+` includes a remediation plan helper that turns score drivers and findings into prioritized, owner-aware fix guidance. Findings can also carry structured evidence references so clients can show why a finding was raised.
 
@@ -487,6 +509,7 @@ Primary exports:
 - `diffObservationLedgers(current, previous)` - compare stable observations and classify their operational impact.
 - `evaluateObservationPolicy({ ledger, drift, policy })` - evaluate bounded declarative posture and change rules.
 - `buildPostureManifest(result, options?)` - produce a machine-readable external posture recipe card for CI, audit, mobile, and reporting clients.
+- `buildExternalExposureInventory(result)` - produce a stable inventory of visible third-party, infrastructure, identity, and AI provider signals.
 - `buildPostureDriftReportFromSnapshots(current, previous)` - produce a complete scan-to-scan drift report for monitoring, alerting, and history views.
 - `buildPostureRemediationPlan(result)` - generate prioritized, owner-aware remediation actions from findings and score drivers.
 - `attachIssueEvidence(result)` - add structured evidence references to findings without changing their existing fields.
@@ -506,6 +529,7 @@ Package subpath exports:
 - `securl/observation-drift`
 - `securl/observation-policy`
 - `securl/posture-manifest`
+- `securl/exposure-inventory`
 - `securl/posture-drift`
 - `securl/remediation-plan`
 - `securl/evidence-quality`

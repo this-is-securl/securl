@@ -1,5 +1,9 @@
 import type {
   AnalysisResult,
+  ExternalExposureDataFlow,
+  ExternalExposureIntegrity,
+  ExternalExposureInventoryItem,
+  ExternalExposureReviewPriority,
   ThirdPartyProvider,
   VendorExposureBrief,
   VendorExposureProvider,
@@ -7,6 +11,86 @@ import type {
 } from "./types.js";
 
 const normalizeArray = <T>(value: T[] | undefined | null): T[] => (Array.isArray(value) ? value : []);
+
+const priorityRank: Record<ExternalExposureReviewPriority, number> = { urgent: 0, review: 1, routine: 2 };
+const riskRank: Record<VendorExposureRisk, number> = { high: 0, medium: 1, low: 2 };
+const confidenceRank = { high: 0, medium: 1, low: 2 } as const;
+const integrityRank: Record<ExternalExposureIntegrity, number> = { missing: 0, unknown: 1, covered: 2, not_applicable: 3 };
+
+function stablePart(value: string | null | undefined): string {
+  return String(value || "unknown")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 64) || "unknown";
+}
+
+function inventoryId(item: Pick<ExternalExposureInventoryItem, "role" | "name" | "domain">): string {
+  return `exposure:${item.role}:${stablePart(item.name)}:${stablePart(item.domain)}`;
+}
+
+function firstHostname(values: Array<string | null | undefined>): string | null {
+  for (const value of values) {
+    if (!value) continue;
+    try {
+      return new URL(value).hostname || null;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+function uniqueEvidence(values: Array<string | null | undefined>): string[] {
+  return [...new Set(values.filter((value): value is string => Boolean(value?.trim())).map((value) => value.trim()))].slice(0, 6);
+}
+
+function integrityForProvider(provider: ThirdPartyProvider, analysis: AnalysisResult): ExternalExposureIntegrity {
+  const missingSriHosts = normalizeArray(analysis.htmlSecurity?.missingSriScriptUrls)
+    .map((value) => firstHostname([value]))
+    .filter((value): value is string => Boolean(value));
+  if (missingSriHosts.some((host) => host === provider.domain || host.endsWith(`.${provider.domain}`))) {
+    return "missing";
+  }
+
+  const scriptDomains = normalizeArray(analysis.htmlSecurity?.externalScriptDomains);
+  const isScriptProvider = scriptDomains.some((host) => host === provider.domain || host.endsWith(`.${provider.domain}`));
+  if (!isScriptProvider) {
+    return "not_applicable";
+  }
+  if ((analysis.htmlSecurity?.sriCoverage?.coveragePercent ?? 0) === 100) {
+    return "covered";
+  }
+  return "unknown";
+}
+
+function mergeInventory(items: ExternalExposureInventoryItem[]): ExternalExposureInventoryItem[] {
+  const merged = new Map<string, ExternalExposureInventoryItem>();
+  for (const item of items) {
+    const existing = merged.get(item.id);
+    if (!existing) {
+      merged.set(item.id, item);
+      continue;
+    }
+    merged.set(item.id, {
+      ...existing,
+      risk: riskRank[item.risk] < riskRank[existing.risk] ? item.risk : existing.risk,
+      confidence: confidenceRank[item.confidence] < confidenceRank[existing.confidence] ? item.confidence : existing.confidence,
+      reviewPriority: priorityRank[item.reviewPriority] < priorityRank[existing.reviewPriority]
+        ? item.reviewPriority
+        : existing.reviewPriority,
+      integrity: integrityRank[item.integrity] < integrityRank[existing.integrity] ? item.integrity : existing.integrity,
+      evidence: uniqueEvidence([...existing.evidence, ...item.evidence]),
+    });
+  }
+  return [...merged.values()].sort((left, right) => {
+    const priorityDelta = priorityRank[left.reviewPriority] - priorityRank[right.reviewPriority];
+    if (priorityDelta !== 0) return priorityDelta;
+    const riskDelta = riskRank[left.risk] - riskRank[right.risk];
+    if (riskDelta !== 0) return riskDelta;
+    return left.name.localeCompare(right.name);
+  });
+}
 
 function dataFlowForCategory(category: ThirdPartyProvider["category"]): VendorExposureProvider["dataFlow"] {
   if (category === "analytics" || category === "ads" || category === "session_replay") {
@@ -140,6 +224,114 @@ export function buildVendorExposureBrief(analysis: AnalysisResult): VendorExposu
   };
   const risk = deriveRisk(counts, issues);
   const highPriorityProviders = providers.filter((provider) => provider.reviewPriority !== "routine").slice(0, 10);
+  const inventoryItems: ExternalExposureInventoryItem[] = sourceProviders.map((provider) => {
+    const item = {
+      name: provider.name,
+      domain: provider.domain,
+      role: "third_party" as const,
+      category: provider.category,
+      risk: provider.risk,
+      confidence: "medium" as const,
+      evidence: uniqueEvidence([provider.evidence]),
+      reviewPriority: reviewPriority(provider),
+      dataFlow: dataFlowForCategory(provider.category),
+      integrity: integrityForProvider(provider, analysis),
+      action: actionForProvider(provider),
+    };
+    return { id: inventoryId(item), ...item };
+  });
+
+  for (const provider of normalizeArray(analysis.infrastructure?.providers)) {
+    const item = {
+      name: provider.provider,
+      domain: null,
+      role: "infrastructure" as const,
+      category: provider.category,
+      risk: "low" as const,
+      confidence: provider.confidence,
+      evidence: uniqueEvidence([`${provider.source}: ${provider.evidence}`]),
+      reviewPriority: "routine" as const,
+      dataFlow: "content_delivery" as ExternalExposureDataFlow,
+      integrity: "not_applicable" as const,
+      action: "Keep the infrastructure provider in the service inventory and monitor unexpected provider drift.",
+    };
+    inventoryItems.push({ id: inventoryId(item), ...item });
+  }
+
+  const waf = analysis.infrastructure?.waf;
+  if (waf?.detected && waf.provider) {
+    const item = {
+      name: waf.provider,
+      domain: null,
+      role: "infrastructure" as const,
+      category: "waf",
+      risk: "low" as const,
+      confidence: waf.confidence,
+      evidence: uniqueEvidence([waf.evidence]),
+      reviewPriority: "routine" as const,
+      dataFlow: "security" as ExternalExposureDataFlow,
+      integrity: "not_applicable" as const,
+      action: "Confirm edge protection ownership and monitor for unexpected WAF or edge-provider changes.",
+    };
+    inventoryItems.push({ id: inventoryId(item), ...item });
+  }
+
+  if (analysis.identityProvider?.detected && analysis.identityProvider.provider) {
+    const item = {
+      name: analysis.identityProvider.provider,
+      domain: firstHostname([
+        analysis.identityProvider.issuer,
+        analysis.identityProvider.openIdConfigurationUrl,
+        analysis.identityProvider.authorizationEndpoint,
+        ...normalizeArray(analysis.identityProvider.redirectOrigins),
+      ]),
+      role: "identity" as const,
+      category: analysis.identityProvider.protocol || "unknown",
+      risk: "medium" as const,
+      confidence: analysis.identityProvider.openIdConfigurationUrl ? "high" as const : "medium" as const,
+      evidence: uniqueEvidence([
+        analysis.identityProvider.openIdConfigurationUrl,
+        analysis.identityProvider.issuer,
+        ...normalizeArray(analysis.identityProvider.redirectOrigins),
+      ]),
+      reviewPriority: "review" as const,
+      dataFlow: "identity" as ExternalExposureDataFlow,
+      integrity: "not_applicable" as const,
+      action: "Confirm identity-provider ownership, tenant boundaries, redirect URIs, and change monitoring.",
+    };
+    inventoryItems.push({ id: inventoryId(item), ...item });
+  }
+
+  for (const vendor of normalizeArray(analysis.aiSurface?.vendors)) {
+    const item = {
+      name: vendor.name,
+      domain: null,
+      role: "ai_surface" as const,
+      category: vendor.category,
+      risk: "medium" as const,
+      confidence: vendor.confidence,
+      evidence: uniqueEvidence([vendor.evidence]),
+      reviewPriority: "review" as const,
+      dataFlow: "ai" as ExternalExposureDataFlow,
+      integrity: "not_applicable" as const,
+      action: "Confirm AI vendor disclosure, data-handling boundaries, and escalation ownership.",
+    };
+    inventoryItems.push({ id: inventoryId(item), ...item });
+  }
+
+  const inventory = mergeInventory(inventoryItems);
+  const inventoryCounts = {
+    total: inventory.length,
+    thirdParty: inventory.filter((item) => item.role === "third_party").length,
+    infrastructure: inventory.filter((item) => item.role === "infrastructure").length,
+    identity: inventory.filter((item) => item.role === "identity").length,
+    aiSurface: inventory.filter((item) => item.role === "ai_surface").length,
+    urgent: inventory.filter((item) => item.reviewPriority === "urgent").length,
+    review: inventory.filter((item) => item.reviewPriority === "review").length,
+    telemetryFlows: inventory.filter((item) => item.dataFlow === "telemetry").length,
+    unknownFlows: inventory.filter((item) => item.dataFlow === "unknown").length,
+    integrityGaps: inventory.filter((item) => item.integrity === "missing").length,
+  };
   const nextActions: string[] = [];
 
   for (const provider of highPriorityProviders) {
@@ -156,16 +348,21 @@ export function buildVendorExposureBrief(analysis: AnalysisResult): VendorExposu
   }
 
   return {
+    schemaVersion: "1.0",
     generatedAt: new Date().toISOString(),
     risk,
     summary: summarizeRisk(risk, counts),
     counts,
     providers,
     highPriorityProviders,
+    inventory,
+    inventoryCounts,
     issues,
     strengths,
     nextActions: nextActions.slice(0, 6),
-    collectionBoundary: "Passive public page evidence only. Vendor signals are inferred from fetched HTML, scripts, stylesheets, and visible AI/provider markers.",
+    collectionBoundary: "Passive public evidence only. Inventory signals are inferred from fetched HTML and assets, redirects, headers, DNS, public identity metadata, and visible provider markers; they do not prove internal dependency or data-flow configuration.",
     limitation: analysis.assessmentLimitation?.limited ? analysis.assessmentLimitation : null,
   };
 }
+
+export const buildExternalExposureInventory = buildVendorExposureBrief;
