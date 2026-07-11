@@ -45,12 +45,14 @@ Near-term work:
 - Continue reducing false positives and making passive findings easier to trust.
 - Keep package trust strong: provenance, no install scripts, small dependency surface, clear changelog, and explicit passive boundaries.
 
-Candidate releases:
+Delivered releases:
 
-- `1.20`: posture manifest v1 and policy profile output for CLI/API consumers.
-- `1.21`: richer SARIF/CI exports with evidence references and policy failures.
-- `1.22`: certificate comparison and expiry-policy output folded into manifest/policy results.
-- `1.23` (shipped 2026-07-10): External Exposure Inventory v1 with stable provider IDs, roles, data-flow purpose, confidence/evidence, SRI status, and review priority across package, CLI, and hosted API consumers.
+- `1.20`: Posture Manifest v1 and package/CLI integration examples.
+- `1.21`: Policy Pack v1 with named profiles and deterministic assertion semantics.
+- `1.22`: exported Posture Manifest JSON Schema and `securl schema manifest`.
+- `1.23`: External Exposure Inventory v1 with stable provider IDs, roles, data-flow
+  purpose, confidence/evidence, SRI status, and review priority across package, CLI,
+  and hosted API consumers.
 
 ### 2. Monitoring As The Product
 
@@ -65,7 +67,7 @@ Near-term work:
 - Keep push notifications quiet, deduplicated, and transition-driven.
 - Add service-level health and user-facing confidence so apps can show whether monitoring is working.
 
-Candidate releases:
+Candidate releases (signal-gated after the post-1.23 settling window):
 
 - `1.24`: monitoring event explanations and alert payload polish.
 - `1.25`: policy-based monitoring templates and stable timeline DTOs.
@@ -134,6 +136,20 @@ The path to `1.25` should make the current product thesis obvious:
 | `1.23` | External exposure intelligence | Shipped: stable third-party, infrastructure, identity, AI, SRI, data-flow, and supply-chain inventory for package, CLI, and hosted API consumers. |
 | `1.24` | Monitoring explanations | Push and monitoring timelines explain what changed, why it matters, which policy moved, and what to do next. |
 | `1.25` | Mobile monitoring milestone | Cert Watch, Header Watch, and SecURL share a reliable, push-driven monitoring foundation with concise policy and manifest summaries. |
+
+## Next Decision Gate - July 2026
+
+Do not start another product slice merely because `1.24` is next numerically. Continue
+observing clean production, package, mobile, and web-funnel signals after the 1.23 and
+mobile release wave. The next deliberate choice is:
+
+- **Monitoring explanations (`1.24`)** when recurring monitoring usage or real drift
+  events show that explanation quality is the strongest constraint; or
+- **Product Hunt launch** when the product and media pack are ready for a timed acquisition
+  test and there is capacity to observe and respond to the resulting traffic.
+
+Until one of those conditions is selected, favour reliability, compatibility, evidence,
+and operational visibility over new surface area.
 
 ## Future 2.0 Shape
 
