@@ -161,7 +161,7 @@ function retryDelayMs(attempt, response) {
   return attempt <= 1 ? 250 : 750;
 }
 
-async function buildMonitoringPushPayload({ scanRepository, completedScan, result }) {
+async function buildMonitoringPushPayload({ scanRepository, completedScan, result, targetId = null }) {
   const records = await scanRepository.listPersistedRecords({
     ownerId: completedScan.ownerId,
     requesterScope: completedScan.ownerId ? null : completedScan.requesterScope,
@@ -186,6 +186,7 @@ async function buildMonitoringPushPayload({ scanRepository, completedScan, resul
 
   const host = result.host || new URL(completedScan.url).hostname;
   const topMonitoringEvent = monitoringEvents[0] ?? null;
+  const eventId = topMonitoringEvent?.id ?? null;
   return {
     aps: {
       alert: {
@@ -196,6 +197,9 @@ async function buildMonitoringPushPayload({ scanRepository, completedScan, resul
       "thread-id": host,
     },
     type: "monitoring_drift",
+    targetId,
+    eventId,
+    deepLink: targetId ? { route: "monitoring_target", targetId, eventId } : null,
     scanId: completedScan.id,
     url: completedScan.url,
     host,
@@ -448,7 +452,12 @@ export function createNotificationService({
       return { attempted: 0, sent: 0, skipped: "not_monitoring_scheduler" };
     }
 
-    const payload = await buildMonitoringPushPayload({ scanRepository, completedScan, result });
+    const payload = await buildMonitoringPushPayload({
+      scanRepository,
+      completedScan,
+      result,
+      targetId: telemetryContext.targetId ?? null,
+    });
     if (!payload) {
       return { attempted: 0, sent: 0, skipped: "no_drift" };
     }
@@ -494,6 +503,12 @@ export function createNotificationService({
       },
       type: event.type,
       targetId: target.id,
+      eventId: monitoringEvent?.id ?? null,
+      deepLink: {
+        route: "monitoring_target",
+        targetId: target.id,
+        eventId: monitoringEvent?.id ?? null,
+      },
       url: target.url,
       host,
       appId: target.appId ?? null,

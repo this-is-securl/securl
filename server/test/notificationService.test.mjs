@@ -368,6 +368,13 @@ test("certificate monitoring pushes include enriched monitoring event copy when 
   });
 
   assert.equal(deliveredPayload.aps.alert.title, "Certificate expired: example.com");
+  assert.equal(deliveredPayload.targetId, "target-1");
+  assert.equal(deliveredPayload.eventId, "certificate_expired:example.com:443");
+  assert.deepEqual(deliveredPayload.deepLink, {
+    route: "monitoring_target",
+    targetId: "target-1",
+    eventId: "certificate_expired:example.com:443",
+  });
   assert.equal(deliveredPayload.monitoringEvent.eventType, "certificate_expired");
   assert.equal(deliveredPayload.monitoringEvent.changedEvidence[0].label, "Days remaining");
   assert.equal(deliveredPayload.event.type, "cert_expired");

@@ -161,6 +161,7 @@ export function buildCapabilitiesPayload({
         "mobile-monitoring-status-v1",
         "mobile-monitoring-actions-v1",
         "monitoring-events-v1",
+        "mobile-monitoring-explanations-v1",
         "monitoring-health-v1",
         "cert-watchlist-summary-v1",
         "cert-watchlist-push-health-v1",

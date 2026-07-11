@@ -1196,6 +1196,15 @@ export function buildMonitoringSummaryPayload(targetEntries = []) {
   };
 }
 
+function addMonitoringEventNavigation(events, targetId) {
+  return normalizeArray(events).map((event) => ({
+    ...event,
+    targetId,
+    eventId: event.id,
+    deepLink: { route: "monitoring_target", targetId, eventId: event.id },
+  }));
+}
+
 function buildMobileTargetSummary(target, records = []) {
   const view = buildMonitoringTargetView(target, records);
   const comparison = buildStoredTargetDiff(records);
@@ -1209,9 +1218,9 @@ function buildMobileTargetSummary(target, records = []) {
     normalizeArray(view.cert?.monitoringEvents),
     view,
   );
-  const monitoringEvents = view.kind === "cert"
+  const monitoringEvents = addMonitoringEventNavigation(view.kind === "cert"
     ? certMonitoringEvents
-    : normalizeArray(posture?.monitoringEvents);
+    : posture?.monitoringEvents, view.id);
   const postureChange = buildPostureChangeSummary(posture, comparison?.riskEvents?.length ?? 0);
   const status = buildMobileTargetStatus({ view, posture, certChange, postureChange, latestRecord });
 
@@ -1582,12 +1591,16 @@ export function buildMonitoringHealthPayload({
 
 export function buildMonitoringTargetDetailPayload(target, records = [], events = []) {
   const view = buildMonitoringTargetView(target, records);
+  const comparison = buildStoredTargetDiff(records);
+  if (comparison?.monitoringEvents) {
+    comparison.monitoringEvents = addMonitoringEventNavigation(comparison.monitoringEvents, view.id);
+  }
 
   return {
     apiVersion: API_VERSION,
     target: view,
     scans: normalizeArray(records).map((record) => record.summary).filter(Boolean),
-    comparison: buildStoredTargetDiff(records),
+    comparison,
     policyEvaluation: target.kind === "posture" ? buildPolicyEvaluation(records, target.observationPolicy) : null,
     events: normalizeArray(events).map(buildPublicScanEvent),
   };
