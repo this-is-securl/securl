@@ -64,6 +64,8 @@ The npm package is intended to be safe to install and evaluate:
 
 - Published as `securl` with npm provenance enabled.
 - No install scripts.
+- Published from GitHub Actions through npm trusted publishing (OIDC), without a long-lived publish token.
+- Package checks and release installs run under npm 12's default-deny policy for dependency scripts, Git dependencies, and remote URL dependencies.
 - MIT licensed.
 - Explicit Node engine requirement.
 - CLI and library live in the same package so CI and local users consume the same engine semantics.
