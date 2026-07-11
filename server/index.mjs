@@ -1135,7 +1135,12 @@ monitoringScheduler = createMonitoringScheduler({
     scanRepository,
     runScanAnalysis,
     telemetry,
-    telemetryContext: { source: "internal", channel: "monitoring_scheduler", clientKey: "monitoring-scheduler" },
+    telemetryContext: {
+      source: "internal",
+      channel: "monitoring_scheduler",
+      clientKey: "monitoring-scheduler",
+      targetId: job.monitoringTargetId ?? null,
+    },
     classifyScanFailure,
     normalizeScanErrorMessage,
     formatErrorMessage,

@@ -119,6 +119,7 @@ export async function runMonitoringSweep({
 
       enqueueScan({
         scan,
+        monitoringTargetId: target.id,
         validatedTarget: new URL(target.url),
         mode: target.mode || mode,
         authState: {
