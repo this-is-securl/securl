@@ -40,6 +40,12 @@ const INVALID_TOKEN_REASONS = new Set([
   "Unregistered",
 ]);
 const TRANSIENT_STATUS_CODES = new Set([429, 500, 503]);
+const FCM_TRANSIENT_STATUS_CODES = new Set([408, 429, 500, 502, 503, 504]);
+const FCM_INVALID_ERROR_CODES = new Set([
+  "INVALID_ARGUMENT",
+  "UNREGISTERED",
+  "SENDER_ID_MISMATCH",
+]);
 
 function parseApnsBody(body) {
   if (!body) return null;
@@ -69,6 +75,31 @@ export function classifyApnsResponse(response = {}) {
     disableToken: false,
     status: `apns_${statusCode || "unknown"}`,
     reason,
+  };
+}
+
+function fcmErrorCode(response = {}) {
+  const details = Array.isArray(response.body?.error?.details) ? response.body.error.details : [];
+  const fcmError = details.find((detail) => typeof detail?.errorCode === "string");
+  return fcmError?.errorCode || null;
+}
+
+export function classifyFcmResponse(response = {}) {
+  const statusCode = Number(response.statusCode || 0);
+  const errorCode = fcmErrorCode(response);
+  if (statusCode >= 200 && statusCode < 300) {
+    return { outcome: "sent", retryable: false, disableToken: false, status: "sent", reason: null };
+  }
+  if (FCM_INVALID_ERROR_CODES.has(errorCode)) {
+    return { outcome: "failed", retryable: false, disableToken: true, status: "invalid_token", reason: errorCode };
+  }
+  const retryable = statusCode === 0 || FCM_TRANSIENT_STATUS_CODES.has(statusCode) || statusCode >= 500;
+  return {
+    outcome: "failed",
+    retryable,
+    disableToken: false,
+    status: `fcm_${statusCode || "unknown"}`,
+    reason: errorCode || response.body?.error?.status || response.body?.error?.message || null,
   };
 }
 
@@ -130,6 +161,110 @@ async function sendApns({ token, environment, topic, payload, config, timeoutMs 
   } finally {
     if (timeout) clearTimeout(timeout);
     client.close();
+  }
+}
+
+function buildFcmJwt({ clientEmail, privateKey }) {
+  const header = base64Url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const now = Math.floor(Date.now() / 1000);
+  const claims = base64Url(JSON.stringify({
+    iss: clientEmail,
+    scope: "https://www.googleapis.com/auth/firebase.messaging",
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600,
+  }));
+  const signingInput = `${header}.${claims}`;
+  const signature = crypto.sign("RSA-SHA256", Buffer.from(signingInput), privateKey);
+  return `${signingInput}.${base64Url(signature)}`;
+}
+
+async function requestFcmAccessToken({ clientEmail, privateKey, fetchImpl, timeoutMs }) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  timeout.unref?.();
+  try {
+    const response = await fetchImpl("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        assertion: buildFcmJwt({ clientEmail, privateKey }),
+      }),
+      signal: controller.signal,
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || typeof body.access_token !== "string") {
+      const error = new Error(body.error_description || body.error || `FCM token request failed with ${response.status}.`);
+      error.code = "FCM_AUTH_FAILED";
+      error.statusCode = response.status;
+      throw error;
+    }
+    return {
+      token: body.access_token,
+      expiresAt: Date.now() + Math.max(60, Number(body.expires_in || 3600) - 60) * 1000,
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function fcmStringData(payload = {}) {
+  const data = {};
+  for (const [key, value] of Object.entries(payload)) {
+    if (key === "aps") continue;
+    if (value === undefined || value === null) continue;
+    data[key] = typeof value === "string" ? value : JSON.stringify(value);
+  }
+  return data;
+}
+
+async function sendFcm({ token, payload, config, timeoutMs = 10_000, collapseId = null }) {
+  const accessToken = await config.getAccessToken();
+  const alert = payload?.aps?.alert || {};
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  timeout.unref?.();
+  try {
+    const response = await config.fetchImpl(
+      `https://fcm.googleapis.com/v1/projects/${encodeURIComponent(config.projectId)}/messages:send`,
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          message: {
+            token,
+            notification: {
+              title: alert.title || "SecURL notification",
+              body: alert.body || "",
+            },
+            data: fcmStringData(payload),
+            android: {
+              priority: "HIGH",
+              collapse_key: collapseId || undefined,
+              notification: {
+                sound: "default",
+              },
+            },
+          },
+        }),
+        signal: controller.signal,
+      },
+    );
+    const body = await response.json().catch(() => null);
+    return { statusCode: response.status, body };
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      const timeoutError = new Error(`FCM request timed out after ${timeoutMs}ms.`);
+      timeoutError.code = "FCM_TIMEOUT";
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
@@ -229,14 +364,19 @@ export function createNotificationService({
   scanRepository,
   log = () => {},
   apns = {},
+  fcm = {},
   telemetry = null,
   transport = sendApns,
+  fcmTransport = sendFcm,
+  fetchImpl = globalThis.fetch,
   sleep = (delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs)),
 } = {}) {
   const explicitTimeoutMs = Number(apns.timeoutMs);
   const environmentTimeoutMs = Number(process.env.APNS_TIMEOUT_MS);
-  const configuredMaxAttempts = Number(apns.maxAttempts ?? process.env.APNS_MAX_ATTEMPTS);
-  const config = {
+  const explicitFcmTimeoutMs = Number(fcm.timeoutMs);
+  const environmentFcmTimeoutMs = Number(process.env.FCM_TIMEOUT_MS);
+  const configuredMaxAttempts = Number(apns.maxAttempts ?? fcm.maxAttempts ?? process.env.PUSH_MAX_ATTEMPTS ?? process.env.APNS_MAX_ATTEMPTS);
+  const apnsConfig = {
     teamId: apns.teamId || process.env.APNS_TEAM_ID || "",
     keyId: apns.keyId || process.env.APNS_KEY_ID || "",
     privateKey: privateKeyFromEnv(apns.privateKey || process.env.APNS_PRIVATE_KEY || ""),
@@ -248,7 +388,36 @@ export function createNotificationService({
       : 10_000,
     maxAttempts: Number.isFinite(configuredMaxAttempts) ? Math.min(5, Math.max(1, Math.floor(configuredMaxAttempts))) : 3,
   };
-  const enabled = Boolean(config.teamId && config.keyId && config.privateKey);
+  let fcmAccessToken = null;
+  let fcmAccessTokenExpiresAt = 0;
+  const fcmConfig = {
+    projectId: fcm.projectId || process.env.FCM_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || "",
+    clientEmail: fcm.clientEmail || process.env.FCM_CLIENT_EMAIL || process.env.FIREBASE_CLIENT_EMAIL || "",
+    privateKey: privateKeyFromEnv(fcm.privateKey || process.env.FCM_PRIVATE_KEY || process.env.FIREBASE_PRIVATE_KEY || ""),
+    timeoutMs: Number.isFinite(explicitFcmTimeoutMs)
+      ? Math.max(1, Math.floor(explicitFcmTimeoutMs))
+      : Number.isFinite(environmentFcmTimeoutMs)
+      ? Math.max(1_000, Math.floor(environmentFcmTimeoutMs))
+      : 10_000,
+    fetchImpl,
+    async getAccessToken() {
+      if (fcmAccessToken && Date.now() < fcmAccessTokenExpiresAt) {
+        return fcmAccessToken;
+      }
+      const issued = await requestFcmAccessToken({
+        clientEmail: fcmConfig.clientEmail,
+        privateKey: fcmConfig.privateKey,
+        fetchImpl: fcmConfig.fetchImpl,
+        timeoutMs: fcmConfig.timeoutMs,
+      });
+      fcmAccessToken = issued.token;
+      fcmAccessTokenExpiresAt = issued.expiresAt;
+      return fcmAccessToken;
+    },
+  };
+  const apnsEnabled = Boolean(apnsConfig.teamId && apnsConfig.keyId && apnsConfig.privateKey);
+  const fcmEnabled = Boolean(fcmConfig.projectId && fcmConfig.clientEmail && fcmConfig.privateKey && fcmConfig.fetchImpl);
+  const enabled = apnsEnabled || fcmEnabled;
   const outboxEnabled = Boolean(
     scanRepository?.enqueueNotificationOutbox
     && scanRepository?.claimNotificationOutbox
@@ -313,26 +482,6 @@ export function createNotificationService({
     }
     const outboxByDeviceId = new Map(outboxEntries.map((entry) => [entry.deviceId, entry]));
 
-    if (!enabled) {
-      log("warn", "push_delivery_skipped", {
-        reason: "apns_not_configured",
-        referenceId,
-        devices: deliveryDevices.length,
-      });
-      for (const entry of outboxEntries) {
-        const retryLater = channel !== "device_test";
-        await scanRepository.completeNotificationOutbox(entry.id, {
-          status: retryLater ? "queued" : "skipped",
-          error: "APNs credentials are not configured.",
-          availableAt: retryLater ? new Date(Date.now() + 15 * 60_000).toISOString() : null,
-          workerId: outboxWorkerId,
-        });
-      }
-      const result = { attempted: deliveryDevices.length, attempts: 0, sent: 0, failed: 0, disabled: 0, retried: 0, skipped: "apns_not_configured", results: [] };
-      recordDeliveryTelemetry(result, channel);
-      return result;
-    }
-
     let sent = 0;
     let failed = 0;
     let disabled = 0;
@@ -341,12 +490,30 @@ export function createNotificationService({
     const results = [];
     for (const device of deliveryDevices) {
       const attemptedAt = new Date().toISOString();
-      const topic = device.appId || config.defaultTopic;
+      const platform = device.platform === "android" ? "android" : "ios";
+      const provider = platform === "android" ? "fcm" : "apns";
+      const topic = device.appId || apnsConfig.defaultTopic;
       let finalClassification = null;
       let finalResponse = null;
       let deviceAttempts = 0;
 
-      if (!topic) {
+      if (provider === "apns" && !apnsEnabled) {
+        finalClassification = {
+          outcome: "failed",
+          retryable: channel !== "device_test",
+          disableToken: false,
+          status: "apns_not_configured",
+          reason: "APNs credentials are not configured.",
+        };
+      } else if (provider === "fcm" && !fcmEnabled) {
+        finalClassification = {
+          outcome: "failed",
+          retryable: channel !== "device_test",
+          disableToken: false,
+          status: "fcm_not_configured",
+          reason: "FCM credentials are not configured.",
+        };
+      } else if (provider === "apns" && !topic) {
         finalClassification = {
           outcome: "failed",
           retryable: false,
@@ -355,28 +522,40 @@ export function createNotificationService({
           reason: "No APNs topic is configured for this device.",
         };
       } else {
-        for (let attempt = 1; attempt <= config.maxAttempts; attempt += 1) {
+        for (let attempt = 1; attempt <= apnsConfig.maxAttempts; attempt += 1) {
           deviceAttempts += 1;
           attempts += 1;
           try {
-            finalResponse = await transport({
-              token: device.token,
-              environment: device.environment,
-              topic,
-              payload,
-              config,
-              timeoutMs: config.timeoutMs,
-              collapseId: crypto.createHash("sha256").update(String(referenceId)).digest("hex").slice(0, 64),
-              expiration: payload?.type === "notification_test" ? 0 : Math.floor(Date.now() / 1000) + 60 * 60,
-            });
-            finalClassification = classifyApnsResponse(finalResponse);
+            const collapseId = crypto.createHash("sha256").update(String(referenceId)).digest("hex").slice(0, 64);
+            if (provider === "fcm") {
+              finalResponse = await fcmTransport({
+                token: device.token,
+                payload,
+                config: fcmConfig,
+                timeoutMs: fcmConfig.timeoutMs,
+                collapseId,
+              });
+              finalClassification = classifyFcmResponse(finalResponse);
+            } else {
+              finalResponse = await transport({
+                token: device.token,
+                environment: device.environment,
+                topic,
+                payload,
+                config: apnsConfig,
+                timeoutMs: apnsConfig.timeoutMs,
+                collapseId,
+                expiration: payload?.type === "notification_test" ? 0 : Math.floor(Date.now() / 1000) + 60 * 60,
+              });
+              finalClassification = classifyApnsResponse(finalResponse);
+            }
           } catch (error) {
             finalResponse = null;
             finalClassification = {
               outcome: "failed",
               retryable: true,
               disableToken: false,
-              status: error?.code === "APNS_TIMEOUT" ? "timed_out" : "send_failed",
+              status: error?.code === "APNS_TIMEOUT" || error?.code === "FCM_TIMEOUT" ? "timed_out" : "send_failed",
               reason: error instanceof Error ? error.message : String(error),
             };
           }
@@ -384,6 +563,7 @@ export function createNotificationService({
           log(finalClassification.outcome === "sent" ? "info" : "warn", logEventName, {
             referenceId,
             deviceId: device.id,
+            provider,
             attempt,
             status: finalClassification.status,
             statusCode: finalResponse?.statusCode ?? null,
@@ -391,7 +571,7 @@ export function createNotificationService({
             retryable: finalClassification.retryable,
           });
 
-          if (finalClassification.outcome === "sent" || !finalClassification.retryable || attempt >= config.maxAttempts) {
+          if (finalClassification.outcome === "sent" || !finalClassification.retryable || attempt >= apnsConfig.maxAttempts) {
             break;
           }
           retried += 1;
@@ -421,6 +601,7 @@ export function createNotificationService({
       }
       results.push({
         deviceId: device.id,
+        provider,
         status: finalClassification.status,
         reason: deliveryError,
         attempts: deviceAttempts,
@@ -442,7 +623,11 @@ export function createNotificationService({
       }
     }
 
-    const result = { attempted: deliveryDevices.length, attempts, sent, failed, disabled, retried, skipped: null, results };
+    const uniqueStatuses = new Set(results.map((entry) => entry.status));
+    const skipped = sent === 0 && attempts === 0 && uniqueStatuses.size === 1
+      ? [...uniqueStatuses][0]
+      : null;
+    const result = { attempted: deliveryDevices.length, attempts, sent, failed, disabled, retried, skipped, results };
     recordDeliveryTelemetry(result, channel);
     return result;
   }
@@ -680,11 +865,23 @@ export function createNotificationService({
     snapshot() {
       return {
         enabled,
-        provider: "apns",
+        provider: fcmEnabled && apnsEnabled ? "apns+fcm" : fcmEnabled ? "fcm" : "apns",
+        providers: {
+          apns: {
+            enabled: apnsEnabled,
+            credentialsConfigured: apnsEnabled,
+            topicConfigured: Boolean(apnsConfig.defaultTopic),
+          },
+          fcm: {
+            enabled: fcmEnabled,
+            credentialsConfigured: fcmEnabled,
+            projectConfigured: Boolean(fcmConfig.projectId),
+          },
+        },
         credentialsConfigured: enabled,
-        topicConfigured: Boolean(config.defaultTopic),
-        timeoutMs: config.timeoutMs,
-        maxAttempts: config.maxAttempts,
+        topicConfigured: Boolean(apnsConfig.defaultTopic),
+        timeoutMs: Math.max(apnsConfig.timeoutMs, fcmConfig.timeoutMs),
+        maxAttempts: apnsConfig.maxAttempts,
         outbox: {
           enabled: outboxEnabled,
           running: outboxRunning,

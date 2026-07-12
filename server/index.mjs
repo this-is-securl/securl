@@ -512,7 +512,11 @@ const server = http.createServer(async (request, response) => {
       };
       payload.notifications = notificationService?.snapshot?.() || {
         enabled: false,
-        provider: "apns",
+        provider: "apns+fcm",
+        providers: {
+          apns: { enabled: false, credentialsConfigured: false, topicConfigured: false },
+          fcm: { enabled: false, credentialsConfigured: false, projectConfigured: false },
+        },
         topicConfigured: false,
       };
       payload.serveFrontend = serveFrontend;
