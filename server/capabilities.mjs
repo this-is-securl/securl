@@ -190,13 +190,13 @@ export function buildCapabilitiesPayload({
       ],
     },
     notifications: {
-      providers: ["apns"],
+      providers: ["apns", "fcm"],
       enabled: Boolean(notifications?.enabled),
       delivery: {
         timeoutMs: notifications?.timeoutMs ?? null,
         maxAttempts: notifications?.maxAttempts ?? null,
-        invalidTokenReasons: ["Unregistered", "BadDeviceToken", "DeviceTokenNotForTopic"],
-        retries: ["network_error", "timeout", "apns_429", "apns_5xx"],
+        invalidTokenReasons: ["Unregistered", "BadDeviceToken", "DeviceTokenNotForTopic", "FCM_UNREGISTERED", "FCM_SENDER_ID_MISMATCH"],
+        retries: ["network_error", "timeout", "apns_429", "apns_5xx", "fcm_429", "fcm_5xx"],
       },
       outbox: {
         enabled: Boolean(notifications?.outbox?.enabled),
@@ -211,6 +211,7 @@ export function buildCapabilitiesPayload({
         "durable-notification-outbox",
         "monitoring-drift-push",
         "cert-event-push",
+        "android-fcm-push-v1",
       ],
       resources: [
         "GET /api/notification-devices",

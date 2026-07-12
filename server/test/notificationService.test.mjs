@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { classifyApnsResponse, createNotificationService } from "../notificationService.mjs";
+import { classifyApnsResponse, classifyFcmResponse, createNotificationService } from "../notificationService.mjs";
 import { createInMemoryScanRepository } from "../scanRepository.mjs";
 
 function buildDevice(overrides = {}) {
@@ -13,6 +13,16 @@ function buildDevice(overrides = {}) {
     appId: "com.ktbatterham.securl",
     ...overrides,
   };
+}
+
+function buildAndroidDevice(overrides = {}) {
+  return buildDevice({
+    id: "device-android-1",
+    platform: "android",
+    token: "f".repeat(120),
+    environment: "production",
+    ...overrides,
+  });
 }
 
 function buildRepository(device = buildDevice()) {
@@ -48,6 +58,22 @@ function createService({ repository, transport, sleep = async () => {}, telemetr
   });
 }
 
+function createFcmService({ repository, fcmTransport, sleep = async () => {}, telemetry = null, maxAttempts = 3 } = {}) {
+  return createNotificationService({
+    scanRepository: repository,
+    fcmTransport,
+    sleep,
+    telemetry,
+    fcm: {
+      projectId: "securl-test",
+      clientEmail: "firebase-adminsdk@example.iam.gserviceaccount.com",
+      privateKey: "PRIVATE KEY",
+      maxAttempts,
+      timeoutMs: 25,
+    },
+  });
+}
+
 test("APNs response classification only disables genuinely invalid tokens", () => {
   assert.deepEqual(classifyApnsResponse({ statusCode: 400, body: { reason: "BadTopic" } }), {
     outcome: "failed",
@@ -62,6 +88,29 @@ test("APNs response classification only disables genuinely invalid tokens", () =
   assert.equal(classifyApnsResponse({ statusCode: 503, body: { reason: "Shutdown" } }).retryable, true);
   assert.equal(classifyApnsResponse({ statusCode: 400, body: { reason: "IdleTimeout" } }).retryable, true);
   assert.equal(classifyApnsResponse({ statusCode: 0, body: null }).retryable, true);
+});
+
+test("FCM response classification disables only token-level failures", () => {
+  assert.deepEqual(classifyFcmResponse({ statusCode: 200, body: { name: "messages/1" } }), {
+    outcome: "sent",
+    retryable: false,
+    disableToken: false,
+    status: "sent",
+    reason: null,
+  });
+  assert.equal(classifyFcmResponse({
+    statusCode: 404,
+    body: { error: { status: "NOT_FOUND", details: [{ errorCode: "UNREGISTERED" }] } },
+  }).disableToken, true);
+  assert.equal(classifyFcmResponse({
+    statusCode: 403,
+    body: { error: { status: "PERMISSION_DENIED" } },
+  }).disableToken, false);
+  assert.equal(classifyFcmResponse({
+    statusCode: 400,
+    body: { error: { status: "INVALID_ARGUMENT", message: "Payload contains an invalid field." } },
+  }).disableToken, false);
+  assert.equal(classifyFcmResponse({ statusCode: 503, body: { error: { status: "UNAVAILABLE" } } }).retryable, true);
 });
 
 test("bad APNs topics fail without disabling a valid device token", async () => {
@@ -220,6 +269,45 @@ test("per-device app ids remove the need for one global APNs topic", async () =>
   const result = await service.sendTestNotification({ device: buildDevice() });
   assert.equal(result.sent, 1);
   assert.equal(topic, "com.ktbatterham.securl");
+});
+
+test("Android devices route through FCM with the existing notification payload", async () => {
+  const repository = buildRepository(buildAndroidDevice());
+  let delivered = null;
+  const service = createFcmService({
+    repository,
+    fcmTransport: async (request) => {
+      delivered = request;
+      return { statusCode: 200, body: { name: "projects/securl-test/messages/1" } };
+    },
+  });
+
+  assert.equal(service.snapshot().enabled, true);
+  assert.equal(service.snapshot().providers.fcm.enabled, true);
+  const result = await service.sendTestNotification({ device: buildAndroidDevice() });
+  assert.equal(result.sent, 1);
+  assert.equal(result.results[0].provider, "fcm");
+  assert.equal(delivered.token, "f".repeat(120));
+  assert.equal(delivered.payload.type, "notification_test");
+  assert.equal(repository.attempts[0].status, "sent");
+});
+
+test("missing FCM credentials are reported without attempting APNs", async () => {
+  const repository = buildRepository(buildAndroidDevice());
+  let called = false;
+  const service = createNotificationService({
+    scanRepository: repository,
+    fcmTransport: async () => {
+      called = true;
+      return { statusCode: 200, body: null };
+    },
+  });
+
+  const result = await service.sendTestNotification({ device: buildAndroidDevice() });
+  assert.equal(result.failed, 1);
+  assert.equal(result.skipped, "fcm_not_configured");
+  assert.equal(result.results[0].status, "fcm_not_configured");
+  assert.equal(called, false);
 });
 
 test("missing per-device and fallback topics fail without contacting APNs", async () => {

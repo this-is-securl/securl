@@ -1,13 +1,15 @@
 import { API_VERSION } from "./scanDtos.mjs";
 
-const TOKEN_PATTERN = /^[a-f0-9]{64,200}$/i;
+const APNS_TOKEN_PATTERN = /^[a-f0-9]{64,200}$/i;
+const FCM_TOKEN_PATTERN = /^[A-Za-z0-9:_-]{80,4096}$/;
 
 function normalizeEnvironment(value) {
   return value === "sandbox" ? "sandbox" : "production";
 }
 
 function normalizePlatform(value) {
-  return value === "ios" || value === "ipados" ? value : "ios";
+  if (value === "android") return "android";
+  return value === "ios" || value === "ipados" ? "ios" : "ios";
 }
 
 function clampLimit(value, fallback = 50, max = 100) {
@@ -20,7 +22,21 @@ function clampLimit(value, fallback = 50, max = 100) {
 
 const STALE_DEVICE_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
 const APNS_REJECTION_STATUSES = new Set(["invalid_token", "apns_410"]);
-const APNS_TRANSIENT_STATUSES = new Set(["send_failed", "timed_out", "apns_429", "apns_500", "apns_503"]);
+const PUSH_TRANSIENT_STATUSES = new Set([
+  "send_failed",
+  "timed_out",
+  "apns_not_configured",
+  "fcm_not_configured",
+  "apns_429",
+  "apns_500",
+  "apns_503",
+  "fcm_408",
+  "fcm_429",
+  "fcm_500",
+  "fcm_502",
+  "fcm_503",
+  "fcm_504",
+]);
 
 export function classifyDeviceHealth(device, now = Date.now()) {
   if (device.disabledAt) {
@@ -52,7 +68,7 @@ export function classifyDeviceHealth(device, now = Date.now()) {
     };
   }
 
-  if (APNS_TRANSIENT_STATUSES.has(device.lastPushStatus) || /^apns_(?:[45]\d\d|unknown)$/.test(device.lastPushStatus || "")) {
+  if (PUSH_TRANSIENT_STATUSES.has(device.lastPushStatus) || /^(?:apns|fcm)_(?:[45]\d\d|unknown)$/.test(device.lastPushStatus || "")) {
     return {
       status: "push_failed",
       stale: false,
@@ -127,16 +143,21 @@ export async function handlePushDeviceCollectionRequest({
 
   try {
     const body = await readJsonBody(request);
-    const token = typeof body.apnsToken === "string" ? body.apnsToken.trim() : "";
-    if (!TOKEN_PATTERN.test(token)) {
+    const platform = normalizePlatform(body.platform);
+    const rawToken = platform === "android" ? body.fcmToken : body.apnsToken;
+    const token = typeof rawToken === "string" ? rawToken.trim() : "";
+    const tokenPattern = platform === "android" ? FCM_TOKEN_PATTERN : APNS_TOKEN_PATTERN;
+    if (!tokenPattern.test(token)) {
       sendJson(response, 400, {
-        error: "A valid APNs device token is required.",
+        error: platform === "android"
+          ? "A valid FCM device token is required."
+          : "A valid APNs device token is required.",
       });
       return true;
     }
 
     const device = await scanRepository.upsertPushDevice({
-      platform: normalizePlatform(body.platform),
+      platform,
       token,
       appId: typeof body.appId === "string" && body.appId.trim() ? body.appId.trim().slice(0, 200) : null,
       environment: normalizeEnvironment(body.environment),

@@ -137,7 +137,7 @@ When `GET /api/capabilities` advertises `mobile-monitoring-explanations-v1`, eac
 - `POST /api/notification-devices/:id/test`
 - `DELETE /api/notification-devices/:id`
 
-`POST /api/notification-devices` registers an iOS APNs device token against the same owner boundary used for scans and monitoring targets. The backend never echoes the raw token in list responses. When `MONITORING_SCHEDULER_ENABLED=true`, scheduled monitoring scans can send APNs alerts when a registered target's grade, score, headers, certificate window, or risk events change. Push payloads keep the existing summary fields and now include `monitoringEvents` so newer clients can render the same server-authored title, body, changed evidence, and next action used by the summary endpoints.
+`POST /api/notification-devices` registers a push device against the same owner boundary used for scans and monitoring targets. iOS clients send `platform:"ios"` with an `apnsToken`; Android clients send `platform:"android"` with an `fcmToken`. The backend never echoes the raw token in list responses. When `MONITORING_SCHEDULER_ENABLED=true`, scheduled monitoring scans can send APNs or FCM alerts when a registered target's grade, score, headers, certificate window, or risk events change. Push payloads keep the existing summary fields and now include `monitoringEvents` so newer clients can render the same server-authored title, body, changed evidence, and next action used by the summary endpoints. FCM `data` values are string encoded, so object fields such as `deepLink` and `monitoringEvents` are JSON strings on Android.
 
 `POST /api/notification-devices/:id/test` sends one owner-scoped test notification to an active registration. It returns `200` only when APNs accepts the notification and `503` with a sanitized delivery result when delivery is unavailable or fails. The raw device token is never returned.
 
@@ -149,7 +149,15 @@ APNs delivery is enabled when these credentials are configured:
 
 Each device registration's `appId` is used as its APNs topic, allowing SecURL, Header Watch, and Cert Watch to share the same provider key. `APNS_BUNDLE_ID` is an optional fallback for registrations without an app id. `APNS_TIMEOUT_MS` controls the per-attempt deadline (default `10000`) and `APNS_MAX_ATTEMPTS` controls bounded delivery attempts (default `3`, maximum `5`).
 
-Transient network errors, timeouts, `429`, and `5xx` responses are retried with short bounded backoff. Tokens are disabled only for APNs `Unregistered`, `BadDeviceToken`, or `DeviceTokenNotForTopic` responses; topic, payload, and provider-auth errors remain visible as recoverable delivery failures.
+FCM delivery is enabled when these credentials are configured:
+
+- `FCM_PROJECT_ID` or `FIREBASE_PROJECT_ID`
+- `FCM_CLIENT_EMAIL` or `FIREBASE_CLIENT_EMAIL`
+- `FCM_PRIVATE_KEY` or `FIREBASE_PRIVATE_KEY`
+
+The backend uses Firebase Cloud Messaging HTTP v1 with service-account OAuth. `FCM_TIMEOUT_MS` controls the per-attempt deadline (default `10000`). Android devices receive the same event types as iOS: monitoring drift, certificate events, monitoring explanations, policy alerts, and test notifications.
+
+Transient network errors, timeouts, `429`, and `5xx` responses are retried with short bounded backoff. Tokens are disabled only for APNs `Unregistered`, `BadDeviceToken`, or `DeviceTokenNotForTopic` responses and FCM token-level `UNREGISTERED`, `SENDER_ID_MISMATCH`, or token-invalid `INVALID_ARGUMENT` responses. Topic, payload, and provider-auth errors remain visible as recoverable delivery failures.
 
 Every device delivery is first written to a durable, idempotent notification outbox. Postgres workers claim pending rows with leases and `SKIP LOCKED`, reclaim work after interrupted workers, and retry recoverable failures on a bounded delayed schedule. APNs collapse identifiers reduce duplicate-visible alerts during at-least-once recovery. Completed outbox rows are retained for seven days and then pruned in bounded batches.
 

@@ -155,13 +155,17 @@ Use these reads for client screens:
 
 ## Push And Alert Delivery
 
-iOS apps register APNs devices with:
+Mobile apps register push devices with:
 
 ```http
 POST /api/notification-devices
 ```
 
-Use the same owner boundary as scans and monitoring targets. The backend never returns raw APNs tokens in list responses.
+Use the same owner boundary as scans and monitoring targets. iOS sends
+`platform:"ios"` with `apnsToken`; Android sends `platform:"android"` with
+`fcmToken`. The backend never returns raw APNs or FCM tokens in list responses.
+Clients can feature-detect Android support through `GET /api/capabilities`
+where `notifications.features` includes `android-fcm-push-v1`.
 
 Server-side test notifications are available through:
 

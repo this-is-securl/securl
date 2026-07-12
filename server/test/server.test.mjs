@@ -563,6 +563,9 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.notifications.features.includes("test-notification"));
     assert.ok(payload.notifications.features.includes("bounded-delivery-retry"));
     assert.ok(payload.notifications.features.includes("durable-notification-outbox"));
+    assert.ok(payload.notifications.features.includes("android-fcm-push-v1"));
+    assert.ok(payload.notifications.providers.includes("apns"));
+    assert.ok(payload.notifications.providers.includes("fcm"));
     assert.ok(payload.notifications.resources.includes("GET /api/notification-devices/health"));
     assert.ok(payload.notifications.resources.includes("POST /api/notification-devices"));
     assert.ok(payload.notifications.resources.includes("POST /api/notification-devices/:id/test"));
@@ -578,7 +581,9 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.equal(payload.notifications.delivery.timeoutMs, 10000);
     assert.equal(payload.notifications.delivery.maxAttempts, 3);
     assert.ok(payload.notifications.delivery.invalidTokenReasons.includes("BadDeviceToken"));
+    assert.ok(payload.notifications.delivery.invalidTokenReasons.includes("FCM_UNREGISTERED"));
     assert.ok(payload.notifications.delivery.retries.includes("apns_5xx"));
+    assert.ok(payload.notifications.delivery.retries.includes("fcm_5xx"));
     assert.equal(payload.notifications.outbox.enabled, true);
     assert.equal(payload.notifications.enabled, false);
     assert.equal(payload.safety.passiveFirst, true);
@@ -1321,7 +1326,7 @@ test("notification devices can be registered, listed, and disabled without echoi
     assert.equal(listResponse.status, 200);
     assert.equal(listPayload.devices.length, 1);
     assert.equal(listPayload.devices[0].token, undefined);
-    assert.equal(listPayload.devices[0].lastPushStatus, null);
+    assert.equal(listPayload.devices[0].lastPushStatus, "apns_not_configured");
 
     const healthResponse = await fetch(`${server.baseUrl}/api/notification-devices/health`, {
       headers: {
@@ -1335,16 +1340,17 @@ test("notification devices can be registered, listed, and disabled without echoi
     assert.equal(healthResponse.status, 200);
     assert.equal(healthPayload.health.registeredDevices, 1);
     assert.equal(healthPayload.health.activeDevices, 1);
-    assert.equal(healthPayload.health.readyDevices, 1);
+    assert.equal(healthPayload.health.readyDevices, 0);
     assert.equal(healthPayload.health.staleDevices, 0);
     assert.equal(healthPayload.health.devicesNeedingRegistration, 0);
-    assert.equal(healthPayload.health.byStatus.ready, 1);
+    assert.equal(healthPayload.health.byStatus.ready, 0);
+    assert.equal(healthPayload.health.byStatus.push_failed, 1);
     assert.equal(healthPayload.health.staleAfterDays, 30);
     assert.equal(healthPayload.health.byAppId["online.securl.app"], 1);
-    assert.equal(healthPayload.devices[0].status, "ready");
+    assert.equal(healthPayload.devices[0].status, "push_failed");
     assert.equal(healthPayload.devices[0].stale, false);
     assert.equal(healthPayload.devices[0].needsRegistration, false);
-    assert.equal(healthPayload.devices[0].lastPushStatus, null);
+    assert.equal(healthPayload.devices[0].lastPushStatus, "apns_not_configured");
 
     const telemetryResponse = await fetch(`${server.baseUrl}/api/telemetry`);
     const telemetryPayload = await telemetryResponse.json();
@@ -1370,6 +1376,63 @@ test("notification devices can be registered, listed, and disabled without echoi
     const deletePayload = await deleteResponse.json();
     assert.equal(deleteResponse.status, 200);
     assert.equal(deletePayload.deleted, true);
+  } finally {
+    await server.stop();
+  }
+});
+
+test("Android FCM notification devices use the existing owner-scoped device API", async () => {
+  const server = await startServer();
+  const fcmToken = "f".repeat(120);
+
+  try {
+    const invalidResponse = await fetch(`${server.baseUrl}/api/notification-devices`, {
+      method: "POST",
+      headers: scanOwnerJsonHeaders(),
+      body: JSON.stringify({ platform: "android", fcmToken: "not-valid" }),
+    });
+    const invalidPayload = await invalidResponse.json();
+    assert.equal(invalidResponse.status, 400);
+    assert.match(invalidPayload.error, /FCM device token/i);
+
+    const createResponse = await fetch(`${server.baseUrl}/api/notification-devices`, {
+      method: "POST",
+      headers: {
+        ...scanOwnerJsonHeaders(),
+        "X-SecURL-Client": "securl-android",
+        "X-SecURL-Client-Version": "1.0.6+42",
+        "X-SecURL-Client-Channel": "self-hosted-apk",
+      },
+      body: JSON.stringify({
+        platform: "android",
+        fcmToken,
+        appId: "com.ktbatterham.securl",
+      }),
+    });
+    const createPayload = await createResponse.json();
+    assert.equal(createResponse.status, 201);
+    assert.equal(createPayload.device.token, undefined);
+    assert.equal(createPayload.device.tokenPrefix, "ffffffff...");
+    assert.equal(createPayload.device.platform, "android");
+    assert.equal(createPayload.device.environment, "production");
+
+    const testResponse = await fetch(`${server.baseUrl}/api/notification-devices/${createPayload.device.id}/test`, {
+      method: "POST",
+      headers: scanOwnerHeaders(),
+    });
+    const testPayload = await testResponse.json();
+    assert.equal(testResponse.status, 503);
+    assert.equal(testPayload.delivered, false);
+    assert.equal(testPayload.delivery.skipped, "fcm_not_configured");
+
+    const listResponse = await fetch(`${server.baseUrl}/api/notification-devices`, {
+      headers: scanOwnerHeaders(),
+    });
+    const listPayload = await listResponse.json();
+    assert.equal(listResponse.status, 200);
+    assert.equal(listPayload.devices.length, 1);
+    assert.equal(listPayload.devices[0].platform, "android");
+    assert.equal(listPayload.devices[0].token, undefined);
   } finally {
     await server.stop();
   }
