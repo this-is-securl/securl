@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-07-12 — core 1.23.1 certificate DNS-pinning security patch
+
+### Security
+
+- Pinned certificate-probe TLS connections to the public DNS answers that passed network validation, preventing connection-time DNS rebinding to private or reserved infrastructure.
+- Reused the existing public-address policy without changing the package API, CLI, mobile, or hosted web contracts.
+
+### Verified
+
+- `npm run release:package:check`
+- Clean npm-installed package smoke checks for the public certificate path and safe private-target rejection.
+
 ## 2026-07-10 — core 1.23.0 external exposure inventory
 
 ### Added
