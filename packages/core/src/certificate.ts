@@ -1,5 +1,6 @@
 import tls from "node:tls";
 import { TLS_HANDSHAKE_TIMEOUT_MS } from "./scannerConfig.js";
+import { assertPublicRequestTarget, createPinnedLookup } from "./network-validation.js";
 import type { CertificateResult, LiveCertificateChainEntry, LiveCertificateResult } from "./types.js";
 
 type PeerCertificateWithChain = tls.PeerCertificate & {
@@ -74,7 +75,7 @@ function keyTypeFromCertificate(certificate: tls.PeerCertificate | null | undefi
   return null;
 }
 
-export const scanTls = (targetUrl: URL): Promise<CertificateResult> => {
+export const scanTls = async (targetUrl: URL): Promise<CertificateResult> => {
   if (targetUrl.protocol !== "https:") {
     return Promise.resolve({
       available: false,
@@ -93,11 +94,13 @@ export const scanTls = (targetUrl: URL): Promise<CertificateResult> => {
     });
   }
 
+  const validatedAddresses = await assertPublicRequestTarget(targetUrl);
   return new Promise((resolve, reject) => {
     const socket = tls.connect({
       host: targetUrl.hostname,
       port: Number(targetUrl.port || 443),
       servername: targetUrl.hostname,
+      lookup: createPinnedLookup(validatedAddresses),
       ...OBSERVATIONAL_TLS_OPTIONS,
       timeout: TLS_HANDSHAKE_TIMEOUT_MS,
     });
@@ -155,7 +158,7 @@ export const scanTls = (targetUrl: URL): Promise<CertificateResult> => {
   });
 };
 
-export const scanLiveCertificate = (targetUrl: URL): Promise<LiveCertificateResult> => {
+export const scanLiveCertificate = async (targetUrl: URL): Promise<LiveCertificateResult> => {
   if (targetUrl.protocol !== "https:") {
     return Promise.resolve({
       available: false,
@@ -181,11 +184,13 @@ export const scanLiveCertificate = (targetUrl: URL): Promise<LiveCertificateResu
     });
   }
 
+  const validatedAddresses = await assertPublicRequestTarget(targetUrl);
   return new Promise((resolve, reject) => {
     const socket = tls.connect({
       host: targetUrl.hostname,
       port: Number(targetUrl.port || 443),
       servername: targetUrl.hostname,
+      lookup: createPinnedLookup(validatedAddresses),
       ...OBSERVATIONAL_TLS_OPTIONS,
       timeout: TLS_HANDSHAKE_TIMEOUT_MS,
     });

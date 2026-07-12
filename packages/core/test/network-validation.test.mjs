@@ -9,6 +9,7 @@ import {
   isPrivateAddress,
   isPrivateIpv6,
 } from "../dist/network-validation.js";
+import { scanLiveCertificate, scanTls } from "../dist/certificate.js";
 
 test("isPrivateIpv6 recognizes mapped and tunneled private ranges", () => {
   assert.equal(isPrivateIpv6("::ffff:127.0.0.1"), true);
@@ -114,5 +115,32 @@ test("assertPublicRedirectTarget rethrows dns lookup failures", async (t) => {
   await assert.rejects(
     () => assertPublicRedirectTarget(new URL("https://missing.example")),
     /ENOTFOUND/,
+  );
+});
+
+test("certificate probes reject private and encoded local targets before connecting", async () => {
+  for (const target of [
+    "https://127.0.0.1/",
+    "https://2130706433/",
+    "https://169.254.169.254/",
+    "https://[::1]/",
+    "https://[::ffff:127.0.0.1]/",
+  ]) {
+    await assert.rejects(() => scanTls(new URL(target)), /not public and was blocked/);
+    await assert.rejects(() => scanLiveCertificate(new URL(target)), /not public and was blocked/);
+  }
+});
+
+test("certificate probes reject mixed public/private DNS answers", async (t) => {
+  const originalLookup = dns.lookup;
+  dns.lookup = async () => [
+    { address: "93.184.216.34", family: 4 },
+    { address: "10.0.0.1", family: 4 },
+  ];
+  t.after(() => { dns.lookup = originalLookup; });
+
+  await assert.rejects(
+    () => scanLiveCertificate(new URL("https://rebind.example/")),
+    /did not resolve exclusively to public IP addresses/,
   );
 });
