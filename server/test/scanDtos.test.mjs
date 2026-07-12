@@ -4,6 +4,7 @@ import {
   buildMonitoringCertSummaryPayload,
   buildMonitoringHealthPayload,
   buildMonitoringMobileSummaryPayload,
+  buildMonitoringTargetDetailPayload,
   buildScanDriftPayload,
   buildScanObservationDriftPayload,
   buildScanVendorsPayload,
@@ -638,6 +639,13 @@ test("mobile monitoring summary exposes compact posture drift for apps", () => {
   assert.ok(target.posture.topEvents.length > 0);
   assert.ok(target.posture.monitoringEvents.length > 0);
   assert.equal(target.events[0].source, "posture");
+  assert.equal(target.events[0].targetId, "target-posture-1");
+  assert.equal(target.events[0].eventId, target.events[0].id);
+  assert.deepEqual(target.events[0].deepLink, {
+    route: "monitoring_target",
+    targetId: "target-posture-1",
+    eventId: target.events[0].id,
+  });
   assert.equal(typeof target.events[0].push.title, "string");
   assert.equal(typeof target.events[0].nextAction, "string");
   assert.equal(target.status.state, "needs_attention");
@@ -649,6 +657,38 @@ test("mobile monitoring summary exposes compact posture drift for apps", () => {
   assert.equal(target.changes.postureRiskEvents, 6);
   assert.ok(target.changes.monitoringEvents > 0);
   assert.equal(payload.summary.changes, target.changes.postureRiskEvents);
+});
+
+test("monitoring target detail decorates comparison events with stable navigation identity", () => {
+  const target = {
+    id: "target-posture-detail",
+    url: "https://example.com/",
+    label: "Example posture",
+    cadence: "daily",
+    kind: "cert",
+    mode: "quiet",
+    addedAt: "2026-06-19T08:00:00.000Z",
+    lastScannedAt: "2026-06-19T09:00:00.000Z",
+  };
+  const records = [
+    buildCompletedRecord("scan-current", {
+      scannedAt: "2026-06-19T09:00:00.000Z",
+      score: 58,
+      grade: "D",
+    }),
+    buildCompletedRecord("scan-previous"),
+  ];
+
+  const payload = buildMonitoringTargetDetailPayload(target, records);
+  const event = payload.comparison.monitoringEvents[0];
+
+  assert.equal(event.targetId, target.id);
+  assert.equal(event.eventId, event.id);
+  assert.deepEqual(event.deepLink, {
+    route: "monitoring_target",
+    targetId: target.id,
+    eventId: event.id,
+  });
 });
 
 test("scan drift payload includes monitoring events alongside legacy risk events", () => {
