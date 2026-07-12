@@ -9,6 +9,12 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 ### Backend and docs
 - Added protected product-pulse telemetry and optional release-channel attribution for hosted/mobile clients. These are backend/API-service changes and do not change the published `securl` package surface.
 
+## [1.23.1] - 2026-07-12
+
+### Security
+- Pinned certificate-probe TLS connections to the public DNS answers that passed network validation, preventing connection-time DNS rebinding to private or reserved infrastructure.
+- Applied the existing public-address policy to certificate probes without changing the public API or CLI contract.
+
 ## [1.23.0] - 2026-07-10
 
 ### Added

@@ -53,7 +53,7 @@ npx securl scan example.com
 
 ## Current Engine Surface
 
-`securl@1.23.0` is the current npm package release target. It includes:
+`securl@1.23.1` is the current npm package release target. It includes:
 
 - External Exposure Inventory v1 across visible third-party, infrastructure, identity, and AI dependencies, with stable IDs, data-flow purpose, confidence, evidence, SRI status, and review priority.
 - `securl scan --format exposure` for compact inventory output in CI, audit, and scheduled workflows.
@@ -209,7 +209,7 @@ Sponsorship helps fund continued work on the passive analysis engine, hosted sca
 
 ## Package status
 
-- Latest package target: `securl@1.23.0`
+- Latest package target: `securl@1.23.1`
 - Previous package name: `@ktbatterham/external-posture-core` is deprecated in favour of `securl`
 - npm tag: `latest`
 - Package signal check: `npm run package:signals`
