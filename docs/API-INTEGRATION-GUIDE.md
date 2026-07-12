@@ -100,6 +100,13 @@ CLI users can produce the same artifact without the hosted API:
 npx securl scan https://example.com --format manifest --output posture-manifest.json
 ```
 
+For the concise external exposure inventory (visible vendors, infrastructure,
+identity, AI, and supply-chain signals), use the CLI's `exposure` format:
+
+```sh
+npx securl scan https://example.com --format exposure --output external-exposure.json
+```
+
 Use the package schema when you need to validate stored manifests or wire the artifact into CI, evidence archives, or vendor-risk tooling:
 
 ```sh
