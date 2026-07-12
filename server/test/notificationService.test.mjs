@@ -380,6 +380,73 @@ test("certificate monitoring pushes include enriched monitoring event copy when 
   assert.equal(deliveredPayload.event.type, "cert_expired");
 });
 
+test("posture monitoring pushes include target and event navigation identity", async () => {
+  const repository = createInMemoryScanRepository();
+  await repository.upsertPushDevice({
+    token: "f".repeat(64),
+    appId: "com.ktbatterham.headerwatch",
+    requesterScope: "scope-1",
+    ownerId: "owner-1",
+  });
+  const result = (scannedAt, score, grade) => ({
+    finalUrl: "https://example.com/",
+    host: "example.com",
+    scannedAt,
+    score,
+    grade,
+    statusCode: 200,
+    responseTimeMs: 100,
+    certificate: { available: true, valid: true, authorized: true, daysRemaining: 90, issues: [] },
+    thirdPartyTrust: { providers: [] },
+    aiSurface: { vendors: [] },
+    identityProvider: { provider: null },
+    wafFingerprint: { providers: [] },
+    ctDiscovery: { prioritizedHosts: [] },
+    headers: [],
+    issues: [],
+  });
+  const previous = await repository.createScan({
+    url: "https://example.com/",
+    mode: "quiet",
+    requesterScope: "scope-1",
+    clientIp: "monitoring-scheduler",
+    ownerId: "owner-1",
+  });
+  await repository.markCompleted(previous.id, result("2026-07-11T08:00:00.000Z", 92, "A"));
+  const current = await repository.createScan({
+    url: "https://example.com/",
+    mode: "quiet",
+    requesterScope: "scope-1",
+    clientIp: "monitoring-scheduler",
+    ownerId: "owner-1",
+  });
+  const currentResult = result("2026-07-12T08:00:00.000Z", 60, "D");
+  const completedScan = await repository.markCompleted(current.id, currentResult);
+  let deliveredPayload = null;
+  const service = createService({
+    repository,
+    transport: async ({ payload }) => {
+      deliveredPayload = payload;
+      return { statusCode: 200, body: null };
+    },
+  });
+
+  const delivery = await service.notifyMonitoringScanCompleted({
+    completedScan,
+    result: currentResult,
+    telemetryContext: { channel: "monitoring_scheduler", targetId: "target-posture-1" },
+  });
+
+  assert.equal(delivery.sent, 1);
+  assert.equal(deliveredPayload.targetId, "target-posture-1");
+  assert.equal(deliveredPayload.eventId, deliveredPayload.monitoringEvents[0].id);
+  assert.deepEqual(deliveredPayload.deepLink, {
+    route: "monitoring_target",
+    targetId: "target-posture-1",
+    eventId: deliveredPayload.eventId,
+  });
+});
+
 test("durable outbox drains work left behind by an interrupted worker", async () => {
   const repository = createInMemoryScanRepository();
   await repository.upsertPushDevice({
