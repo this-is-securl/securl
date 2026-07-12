@@ -16,6 +16,7 @@ export function buildCapabilitiesPayload({
   alerts,
   serveFrontend,
 } = {}) {
+  const fcmEnabled = Boolean(notifications?.providers?.fcm?.enabled);
   return {
     apiVersion: API_VERSION,
     service: {
@@ -190,7 +191,7 @@ export function buildCapabilitiesPayload({
       ],
     },
     notifications: {
-      providers: ["apns", "fcm"],
+      providers: ["apns", ...(fcmEnabled ? ["fcm"] : [])],
       enabled: Boolean(notifications?.enabled),
       delivery: {
         timeoutMs: notifications?.timeoutMs ?? null,
@@ -211,7 +212,7 @@ export function buildCapabilitiesPayload({
         "durable-notification-outbox",
         "monitoring-drift-push",
         "cert-event-push",
-        "android-fcm-push-v1",
+        ...(fcmEnabled ? ["android-fcm-push-v1"] : []),
       ],
       resources: [
         "GET /api/notification-devices",

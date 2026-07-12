@@ -563,9 +563,9 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.notifications.features.includes("test-notification"));
     assert.ok(payload.notifications.features.includes("bounded-delivery-retry"));
     assert.ok(payload.notifications.features.includes("durable-notification-outbox"));
-    assert.ok(payload.notifications.features.includes("android-fcm-push-v1"));
     assert.ok(payload.notifications.providers.includes("apns"));
-    assert.ok(payload.notifications.providers.includes("fcm"));
+    assert.equal(payload.notifications.providers.includes("fcm"), false);
+    assert.equal(payload.notifications.features.includes("android-fcm-push-v1"), false);
     assert.ok(payload.notifications.resources.includes("GET /api/notification-devices/health"));
     assert.ok(payload.notifications.resources.includes("POST /api/notification-devices"));
     assert.ok(payload.notifications.resources.includes("POST /api/notification-devices/:id/test"));
@@ -587,6 +587,23 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.equal(payload.notifications.outbox.enabled, true);
     assert.equal(payload.notifications.enabled, false);
     assert.equal(payload.safety.passiveFirst, true);
+  } finally {
+    await server.stop();
+  }
+});
+
+test("capabilities advertise Android FCM only when FCM credentials are configured", async () => {
+  const server = await startServer({
+    FCM_PROJECT_ID: "securl-test",
+    FCM_CLIENT_EMAIL: "firebase-adminsdk@example.iam.gserviceaccount.com",
+    FCM_PRIVATE_KEY: "PRIVATE KEY",
+  });
+  try {
+    const response = await fetch(`${server.baseUrl}/api/capabilities`);
+    const payload = await response.json();
+    assert.equal(response.status, 200);
+    assert.ok(payload.notifications.providers.includes("fcm"));
+    assert.ok(payload.notifications.features.includes("android-fcm-push-v1"));
   } finally {
     await server.stop();
   }
