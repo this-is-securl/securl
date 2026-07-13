@@ -53,10 +53,11 @@ Delivered releases:
 - `1.23`: External Exposure Inventory v1 with stable provider IDs, roles, data-flow
   purpose, confidence/evidence, SRI status, and review priority across package, CLI,
   and hosted API consumers.
-- Proposed next architecture slice: a constrained declarative detection-pack layer for
-  provider, infrastructure, identity, WAF, and vendor-inventory inference. This should
-  start as bundled first-party schema-validated rules with no network I/O, no arbitrary
-  JavaScript, deterministic output, and benchmark gates. See
+- Detection-pack architecture is now in its first implementation slice. Draft PR
+  [#382](https://github.com/this-is-securl/securl/pull/382) adds an internal
+  bundled-first-party evaluator and migrates Cloudflare, Akamai, and Fastly WAF/technology
+  detection into a constrained pack. The first slice deliberately preserves existing
+  outputs while proving the rule seam, safety model, and package checks. See
   [`DETECTION-PACKS.md`](./DETECTION-PACKS.md).
 
 ### 2. Monitoring As The Product
@@ -139,25 +140,29 @@ The path to `1.25` should make the current product thesis obvious:
 | `1.21` | Policy Pack v1 | Built-in baseline, production, strict, and vendor-review profiles can evaluate observations and fail CLI/CI runs deterministically. |
 | `1.22` | Manifest schema contract | CI, evidence archives, and integrators can validate Posture Manifest v1 with the exported JSON Schema and `securl schema manifest`. |
 | `1.23` | External exposure intelligence | Shipped: stable third-party, infrastructure, identity, AI, SRI, data-flow, and supply-chain inventory for package, CLI, and hosted API consumers. |
-| `1.24` | Monitoring explanations | Push and monitoring timelines explain what changed, why it matters, which policy moved, and what to do next. |
+| `1.24` | Detection-pack architecture and monitoring explanations | The engine gains a constrained internal detection-pack seam while monitoring timelines continue toward clearer "what changed / why it matters / what to do next" explanations. |
 | `1.25` | Mobile monitoring milestone | Cert Watch, Header Watch, and SecURL share a reliable, push-driven monitoring foundation with concise policy and manifest summaries. |
 
 ## Next Decision Gate - July 2026
 
-Do not start another product slice merely because `1.24` is next numerically. Continue
-observing clean production, package, mobile, and web-funnel signals after the 1.23 and
-mobile release wave. The next deliberate choice is:
+The selected next slice is **declarative detection packs**, starting safely inside the
+engine before any contributor-facing plugin surface is exposed.
 
-- **Monitoring explanations (`1.24`)** when recurring monitoring usage or real drift
-  events show that explanation quality is the strongest constraint; or
-- **Declarative detection packs** when engine scalability and contributor-friendly
-  provider knowledge become the stronger constraint, starting with an internal evaluator
-  and one low-risk duplicated edge-provider migration; or
-- **Product Hunt launch** when the product and media pack are ready for a timed acquisition
-  test and there is capacity to observe and respond to the resulting traffic.
+Current gate:
 
-Until one of those conditions is selected, favour reliability, compatibility, evidence,
-and operational visibility over new surface area.
+- Land PR #382 only if provider outputs remain equivalent, CI stays green, and the package
+  release decision is explicit.
+- Keep this package-affecting architecture work separate from mobile delivery; there is no
+  new mobile contract until a future API response shape intentionally exposes pack metadata
+  or richer detection provenance.
+- After #382 merges, choose the next pack migration by evidence and risk: prefer another
+  duplicated low-risk provider family before attempting vendor-inventory or identity rules.
+- Continue monitoring production/mobile telemetry in parallel; if real drift or alert
+  confusion becomes the stronger signal, move monitoring explanations back to the top of
+  the queue.
+
+Until the slice proves itself in production/package review, favour reliability,
+compatibility, evidence, and operational visibility over new surface area.
 
 ## Future 2.0 Shape
 
