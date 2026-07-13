@@ -3,17 +3,24 @@
 ## Status
 
 - `main` is in sync with `origin/main`.
-- Latest published npm package: `securl@1.15.0`.
+- Latest published npm package: `securl@1.23.1` (`packages/core`), with npm
+  provenance enabled and no install scripts.
 - Railway hosts the backend/API service.
 - Hostinger hosts the static product and app sites.
-- Mobile is currently the most meaningful engagement channel.
+- Mobile and npm are currently the clearest engagement channels; separate genuine usage
+  from smoke/deploy checks and incomplete-day telemetry.
+- Android FCM push support is merged but capability-gated off until Railway has FCM
+  service-account credentials. Do not mark it `BACKEND_READY` or trigger mobile until
+  `/api/capabilities` advertises `android-fcm-push-v1`.
 
 ## Current Priorities
 
 1. Keep the backend/mobile API contract stable.
 2. Watch telemetry and product pulse for real mobile usage versus local QA.
-3. Ship mobile updates quickly when Apple allows them.
+3. Keep package, hosted API, public-web, and release/provenance status accurate.
 4. Only bump npm when `packages/core` or the published package surface changes.
+5. Evaluate the declarative detection-pack/plugin architecture as a backend-owned
+   architecture slice before writing implementation code.
 
 ## Routine Checks
 

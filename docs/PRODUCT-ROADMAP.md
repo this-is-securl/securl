@@ -53,6 +53,11 @@ Delivered releases:
 - `1.23`: External Exposure Inventory v1 with stable provider IDs, roles, data-flow
   purpose, confidence/evidence, SRI status, and review priority across package, CLI,
   and hosted API consumers.
+- Proposed next architecture slice: a constrained declarative detection-pack layer for
+  provider, infrastructure, identity, WAF, and vendor-inventory inference. This should
+  start as bundled first-party schema-validated rules with no network I/O, no arbitrary
+  JavaScript, deterministic output, and benchmark gates. See
+  [`DETECTION-PACKS.md`](./DETECTION-PACKS.md).
 
 ### 2. Monitoring As The Product
 
@@ -145,6 +150,9 @@ mobile release wave. The next deliberate choice is:
 
 - **Monitoring explanations (`1.24`)** when recurring monitoring usage or real drift
   events show that explanation quality is the strongest constraint; or
+- **Declarative detection packs** when engine scalability and contributor-friendly
+  provider knowledge become the stronger constraint, starting with an internal evaluator
+  and one low-risk duplicated edge-provider migration; or
 - **Product Hunt launch** when the product and media pack are ready for a timed acquisition
   test and there is capacity to observe and respond to the resulting traffic.
 
