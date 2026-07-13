@@ -1,10 +1,15 @@
 # SecURL Product Roadmap
 
-SecURL is evolving from a one-shot scanner into a public security posture intelligence layer for developers, mobile users, security teams, and lightweight automation.
+SecURL is evolving from a one-shot scanner into a public security posture intelligence layer for developers, mobile users, security teams, lightweight automation, and teams that need trustworthy outside-in evidence without buying or operating a heavyweight scanner.
 
 The product thesis is simple: people should be able to understand how a public URL, service, vendor, or certificate looks from the outside without credentials, agents, invasive probing, or noisy reconnaissance. SecURL should make that read fast, repeatable, explainable, and useful everywhere: CLI, CI/CD, API, web, and mobile.
 
 A useful mental model is the external security "recipe card." SBOMs help teams understand what an application is made of internally; SecURL should help them understand what that application exposes externally: public services, headers, cookies, TLS, DNS trust, certificate posture, third-party surface, visible vendors, policy fit, and what changed since the last known-good scan.
+
+The bigger ambition is an **external posture graph**: a durable, explainable record of
+public-facing security signals over time. A single scan answers "what does this URL look
+like today?" The platform should answer "what changed, which policy or vendor expectation
+moved, who needs to care, and can I trust the evidence?"
 
 ## Current Signals
 
@@ -28,11 +33,35 @@ For the next few days, priority order is:
 
 This does not reduce the importance of the mobile suite. It preserves the principle that the engine is the source of truth, with web and mobile acting as increasingly polished views over the same passive posture intelligence.
 
+## Strategic Bets
+
+The roadmap should be ambitious in five places, while preserving the passive, bounded,
+privacy-conscious product boundary:
+
+1. **SecURL as the external posture graph**: every scan, manifest, observation, policy
+   result, detection-pack match, monitoring event, and alert becomes part of a stable
+   evidence model that can be compared over time.
+2. **Detection knowledge as a reviewed ecosystem**: detection packs should grow from
+   bundled first-party rules into a contributor-friendly, reviewed catalogue for provider,
+   infrastructure, identity, WAF, SaaS, AI, and vendor-supply-chain inference. This is the
+   scale lever; the first implementation must stay locked down so the later ecosystem is
+   credible.
+3. **Monitoring as the control room**: the recurring product is not "run scan again"; it is
+   a quiet watch layer that explains meaningful drift, routes it to the right surface, and
+   proves nothing important has changed.
+4. **Posture manifests as portable evidence**: manifests should become the artifact a team
+   can attach to CI, a release, a vendor review, a customer security question, or an
+   internal lightweight audit.
+5. **Trust as product surface**: provenance, passive boundaries, SSRF protections,
+   deterministic outputs, telemetry privacy, and release discipline are not background
+   engineering chores. They are part of why users should trust a security tool that itself
+   will be attacked.
+
 ## Product Tracks
 
 ### 1. Engine Authority
 
-Goal: make `securl` the best lightweight outside-in posture engine for public URL security judgement.
+Goal: make `securl` the best lightweight outside-in posture engine for public URL security judgement, portable evidence, and automation-safe policy decisions.
 
 Near-term work:
 
@@ -44,6 +73,11 @@ Near-term work:
 - Expand fast single-purpose commands where the engine already has focused capability, such as `securl cert`.
 - Continue reducing false positives and making passive findings easier to trust.
 - Keep package trust strong: provenance, no install scripts, small dependency surface, clear changelog, and explicit passive boundaries.
+- Add pack-match provenance to internal observations before exposing it publicly, so future
+  users can see which detection knowledge produced a provider or vendor claim.
+- Build toward a maintained provider knowledge base that can explain roles, data-flow,
+  ownership, evidence, confidence, and review priority consistently across CLI, API, web,
+  and mobile.
 
 Delivered releases:
 
@@ -72,6 +106,12 @@ Near-term work:
 - Use posture manifests as the stored baseline for "what changed since last time" and "does this still meet the expected recipe card?"
 - Keep push notifications quiet, deduplicated, and transition-driven.
 - Add service-level health and user-facing confidence so apps can show whether monitoring is working.
+- Turn monitoring into an evidence timeline: users should be able to inspect when a signal
+  first appeared, when it changed, whether it recovered, and whether the change mattered to
+  their selected policy.
+- Add team/automation destinations as first-class surfaces: webhook, email, CI evidence,
+  and eventually Slack/issue-style handoff should all receive the same server-authored
+  explanation rather than forcing each client to reinterpret raw scan data.
 
 Candidate releases (signal-gated after the post-1.23 settling window):
 
@@ -90,6 +130,11 @@ Near-term work:
 - Feed mobile-specific telemetry into product decisions without storing personal identifiers.
 - Use Cert Watch usage as the sharpest signal for what mobile users currently understand and value.
 - Keep Android self-hosted downloads discoverable while iOS distribution matures.
+- Let mobile become the simplest "control room" for individuals: not a smaller copy of the
+  web app, but the fastest way to know whether watched domains, certificates, and posture
+  expectations are healthy.
+- Keep the product-team boundary explicit: mobile should consume stable backend-authored
+  summaries and events, not reimplement the engine or detection-pack logic.
 
 Candidate releases:
 
@@ -106,6 +151,11 @@ Near-term work:
 - Add GitHub Actions examples that show policy profiles, score thresholds, regression checks, cert expiry checks, posture manifest upload, and SARIF upload.
 - Make report artifacts useful for pull requests and vendor/supplier assessment notes.
 - Keep CLI commands fast and narrowly scoped where possible.
+- Make "external posture evidence for every release" a simple path: one command in CI,
+  one manifest artifact, one policy verdict, one human-readable summary, and one optional
+  SARIF/report output.
+- Add scheduled/self-hosted examples so teams can run SecURL as a small watcher without
+  adopting the hosted product.
 
 Candidate releases:
 
@@ -124,10 +174,34 @@ Near-term work:
 - Record what is real traction versus smoke/deploy/internal noise.
 - Keep release notes honest: package changes only get package bumps when npm consumers benefit.
 - Preserve the passive boundary in all public messaging.
+- Treat security hardening as roadmap work: SSRF resistance, bounded parsing, ReDoS-safe
+  detection, dependency review, alert-abuse controls, and release provenance should be
+  visible in docs and verification scripts.
+- Publish enough operational evidence that serious users can evaluate whether SecURL is a
+  trustworthy security dependency, not just an attractive scanner UI.
 
 Candidate releases:
 
 - Ongoing through every release, with a documentation refresh at each package milestone.
+
+### 6. Distribution And Commercial Shape
+
+Goal: make the product useful enough to spread organically while leaving room for a
+credible paid/service layer.
+
+Near-term work:
+
+- Keep the free package excellent: a high-trust CLI is the acquisition surface, proof point,
+  and integration layer.
+- Make the hosted API and apps the easiest way to get history, monitoring, alerts, share
+  cards, and mobile access without operating infrastructure.
+- Use Product Hunt, Show HN, dev.to, GitHub examples, and package docs as learning loops,
+  not vanity launch checkboxes.
+- Define a lightweight paid path around monitored targets, history retention, team/API
+  usage, export/reporting, and alert destinations only after real usage shows which surface
+  people return to.
+- Avoid premature enterprise theatre. The credible wedge is "external posture evidence and
+  monitoring for teams that do not have a security platform."
 
 ## Roadmap To 1.25
 
@@ -142,6 +216,21 @@ The path to `1.25` should make the current product thesis obvious:
 | `1.23` | External exposure intelligence | Shipped: stable third-party, infrastructure, identity, AI, SRI, data-flow, and supply-chain inventory for package, CLI, and hosted API consumers. |
 | `1.24` | Detection-pack architecture and monitoring explanations | The engine gains a constrained internal detection-pack seam while monitoring timelines continue toward clearer "what changed / why it matters / what to do next" explanations. |
 | `1.25` | Mobile monitoring milestone | Cert Watch, Header Watch, and SecURL share a reliable, push-driven monitoring foundation with concise policy and manifest summaries. |
+
+## Ambition To 1.30
+
+The next five package/product milestones should turn the platform from "capable scanner"
+into "credible external posture system":
+
+| Version range | Strategic milestone | Intended outcome |
+| --- | --- | --- |
+| `1.24` | Internal detection packs | The detection-pack seam is real, tested, bounded, and used by at least one provider family without output drift. |
+| `1.25` | Monitoring control-room polish | Mobile, web, API, and alerts share server-authored monitoring explanations, deep links, health status, and policy-aware next actions. |
+| `1.26` | Provider knowledge base v1 | Provider, WAF, identity, infrastructure, AI, and vendor inventory signals share stable provider IDs, roles, evidence, and pack provenance. |
+| `1.27` | Portable evidence workflows | CI and hosted users can save, compare, export, and share posture manifests and reports with enough context for vendor review or release evidence. |
+| `1.28` | Reviewed contributor packs | Contributors can propose declarative detection-pack rules through fixtures, schema validation, benchmark gates, and human review without adding executable runtime plugins. |
+| `1.29` | Team/API operating layer | Authenticated API keys, alert destinations, retention, audit-friendly exports, and team-oriented usage limits become coherent rather than ad hoc. |
+| `1.30` | External posture graph | SecURL can explain the current state, historical drift, policy fit, provider/vendor exposure, and evidence quality for watched targets as one product system. |
 
 ## Next Decision Gate - July 2026
 
@@ -164,6 +253,27 @@ Current gate:
 Until the slice proves itself in production/package review, favour reliability,
 compatibility, evidence, and operational visibility over new surface area.
 
+## Opportunity Backlog
+
+These are intentionally larger than the next sprint. They should shape architecture
+choices now without becoming excuses to overbuild:
+
+- **Hosted posture graph**: target history, provider timeline, observation freshness,
+  policy state, monitoring health, alert delivery, and evidence quality as one queryable
+  model.
+- **Detection-pack workbench**: fixtures, golden-output comparisons, worst-case benchmark
+  reports, and a review checklist for proposed provider rules.
+- **External evidence bundle**: signed or provenance-linked export containing manifest,
+  policy verdict, key evidence, report summary, engine version, and scan metadata.
+- **Vendor/security questionnaire assist**: convert posture manifests and vendor exposure
+  into concise evidence-backed answers for customer or supplier review.
+- **Public benchmark corpus**: safe synthetic and public-fixture tests that track false
+  positives, scan time, parser safety, and detection-pack growth.
+- **Control-room surfaces**: a web/mobile view that starts from "what needs attention?"
+  across watched targets instead of "which scan do you want to open?"
+- **Self-hosted watcher**: a documented small deployment mode for teams that want scheduled
+  monitoring and exports without the public hosted service.
+
 ## Future 2.0 Shape
 
 SecURL 2.0 should not mean "more checks." It should mean a stable product system:
@@ -171,9 +281,14 @@ SecURL 2.0 should not mean "more checks." It should mean a stable product system
 - A stable engine API for public URL posture intelligence.
 - A stable external posture manifest that acts as a public-facing security recipe card for apps, services, and vendors.
 - A policy engine that can evaluate those manifests consistently across CLI, CI, API, web, and mobile.
+- A posture graph that keeps observations, provider signals, policy state, detection-pack
+  provenance, monitoring events, alert delivery, and evidence freshness connected over
+  time.
 - A mature CLI for CI, scheduled jobs, reports, and local checks.
 - A hosted backend that owns scans, monitoring, push notifications, policies, and history.
 - A mobile suite that gives focused lenses over the same intelligence layer.
+- A reviewed detection-pack ecosystem that scales provider and vendor knowledge without
+  compromising passive safety or package trust.
 - Optional interoperability exports for security teams that want posture data alongside SBOM, vendor-risk, or compliance evidence workflows.
 - Clear privacy boundaries, passive collection limits, and trustworthy package/deployment practices.
 - A coherent commercial foundation around recurring monitoring, history, reporting, API usage, and team workflows.

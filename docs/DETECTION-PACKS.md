@@ -1,13 +1,18 @@
 # Detection Packs Architecture Proposal
 
-Status: proposed architecture slice, not implemented.
+Status: first implementation slice open in
+[#382](https://github.com/this-is-securl/securl/pull/382).
 
-SecURL's current detection knowledge is intentionally static and compiled into the
+SecURL's detection knowledge is intentionally static and compiled into the
 engine. That keeps the package small, deterministic, and auditable, but the provider
 catalogue is now duplicated across WAF, infrastructure, identity, CT/takeover, HTML, and
 vendor-exposure code paths. The right next step is not arbitrary third-party plugins. It
 is a constrained declarative detection-pack layer that can scale detection knowledge
 without weakening the passive scanner boundary.
+
+PR #382 starts that path with an internal bundled-first-party evaluator and a low-risk
+Cloudflare/Akamai/Fastly edge-provider migration across WAF and technology detection.
+The broader schema below remains the target shape for follow-on slices.
 
 ## Goals
 
@@ -255,9 +260,9 @@ Before implementation is considered complete:
 - No mobile client implementation work. Mobile may consume existing output only after a
   backend contract is shipped, deployed, validated, and explicitly handed off.
 
-## Recommended next executable slice
+## Current executable slice
 
-Open a `PACKAGE_AFFECTING` architecture/implementation PR for an internal
-`DetectionPack` schema and evaluator, then migrate the smallest duplicated edge-provider
-rules. If output remains byte-for-byte compatible on fixtures and performance remains
-within current bounds, that becomes the foundation for future declarative provider packs.
+Land PR #382 as a `PACKAGE_AFFECTING` architecture/implementation PR for the internal
+`DetectionPack` schema and evaluator. It migrates the smallest duplicated edge-provider
+rules first. If output remains compatible on fixtures and performance remains within
+current bounds, that becomes the foundation for future declarative provider packs.
