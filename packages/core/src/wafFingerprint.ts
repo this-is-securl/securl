@@ -1,4 +1,6 @@
 import { URL } from "node:url";
+import { evaluateDetectionPacks, evidenceForWafOutput } from "./detectionPacks/evaluator.js";
+import { FIRST_PARTY_DETECTION_PACKS } from "./detectionPacks/edgeProviders.js";
 import type { RedirectHop, WafFingerprintInfo } from "./types.js";
 import { unique } from "./utils.js";
 
@@ -14,22 +16,6 @@ const headerValue = (headers: ResponseHeaders, name: string) => {
 
 const WAF_DETECTORS = [
   {
-    name: "Cloudflare",
-    confidence: "high" as const,
-    detection: "observed" as const,
-    test: (headers: ResponseHeaders, body: string) =>
-      Boolean(headerValue(headers, "cf-ray") || headerValue(headers, "cf-cache-status") || /cloudflare/i.test(headerValue(headers, "server") || "") || /attention required|cloudflare/i.test(body)),
-    evidence: (headers: ResponseHeaders) => headerValue(headers, "cf-ray") ? "Observed cf-ray / Cloudflare edge headers." : "Observed Cloudflare-branded edge response markers.",
-  },
-  {
-    name: "Akamai",
-    confidence: "high" as const,
-    detection: "observed" as const,
-    test: (headers: ResponseHeaders, body: string) =>
-      Boolean(headerValue(headers, "x-akamai-transformed") || headerValue(headers, "akamai-cache-status") || /akamai/i.test(headerValue(headers, "server") || "") || /reference #\d+\.[a-z0-9.]+\.akamai/i.test(body)),
-    evidence: () => "Observed Akamai edge headers or block-page signatures.",
-  },
-  {
     name: "Imperva",
     confidence: "high" as const,
     detection: "observed" as const,
@@ -44,14 +30,6 @@ const WAF_DETECTORS = [
     test: (headers: ResponseHeaders, body: string) =>
       Boolean(headerValue(headers, "x-sucuri-id") || headerValue(headers, "x-sucuri-cache") || /sucuri/i.test(headerValue(headers, "server") || "") || /sucuri website firewall/i.test(body)),
     evidence: () => "Observed Sucuri edge headers or branded error-page markers.",
-  },
-  {
-    name: "Fastly",
-    confidence: "medium" as const,
-    detection: "observed" as const,
-    test: (headers: ResponseHeaders) =>
-      Boolean((headerValue(headers, "x-cache") || "").toLowerCase().includes("fastly") || (headerValue(headers, "x-served-by") || "").toLowerCase().includes("cache-")),
-    evidence: () => "Observed Fastly cache headers.",
   },
   {
     name: "AWS CloudFront / WAF",
@@ -123,14 +101,28 @@ export const analyzeWafFingerprint = (
   redirects: RedirectHop[],
 ): WafFingerprintInfo => {
   const body = (html || "").toLowerCase();
-  const providers = WAF_DETECTORS
+  const packProviders = evaluateDetectionPacks({ headers, body }, FIRST_PARTY_DETECTION_PACKS)
+    .filter((match) => Boolean(match.outputs.waf))
+    .map((match) => {
+      const waf = match.outputs.waf!;
+      return {
+        name: waf.name,
+        confidence: waf.confidence,
+        detection: waf.detection,
+        evidence: evidenceForWafOutput({ headers, body }, waf),
+      };
+    });
+  const staticProviders = WAF_DETECTORS
     .filter((detector) => detector.test(headers, body))
     .map((detector) => ({
       name: detector.name,
       confidence: detector.confidence,
       detection: detector.detection,
-      evidence: detector.evidence(headers),
+      evidence: detector.evidence(),
     }));
+  const providers = unique([...packProviders, ...staticProviders].map((provider) => `${provider.name}|${provider.evidence}`))
+    .map((key) => [...packProviders, ...staticProviders].find((provider) => `${provider.name}|${provider.evidence}` === key))
+    .filter((provider): provider is (typeof packProviders)[number] => Boolean(provider));
 
   const via = headerValue(headers, "via");
   const server = headerValue(headers, "server");

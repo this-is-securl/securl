@@ -1,3 +1,5 @@
+import { evaluateDetectionPacks, evidenceForTechnologyOutput } from "./detectionPacks/evaluator.js";
+import { FIRST_PARTY_DETECTION_PACKS } from "./detectionPacks/edgeProviders.js";
 import type { TechnologyResult } from "./types.js";
 import { headerValue } from "./utils.js";
 
@@ -32,7 +34,6 @@ export const detectTechnologies = (headers: ResponseHeaders, finalUrl: URL): Tec
 
   const server = headerValue(headers, "server");
   const poweredBy = headerValue(headers, "x-powered-by");
-  const cache = headerValue(headers, "cf-cache-status");
   const via = headerValue(headers, "via");
 
   const classifyServerHeader = (value: string) => {
@@ -79,13 +80,23 @@ export const detectTechnologies = (headers: ResponseHeaders, finalUrl: URL): Tec
 
   if (headerValue(headers, "x-vercel-id")) addTechnology("Vercel", "hosting", "Observed in X-Vercel-Id header", null, "high", "observed");
   if (headerValue(headers, "x-amz-cf-id")) addTechnology("Amazon CloudFront", "network", "Observed in CloudFront response headers", null, "high", "observed");
-  if (headerValue(headers, "x-cache")?.toLowerCase().includes("fastly")) addTechnology("Fastly", "network", "Observed in X-Cache header", null, "high", "observed");
   if (headerValue(headers, "x-cdn")) addTechnology(headerValue(headers, "x-cdn") as string, "network", "Observed in X-CDN header", null, "high", "observed");
   if (headerValue(headers, "x-envoy-upstream-service-time")) addTechnology("Envoy", "network", "Observed in Envoy upstream timing header", null, "high", "observed");
-  if (headerValue(headers, "cf-ray") || cache) addTechnology("Cloudflare", "network", "Observed in Cloudflare response headers", null, "high", "observed");
   if (headerValue(headers, "x-sucuri-id") || headerValue(headers, "x-sucuri-cache")) addTechnology("Sucuri", "network", "Observed in Sucuri edge headers", null, "high", "observed");
-  if (headerValue(headers, "x-akamai-transformed") || headerValue(headers, "akamai-cache-status")) addTechnology("Akamai", "network", "Observed in Akamai response headers", null, "high", "observed");
-  if (headerValue(headers, "x-served-by")?.toLowerCase().includes("cache-")) addTechnology("Fastly", "network", "Observed in X-Served-By cache headers", null, "high", "observed");
+  for (const match of evaluateDetectionPacks({ headers, body: "" }, FIRST_PARTY_DETECTION_PACKS)) {
+    const technology = match.outputs.technology;
+    if (!technology) {
+      continue;
+    }
+    addTechnology(
+      technology.name,
+      technology.category,
+      evidenceForTechnologyOutput({ headers, body: "" }, technology),
+      technology.version,
+      technology.confidence,
+      technology.detection,
+    );
+  }
   if (headerValue(headers, "server-timing")?.toLowerCase().includes("cdn-cache")) addTechnology("CDN", "network", "Observed in Server-Timing header", null, "medium", "observed");
 
   addTechnology(finalUrl.protocol === "https:" ? "HTTPS" : "HTTP", "security", "Derived from final URL", null, "high", "observed");
