@@ -81,7 +81,7 @@
     "pg": "^8.22.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-resizable-panels": "^4.11.2",
+    "react-resizable-panels": "^4.12.2",
     "react-router-dom": "^7.16.0",
     "recharts": "^3.8.1",
     "sonner": "^2.0.7",
