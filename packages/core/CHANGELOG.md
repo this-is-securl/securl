@@ -9,6 +9,22 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 ### Backend and docs
 - Added protected product-pulse telemetry and optional release-channel attribution for hosted/mobile clients. These are backend/API-service changes and do not change the published `securl` package surface.
 
+## [1.24.0] - 2026-07-14
+
+### Added
+- Added the internal bundled-first-party detection-pack evaluator foundation for provider
+  inference rules.
+- Migrated Cloudflare, Akamai, and Fastly WAF/technology detection into the first
+  constrained edge-provider pack while preserving expected public outputs.
+- Added golden tests for deterministic detection-pack ordering and migrated provider
+  output equivalence.
+
+### Documentation
+- Expanded the product roadmap around the external posture graph, reviewed detection-pack
+  ecosystem, monitoring control room, portable evidence workflows, and trust-as-product
+  strategy.
+- Updated the detection-pack architecture notes to reflect the first implementation slice.
+
 ## [1.23.1] - 2026-07-12
 
 ### Security
