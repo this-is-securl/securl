@@ -16,8 +16,13 @@ moved, who needs to care, and can I trust the evidence?"
 The roadmap is based on the signals now visible across the product system:
 
 - The `securl` npm package is getting meaningful weekly downloads, with provenance enabled and no install scripts.
-- The iOS apps have real backend activity, especially Cert Watch live certificate reads.
-- APNs delivery has been reliable in production, with zero observed failed or disabled-token delivery in recent telemetry.
+- The iOS apps have real backend activity, especially Cert Watch live certificate reads,
+  SecURL monitoring-target creation, and share-card reads.
+- App Store Connect now shows early organic acquisition across all three iOS apps:
+  21 app units in the Jun 15-Jul 14 window, led by SecURL and Header Watch.
+- APNs delivery has been reliable enough for continued use, but production telemetry now
+  includes a small number of failed and disabled-token outcomes; push reliability should
+  stay visible in every release/ritual rather than being treated as "done."
 - The web landing page is now instrumented as a routing funnel, but mobile and npm currently show the clearest engagement signals.
 - The deprecated scoped package still receives residual downloads, which suggests historical discovery and automation paths are still alive.
 
@@ -87,12 +92,10 @@ Delivered releases:
 - `1.23`: External Exposure Inventory v1 with stable provider IDs, roles, data-flow
   purpose, confidence/evidence, SRI status, and review priority across package, CLI,
   and hosted API consumers.
-- Detection-pack architecture is now in its first implementation slice. Draft PR
-  [#382](https://github.com/this-is-securl/securl/pull/382) adds an internal
-  bundled-first-party evaluator and migrates Cloudflare, Akamai, and Fastly WAF/technology
-  detection into a constrained pack. The first slice deliberately preserves existing
-  outputs while proving the rule seam, safety model, and package checks. See
-  [`DETECTION-PACKS.md`](./DETECTION-PACKS.md).
+- `1.24`: Detection-pack architecture foundation with an internal bundled-first-party
+  evaluator and Cloudflare, Akamai, and Fastly WAF/technology detection migrated into a
+  constrained pack. The slice deliberately preserves existing outputs while proving the
+  rule seam, safety model, and package checks. See [`DETECTION-PACKS.md`](./DETECTION-PACKS.md).
 
 ### 2. Monitoring As The Product
 
@@ -115,8 +118,8 @@ Near-term work:
 
 Candidate releases (signal-gated after the post-1.23 settling window):
 
-- `1.24`: monitoring event explanations and alert payload polish.
-- `1.25`: policy-based monitoring templates and stable timeline DTOs.
+- `1.25`: monitoring control-room polish: policy-fit summaries, stable timeline DTOs,
+  attention rollups, and push-health feedback that works across web, API, and mobile.
 
 ### 3. Mobile-First Companion Suite
 
@@ -138,8 +141,9 @@ Near-term work:
 
 Candidate releases:
 
-- `1.24`: mobile result resources that cover the complete scan-to-watch-list lifecycle.
-- `1.25`: mobile monitoring polish milestone: concise policy summaries, clear drift, push reliability, and certificate attention states.
+- `1.25`: mobile monitoring polish milestone: concise policy summaries, clear drift,
+  push reliability, certificate attention states, and release-following Android FCM
+  activation evidence.
 
 ### 4. Developer Workflow
 
@@ -195,6 +199,9 @@ Near-term work:
   and integration layer.
 - Make the hosted API and apps the easiest way to get history, monitoring, alerts, share
   cards, and mobile access without operating infrastructure.
+- Treat App Store units and backend product-pulse events as a paired signal: installs alone
+  are not traction until they produce monitoring registrations, repeated reads, push
+  registration, share cards, or return usage.
 - Use Product Hunt, Show HN, dev.to, GitHub examples, and package docs as learning loops,
   not vanity launch checkboxes.
 - Define a lightweight paid path around monitored targets, history retention, team/API
@@ -214,8 +221,8 @@ The path to `1.25` should make the current product thesis obvious:
 | `1.21` | Policy Pack v1 | Built-in baseline, production, strict, and vendor-review profiles can evaluate observations and fail CLI/CI runs deterministically. |
 | `1.22` | Manifest schema contract | CI, evidence archives, and integrators can validate Posture Manifest v1 with the exported JSON Schema and `securl schema manifest`. |
 | `1.23` | External exposure intelligence | Shipped: stable third-party, infrastructure, identity, AI, SRI, data-flow, and supply-chain inventory for package, CLI, and hosted API consumers. |
-| `1.24` | Detection-pack architecture and monitoring explanations | The engine gains a constrained internal detection-pack seam while monitoring timelines continue toward clearer "what changed / why it matters / what to do next" explanations. |
-| `1.25` | Mobile monitoring milestone | Cert Watch, Header Watch, and SecURL share a reliable, push-driven monitoring foundation with concise policy and manifest summaries. |
+| `1.24` | Detection-pack architecture | Shipped: constrained internal detection-pack seam with first-party edge-provider migration and output-equivalence checks. |
+| `1.25` | Monitoring control-room milestone | Cert Watch, Header Watch, SecURL, web, API, and alerts share a reliable, push-driven monitoring foundation with attention rollups, timeline DTOs, concise policy/manifest summaries, and visible push-health state. |
 
 ## Ambition To 1.30
 
@@ -232,23 +239,48 @@ into "credible external posture system":
 | `1.29` | Team/API operating layer | Authenticated API keys, alert destinations, retention, audit-friendly exports, and team-oriented usage limits become coherent rather than ad hoc. |
 | `1.30` | External posture graph | SecURL can explain the current state, historical drift, policy fit, provider/vendor exposure, and evidence quality for watched targets as one product system. |
 
+## Roadmap Review - 2026-07-15
+
+The roadmap does not need a wholesale refactor after `1.24`; the thematic structure is
+working. It does need a sharper operating split for the next slice:
+
+1. **Retention/control-room work must outrank new mobile surface area.** App Store units
+   show early organic acquisition, but backend telemetry says the conversion question is
+   now "do installers create watches, return, and receive useful alerts?" not "can we add
+   another app feature?"
+2. **Detection-pack work should continue, but stay internal and boring.** The next pack
+   migration should be another low-risk provider family with golden-output equivalence,
+   pack-match provenance, benchmark coverage, and no public plugin API.
+3. **Trust hardening remains roadmap work, not cleanup.** SSRF, parser/ReDoS resilience,
+   dependency hygiene, provenance, and push-health accounting are product differentiators
+   for a security tool.
+4. **Public-web messaging should catch up to the product system.** The product now has
+   npm, hosted API, iOS apps, self-hosted Android APKs, monitoring, manifests, and
+   detection packs; public pages should explain that system without overstating traction.
+
+Net decision: keep the `1.25` milestone, but define it around **monitoring retention and
+control-room confidence** rather than a bundle of mobile features.
+
 ## Next Decision Gate - July 2026
 
-The selected next slice is **declarative detection packs**, starting safely inside the
-engine before any contributor-facing plugin surface is exposed.
+The selected next slice is **post-1.24 detection-pack follow-through plus monitoring
+retention instrumentation**, with implementation order chosen by risk:
 
 Current gate:
 
-- Land PR #382 only if provider outputs remain equivalent, CI stays green, and the package
-  release decision is explicit.
-- Keep this package-affecting architecture work separate from mobile delivery; there is no
-  new mobile contract until a future API response shape intentionally exposes pack metadata
-  or richer detection provenance.
-- After #382 merges, choose the next pack migration by evidence and risk: prefer another
-  duplicated low-risk provider family before attempting vendor-inventory or identity rules.
-- Continue monitoring production/mobile telemetry in parallel; if real drift or alert
-  confusion becomes the stronger signal, move monitoring explanations back to the top of
-  the queue.
+- Choose the next detection-pack migration by evidence and risk: prefer another duplicated
+  low-risk provider family before attempting vendor-inventory or identity rules.
+- Preserve output equivalence, add pack-match provenance internally, and keep packs
+  declarative, schema-validated, deterministic, bounded, and unable to perform network I/O.
+- Keep package-affecting architecture work separate from mobile delivery; there is no new
+  mobile contract until a future API response shape intentionally exposes pack metadata or
+  richer detection provenance behind a capability flag.
+- In parallel, design the `1.25` monitoring-control-room API shape around attention
+  rollups, stable timeline DTOs, policy-fit summaries, and push-health state, because those
+  directly answer whether new installers become retained monitoring users.
+- Continue monitoring production/mobile telemetry; if real alert confusion or push
+  reliability becomes the stronger signal, move monitoring explanations and push-health
+  feedback above pack migration.
 
 Until the slice proves itself in production/package review, favour reliability,
 compatibility, evidence, and operational visibility over new surface area.
