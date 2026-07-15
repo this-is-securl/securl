@@ -32,14 +32,6 @@ const WAF_DETECTORS = [
     evidence: () => "Observed Sucuri edge headers or branded error-page markers.",
   },
   {
-    name: "AWS CloudFront / WAF",
-    confidence: "medium" as const,
-    detection: "observed" as const,
-    test: (headers: ResponseHeaders) =>
-      Boolean(headerValue(headers, "x-amz-cf-id") || /cloudfront/i.test(headerValue(headers, "server") || "")),
-    evidence: () => "Observed CloudFront edge headers.",
-  },
-  {
     name: "Azure Front Door",
     confidence: "high" as const,
     detection: "observed" as const,

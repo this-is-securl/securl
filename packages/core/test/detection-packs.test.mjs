@@ -12,6 +12,7 @@ test("first-party edge detection pack produces deterministic provider matches", 
         "cf-ray": "abc-LHR",
         "x-cache": "HIT, fastly",
         "x-akamai-transformed": "9 123 0 pmb=mRUM,2",
+        "x-amz-cf-id": "cloudfront-request-id",
       },
       body: "",
     },
@@ -20,11 +21,11 @@ test("first-party edge detection pack produces deterministic provider matches", 
 
   assert.deepEqual(
     matches.map((match) => match.ruleId),
-    ["edge.cloudflare", "edge.akamai", "edge.fastly"],
+    ["edge.cloudflare", "edge.akamai", "edge.fastly", "edge.aws-cloudfront"],
   );
   assert.deepEqual(
     matches.map((match) => match.provider),
-    ["Cloudflare", "Akamai", "Fastly"],
+    ["Cloudflare", "Akamai", "Fastly", "AWS CloudFront / WAF"],
   );
 });
 
@@ -44,6 +45,18 @@ test("edge detection pack keeps WAF output equivalent for migrated providers", (
   const fastly = analyzeWafFingerprint(
     new URL("https://example.com/"),
     { "x-served-by": "cache-lhr-egll1980023-LHR" },
+    null,
+    [],
+  );
+  const cloudfrontHeader = analyzeWafFingerprint(
+    new URL("https://example.com/"),
+    { "x-amz-cf-id": "cloudfront-request-id" },
+    null,
+    [],
+  );
+  const cloudfrontServer = analyzeWafFingerprint(
+    new URL("https://example.com/"),
+    { server: "CloudFront" },
     null,
     [],
   );
@@ -70,6 +83,22 @@ test("edge detection pack keeps WAF output equivalent for migrated providers", (
       confidence: "medium",
       detection: "observed",
       evidence: "Observed Fastly cache headers.",
+    },
+  ]);
+  assert.deepEqual(cloudfrontHeader.providers, [
+    {
+      name: "AWS CloudFront / WAF",
+      confidence: "medium",
+      detection: "observed",
+      evidence: "Observed CloudFront edge headers.",
+    },
+  ]);
+  assert.deepEqual(cloudfrontServer.providers, [
+    {
+      name: "AWS CloudFront / WAF",
+      confidence: "medium",
+      detection: "observed",
+      evidence: "Observed CloudFront edge headers.",
     },
   ]);
 });
@@ -103,6 +132,27 @@ test("edge detection pack keeps technology output equivalent for migrated header
         name: "Fastly",
         category: "network",
         evidence: "Observed in X-Cache header",
+        version: null,
+        confidence: "high",
+        detection: "observed",
+      },
+      {
+        name: "HTTPS",
+        category: "security",
+        evidence: "Derived from final URL",
+        version: null,
+        confidence: "high",
+        detection: "observed",
+      },
+    ],
+  );
+  assert.deepEqual(
+    detectTechnologies({ "x-amz-cf-id": "cloudfront-request-id" }, new URL("https://example.com/")),
+    [
+      {
+        name: "Amazon CloudFront",
+        category: "network",
+        evidence: "Observed in CloudFront response headers",
         version: null,
         confidence: "high",
         detection: "observed",
