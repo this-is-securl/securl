@@ -1,7 +1,8 @@
 # Detection Packs Architecture Proposal
 
-Status: first implementation slice open in
-[#382](https://github.com/this-is-securl/securl/pull/382).
+Status: first implementation slice shipped in
+[#382](https://github.com/this-is-securl/securl/pull/382), with follow-up migration in
+progress for additional low-risk edge-provider rules.
 
 SecURL's detection knowledge is intentionally static and compiled into the
 engine. That keeps the package small, deterministic, and auditable, but the provider
@@ -10,9 +11,11 @@ vendor-exposure code paths. The right next step is not arbitrary third-party plu
 is a constrained declarative detection-pack layer that can scale detection knowledge
 without weakening the passive scanner boundary.
 
-PR #382 starts that path with an internal bundled-first-party evaluator and a low-risk
+PR #382 started that path with an internal bundled-first-party evaluator and a low-risk
 Cloudflare/Akamai/Fastly edge-provider migration across WAF and technology detection.
-The broader schema below remains the target shape for follow-on slices.
+The next follow-up extends the same bundled pack to AWS CloudFront/WAF response-header
+signals while preserving existing output shapes. The broader schema below remains the
+target shape for follow-on slices.
 
 ## Goals
 
@@ -243,6 +246,8 @@ Before implementation is considered complete:
 1. Build an internal evaluator and schema in `packages/core/src/detectionPacks/`.
 2. Migrate one low-risk duplicated seam first, preferably Cloudflare/Fastly/Akamai edge
    provider inference across WAF, infrastructure, and technology output.
+   - Shipped: Cloudflare, Akamai, Fastly.
+   - Follow-up: AWS CloudFront/WAF response-header inference.
 3. Keep current exports and output DTOs unchanged.
 4. Prove golden output equivalence.
 5. Add package docs that frame packs as bundled declarative detection knowledge, not

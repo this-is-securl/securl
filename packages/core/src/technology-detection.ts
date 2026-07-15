@@ -79,7 +79,6 @@ export const detectTechnologies = (headers: ResponseHeaders, finalUrl: URL): Tec
   }
 
   if (headerValue(headers, "x-vercel-id")) addTechnology("Vercel", "hosting", "Observed in X-Vercel-Id header", null, "high", "observed");
-  if (headerValue(headers, "x-amz-cf-id")) addTechnology("Amazon CloudFront", "network", "Observed in CloudFront response headers", null, "high", "observed");
   if (headerValue(headers, "x-cdn")) addTechnology(headerValue(headers, "x-cdn") as string, "network", "Observed in X-CDN header", null, "high", "observed");
   if (headerValue(headers, "x-envoy-upstream-service-time")) addTechnology("Envoy", "network", "Observed in Envoy upstream timing header", null, "high", "observed");
   if (headerValue(headers, "x-sucuri-id") || headerValue(headers, "x-sucuri-cache")) addTechnology("Sucuri", "network", "Observed in Sucuri edge headers", null, "high", "observed");
