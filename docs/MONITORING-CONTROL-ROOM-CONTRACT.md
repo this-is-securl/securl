@@ -1,9 +1,9 @@
 # Monitoring Control Room Contract
 
-Status: proposed for the `1.25` monitoring control-room milestone. This document is a
-design contract, not a live API claim. Do not advertise the capabilities below or trigger
-a mobile handoff until the endpoints are implemented, deployed, production-smoked, and
-recorded as `BACKEND_READY` in the mobile/backend channel.
+Status: partial implementation for the `1.25` monitoring control-room milestone.
+`monitoring-attention-v1` is implemented in the backend and should only be handed to
+mobile after it is merged, deployed, production-smoked, and recorded as `BACKEND_READY`
+in the mobile/backend channel. Timeline and policy-fit resources remain proposed.
 
 ## Goal
 
@@ -15,21 +15,24 @@ those pieces into a single server-authored owner view that web, API, mobile, and
 surfaces can consume without reinterpreting raw scan, certificate, policy, or notification
 state client-side.
 
-## Proposed capabilities
+## Capabilities
 
 Clients must feature-detect these flags through `GET /api/capabilities` before consuming
 the new resources:
 
 - `monitoring-attention-v1`: owner/app attention rollup is available.
-- `monitoring-timeline-v1`: stable per-target timeline DTOs are available.
+- `monitoring-timeline-v1`: stable per-target timeline DTOs are available. Proposed, not
+  live.
 - `monitoring-policy-fit-v1`: compact policy-fit verdicts are available on monitoring
   surfaces.
+  Proposed, not live.
 
-Until those flags are present, clients must continue using the existing
-`/api/monitoring-mobile-summary`, `/api/monitoring-cert-summary`, `/api/monitoring-health`,
-and `/api/monitoring-targets/:id/history` resources.
+Until a specific flag is present, clients must continue using the existing
+`/api/monitoring-mobile-summary`, `/api/monitoring-cert-summary`,
+`/api/monitoring-health`, and `/api/monitoring-targets/:id/history` resources for that
+area.
 
-## Proposed resource: owner attention rollup
+## Resource: owner attention rollup
 
 ```http
 GET /api/monitoring-attention
@@ -39,6 +42,7 @@ X-Scan-Owner: <owner token>
 Optional query:
 
 - `appId`: filters the rollup to one first-party app/product surface.
+- `limit`: bounds the owner target scan. Defaults to 100 and caps at 250.
 
 Response:
 
@@ -85,7 +89,7 @@ Response:
         "headline": "No longer meets the baseline policy"
       },
       "timeline": {
-        "href": "/api/monitoring-targets/mon_123/timeline",
+        "href": "/api/monitoring-targets/mon_123/history",
         "latestEventId": "evt_abc"
       },
       "actions": [
@@ -108,8 +112,10 @@ Rules:
 - Headlines and details are backend-authored in the same voice as monitoring explanations
   and push payloads.
 - `targetId` and `eventId` are join keys for list rows, push payloads, target detail, and
-  timeline focus.
+  timeline/history focus.
 - The endpoint is owner-scoped. It must not expose global service totals.
+- The push summary is aggregate-only. It must not expose device identifiers, tokens,
+  owner identifiers, IP addresses, or raw user agents.
 
 ## Proposed resource: stable target timeline
 

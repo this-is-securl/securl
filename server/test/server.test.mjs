@@ -545,6 +545,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.monitoring.features.includes("monitoring-events-v1"));
     assert.ok(payload.monitoring.features.includes("mobile-monitoring-explanations-v1"));
     assert.ok(payload.monitoring.features.includes("monitoring-health-v1"));
+    assert.ok(payload.monitoring.features.includes("monitoring-attention-v1"));
     assert.ok(payload.monitoring.features.includes("cert-watchlist-summary-v1"));
     assert.ok(payload.monitoring.features.includes("cert-watchlist-push-health-v1"));
     assert.ok(payload.monitoring.features.includes("cert-attention-state"));
@@ -552,6 +553,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.monitoring.features.includes("target-observation-policy"));
     assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-summary"));
     assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-health"));
+    assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-attention"));
     assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-cert-summary"));
     assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-mobile-summary"));
     assert.ok(payload.monitoring.resources.includes("POST /api/monitoring-targets/:id/run"));
@@ -1707,17 +1709,37 @@ test("monitoring targets can be created, listed, and deleted", async () => {
     assert.equal(healthPayload.apps["com.ktbatterham.certwatch"].certTargets, 1);
     assert.equal(healthPayload.apps["com.ktbatterham.certwatch"].readyDevices, 1);
 
+    const attentionResponse = await fetch(`${server.baseUrl}/api/monitoring-attention?appId=com.ktbatterham.certwatch`, {
+      headers: {
+        ...scanOwnerHeaders(SCAN_OWNER_ONE),
+        "X-SecURL-Client": "cert-watch-ios",
+        "X-SecURL-Client-Version": "1.0.3+8",
+        "X-SecURL-Client-Channel": "app-store",
+      },
+    });
+    const attentionPayload = await attentionResponse.json();
+    assert.equal(attentionResponse.status, 200);
+    assert.equal(attentionPayload.owner.scope, "scan-owner");
+    assert.equal(attentionPayload.summary.targetsTotal, 1);
+    assert.equal(attentionPayload.summary.state, "healthy");
+    assert.equal(attentionPayload.summary.push.state, "not_configured");
+    assert.deepEqual(attentionPayload.summary.push.providers, []);
+    assert.equal(attentionPayload.attention.length, 0);
+
     const telemetryResponse = await fetch(`${server.baseUrl}/api/telemetry`);
     const telemetryPayload = await telemetryResponse.json();
     assert.equal(telemetryPayload.funnel.events.monitoring_mobile_summary_read, 1);
     assert.equal(telemetryPayload.funnel.events.monitoring_target_registered, 2);
+    assert.equal(telemetryPayload.funnel.events.monitoring_attention_read, 1);
     assert.equal(telemetryPayload.funnel.events.monitoring_health_read, 1);
     assert.equal(telemetryPayload.funnel.events.cert_watchlist_summary_read, 1);
     assert.equal(telemetryPayload.funnel.byClient["header-watch-ios"].monitoring_target_registered, 1);
     assert.equal(telemetryPayload.funnel.byClient["header-watch-ios"].monitoring_mobile_summary_read, 1);
     assert.equal(telemetryPayload.funnel.byClient["securl-ios"].monitoring_health_read, 1);
+    assert.equal(telemetryPayload.funnel.byClient["cert-watch-ios"].monitoring_attention_read, 1);
     assert.equal(telemetryPayload.funnel.byClient["cert-watch-ios"].monitoring_target_registered, 1);
     assert.equal(telemetryPayload.funnel.byClient["cert-watch-ios"].cert_watchlist_summary_read, 1);
+    assert.equal(telemetryPayload.clients.consumption.monitoringAttentionReads, 1);
     assert.equal(telemetryPayload.clients.consumption.monitoringHealthReads, 1);
     assert.equal(telemetryPayload.clients.consumption.certWatchlistSummaryReads, 1);
     assert.equal(telemetryPayload.clients.identity.activeBackendClientsByClient["cert-watch-ios"], 1);
@@ -1731,7 +1753,7 @@ test("monitoring targets can be created, listed, and deleted", async () => {
     assert.equal(telemetryPayload.productPulse.today.activeOwnersByApp["com.ktbatterham.certwatch"], 1);
     assert.equal(telemetryPayload.productPulse.today.uniqueTargetsByApp["com.ktbatterham.certwatch"], 1);
     assert.equal(telemetryPayload.productPulse.today.clientChannelsByApp["com.ktbatterham.headerwatch"]["app-store"], 2);
-    assert.equal(telemetryPayload.productPulse.today.clientChannelsByApp["com.ktbatterham.certwatch"]["app-store"], 3);
+    assert.equal(telemetryPayload.productPulse.today.clientChannelsByApp["com.ktbatterham.certwatch"]["app-store"], 4);
 
     const productPulseResponse = await fetch(`${server.baseUrl}/api/product-pulse`);
     const productPulsePayload = await productPulseResponse.json();
@@ -2260,17 +2282,7 @@ test("scan detail endpoints return summary, findings, evidence, and history payl
 
     const scanId = createdPayload.scan.id;
 
-    let scanPayload = null;
-    for (let attempt = 0; attempt < 60; attempt += 1) {
-      const response = await fetch(`${server.baseUrl}/api/scans/${scanId}`, {
-        headers: scanOwnerHeaders(),
-      });
-      scanPayload = await response.json();
-      if (scanPayload.scan.status === "completed" || scanPayload.scan.status === "failed") {
-        break;
-      }
-      await wait(100);
-    }
+    const { payload: scanPayload } = await waitForScanTerminal(server.baseUrl, scanId, { attempts: 120 });
 
     assert.equal(scanPayload.scan.status, "completed");
     assert.ok(scanPayload.scan.result);
