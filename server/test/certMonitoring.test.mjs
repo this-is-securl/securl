@@ -33,12 +33,16 @@ test("cert monitoring detects renewal before issuer-only changes", () => {
       reachable: true,
       serialNumber: "ABC",
       issuer: "Old CA",
+      validFrom: "2026-05-01T00:00:00.000Z",
+      validTo: "2026-07-01T00:00:00.000Z",
       lastWarnedBand: 14,
     },
     {
       reachable: true,
       serialNumber: "DEF",
       issuer: "New CA",
+      validFrom: "2026-06-01T00:00:00.000Z",
+      validTo: "2026-09-01T00:00:00.000Z",
       daysRemaining: 89,
     },
   );
@@ -50,11 +54,61 @@ test("cert monitoring detects renewal before issuer-only changes", () => {
   });
 });
 
+test("cert monitoring ignores co-valid serial rotation without renewal window movement", () => {
+  assert.equal(
+    detectCertMonitoringEvent(
+      {
+        reachable: true,
+        serialNumber: "ABC",
+        issuer: "GitHub TLS CA",
+        validFrom: "2026-06-01T00:00:00.000Z",
+        validTo: "2026-09-01T00:00:00.000Z",
+        daysRemaining: 47,
+      },
+      {
+        reachable: true,
+        serialNumber: "DEF",
+        issuer: "GitHub TLS CA",
+        validFrom: "2026-06-01T00:00:00.000Z",
+        validTo: "2026-09-01T00:00:00.000Z",
+        daysRemaining: 47,
+      },
+    ),
+    null,
+  );
+});
+
+test("cert monitoring treats serial plus issuer change without forward validity as issuer change", () => {
+  assert.deepEqual(
+    detectCertMonitoringEvent(
+      {
+        reachable: true,
+        serialNumber: "ABC",
+        issuer: "Old CA",
+        validFrom: "2026-06-01T00:00:00.000Z",
+        validTo: "2026-09-01T00:00:00.000Z",
+      },
+      {
+        reachable: true,
+        serialNumber: "DEF",
+        issuer: "New CA",
+        validFrom: "2026-06-01T00:00:00.000Z",
+        validTo: "2026-09-01T00:00:00.000Z",
+      },
+    ),
+    {
+      type: "issuer_changed",
+      severity: "warning",
+    },
+  );
+});
+
 test("cert monitoring event details include previous, current, and delta context", () => {
   const previous = {
     reachable: true,
     issuer: "Old CA",
     serialNumber: "ABC",
+    validFrom: "2026-05-01T00:00:00.000Z",
     validTo: "2026-07-01T00:00:00.000Z",
     daysRemaining: 5,
     lastWarnedBand: 7,
@@ -64,6 +118,7 @@ test("cert monitoring event details include previous, current, and delta context
     host: "example.com",
     issuer: "New CA",
     serialNumber: "DEF",
+    validFrom: "2026-06-01T00:00:00.000Z",
     validTo: "2026-09-01T00:00:00.000Z",
     daysRemaining: 67,
   };
@@ -78,6 +133,8 @@ test("cert monitoring event details include previous, current, and delta context
   assert.equal(event.resetWarningBand, true);
   assert.equal(event.previous.serialNumber, "ABC");
   assert.equal(event.current.serialNumber, "DEF");
+  assert.equal(event.previous.validFrom, "2026-05-01T00:00:00.000Z");
+  assert.equal(event.current.validFrom, "2026-06-01T00:00:00.000Z");
   assert.equal(event.delta.daysRemaining, 62);
 });
 
