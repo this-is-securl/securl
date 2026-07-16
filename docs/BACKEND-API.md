@@ -113,6 +113,28 @@ npm run smoke:api -- --base-url=https://securl-app-production.up.railway.app --t
 - `POST /api/monitoring-targets/:id/run`
 - `DELETE /api/monitoring-targets/:id`
 
+## Proposed monitoring control-room resources
+
+The `1.25` monitoring-control-room contract is documented in
+[`MONITORING-CONTROL-ROOM-CONTRACT.md`](MONITORING-CONTROL-ROOM-CONTRACT.md). It is not a
+live API claim until the corresponding capability flags are advertised by
+`GET /api/capabilities`.
+
+The proposed additive resources are:
+
+- `GET /api/monitoring-attention` behind `monitoring-attention-v1`: an owner/app-scoped
+  rollup of targets that need attention, with server-authored headlines, policy-fit
+  summary, push-health state, and stable deep-link keys.
+- `GET /api/monitoring-targets/:id/timeline` behind `monitoring-timeline-v1`: a stable
+  per-target timeline with `eventId` identity shared by rollups, push payloads, and target
+  detail.
+- `policyFit` blocks behind `monitoring-policy-fit-v1`: compact server-authored
+  pass/drift/fail verdicts for monitoring list/detail resources.
+
+Until those flags are present, clients should continue using the current
+`/api/monitoring-mobile-summary`, `/api/monitoring-cert-summary`,
+`/api/monitoring-health`, and `/api/monitoring-targets/:id/history` resources.
+
 `GET /api/monitoring-mobile-summary` returns a compact owner-scoped view for the iOS apps. Each target keeps the existing `latestScan`, `latestDigest`, `cert`, `posture`, and `changes` fields. `latestDigest` includes the same compact signal-clarity summary used by scan digest responses so watch-list cards can show the headline verdict and next best action without loading the full scan. Monitoring targets also include additive mobile hints:
 
 - `status`: stable machine state such as `stable`, `pending`, `due`, `changed`, or `needs_attention`, with severity and reason.

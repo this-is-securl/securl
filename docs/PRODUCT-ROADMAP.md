@@ -277,7 +277,10 @@ Current gate:
   richer detection provenance behind a capability flag.
 - In parallel, design the `1.25` monitoring-control-room API shape around attention
   rollups, stable timeline DTOs, policy-fit summaries, and push-health state, because those
-  directly answer whether new installers become retained monitoring users.
+  directly answer whether new installers become retained monitoring users. The proposed
+  source-of-truth contract lives in
+  [`MONITORING-CONTROL-ROOM-CONTRACT.md`](./MONITORING-CONTROL-ROOM-CONTRACT.md) and must
+  remain non-live until implemented behind capability flags.
 - Continue monitoring production/mobile telemetry; if real alert confusion or push
   reliability becomes the stronger signal, move monitoring explanations and push-health
   feedback above pack migration.
