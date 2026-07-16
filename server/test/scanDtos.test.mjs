@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildMonitoringAttentionPayload,
   buildMonitoringCertSummaryPayload,
   buildMonitoringHealthPayload,
   buildMonitoringMobileSummaryPayload,
@@ -527,6 +528,127 @@ test("monitoring health payload summarizes owner targets, scheduler, and push st
   assert.equal(payload.attention.certTargets[0].id, "target-cert-expiring");
   assert.equal(payload.attention.postureFailures[0].id, "target-posture-failed");
   assert.equal(payload.attention.pushDevices[0].id, "device-stale");
+});
+
+test("monitoring attention payload returns a compact owner action inbox", () => {
+  const payload = buildMonitoringAttentionPayload({
+    now: new Date("2026-06-20T08:30:00.000Z"),
+    notifications: {
+      enabled: true,
+      credentialsConfigured: true,
+      providers: {
+        apns: { enabled: true },
+        fcm: { enabled: true },
+      },
+    },
+    targetEntries: [
+      {
+        target: {
+          id: "target-cert-expiring",
+          url: "https://expiring.example/",
+          label: "Expiring cert",
+          cadence: "daily",
+          kind: "cert",
+          appId: "com.ktbatterham.certwatch",
+          addedAt: "2026-06-18T08:00:00.000Z",
+          lastCheckedAt: "2026-06-19T08:00:00.000Z",
+          certState: {
+            reachable: true,
+            checkedAt: "2026-06-19T08:00:00.000Z",
+            host: "expiring.example",
+            validTo: "2026-06-25T00:00:00.000Z",
+            daysRemaining: 5,
+            attention: {
+              type: "cert_expiring",
+              severity: "critical",
+              title: "Certificate expiring: expiring.example",
+              body: "5 days remaining.",
+            },
+          },
+        },
+        records: [],
+      },
+      {
+        target: {
+          id: "target-posture-failed",
+          url: "https://posture.example/",
+          label: "Posture",
+          cadence: "daily",
+          kind: "posture",
+          mode: "quiet",
+          appId: "com.ktbatterham.headerwatch",
+          addedAt: "2026-06-18T08:00:00.000Z",
+          lastScannedAt: "2026-06-19T08:00:00.000Z",
+        },
+        records: [{
+          id: "scan-failed",
+          status: "failed",
+          summary: {
+            id: "scan-failed",
+            status: "failed",
+            failedAt: "2026-06-19T08:01:00.000Z",
+            error: "scan failed",
+          },
+        }],
+      },
+      {
+        target: {
+          id: "target-healthy",
+          url: "https://healthy.example/",
+          label: "Healthy cert",
+          cadence: "weekly",
+          kind: "cert",
+          appId: "com.ktbatterham.certwatch",
+          addedAt: "2026-06-18T08:00:00.000Z",
+          lastCheckedAt: "2026-06-19T08:00:00.000Z",
+          certState: {
+            reachable: true,
+            checkedAt: "2026-06-19T08:00:00.000Z",
+            host: "healthy.example",
+            validTo: "2026-09-25T00:00:00.000Z",
+            daysRemaining: 98,
+            attention: null,
+          },
+        },
+        records: [],
+      },
+    ],
+    pushDevices: [
+      {
+        id: "device-ready",
+        appId: "com.ktbatterham.certwatch",
+        lastSeenAt: "2026-06-20T08:00:00.000Z",
+        lastPushSentAt: "2026-06-20T08:01:00.000Z",
+        health: { status: "ready", needsRegistration: false },
+      },
+      {
+        id: "device-stale",
+        appId: "com.ktbatterham.headerwatch",
+        lastSeenAt: "2026-05-01T08:00:00.000Z",
+        health: { status: "stale", needsRegistration: true },
+      },
+    ],
+  });
+
+  assert.equal(payload.generatedAt, "2026-06-20T08:30:00.000Z");
+  assert.equal(payload.summary.state, "needs_attention");
+  assert.equal(payload.summary.highestSeverity, "critical");
+  assert.equal(payload.summary.targetsTotal, 3);
+  assert.equal(payload.summary.targetsNeedingAttention, 2);
+  assert.equal(payload.summary.targetsUnhealthy, 2);
+  assert.equal(payload.summary.push.state, "failing");
+  assert.deepEqual(payload.summary.push.providers, ["apns", "fcm"]);
+  assert.equal(payload.summary.push.devicesNeedingRegistration, 1);
+  assert.equal(payload.attention.length, 2);
+  assert.equal(payload.attention[0].targetId, "target-cert-expiring");
+  assert.equal(payload.attention[0].severity, "critical");
+  assert.equal(payload.attention[0].reason, "cert_expiring");
+  assert.equal(payload.attention[0].host, "expiring.example");
+  assert.equal(payload.attention[0].links.target, "/api/monitoring-targets/target-cert-expiring");
+  assert.equal(payload.attention[1].targetId, "target-posture-failed");
+  assert.equal(payload.attention[1].severity, "warning");
+  assert.equal(payload.attention[1].reason, "latest_scan_failed");
+  assert.equal(payload.attention[1].links.latestScan, "/api/scans/scan-failed/mobile-summary");
 });
 
 test("mobile monitoring summary promotes latest certificate history metadata", () => {

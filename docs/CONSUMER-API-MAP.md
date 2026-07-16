@@ -43,15 +43,15 @@ These headers are additive and privacy-safe. They are used for aggregate product
 - Register APNs tokens with `POST /api/notification-devices` using the same `X-Scan-Owner` or bearer session used for scans.
 - Add monitored URLs with `POST /api/monitoring-targets`; backend scheduler scans due targets and sends APNs alerts when meaningful drift appears.
 - Use `GET /api/monitoring-health` for owner-scoped reliability status: due/overdue targets, cert attention, posture failures, scheduler state, notification outbox state, and per-app push registration health.
+- Use `GET /api/monitoring-attention` when `GET /api/capabilities` advertises `monitoring-attention-v1`. It returns an owner/app-scoped attention inbox with backend-authored headlines, severity, reason, safe links, and aggregate push health.
 - Use `GET /api/monitoring-mobile-summary` for watch-list refreshes. It returns compact target state, next-check timing, posture/certificate change summaries, monitoring events, signal-clarity headlines, and stable action hints without loading full scan detail.
 - Use `GET /api/monitoring-cert-summary` for the Cert Watch watch-list home screen. It returns only certificate targets, attention counts, next scheduled check, recent certificate changes, monitoring events, and Cert Watch push registration health.
 - Use `GET /api/certificates/live?url=...` for Cert Watch refreshes that only need the currently served TLS certificate.
 
-Proposed for `1.25`: [`MONITORING-CONTROL-ROOM-CONTRACT.md`](MONITORING-CONTROL-ROOM-CONTRACT.md)
-defines the future `GET /api/monitoring-attention`,
-`GET /api/monitoring-targets/:id/timeline`, and `policyFit` payloads. These are not live
-consumer resources until `GET /api/capabilities` advertises `monitoring-attention-v1`,
-`monitoring-timeline-v1`, and `monitoring-policy-fit-v1`.
+Proposed for later `1.25` slices: [`MONITORING-CONTROL-ROOM-CONTRACT.md`](MONITORING-CONTROL-ROOM-CONTRACT.md)
+defines future `GET /api/monitoring-targets/:id/timeline` and `policyFit` payloads. These
+are not live consumer resources until `GET /api/capabilities` advertises
+`monitoring-timeline-v1` and `monitoring-policy-fit-v1`.
 
 ## Investigation And Reporting
 

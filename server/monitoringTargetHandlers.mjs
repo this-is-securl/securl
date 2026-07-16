@@ -224,6 +224,92 @@ export async function handleMonitoringCertSummaryRequest({
   return true;
 }
 
+export async function handleMonitoringAttentionRequest({
+  request,
+  response,
+  requestUrl,
+  scanRepository,
+  authorizeAnalysisRequest,
+  buildMonitoringAttentionPayload,
+  notificationService = null,
+  sendJson,
+  sendMethodNotAllowed,
+  sendRepositoryUnavailable,
+  telemetry = null,
+  readClientMetadata = null,
+}) {
+  if (request.method !== "GET") {
+    sendMethodNotAllowed(response, ["GET"]);
+    return true;
+  }
+
+  const authState = await authorizeAnalysisRequest({
+    request,
+    response,
+    requestPath: requestUrl.pathname,
+    enforceRateLimit: false,
+    requireScanOwner: true,
+  });
+  if (!authState) {
+    return true;
+  }
+
+  try {
+    const clientMetadata = readClientMetadata?.(request) || {};
+    const requestedAppId = normalizeMonitoringAppId(requestUrl.searchParams.get("appId"));
+    telemetry?.recordFunnelEvent?.({
+      event: "monitoring_attention_read",
+      source: "backend_api",
+      mode: requestedAppId ?? clientMetadata.appId,
+      client: clientMetadata.client,
+      clientVersion: clientMetadata.version,
+      clientChannel: clientMetadata.channel,
+      clientKey: authState.ownerId || authState.requesterScope || null,
+    });
+
+    const limit = clampLimit(requestUrl.searchParams.get("limit"), 100, 250);
+    const targets = await scanRepository.listMonitoringTargets({
+      ownerId: authState.ownerId,
+      requesterScope: authState.ownerId ? null : authState.requesterScope,
+      limit,
+    });
+    const filteredTargets = requestedAppId
+      ? targets.filter((target) => target.appId === requestedAppId)
+      : targets;
+    const entries = await Promise.all(
+      filteredTargets.map(async (target) => ({
+        target,
+        records: target.kind === "cert"
+          ? []
+          : await listMonitoringTargetRecords(scanRepository, authState.ownerId, target, 3),
+      })),
+    );
+    const pushDevices = await scanRepository.listPushDevices({
+      ownerId: authState.ownerId,
+      requesterScope: authState.ownerId ? null : authState.requesterScope,
+      appId: requestedAppId ?? undefined,
+      limit: 250,
+    });
+    const now = Date.now();
+    const devicesWithHealth = pushDevices.map((device) => ({
+      ...device,
+      health: classifyDeviceHealth(device, now),
+    }));
+
+    sendJson(response, 200, buildMonitoringAttentionPayload({
+      targetEntries: entries,
+      pushDevices: devicesWithHealth,
+      notifications: notificationService?.snapshot?.() ?? null,
+      ownerScope: authState.ownerId ? "scan-owner" : authState.requesterScope ?? "requester",
+      now: new Date(now),
+    }));
+  } catch (error) {
+    sendRepositoryUnavailable(response, error, "monitoring_attention");
+  }
+
+  return true;
+}
+
 export async function handleMonitoringHealthRequest({
   request,
   response,

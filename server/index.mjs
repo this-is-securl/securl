@@ -16,6 +16,7 @@ import {
   readJsonBody,
 } from "./requestGuards.mjs";
 import {
+  buildMonitoringAttentionPayload,
   buildMonitoringTargetDetailPayload,
   buildMonitoringCertSummaryPayload,
   buildMonitoringHealthPayload,
@@ -45,6 +46,7 @@ import {
   buildTargetHistoryPayload,
 } from "./scanDtos.mjs";
 import {
+  handleMonitoringAttentionRequest,
   handleMonitoringCertSummaryRequest,
   handleMonitoringHealthRequest,
   handleMonitoringMobileSummaryRequest,
@@ -907,6 +909,28 @@ const server = http.createServer(async (request, response) => {
       }),
       buildMonitoringHealthPayload,
       monitoringScheduler,
+      notificationService,
+      sendJson: sendApiJson,
+      sendMethodNotAllowed: sendApiMethodNotAllowed,
+      sendRepositoryUnavailable: sendApiRepositoryUnavailable,
+      telemetry,
+      readClientMetadata,
+    });
+    return;
+  }
+
+  if (requestUrl.pathname === "/api/monitoring-attention") {
+    await handleMonitoringAttentionRequest({
+      request,
+      response,
+      requestUrl,
+      scanRepository,
+      authorizeAnalysisRequest: (options) => withAuthResolvers({
+        ...options,
+        sendJsonResponse: sendApiJson,
+        sendRateLimitedResponse: sendApiRateLimited,
+      }),
+      buildMonitoringAttentionPayload,
       notificationService,
       sendJson: sendApiJson,
       sendMethodNotAllowed: sendApiMethodNotAllowed,

@@ -1323,6 +1323,18 @@ function compareIsoDates(left, right) {
   return new Date(left || 0).getTime() - new Date(right || 0).getTime();
 }
 
+function compareIsoDatesDesc(left, right) {
+  return compareIsoDates(right, left);
+}
+
+function hostFromUrl(value) {
+  try {
+    return new URL(value).host || null;
+  } catch {
+    return null;
+  }
+}
+
 function buildPushHealthSummary(pushDevices = []) {
   const devices = normalizeArray(pushDevices);
   const active = devices.filter((device) => !device.disabledAt);
@@ -1358,6 +1370,191 @@ function buildPushHealthSummary(pushDevices = []) {
     byStatus,
     lastSeenAt,
     lastPushSentAt,
+  };
+}
+
+function classifyPushAttentionState({ pushSummary, notifications }) {
+  if (!notifications) {
+    return "unknown";
+  }
+  if (!notifications.enabled || !notifications.credentialsConfigured) {
+    return "not_configured";
+  }
+  if (pushSummary.devicesNeedingRegistration > 0 || pushSummary.byStatus.push_failed > 0 || pushSummary.byStatus.rejected > 0) {
+    return "failing";
+  }
+  return "configured";
+}
+
+function buildMonitoringAttentionPushSummary({ pushDevices = [], notifications = null } = {}) {
+  const devices = normalizeArray(pushDevices);
+  const pushSummary = buildPushHealthSummary(devices);
+  const providerEntries = notifications?.providers && typeof notifications.providers === "object"
+    ? Object.entries(notifications.providers)
+    : [];
+  const providers = providerEntries
+    .filter(([, provider]) => Boolean(provider?.enabled))
+    .map(([name]) => name);
+
+  return {
+    state: classifyPushAttentionState({ pushSummary, notifications }),
+    providers,
+    recentSent: devices.filter((device) => !device.disabledAt && device.lastPushSentAt).length,
+    recentFailed: devices.filter((device) => !device.disabledAt && ["push_failed", "rejected"].includes(device.health?.status)).length,
+    disabledTokens: pushSummary.byStatus.disabled,
+    devicesNeedingRegistration: pushSummary.devicesNeedingRegistration,
+    lastSeenAt: pushSummary.lastSeenAt,
+    lastPushSentAt: pushSummary.lastPushSentAt,
+  };
+}
+
+function buildAttentionItemFromTarget(target, nowMs) {
+  const healthTarget = buildTargetHealthSummary(target, nowMs);
+  const status = target.status ?? null;
+  const severity = strongestSeverity([
+    healthTarget.health?.severity,
+    status?.severity,
+    target.change?.severity,
+  ]) ?? "info";
+  const statusState = status?.state ?? null;
+  const healthState = healthTarget.health?.state ?? null;
+  const reason = healthTarget.health?.reason ?? status?.reason ?? target.change?.type ?? null;
+  const isOverdueWarning = healthState === "due" && healthTarget.overdueSeconds > 15 * 60;
+  const include = (
+    ["critical", "warning"].includes(severity)
+    || ["needs_attention", "failed", "unknown", "pending"].includes(statusState)
+    || ["failed", "unknown", "unreachable", "expired", "expiring"].includes(healthState)
+    || isOverdueWarning
+  );
+
+  if (!include) {
+    return null;
+  }
+
+  const firstEvent = normalizeArray(target.events)[0] ?? null;
+  const latestScanId = target.latestScan?.id ?? target.latestFailure?.id ?? null;
+  const lastChangedAt = target.change?.occurredAt
+    ?? firstEvent?.occurredAt
+    ?? target.cert?.checkedAt
+    ?? target.latestScan?.completedAt
+    ?? target.latestFailure?.failedAt
+    ?? target.lastCheckedAt
+    ?? null;
+  const normalizedState = severity === "critical"
+    ? "needs_attention"
+    : healthState === "failed" || statusState === "needs_attention" || severity === "warning"
+      ? "degraded"
+      : "unknown";
+  const headline = target.cert?.attention?.title
+    ?? target.change?.title
+    ?? firstEvent?.title
+    ?? (healthState === "failed" ? "Latest monitoring check failed" : null)
+    ?? (healthState === "due" ? "Monitoring check is overdue" : null)
+    ?? "Monitoring target needs attention";
+  const detail = target.cert?.attention?.body
+    ?? target.change?.detail
+    ?? firstEvent?.detail
+    ?? healthTarget.latestFailure?.error
+    ?? (healthState === "due" ? "The scheduled monitoring check is overdue." : null)
+    ?? null;
+
+  return {
+    targetId: target.id,
+    target: target.url,
+    host: target.cert?.host ?? hostFromUrl(target.url),
+    kind: target.kind,
+    appId: target.appId,
+    state: normalizedState,
+    severity,
+    reason,
+    headline,
+    detail,
+    lastCheckedAt: target.cert?.checkedAt ?? target.lastCheckedAt ?? null,
+    lastChangedAt,
+    eventId: firstEvent?.eventId ?? firstEvent?.id ?? null,
+    policyFit: target.kind === "posture" && target.observationPolicy
+      ? {
+          verdict: reason === "posture_regressed" ? "drift" : "unknown",
+          policy: target.observationPolicy.id ?? "custom",
+          changedSince: lastChangedAt,
+          headline: reason === "posture_regressed"
+            ? "No longer matches the last observed posture"
+            : "Policy fit needs review",
+        }
+      : null,
+    timeline: {
+      href: `/api/monitoring-targets/${target.id}/history`,
+      latestEventId: firstEvent?.eventId ?? firstEvent?.id ?? null,
+    },
+    actions: normalizeArray(target.actions).length
+      ? target.actions.map(({ id, label, priority }) => ({ id, label, priority }))
+      : [{ id: "review_monitoring_target", label: "Review target", priority: severity === "critical" ? "critical" : "high" }],
+    links: {
+      target: `/api/monitoring-targets/${target.id}`,
+      latestScan: latestScanId ? `/api/scans/${latestScanId}/mobile-summary` : null,
+    },
+  };
+}
+
+export function buildMonitoringAttentionPayload({
+  targetEntries = [],
+  pushDevices = [],
+  notifications = null,
+  ownerScope = "scan-owner",
+  now = new Date(),
+} = {}) {
+  const nowMs = now.getTime();
+  const targets = normalizeArray(targetEntries)
+    .map(({ target, records }) => {
+      const summary = buildMobileTargetSummary(target, records);
+      const latestFailure = normalizeArray(records).find((record) => record?.status === "failed");
+      return {
+        ...summary,
+        observationPolicy: target?.observationPolicy ?? null,
+        latestFailure: latestFailure?.summary
+          ? {
+              id: latestFailure.summary.id,
+              status: latestFailure.summary.status,
+              failedAt: latestFailure.summary.failedAt ?? latestFailure.summary.completedAt ?? null,
+              error: latestFailure.summary.error ?? null,
+            }
+          : null,
+      };
+    });
+  const attention = targets
+    .map((target) => buildAttentionItemFromTarget(target, nowMs))
+    .filter(Boolean)
+    .sort((left, right) => {
+      const severityOrder = { critical: 0, warning: 1, info: 2 };
+      const severityDelta = (severityOrder[left.severity] ?? 3) - (severityOrder[right.severity] ?? 3);
+      if (severityDelta !== 0) return severityDelta;
+      return compareIsoDatesDesc(left.lastChangedAt, right.lastChangedAt);
+    });
+  const highestSeverity = attention[0]?.severity ?? null;
+  const push = buildMonitoringAttentionPushSummary({ pushDevices, notifications });
+
+  return {
+    apiVersion: API_VERSION,
+    generatedAt: now.toISOString(),
+    owner: {
+      scope: ownerScope,
+    },
+    summary: {
+      state: highestSeverity === "critical"
+        ? "needs_attention"
+        : highestSeverity === "warning" || push.state === "failing"
+          ? "degraded"
+          : targets.length === 0
+            ? "unknown"
+            : "healthy",
+      highestSeverity,
+      targetsTotal: targets.length,
+      targetsNeedingAttention: attention.filter((item) => ["critical", "warning"].includes(item.severity)).length,
+      targetsUnhealthy: attention.length,
+      monitoringEnabled: targets.length > 0,
+      push,
+    },
+    attention,
   };
 }
 
