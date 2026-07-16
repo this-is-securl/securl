@@ -66,6 +66,22 @@ function normalizeSerialNumber(value) {
   return normalized || null;
 }
 
+function parsedTime(value) {
+  const time = value ? new Date(value).getTime() : NaN;
+  return Number.isFinite(time) ? time : null;
+}
+
+function movedForward(previousValue, nextValue) {
+  const previousTime = parsedTime(previousValue);
+  const nextTime = parsedTime(nextValue);
+  return previousTime !== null && nextTime !== null && nextTime > previousTime;
+}
+
+function certificateValidityMovedForward(previousState, nextState) {
+  return movedForward(previousState?.validTo, nextState?.validTo)
+    || movedForward(previousState?.validFrom, nextState?.validFrom);
+}
+
 function certHostFromTarget(target) {
   try {
     return new URL(target.url).hostname;
@@ -245,7 +261,10 @@ export function detectCertMonitoringEvent(previousState, nextState, { policyProf
     return null;
   }
 
-  if (previousState.serialNumber && nextState.serialNumber && previousState.serialNumber !== nextState.serialNumber) {
+  const serialChanged = previousState.serialNumber
+    && nextState.serialNumber
+    && previousState.serialNumber !== nextState.serialNumber;
+  if (serialChanged && certificateValidityMovedForward(previousState, nextState)) {
     return { type: "cert_renewed", severity: "info", resetWarningBand: true };
   }
 
@@ -320,6 +339,7 @@ export function buildCertMonitoringEventDetails(event, previousState, nextState,
       reachable: previousState.reachable ?? null,
       issuer: previousState.issuer ?? null,
       serialNumber: previousState.serialNumber ?? null,
+      validFrom: previousState.validFrom ?? null,
       validTo: previousState.validTo ?? null,
       daysRemaining: previousState.daysRemaining ?? null,
       lastWarnedBand: previousState.lastWarnedBand ?? null,
@@ -328,6 +348,7 @@ export function buildCertMonitoringEventDetails(event, previousState, nextState,
       reachable: nextState.reachable ?? false,
       issuer: nextState.issuer ?? null,
       serialNumber: nextState.serialNumber ?? null,
+      validFrom: nextState.validFrom ?? null,
       validTo: nextState.validTo ?? null,
       daysRemaining: nextState.daysRemaining ?? null,
       warningBand: expiryBandForDays(nextState.daysRemaining, policyProfile),
