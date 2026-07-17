@@ -17,6 +17,7 @@ import {
 } from "./requestGuards.mjs";
 import {
   buildMonitoringAttentionPayload,
+  buildMonitoringTargetTimelinePayload,
   buildMonitoringTargetDetailPayload,
   buildMonitoringCertSummaryPayload,
   buildMonitoringHealthPayload,
@@ -1004,8 +1005,10 @@ const server = http.createServer(async (request, response) => {
       runScanAnalysis,
       enqueueScan: (job) => scanScheduler.enqueue(job),
       buildMonitoringTargetView,
+      buildMonitoringTargetTimelinePayload,
       buildMonitoringTargetDetailPayload,
       telemetry,
+      readClientMetadata,
       classifyScanFailure,
       normalizeScanErrorMessage,
       formatErrorMessage,

@@ -118,9 +118,9 @@ Near-term work:
 
 Candidate releases (signal-gated after the post-1.23 settling window):
 
-- `1.25`: monitoring control-room polish: ship the attention rollup first, then iterate
-  into policy-fit summaries, stable timeline DTOs, and push-health feedback that works
-  across web, API, and mobile.
+- `1.25`: monitoring control-room polish: attention rollups and stable timeline DTOs are
+  the first control-room slices, followed by policy-fit summaries and push-health feedback
+  that works across web, API, and mobile.
 
 ### 3. Mobile-First Companion Suite
 

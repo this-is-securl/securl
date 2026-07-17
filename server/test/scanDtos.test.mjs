@@ -6,6 +6,7 @@ import {
   buildMonitoringHealthPayload,
   buildMonitoringMobileSummaryPayload,
   buildMonitoringTargetDetailPayload,
+  buildMonitoringTargetTimelinePayload,
   buildScanDriftPayload,
   buildScanObservationDriftPayload,
   buildScanVendorsPayload,
@@ -644,6 +645,7 @@ test("monitoring attention payload returns a compact owner action inbox", () => 
   assert.equal(payload.attention[0].severity, "critical");
   assert.equal(payload.attention[0].reason, "cert_expiring");
   assert.equal(payload.attention[0].host, "expiring.example");
+  assert.equal(payload.attention[0].timeline.href, "/api/monitoring-targets/target-cert-expiring/timeline");
   assert.equal(payload.attention[0].links.target, "/api/monitoring-targets/target-cert-expiring");
   assert.equal(payload.attention[1].targetId, "target-posture-failed");
   assert.equal(payload.attention[1].severity, "warning");
@@ -811,6 +813,112 @@ test("monitoring target detail decorates comparison events with stable navigatio
     targetId: target.id,
     eventId: event.id,
   });
+});
+
+test("monitoring target timeline exposes stable posture event identity and evidence", () => {
+  const target = {
+    id: "target-posture-timeline",
+    url: "https://example.com/",
+    label: "Example posture",
+    cadence: "daily",
+    kind: "posture",
+    mode: "quiet",
+    appId: "com.ktbatterham.headerwatch",
+    addedAt: "2026-06-19T08:00:00.000Z",
+    lastScannedAt: "2026-06-20T08:00:00.000Z",
+  };
+  const records = [
+    buildCompletedRecord("scan-current", {
+      scannedAt: "2026-06-20T08:00:00.000Z",
+      score: 58,
+      grade: "D",
+      headers: [
+        {
+          label: "Strict-Transport-Security",
+          status: "missing",
+          value: null,
+        },
+      ],
+    }),
+    buildCompletedRecord("scan-previous", {
+      scannedAt: "2026-06-19T08:00:00.000Z",
+      score: 92,
+      grade: "A",
+    }),
+  ];
+
+  const payload = buildMonitoringTargetTimelinePayload(target, records);
+  const event = payload.timeline[0];
+
+  assert.equal(payload.targetId, target.id);
+  assert.equal(payload.target.kind, "posture");
+  assert.equal(payload.summary.latestEventId, event.eventId);
+  assert.equal(event.targetId, target.id);
+  assert.equal(event.eventId, event.eventId);
+  assert.equal(event.sourceType, "posture_drift");
+  assert.equal(event.occurredAt, "2026-06-20T08:00:00.000Z");
+  assert.equal(event.links.scan, "/api/scans/scan-current");
+  assert.equal(event.links.comparison, "/api/scans/scan-current/comparison");
+  assert.ok(["critical", "warning", "info"].includes(event.severity));
+  assert.ok(Array.isArray(event.evidence));
+  assert.equal(typeof event.explanation.headline, "string");
+});
+
+test("monitoring target timeline reuses certificate monitoring event ids when available", () => {
+  const target = {
+    id: "target-cert-timeline",
+    url: "https://example.com/",
+    label: "Example cert",
+    cadence: "daily",
+    kind: "cert",
+    appId: "com.ktbatterham.certwatch",
+    certPolicy: "strict",
+    addedAt: "2026-06-19T08:00:00.000Z",
+    lastCheckedAt: "2026-06-20T08:00:00.000Z",
+    certState: {
+      reachable: true,
+      checkedAt: "2026-06-20T08:00:00.000Z",
+      host: "example.com",
+      issuer: "Example CA",
+      validTo: "2026-06-25T00:00:00.000Z",
+      daysRemaining: 5,
+      history: [{
+        checkedAt: "2026-06-20T08:00:00.000Z",
+        eventType: "cert_expiring",
+        eventSeverity: "critical",
+        eventTitle: "Certificate expiring: example.com",
+        eventDetail: "5 days remaining.",
+        issuer: "Example CA",
+        serialNumber: "ABC123",
+        validTo: "2026-06-25T00:00:00.000Z",
+        daysRemaining: 5,
+        previousDaysRemaining: 32,
+        monitoringEvent: {
+          id: "example.com:443:2026-06-20T08:00:00.000Z:certificate_expiring",
+          source: "certificate",
+          eventType: "certificate_expiring",
+          severity: "critical",
+          title: "Certificate expires soon",
+          message: "The served certificate has 5 days remaining.",
+          nextAction: "Renew the certificate before the expiry window closes.",
+          changedEvidence: [{ label: "Days remaining", previous: 32, current: 5 }],
+        },
+      }],
+    },
+  };
+
+  const payload = buildMonitoringTargetTimelinePayload(target, []);
+  const event = payload.timeline[0];
+
+  assert.equal(payload.target.policy, "strict");
+  assert.equal(event.eventId, "example.com:443:2026-06-20T08:00:00.000Z:certificate_expiring");
+  assert.equal(event.type, "cert_expiring");
+  assert.equal(event.sourceType, "certificate");
+  assert.equal(event.severity, "critical");
+  assert.equal(event.mattersToPolicy, true);
+  assert.equal(event.explanation.action, "Renew the certificate before the expiry window closes.");
+  assert.equal(event.evidence[0].name, "Days remaining");
+  assert.equal(event.links.history, "/api/monitoring-targets/target-cert-timeline/history");
 });
 
 test("scan drift payload includes monitoring events alongside legacy risk events", () => {

@@ -566,8 +566,10 @@ export async function handleMonitoringTargetItemRequest({
   runScanAnalysis,
   enqueueScan,
   buildMonitoringTargetView,
+  buildMonitoringTargetTimelinePayload,
   buildMonitoringTargetDetailPayload,
   telemetry,
+  readClientMetadata = null,
   classifyScanFailure,
   normalizeScanErrorMessage,
   formatErrorMessage,
@@ -638,6 +640,37 @@ export async function handleMonitoringTargetItemRequest({
         target: buildMonitoringTargetView(target, records),
         history: records.map((record) => record.summary).filter(Boolean),
       });
+      return true;
+    }
+
+    if (action === "timeline") {
+      if (request.method !== "GET") {
+        sendMethodNotAllowed(response, ["GET"]);
+        return true;
+      }
+
+      const clientMetadata = readClientMetadata?.(request) || {};
+      telemetry?.recordFunnelEvent?.({
+        event: "monitoring_timeline_read",
+        source: "backend_api",
+        mode: target.appId ?? clientMetadata.appId,
+        client: clientMetadata.client,
+        clientVersion: clientMetadata.version,
+        clientChannel: clientMetadata.channel,
+        clientKey: authState.ownerId || authState.requesterScope || null,
+      });
+
+      const records = (target.kind ?? "posture") === "cert"
+        ? []
+        : await listMonitoringTargetRecords(
+          scanRepository,
+          authState.ownerId,
+          target,
+          clampLimit(requestUrl.searchParams.get("scanLimit"), 25, 100),
+        );
+      sendJson(response, 200, buildMonitoringTargetTimelinePayload(target, records, {
+        limit: clampLimit(requestUrl.searchParams.get("limit"), 50, 100),
+      }));
       return true;
     }
 
