@@ -205,6 +205,9 @@ Near-term work:
   registration, share cards, or return usage.
 - Use Product Hunt, Show HN, dev.to, GitHub examples, and package docs as learning loops,
   not vanity launch checkboxes.
+- Treat the public landing page, README, and adoption quickstart as part of the product:
+  the first conversion must be "I understand how to try this safely" before it can become
+  monitoring, CI, mobile, or paid usage.
 - Define a lightweight paid path around monitored targets, history retention, team/API
   usage, export/reporting, and alert destinations only after real usage shows which surface
   people return to.
@@ -288,6 +291,20 @@ Current gate:
 
 Until the slice proves itself in production/package review, favour reliability,
 compatibility, evidence, and operational visibility over new surface area.
+
+## Adoption Push - 2026-07-17
+
+The product is now broad enough that adoption friction is a roadmap risk in its own right.
+The immediate push is to make the public surface explain the simplest useful sequence:
+
+1. run a live scan;
+2. repeat it with `npx securl`;
+3. export evidence for CI, PRs, release notes, or vendor review;
+4. save important targets for monitoring and mobile attention.
+
+This does not replace the `1.25` monitoring-control-room milestone. It makes that milestone
+easier to adopt by clarifying why monitoring exists and how the hosted app, package, docs,
+and mobile surfaces fit together.
 
 ## Opportunity Backlog
 

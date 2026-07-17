@@ -7,11 +7,11 @@
 [![Follow on X](https://img.shields.io/badge/X-%40ThisIsSecURL-111827)](https://x.com/ThisIsSecURL)
 [![Dev.to](https://img.shields.io/badge/Dev.to-thisissecurl-0a0a0a)](https://dev.to/thisissecurl)
 
-**Public URL security posture, quietly interpreted.**
+**External security posture evidence for public URLs.**
 
 SecURL is a passive external security posture scanner for public URLs and web services. It reads what a browser, customer, auditor, or researcher can already see, then turns that evidence into clear findings, priority actions, and exportable reports.
 
-It is built for low-noise review of headers, TLS, cookies, redirects, DNS/email posture, trust signals, third-party exposure, and public disclosure readiness.
+It is built for low-noise review of headers, TLS, cookies, redirects, DNS/email posture, trust signals, third-party exposure, public disclosure readiness, and recurring monitoring drift.
 
 SecURL is not a URL shortener. It assesses the external security posture of URLs you choose to scan.
 
@@ -35,7 +35,7 @@ SecURL is not a URL shortener. It assesses the external security posture of URLs
 
 ## Try It
 
-Use the hosted scanner if you want the quickest feel for the product:
+Use the hosted scanner if you want the quickest feel for the product, or run the same engine from the terminal:
 
 - [securl.online](https://securl.online) — product and landing page
 - [app.securl.online](https://app.securl.online) — live scanner and report workspace
@@ -45,16 +45,19 @@ Use the hosted scanner if you want the quickest feel for the product:
 
 Follow product notes and practical posture write-ups at [@ThisIsSecURL on X](https://x.com/ThisIsSecURL) and [Dev.to/thisissecurl](https://dev.to/thisissecurl).
 
-Or run the engine directly:
-
 ```sh
 npx securl scan example.com
+npx securl scan example.com --format markdown --output securl-report.md
+npx securl scan example.com --format manifest --output posture-manifest.json
 ```
+
+For a five-minute path from first scan to CI/monitoring evidence, read [`docs/ADOPTION-QUICKSTART.md`](docs/ADOPTION-QUICKSTART.md).
 
 ## Current Engine Surface
 
-`securl@1.23.1` is the current npm package release target. It includes:
+`securl@1.24.0` is the current npm package release. It includes:
 
+- Detection-pack architecture foundation with a constrained first-party rules seam, schema validation, and output-equivalence checks.
 - External Exposure Inventory v1 across visible third-party, infrastructure, identity, and AI dependencies, with stable IDs, data-flow purpose, confidence, evidence, SRI status, and review priority.
 - `securl scan --format exposure` for compact inventory output in CI, audit, and scheduled workflows.
 - `securl scan --format manifest` for generating Posture Manifest v1, SecURL's SBOM-adjacent external posture recipe card.
@@ -105,6 +108,15 @@ The short version:
 - Analytics and session-replay vendor detection (Google Analytics, Plausible, Matomo, Segment, Mixpanel, Amplitude, Heap, New Relic, Datadog, Hotjar, LogRocket, and others)
 
 ## Quick start
+
+### Five-minute adoption path
+
+1. Run one live scan at [app.securl.online](https://app.securl.online) to see the graded report and prioritized fixes.
+2. Run the same target locally with `npx securl scan example.com --format markdown`.
+3. Add a CI or scheduled job that exports JSON, Markdown, SARIF, or a posture manifest.
+4. Save important targets in the hosted app or mobile suite so SecURL can watch for meaningful drift.
+
+The detailed guide is [`docs/ADOPTION-QUICKSTART.md`](docs/ADOPTION-QUICKSTART.md).
 
 ### Live app
 
@@ -209,7 +221,7 @@ Sponsorship helps fund continued work on the passive analysis engine, hosted sca
 
 ## Package status
 
-- Latest package target: `securl@1.23.1`
+- Latest package release: `securl@1.24.0`
 - Previous package name: `@ktbatterham/external-posture-core` is deprecated in favour of `securl`
 - npm tag: `latest`
 - Package signal check: `npm run package:signals`
@@ -220,6 +232,7 @@ Sponsorship helps fund continued work on the passive analysis engine, hosted sca
 For the deeper operational and architecture material, go straight to:
 
 - [Product roadmap](docs/PRODUCT-ROADMAP.md)
+- [Adoption quickstart](docs/ADOPTION-QUICKSTART.md)
 - [Architecture view (C4)](docs/ARCHITECTURE-C4.md)
 - [Architecture and safety truth](docs/ARCHITECTURE-SAFETY.md)
 - [API integration guide](docs/API-INTEGRATION-GUIDE.md)
