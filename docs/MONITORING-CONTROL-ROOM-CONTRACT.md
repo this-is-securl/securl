@@ -1,9 +1,10 @@
 # Monitoring Control Room Contract
 
 Status: partial implementation for the `1.25` monitoring control-room milestone.
-`monitoring-attention-v1` is implemented in the backend and should only be handed to
-mobile after it is merged, deployed, production-smoked, and recorded as `BACKEND_READY`
-in the mobile/backend channel. Timeline and policy-fit resources remain proposed.
+`monitoring-attention-v1` and `monitoring-timeline-v1` are implemented in the backend and
+should only be handed to mobile after they are merged, deployed, production-smoked, and
+recorded as `BACKEND_READY` in the mobile/backend channel. Policy-fit resources remain
+proposed.
 
 ## Goal
 
@@ -21,8 +22,7 @@ Clients must feature-detect these flags through `GET /api/capabilities` before c
 the new resources:
 
 - `monitoring-attention-v1`: owner/app attention rollup is available.
-- `monitoring-timeline-v1`: stable per-target timeline DTOs are available. Proposed, not
-  live.
+- `monitoring-timeline-v1`: stable per-target timeline DTOs are available.
 - `monitoring-policy-fit-v1`: compact policy-fit verdicts are available on monitoring
   surfaces.
   Proposed, not live.
@@ -89,7 +89,7 @@ Response:
         "headline": "No longer meets the baseline policy"
       },
       "timeline": {
-        "href": "/api/monitoring-targets/mon_123/history",
+        "href": "/api/monitoring-targets/mon_123/timeline",
         "latestEventId": "evt_abc"
       },
       "actions": [
@@ -117,19 +117,41 @@ Rules:
 - The push summary is aggregate-only. It must not expose device identifiers, tokens,
   owner identifiers, IP addresses, or raw user agents.
 
-## Proposed resource: stable target timeline
+## Resource: stable target timeline
 
 ```http
 GET /api/monitoring-targets/:id/timeline
 X-Scan-Owner: <owner token>
 ```
 
+Optional query:
+
+- `limit`: caps returned timeline events. Defaults to 50 and caps at 100.
+- `scanLimit`: caps posture scan history inspected when deriving drift events. Defaults to
+  25 and caps at 100.
+
 Response:
 
 ```jsonc
 {
+  "apiVersion": "2026-05-14",
   "targetId": "mon_123",
   "generatedAt": "2026-07-15T12:00:00.000Z",
+  "target": {
+    "id": "mon_123",
+    "url": "https://example.com/",
+    "label": "example.com",
+    "kind": "posture",
+    "appId": "com.ktbatterham.headerwatch",
+    "policy": "securl-baseline-v1"
+  },
+  "summary": {
+    "events": 1,
+    "latestEventId": "evt_abc",
+    "latestChangedAt": "2026-07-15T11:58:00.000Z",
+    "hasCritical": false,
+    "hasWarning": true
+  },
   "timeline": [
     {
       "eventId": "evt_abc",
@@ -144,6 +166,11 @@ Response:
       "mattersToPolicy": true,
       "title": "HSTS was removed",
       "body": "The latest check no longer observed Strict-Transport-Security.",
+      "explanation": {
+        "headline": "HSTS was removed",
+        "detail": "The latest check no longer observed Strict-Transport-Security.",
+        "action": "Compare the latest response headers with the previous passing response."
+      },
       "evidence": [
         {
           "kind": "header",
@@ -185,12 +212,14 @@ Timeline `type` values are additive. Initial values should include:
 Rules:
 
 - `eventId` is stable across reads and appears in matching push payloads and attention
-  rollup items.
+  rollup items where the underlying monitoring event is already present.
 - Recovery is explicit: do not make clients infer recovery only from a missing current
-  problem.
+  problem. The first live slice exposes `recoveredAt: null` until recovery events are
+  persisted explicitly.
 - Certificate day-count decay should not create noisy timeline churn unless it crosses a
   configured policy or warning band.
-- Push delivery changes describe owner/app delivery health, not raw device state.
+- Push delivery changes describe owner/app delivery health, not raw device state. They are
+  not included in the first live timeline slice.
 
 ## Policy-fit block
 

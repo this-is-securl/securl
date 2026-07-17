@@ -546,6 +546,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.monitoring.features.includes("mobile-monitoring-explanations-v1"));
     assert.ok(payload.monitoring.features.includes("monitoring-health-v1"));
     assert.ok(payload.monitoring.features.includes("monitoring-attention-v1"));
+    assert.ok(payload.monitoring.features.includes("monitoring-timeline-v1"));
     assert.ok(payload.monitoring.features.includes("cert-watchlist-summary-v1"));
     assert.ok(payload.monitoring.features.includes("cert-watchlist-push-health-v1"));
     assert.ok(payload.monitoring.features.includes("cert-attention-state"));
@@ -554,6 +555,7 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
     assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-summary"));
     assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-health"));
     assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-attention"));
+    assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-targets/:id/timeline"));
     assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-cert-summary"));
     assert.ok(payload.monitoring.resources.includes("GET /api/monitoring-mobile-summary"));
     assert.ok(payload.monitoring.resources.includes("POST /api/monitoring-targets/:id/run"));
@@ -1898,6 +1900,27 @@ test("monitoring target detail returns recent scans, comparison, and lifecycle e
         assert.ok(Array.isArray(detailPayload.events));
         assert.ok(detailPayload.events.some((event) => event.eventType === "queued"));
         assert.ok(detailPayload.events.some((event) => event.eventType === "completed"));
+
+        const timelineResponse = await fetch(`${server.baseUrl}/api/monitoring-targets/${createTargetPayload.target.id}/timeline`, {
+          headers: {
+            ...scanOwnerHeaders(SCAN_OWNER_ONE),
+            "X-SecURL-Client": "header-watch-ios",
+            "X-SecURL-Client-Version": "1.0.5+20",
+            "X-SecURL-Client-Channel": "app-store",
+          },
+        });
+        const timelinePayload = await timelineResponse.json();
+        assert.equal(timelineResponse.status, 200);
+        assert.equal(timelinePayload.targetId, createTargetPayload.target.id);
+        assert.equal(timelinePayload.target.kind, "posture");
+        assert.ok(Array.isArray(timelinePayload.timeline));
+        assert.equal(typeof timelinePayload.generatedAt, "string");
+
+        const telemetryResponse = await fetch(`${server.baseUrl}/api/telemetry`);
+        const telemetryPayload = await telemetryResponse.json();
+        assert.equal(telemetryPayload.funnel.events.monitoring_timeline_read, 1);
+        assert.equal(telemetryPayload.clients.consumption.monitoringTimelineReads, 1);
+        assert.equal(telemetryPayload.funnel.byClient["header-watch-ios"].monitoring_timeline_read, 1);
         return;
       }
 

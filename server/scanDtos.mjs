@@ -1205,6 +1205,228 @@ function addMonitoringEventNavigation(events, targetId) {
   }));
 }
 
+function stableTimelineEventId(parts = []) {
+  return normalizeArray(parts)
+    .map((part) => String(part ?? "none")
+      .toLowerCase()
+      .replace(/[^a-z0-9._:-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      || "none")
+    .join(":");
+}
+
+function timelineEvidenceFromMonitoringEvent(event) {
+  return normalizeArray(event?.changedEvidence).slice(0, 8).map((item) => ({
+    kind: "signal",
+    name: item.label ?? "Evidence",
+    previous: item.previous ?? null,
+    current: item.current ?? null,
+    confidence: "medium",
+  }));
+}
+
+function buildTimelineItemFromMonitoringEvent({ targetId, event, currentRecord = null, previousRecord = null }) {
+  const occurredAt = event?.current?.observedAt
+    ?? currentRecord?.summary?.completedAt
+    ?? currentRecord?.result?.scannedAt
+    ?? null;
+  const eventId = event?.id ?? stableTimelineEventId([targetId, "posture", occurredAt, event?.eventType]);
+
+  return {
+    eventId,
+    targetId,
+    occurredAt,
+    firstSeenAt: occurredAt,
+    changedAt: occurredAt,
+    recoveredAt: null,
+    type: event?.eventType ?? "changed",
+    sourceType: "posture_drift",
+    severity: event?.severity ?? "info",
+    mattersToPolicy: ["critical", "warning"].includes(event?.severity),
+    title: event?.title ?? "Posture changed",
+    body: event?.message ?? event?.detail ?? null,
+    explanation: {
+      headline: event?.title ?? "Posture changed",
+      detail: event?.detail ?? event?.message ?? null,
+      action: event?.nextAction ?? "Review the changed evidence and rescan after remediation.",
+    },
+    evidence: timelineEvidenceFromMonitoringEvent(event),
+    policy: {
+      id: null,
+      verdict: ["critical", "warning"].includes(event?.severity) ? "drift" : "unknown",
+      headline: ["critical", "warning"].includes(event?.severity)
+        ? "Posture changed in a way that may need review"
+        : "Posture changed",
+    },
+    links: {
+      scan: currentRecord?.id ? `/api/scans/${currentRecord.id}` : null,
+      comparison: currentRecord?.id ? `/api/scans/${currentRecord.id}/comparison` : null,
+      previousScan: previousRecord?.id ? `/api/scans/${previousRecord.id}` : null,
+    },
+  };
+}
+
+function buildPostureTimelineItems(targetId, records = []) {
+  const completedWithResults = normalizeArray(records)
+    .filter((record) => record?.status === "completed" && record?.result);
+  const items = [];
+
+  for (let index = 0; index < completedWithResults.length - 1; index += 1) {
+    const currentRecord = completedWithResults[index];
+    const previousRecord = completedWithResults[index + 1];
+    const currentSnapshot = snapshotFromAnalysis(currentRecord.result);
+    const previousSnapshot = snapshotFromAnalysis(previousRecord.result);
+    const diff = buildHistoryDiffFromSnapshots(currentSnapshot, previousSnapshot);
+    const events = buildMonitoringEventsFromSnapshots(currentSnapshot, previousSnapshot, diff);
+    for (const event of events) {
+      items.push(buildTimelineItemFromMonitoringEvent({
+        targetId,
+        event,
+        currentRecord,
+        previousRecord,
+      }));
+    }
+  }
+
+  return items;
+}
+
+function certTimelineType(entry) {
+  if (entry?.eventType) return entry.eventType;
+  if (entry?.firstSeenAttentionType) return "first_seen";
+  return "checked";
+}
+
+function certTimelineSeverity(entry) {
+  if (entry?.eventSeverity) return entry.eventSeverity;
+  if (entry?.firstSeenAttentionType === "cert_expired" || entry?.firstSeenAttentionType === "unreachable") return "critical";
+  if (entry?.firstSeenAttentionType === "cert_expiring") return "warning";
+  return "info";
+}
+
+function certTimelineEvidence(entry) {
+  return [
+    {
+      kind: "certificate",
+      name: "Issuer",
+      previous: entry?.previousIssuer ?? null,
+      current: entry?.issuer ?? null,
+      confidence: "high",
+    },
+    {
+      kind: "certificate",
+      name: "Serial number",
+      previous: entry?.previousSerialNumber ?? null,
+      current: entry?.serialNumber ?? null,
+      confidence: "high",
+    },
+    {
+      kind: "certificate",
+      name: "Valid to",
+      previous: entry?.previousValidTo ?? null,
+      current: entry?.validTo ?? null,
+      confidence: "high",
+    },
+    {
+      kind: "certificate",
+      name: "Days remaining",
+      previous: entry?.previousDaysRemaining ?? null,
+      current: entry?.daysRemaining ?? null,
+      confidence: "high",
+    },
+  ].filter((item) => item.previous !== null || item.current !== null);
+}
+
+function buildCertTimelineItems(targetId, certHistory = []) {
+  return normalizeArray(certHistory)
+    .filter((entry) => entry?.eventType || entry?.firstSeenAttentionType)
+    .map((entry) => {
+      const monitoringEvent = entry.monitoringEvent ?? null;
+      const type = certTimelineType(entry);
+      const severity = certTimelineSeverity(entry);
+      const occurredAt = entry.checkedAt ?? null;
+      const eventId = monitoringEvent?.id ?? stableTimelineEventId([targetId, "cert", occurredAt, type]);
+      const title = monitoringEvent?.title
+        ?? entry.eventTitle
+        ?? (type === "first_seen" ? "Certificate attention first seen" : "Certificate changed");
+      const body = monitoringEvent?.message ?? entry.eventDetail ?? null;
+
+      return {
+        eventId,
+        targetId,
+        occurredAt,
+        firstSeenAt: occurredAt,
+        changedAt: occurredAt,
+        recoveredAt: null,
+        type,
+        sourceType: "certificate",
+        severity,
+        mattersToPolicy: ["critical", "warning"].includes(severity),
+        title,
+        body,
+        explanation: {
+          headline: title,
+          detail: body,
+          action: monitoringEvent?.nextAction ?? (
+            type === "unreachable"
+              ? "Check the target is serving TLS correctly, then rescan."
+              : "Review the certificate event and confirm whether it was expected."
+          ),
+        },
+        evidence: monitoringEvent ? timelineEvidenceFromMonitoringEvent(monitoringEvent) : certTimelineEvidence(entry),
+        policy: {
+          id: entry.policyProfile ?? null,
+          verdict: ["critical", "warning"].includes(severity) ? "drift" : "unknown",
+          headline: ["critical", "warning"].includes(severity)
+            ? "Certificate state needs review"
+            : "Certificate state changed",
+        },
+        links: {
+          target: `/api/monitoring-targets/${targetId}`,
+          history: `/api/monitoring-targets/${targetId}/history`,
+        },
+      };
+    });
+}
+
+function sortTimelineItems(items) {
+  return normalizeArray(items).sort((left, right) => {
+    const timeDelta = new Date(right.occurredAt || 0).getTime() - new Date(left.occurredAt || 0).getTime();
+    if (timeDelta !== 0) return timeDelta;
+    return String(left.eventId).localeCompare(String(right.eventId));
+  });
+}
+
+export function buildMonitoringTargetTimelinePayload(target, records = [], { limit = 50 } = {}) {
+  const view = buildMonitoringTargetView(target, records);
+  const items = view.kind === "cert"
+    ? buildCertTimelineItems(view.id, view.cert?.history)
+    : buildPostureTimelineItems(view.id, records);
+  const timeline = sortTimelineItems(items).slice(0, limit);
+
+  return {
+    apiVersion: API_VERSION,
+    generatedAt: new Date().toISOString(),
+    targetId: view.id,
+    target: {
+      id: view.id,
+      url: view.url,
+      label: view.label,
+      kind: view.kind,
+      appId: view.appId,
+      policy: view.kind === "cert" ? view.certPolicy : view.observationPolicy?.id ?? null,
+    },
+    summary: {
+      events: timeline.length,
+      latestEventId: timeline[0]?.eventId ?? null,
+      latestChangedAt: timeline[0]?.changedAt ?? null,
+      hasCritical: timeline.some((event) => event.severity === "critical"),
+      hasWarning: timeline.some((event) => event.severity === "warning"),
+    },
+    timeline,
+  };
+}
+
 function buildMobileTargetSummary(target, records = []) {
   const view = buildMonitoringTargetView(target, records);
   const comparison = buildStoredTargetDiff(records);
@@ -1483,7 +1705,7 @@ function buildAttentionItemFromTarget(target, nowMs) {
         }
       : null,
     timeline: {
-      href: `/api/monitoring-targets/${target.id}/history`,
+      href: `/api/monitoring-targets/${target.id}/timeline`,
       latestEventId: firstEvent?.eventId ?? firstEvent?.id ?? null,
     },
     actions: normalizeArray(target.actions).length

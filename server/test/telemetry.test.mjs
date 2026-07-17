@@ -222,6 +222,8 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.scans.engagement.clientVersions["securl-ios@1.2.0+19"], 1);
   assert.deepEqual(snapshot.clients.consumption.adoptionSignals, {
     monitoringRegistration: false,
+    monitoringAttention: false,
+    monitoringTimeline: false,
     monitoringHealth: false,
     mobileMonitoring: true,
     pushRegistration: true,
@@ -376,6 +378,8 @@ test("telemetry tracker can persist counters to disk", () => {
     assert.equal(snapshot.clients.consumption.backendApiEvents, 0);
     assert.deepEqual(snapshot.clients.consumption.adoptionSignals, {
       monitoringRegistration: false,
+      monitoringAttention: false,
+      monitoringTimeline: false,
       monitoringHealth: false,
       mobileMonitoring: false,
       pushRegistration: false,
