@@ -9,6 +9,22 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 ### Backend and docs
 - Added protected product-pulse telemetry and optional release-channel attribution for hosted/mobile clients. These are backend/API-service changes and do not change the published `securl` package surface.
 
+## [1.25.0] - 2026-07-18
+
+### Added
+- Completed the monitoring control-room milestone with `monitoring-policy-fit-v1`,
+  adding compact server-authored `policyFit` verdicts for posture monitoring targets with
+  an observation policy.
+- Surfaced policy fit across owner attention rows, mobile monitoring summaries, target
+  details, and target timelines without exposing raw observations or requiring clients to
+  evaluate policy rules locally.
+- Advertised `monitoring-policy-fit-v1` through `GET /api/capabilities` so mobile, web,
+  and API consumers can adopt the additive contract safely.
+
+### Changed
+- Tightened the `1.25` monitoring-control-room contract documentation around attention,
+  timeline, policy-fit, push-health, privacy, and feature-detection boundaries.
+
 ## [1.24.0] - 2026-07-14
 
 ### Added

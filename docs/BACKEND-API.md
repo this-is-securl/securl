@@ -130,7 +130,7 @@ The additive resources are:
   per-target timeline with `eventId` identity shared by rollups, push payloads, and target
   detail where available.
 - `policyFit` blocks behind `monitoring-policy-fit-v1`: compact server-authored
-  pass/drift/fail verdicts for monitoring list/detail resources. Proposed, not live.
+  pass/drift/fail verdicts for posture monitoring resources with an observation policy.
 
 Until a specific flag is present, clients should continue using the current
 `/api/monitoring-mobile-summary`, `/api/monitoring-cert-summary`,

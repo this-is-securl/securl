@@ -772,18 +772,22 @@ export function buildMonitoringTargetView(target, records = []) {
   const completedScans = scans.filter((scan) => scan.status === "completed");
   const latestScan = completedScans[0] ?? null;
   const previousScan = completedScans[1] ?? null;
+  const kind = target.kind ?? "posture";
 
   return {
     id: target.id,
     url: target.url,
     label: target.label,
     cadence: target.cadence,
-    kind: target.kind ?? "posture",
+    kind,
     mode: target.mode ?? null,
     appId: target.appId ?? null,
     certPolicy: target.certPolicy ?? target.certState?.policyProfile ?? null,
-    policy: (target.kind ?? "posture") === "cert" ? target.certPolicy ?? target.certState?.policyProfile ?? null : null,
+    policy: kind === "cert" ? target.certPolicy ?? target.certState?.policyProfile ?? null : null,
     observationPolicy: target.observationPolicy ?? null,
+    policyFit: kind === "posture" && target.observationPolicy
+      ? buildMonitoringPolicyFit(records, target.observationPolicy)
+      : null,
     addedAt: target.addedAt,
     lastScannedAt: target.lastScannedAt ?? null,
     lastCheckedAt: target.lastCheckedAt ?? target.lastScannedAt ?? null,
@@ -1077,6 +1081,76 @@ function buildPolicyEvaluation(records, policy = null) {
   return evaluateObservationPolicy({ ledger, drift, policy: policy ?? DEFAULT_OBSERVATION_POLICY });
 }
 
+function buildMonitoringPolicyFit(records, policy = null) {
+  const completed = normalizeArray(records).filter((record) => record?.status === "completed" && record?.result);
+  const [current] = completed;
+  const evaluation = buildPolicyEvaluation(completed, policy);
+  const policyId = evaluation?.policy?.id ?? policy?.id ?? DEFAULT_OBSERVATION_POLICY.id;
+  const policyName = evaluation?.policy?.name ?? policy?.name ?? DEFAULT_OBSERVATION_POLICY.name;
+  const policyVersion = evaluation?.policy?.version ?? policy?.version ?? DEFAULT_OBSERVATION_POLICY.version;
+
+  if (!current || !evaluation) {
+    return {
+      verdict: "unknown",
+      policy: policyId,
+      policyName,
+      policyVersion,
+      changedSince: null,
+      evaluatedAt: null,
+      headline: "Policy fit has not been evaluated yet",
+      summary: {
+        rulesEvaluated: 0,
+        violations: 0,
+        bySeverity: { critical: 0, warning: 0, info: 0 },
+        highestSeverity: null,
+      },
+      topViolations: [],
+    };
+  }
+
+  const topViolations = normalizeArray(evaluation.violations)
+    .sort((left, right) => severityRank(right.severity) - severityRank(left.severity))
+    .slice(0, 3)
+    .map((violation) => ({
+      id: violation.id,
+      ruleId: violation.ruleId,
+      title: violation.title,
+      severity: violation.severity,
+      scope: violation.scope,
+      kind: violation.kind,
+      subject: violation.subject,
+      summary: violation.summary,
+    }));
+  const hasChangeViolation = topViolations.some((violation) => violation.scope === "change")
+    || normalizeArray(evaluation.violations).some((violation) => violation.scope === "change");
+  const verdict = evaluation.passed ? "pass" : hasChangeViolation ? "drift" : "fail";
+  const changedSince = verdict === "drift"
+    ? current.summary?.completedAt ?? current.result?.scannedAt ?? evaluation.evaluatedAt ?? null
+    : null;
+  const violationCount = evaluation.summary?.violations ?? evaluation.violations.length;
+
+  return {
+    verdict,
+    policy: policyId,
+    policyName,
+    policyVersion,
+    changedSince,
+    evaluatedAt: evaluation.evaluatedAt ?? current.result?.scannedAt ?? null,
+    headline: verdict === "pass"
+      ? `Still meets ${policyName}`
+      : verdict === "drift"
+        ? `No longer matches ${policyName}`
+        : `Does not meet ${policyName}`,
+    summary: {
+      rulesEvaluated: evaluation.summary?.rulesEvaluated ?? 0,
+      violations: violationCount,
+      bySeverity: evaluation.summary?.bySeverity ?? { critical: 0, warning: 0, info: 0 },
+      highestSeverity: evaluation.summary?.highestSeverity ?? null,
+    },
+    topViolations,
+  };
+}
+
 export function buildScanPolicyEvaluationPayload(scan, records, policy = null, policySource = "default") {
   const completedRecords = normalizeArray(records).filter((record) => record?.status === "completed" && record?.result);
   const currentIndex = completedRecords.findIndex((record) => record.id === scan.id);
@@ -1225,7 +1299,13 @@ function timelineEvidenceFromMonitoringEvent(event) {
   }));
 }
 
-function buildTimelineItemFromMonitoringEvent({ targetId, event, currentRecord = null, previousRecord = null }) {
+function buildTimelineItemFromMonitoringEvent({
+  targetId,
+  event,
+  currentRecord = null,
+  previousRecord = null,
+  policyFit = null,
+}) {
   const occurredAt = event?.current?.observedAt
     ?? currentRecord?.summary?.completedAt
     ?? currentRecord?.result?.scannedAt
@@ -1252,11 +1332,11 @@ function buildTimelineItemFromMonitoringEvent({ targetId, event, currentRecord =
     },
     evidence: timelineEvidenceFromMonitoringEvent(event),
     policy: {
-      id: null,
-      verdict: ["critical", "warning"].includes(event?.severity) ? "drift" : "unknown",
-      headline: ["critical", "warning"].includes(event?.severity)
+      id: policyFit?.policy ?? null,
+      verdict: policyFit?.verdict ?? (["critical", "warning"].includes(event?.severity) ? "drift" : "unknown"),
+      headline: policyFit?.headline ?? (["critical", "warning"].includes(event?.severity)
         ? "Posture changed in a way that may need review"
-        : "Posture changed",
+        : "Posture changed"),
     },
     links: {
       scan: currentRecord?.id ? `/api/scans/${currentRecord.id}` : null,
@@ -1266,7 +1346,7 @@ function buildTimelineItemFromMonitoringEvent({ targetId, event, currentRecord =
   };
 }
 
-function buildPostureTimelineItems(targetId, records = []) {
+function buildPostureTimelineItems(targetId, records = [], policyFit = null) {
   const completedWithResults = normalizeArray(records)
     .filter((record) => record?.status === "completed" && record?.result);
   const items = [];
@@ -1284,6 +1364,7 @@ function buildPostureTimelineItems(targetId, records = []) {
         event,
         currentRecord,
         previousRecord,
+        policyFit,
       }));
     }
   }
@@ -1401,7 +1482,7 @@ export function buildMonitoringTargetTimelinePayload(target, records = [], { lim
   const view = buildMonitoringTargetView(target, records);
   const items = view.kind === "cert"
     ? buildCertTimelineItems(view.id, view.cert?.history)
-    : buildPostureTimelineItems(view.id, records);
+    : buildPostureTimelineItems(view.id, records, view.policyFit);
   const timeline = sortTimelineItems(items).slice(0, limit);
 
   return {
@@ -1416,12 +1497,14 @@ export function buildMonitoringTargetTimelinePayload(target, records = [], { lim
       appId: view.appId,
       policy: view.kind === "cert" ? view.certPolicy : view.observationPolicy?.id ?? null,
     },
+    policyFit: view.kind === "posture" ? view.policyFit : null,
     summary: {
       events: timeline.length,
       latestEventId: timeline[0]?.eventId ?? null,
       latestChangedAt: timeline[0]?.changedAt ?? null,
       hasCritical: timeline.some((event) => event.severity === "critical"),
       hasWarning: timeline.some((event) => event.severity === "warning"),
+      policyVerdict: view.kind === "posture" ? view.policyFit?.verdict ?? "unknown" : null,
     },
     timeline,
   };
@@ -1455,6 +1538,7 @@ function buildMobileTargetSummary(target, records = []) {
     mode: view.mode,
     appId: view.appId,
     policy: view.kind === "cert" ? view.certPolicy : null,
+    policyFit: view.kind === "posture" ? view.policyFit : null,
     addedAt: view.addedAt,
     lastCheckedAt: view.lastCheckedAt,
     nextDueAt: view.nextDueAt,
@@ -1633,10 +1717,12 @@ function buildMonitoringAttentionPushSummary({ pushDevices = [], notifications =
 function buildAttentionItemFromTarget(target, nowMs) {
   const healthTarget = buildTargetHealthSummary(target, nowMs);
   const status = target.status ?? null;
+  const policyFit = target.kind === "posture" ? target.policyFit ?? null : null;
   const severity = strongestSeverity([
     healthTarget.health?.severity,
     status?.severity,
     target.change?.severity,
+    policyFit?.summary?.highestSeverity,
   ]) ?? "info";
   const statusState = status?.state ?? null;
   const healthState = healthTarget.health?.state ?? null;
@@ -1644,6 +1730,7 @@ function buildAttentionItemFromTarget(target, nowMs) {
   const isOverdueWarning = healthState === "due" && healthTarget.overdueSeconds > 15 * 60;
   const include = (
     ["critical", "warning"].includes(severity)
+    || ["fail", "drift"].includes(policyFit?.verdict)
     || ["needs_attention", "failed", "unknown", "pending"].includes(statusState)
     || ["failed", "unknown", "unreachable", "expired", "expiring"].includes(healthState)
     || isOverdueWarning
@@ -1670,12 +1757,14 @@ function buildAttentionItemFromTarget(target, nowMs) {
   const headline = target.cert?.attention?.title
     ?? target.change?.title
     ?? firstEvent?.title
+    ?? policyFit?.headline
     ?? (healthState === "failed" ? "Latest monitoring check failed" : null)
     ?? (healthState === "due" ? "Monitoring check is overdue" : null)
     ?? "Monitoring target needs attention";
   const detail = target.cert?.attention?.body
     ?? target.change?.detail
     ?? firstEvent?.detail
+    ?? policyFit?.topViolations?.[0]?.summary
     ?? healthTarget.latestFailure?.error
     ?? (healthState === "due" ? "The scheduled monitoring check is overdue." : null)
     ?? null;
@@ -1694,16 +1783,7 @@ function buildAttentionItemFromTarget(target, nowMs) {
     lastCheckedAt: target.cert?.checkedAt ?? target.lastCheckedAt ?? null,
     lastChangedAt,
     eventId: firstEvent?.eventId ?? firstEvent?.id ?? null,
-    policyFit: target.kind === "posture" && target.observationPolicy
-      ? {
-          verdict: reason === "posture_regressed" ? "drift" : "unknown",
-          policy: target.observationPolicy.id ?? "custom",
-          changedSince: lastChangedAt,
-          headline: reason === "posture_regressed"
-            ? "No longer matches the last observed posture"
-            : "Policy fit needs review",
-        }
-      : null,
+    policyFit,
     timeline: {
       href: `/api/monitoring-targets/${target.id}/timeline`,
       latestEventId: firstEvent?.eventId ?? firstEvent?.id ?? null,

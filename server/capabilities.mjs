@@ -166,6 +166,7 @@ export function buildCapabilitiesPayload({
         "monitoring-health-v1",
         "monitoring-attention-v1",
         "monitoring-timeline-v1",
+        "monitoring-policy-fit-v1",
         "cert-watchlist-summary-v1",
         "cert-watchlist-push-health-v1",
         "cert-attention-state",
