@@ -70,27 +70,27 @@ const ENGINE_LINKS: EngineLink[] = [
 const ADOPTION_PATH: EngineLink[] = [
   {
     icon: Activity,
-    label: "Scan live",
-    detail: "Paste a public URL and get a graded report with prioritized fixes.",
+    label: "1. Scan live",
+    detail: "Paste a public URL and get the outside-in report a teammate can read in minutes.",
     href: "https://app.securl.online",
   },
   {
     icon: Package,
-    label: "Run the CLI",
-    detail: "Use npx in a terminal, CI job, release check, or scheduled watcher.",
+    label: "2. Gate releases",
+    detail: "Run the same engine with npx in CI and export Markdown, JSON, or CI JSON.",
     href: "https://www.npmjs.com/package/securl",
   },
   {
     icon: Clock3,
-    label: "Watch for drift",
-    detail: "Save targets and let monitoring surface changes that deserve attention.",
+    label: "3. Watch for drift",
+    detail: "Save the target so certificate, header, and posture changes don't disappear after deploy.",
     href: "https://github.com/this-is-securl/securl/blob/main/docs/ADOPTION-QUICKSTART.md",
   },
   {
     icon: BookOpen,
-    label: "Share evidence",
-    detail: "Export Markdown, JSON, PDF, or manifests for PRs, audits, and vendor review.",
-    href: "https://github.com/this-is-securl/securl/blob/main/docs/ADOPTION-QUICKSTART.md",
+    label: "4. Get phone alerts",
+    detail: "Use the mobile apps as the control room for the same public sites your pipeline checks.",
+    href: "https://securl.online/downloads",
   },
 ];
 
@@ -315,8 +315,8 @@ const Index = () => {
                     <br className="hidden sm:block" /> Keep watching what changes.
                   </h1>
                   <p className="max-w-lg text-lg font-semibold leading-8 text-zinc-200">
-                    Paste a URL for an outside-in posture read, then turn the same evidence
-                    into CLI checks, monitoring, mobile alerts, and shareable reports —
+                    Paste a URL for an outside-in posture read, then put the same engine
+                    in CI and route the changes worth knowing about to your phone —
                     <span className="text-[#d89a63]"> without credentials or noisy scanning.</span>
                   </p>
                 </div>
@@ -344,7 +344,7 @@ const Index = () => {
                   rel="noopener noreferrer"
                   className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 transition hover:border-[#b56a2c]/35 hover:bg-[#b56a2c]/10 hover:text-[#f0d5bc]"
                 >
-                  5-minute adoption guide
+                  CI adoption guide
                 </a>
                 <a
                   href="https://securl.online/downloads"
@@ -352,7 +352,7 @@ const Index = () => {
                   rel="noopener noreferrer"
                   className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 transition hover:border-[#b56a2c]/35 hover:bg-[#b56a2c]/10 hover:text-[#f0d5bc]"
                 >
-                  Mobile control room
+                  Get mobile alerts
                 </a>
               </div>
             </div>
@@ -532,7 +532,40 @@ const Index = () => {
               </div>
             </section>
 
-            {/* 3 — Capability strip */}
+            {/* 3 — CLI to phone bridge */}
+            <section className="overflow-hidden rounded-[1.75rem] border border-[#b56a2c]/25 bg-[radial-gradient(circle_at_top_left,rgba(181,106,44,0.18),rgba(255,255,255,0.03)_42%,rgba(255,255,255,0.02))] px-4 py-8 shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] sm:px-8 sm:py-10">
+              <div className="grid gap-6 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
+                <div>
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#d89a63]">
+                    Built for the audience already arriving
+                  </p>
+                  <h2 className="text-2xl font-black tracking-[-0.04em] text-white sm:text-3xl">
+                    Running SecURL in CI? Make the alerts follow you.
+                  </h2>
+                  <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-300">
+                    The CLI is the fast path for developers. The web app makes results readable,
+                    monitoring keeps the target alive between releases, and the mobile apps turn
+                    material certificate, header, and posture drift into timely alerts.
+                  </p>
+                </div>
+                <div className="rounded-[1.2rem] border border-white/10 bg-zinc-950/55 p-4">
+                  <div className="font-mono text-xs leading-6 text-zinc-300">
+                    <span className="text-zinc-500">$ </span>npx securl scan https://example.com --format ci-json
+                    <br />
+                    <span className="text-zinc-500">$ </span>npx securl scan https://example.com --format markdown
+                  </div>
+                  <div className="mt-4 grid gap-2 text-xs font-semibold text-zinc-300 sm:grid-cols-3">
+                    {["Fail noisy regressions", "Share readable evidence", "Save target on mobile"].map((item) => (
+                      <div key={item} className="rounded-xl border border-white/8 bg-white/5 px-3 py-2">
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* 4 — Capability strip */}
             <section>
               <div className="mb-6">
                 <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#d89a63]">
@@ -545,7 +578,7 @@ const Index = () => {
               <CapabilityStrip />
             </section>
 
-            {/* 4 — Adoption path */}
+            {/* 5 — Adoption path */}
             <section className="rounded-[1.75rem] border border-[#b56a2c]/20 bg-[#b56a2c]/8 px-4 py-8 shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] sm:px-8 sm:py-10">
               <div className="grid gap-7 lg:grid-cols-[0.78fr_1.22fr] lg:items-start">
                 <div>
@@ -553,17 +586,17 @@ const Index = () => {
                     Adopt in minutes
                   </p>
                   <h2 className="text-2xl font-black tracking-[-0.04em] text-white sm:text-3xl">
-                    One public URL can become a report, a CI check, and a watched target
+                    One public URL can become a report, a CI gate, and a watched target
                   </h2>
                   <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-300">
                     SecURL is deliberately easy to try: no agent, no credentials, no target-side install.
-                    Start with the hosted scan, then keep the same posture evidence alive in CLI, API,
-                    monitoring, and mobile workflows.
+                    Start with the hosted scan, then keep the same posture evidence alive in CLI,
+                    monitoring, mobile workflows, and shareable reports.
                   </p>
                   <div className="mt-5 rounded-[1rem] border border-white/10 bg-zinc-950/55 p-4 font-mono text-xs leading-6 text-zinc-300">
                     <span className="text-zinc-500">$ </span>npx securl scan example.com --format markdown
                     <br />
-                    <span className="text-zinc-500">$ </span>npx securl scan example.com --format manifest
+                    <span className="text-zinc-500">$ </span>npx securl scan example.com --format ci-json
                   </div>
                 </div>
 
@@ -589,7 +622,7 @@ const Index = () => {
               </div>
             </section>
 
-            {/* 5 — Engine and integration links */}
+            {/* 6 — Engine and integration links */}
             <section className="rounded-[1.75rem] border border-white/8 bg-white/3 px-4 py-8 shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] sm:px-8 sm:py-10">
               <div className="grid gap-7 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
                 <div>
@@ -627,7 +660,7 @@ const Index = () => {
               </div>
             </section>
 
-            {/* 6 — Account + history section */}
+            {/* 7 — Account + history section */}
             <section>
               <div className="mb-6">
                 <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">
@@ -740,7 +773,7 @@ const Index = () => {
               </div>
             </section>
 
-            {/* 7 — Mobile apps */}
+            {/* 8 — Mobile apps */}
             <section className="rounded-[1.75rem] border border-white/8 bg-white/3 px-4 py-8 shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] sm:px-8 sm:py-10">
               <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:justify-between sm:text-left">
                 <div className="space-y-1.5">
@@ -748,11 +781,11 @@ const Index = () => {
                     SecURL on mobile
                   </p>
                   <h2 className="text-xl font-black tracking-[-0.03em] text-white sm:text-2xl">
-                    Turn CI checks into phone alerts
+                    Turn release checks into phone alerts
                   </h2>
                   <p className="mx-auto max-w-md text-sm leading-6 text-zinc-300 sm:mx-0">
-                    Already running securl before releases? Save the same target in mobile
-                    and get certificate, header, and posture drift alerts from your pocket.
+                    Already running securl before releases? Install the app, save the same target,
+                    and let certificate, header, and posture drift reach you before users do.
                   </p>
                 </div>
                 <div className="flex flex-col items-center gap-3 sm:items-end">
