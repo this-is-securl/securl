@@ -419,7 +419,8 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       return;
     }
     const safeAppId = sanitizeTelemetryText(appId, 80);
-    if (!safeAppId) {
+    const safeClient = normalizeClientId(client);
+    if (!safeAppId || isInternalCohortClient(safeAppId) || isInternalCohortClient(safeClient)) {
       return;
     }
     const ledgerKey = `${safeAppId}:${ownerKey}`;
@@ -427,7 +428,6 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       if (Object.keys(state.cohortOwners).length >= 5000) {
         return;
       }
-      const safeClient = normalizeClientId(client);
       state.cohortOwners[ledgerKey] = {
         appId: safeAppId,
         ownerKey,
@@ -1244,10 +1244,17 @@ function sanitizeCohortOwner(owner) {
   const ownerKey = sanitizeTelemetryText(owner.ownerKey, 80);
   const firstSeenAt = sanitizeTelemetryText(owner.firstSeenAt, 40);
   const firstSeenWeek = sanitizeTelemetryText(owner.firstSeenWeek || weekKey(firstSeenAt), 20);
-  if (!appId || !ownerKey || !firstSeenAt || !firstSeenWeek) {
+  const client = normalizeClientId(owner.client);
+  if (
+    !appId ||
+    !ownerKey ||
+    !firstSeenAt ||
+    !firstSeenWeek ||
+    isInternalCohortClient(appId) ||
+    isInternalCohortClient(client)
+  ) {
     return null;
   }
-  const client = normalizeClientId(owner.client);
   return {
     appId,
     ownerKey,
@@ -1265,6 +1272,19 @@ function sanitizeCohortOwner(owner) {
         .slice(-12)
       : [],
   };
+}
+
+function isInternalCohortClient(value) {
+  if (!value || typeof value !== "string") {
+    return false;
+  }
+  const normalized = value.toLowerCase();
+  return (
+    normalized.includes("smoke") ||
+    normalized.includes("test") ||
+    normalized.includes("codex") ||
+    normalized.includes("dast")
+  );
 }
 
 function emptyCohortRow(appId, week) {
