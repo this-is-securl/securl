@@ -384,6 +384,26 @@ test("telemetry tracker reports aggregate adoption cohorts without exposing owne
     clientKey: "owner-two",
     now: new Date("2026-07-07T10:00:00Z"),
   });
+  telemetry.recordFunnelEvent({
+    event: "live_certificate_read",
+    source: "backend_api",
+    mode: "securl-api-smoke",
+    client: "securl-api-smoke",
+    clientVersion: "1.0.0",
+    clientKey: "smoke-owner",
+    now: new Date("2026-07-07T10:30:00Z"),
+  });
+  telemetry.recordScanRequested({
+    mode: "standard",
+    source: "direct",
+    channel: "browser_owner",
+    client: "securl-api-smoke",
+    clientVersion: "1.0.0",
+    clientKey: "smoke-owner",
+    requesterKey: "smoke-owner",
+    target: "https://securl.online",
+    now: new Date("2026-07-07T10:35:00Z"),
+  });
 
   const snapshot = telemetry.snapshot();
   const securlRow = snapshot.adoptionCohorts.weeklyByApp
@@ -407,8 +427,10 @@ test("telemetry tracker reports aggregate adoption cohorts without exposing owne
   assert.equal(repeatRow.retainedNextWeekOwners, 1);
   assert.equal(repeatRow.retainedNextWeekRate, 100);
   assert.equal(snapshot.adoptionCohorts.totalsByApp["com.ktbatterham.securl"].newOwners, 1);
+  assert.equal(snapshot.adoptionCohorts.totalsByApp["securl-api-smoke"], undefined);
   assert.equal(JSON.stringify(snapshot.adoptionCohorts).includes("owner-one"), false);
   assert.equal(JSON.stringify(snapshot.adoptionCohorts).includes("owner-two"), false);
+  assert.equal(JSON.stringify(snapshot.adoptionCohorts).includes("smoke-owner"), false);
 });
 
 test("telemetry tracker can persist counters to disk", () => {
