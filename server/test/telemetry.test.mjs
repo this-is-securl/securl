@@ -317,6 +317,100 @@ test("telemetry tracker counts privacy-safe active backend clients", () => {
   assert.equal(snapshot.productPulse.today.recentMonitoringRegistrations[0].outcome, "updated");
 });
 
+test("telemetry tracker reports aggregate adoption cohorts without exposing owner keys", () => {
+  const telemetry = createTelemetryTracker();
+
+  telemetry.recordFunnelEvent({
+    event: "notification_device_registered",
+    source: "backend_api",
+    mode: "com.ktbatterham.securl",
+    client: "securl-ios",
+    clientVersion: "1.1.0+21",
+    clientChannel: "app-store",
+    clientKey: "owner-one",
+    now: new Date("2026-07-06T08:00:00Z"),
+  });
+  telemetry.recordScanRequested({
+    mode: "standard",
+    source: "direct",
+    channel: "browser_owner",
+    client: "com.ktbatterham.securl",
+    clientVersion: "1.1.0+21",
+    clientKey: "owner-one",
+    requesterKey: "owner-one",
+    target: "https://example.com",
+    now: new Date("2026-07-06T08:05:00Z"),
+  });
+  telemetry.recordFunnelEvent({
+    event: "monitoring_target_registered",
+    source: "backend_api",
+    mode: "com.ktbatterham.securl",
+    client: "securl-ios",
+    clientVersion: "1.1.0+21",
+    clientChannel: "app-store",
+    clientKey: "owner-one",
+    target: "https://example.com",
+    targetKind: "posture",
+    outcome: "created",
+    now: new Date("2026-07-06T08:10:00Z"),
+  });
+  telemetry.recordFunnelEvent({
+    event: "monitoring_mobile_summary_read",
+    source: "backend_api",
+    mode: "com.ktbatterham.securl",
+    client: "securl-ios",
+    clientVersion: "1.1.0+21",
+    clientChannel: "app-store",
+    clientKey: "owner-one",
+    now: new Date("2026-07-07T09:00:00Z"),
+  });
+  telemetry.recordFunnelEvent({
+    event: "monitoring_mobile_summary_read",
+    source: "backend_api",
+    mode: "com.ktbatterham.securl",
+    client: "securl-ios",
+    clientVersion: "1.1.0+21",
+    clientChannel: "app-store",
+    clientKey: "owner-one",
+    now: new Date("2026-07-13T09:00:00Z"),
+  });
+  telemetry.recordFunnelEvent({
+    event: "cert_watchlist_summary_read",
+    source: "backend_api",
+    mode: "com.ktbatterham.certwatch",
+    client: "cert-watch-ios",
+    clientVersion: "1.1.0+17",
+    clientChannel: "app-store",
+    clientKey: "owner-two",
+    now: new Date("2026-07-07T10:00:00Z"),
+  });
+
+  const snapshot = telemetry.snapshot();
+  const securlRow = snapshot.adoptionCohorts.weeklyByApp
+    .find((row) => row.appId === "com.ktbatterham.securl" && row.week === "2026-07-06");
+  const certRow = snapshot.adoptionCohorts.weeklyByApp
+    .find((row) => row.appId === "com.ktbatterham.certwatch" && row.week === "2026-07-06");
+  const repeatRow = snapshot.adoptionCohorts.repeatWeekByApp
+    .find((row) => row.appId === "com.ktbatterham.securl" && row.week === "2026-07-06");
+
+  assert.equal(snapshot.adoptionCohorts.trackedOwners, 2);
+  assert.equal(securlRow.newOwners, 1);
+  assert.equal(securlRow.firstScanOwners, 1);
+  assert.equal(securlRow.firstMonitoringTargetOwners, 1);
+  assert.equal(securlRow.returnedWithin7DaysOwners, 1);
+  assert.equal(securlRow.firstScanRate, 100);
+  assert.equal(securlRow.firstMonitoringTargetRate, 100);
+  assert.equal(securlRow.returnedWithin7DaysRate, 100);
+  assert.equal(certRow.newOwners, 1);
+  assert.equal(certRow.firstScanOwners, 0);
+  assert.equal(repeatRow.activeOwners, 1);
+  assert.equal(repeatRow.retainedNextWeekOwners, 1);
+  assert.equal(repeatRow.retainedNextWeekRate, 100);
+  assert.equal(snapshot.adoptionCohorts.totalsByApp["com.ktbatterham.securl"].newOwners, 1);
+  assert.equal(JSON.stringify(snapshot.adoptionCohorts).includes("owner-one"), false);
+  assert.equal(JSON.stringify(snapshot.adoptionCohorts).includes("owner-two"), false);
+});
+
 test("telemetry tracker can persist counters to disk", () => {
   const dir = mkdtempSync(join(tmpdir(), "securl-telemetry-"));
   const storagePath = join(dir, "telemetry.json");

@@ -62,6 +62,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     notificationDeliverySkipped: {},
     notificationDeliveryChannels: {},
     notificationDeliveryDays: {},
+    cohortOwners: {},
     failureClasses: {},
     recentFailures: [],
     authRejected: 0,
@@ -124,6 +125,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     ),
     funnelRegistrationOutcomesByMode: serializeNestedBuckets(state.funnelRegistrationOutcomesByMode),
     funnelTargetKindsByMode: serializeNestedBuckets(state.funnelTargetKindsByMode),
+    cohortOwners: serializeCohortOwners(state.cohortOwners),
   });
 
   const hydrateState = (value) => {
@@ -226,6 +228,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     state.notificationDeliverySkipped = { ...(value.notificationDeliverySkipped || {}) };
     state.notificationDeliveryChannels = { ...(value.notificationDeliveryChannels || {}) };
     state.notificationDeliveryDays = { ...(value.notificationDeliveryDays || {}) };
+    state.cohortOwners = hydrateCohortOwners(value.cohortOwners);
     state.failureClasses = { ...(value.failureClasses || {}) };
     state.recentFailures = Array.isArray(value.recentFailures)
       ? value.recentFailures
@@ -403,6 +406,63 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       state.recentScans.splice(0, state.recentScans.length - 40);
     }
   };
+  const recordCohortActivity = ({
+    ownerKey = null,
+    appId = null,
+    client = null,
+    clientVersion = null,
+    clientChannel = null,
+    event = null,
+    now = new Date(),
+  } = {}) => {
+    if (!ownerKey || ownerKey === "unknown" || !appId) {
+      return;
+    }
+    const safeAppId = sanitizeTelemetryText(appId, 80);
+    if (!safeAppId) {
+      return;
+    }
+    const ledgerKey = `${safeAppId}:${ownerKey}`;
+    if (!state.cohortOwners[ledgerKey]) {
+      if (Object.keys(state.cohortOwners).length >= 5000) {
+        return;
+      }
+      const safeClient = normalizeClientId(client);
+      state.cohortOwners[ledgerKey] = {
+        appId: safeAppId,
+        ownerKey,
+        firstSeenAt: now.toISOString(),
+        firstSeenWeek: weekKey(now),
+        client: safeClient,
+        clientVersion: safeClient ? normalizeClientVersion(clientVersion) : null,
+        clientChannel: normalizeClientChannel(clientChannel),
+        firstScanAt: null,
+        firstMonitoringTargetAt: null,
+        firstReturnAt: null,
+        activeWeeks: [],
+      };
+    }
+
+    const owner = state.cohortOwners[ledgerKey];
+    owner.appId ||= safeAppId;
+    owner.ownerKey ||= ownerKey;
+    owner.firstSeenAt ||= now.toISOString();
+    owner.firstSeenWeek ||= weekKey(owner.firstSeenAt);
+    owner.client ||= normalizeClientId(client);
+    owner.clientVersion ||= owner.client ? normalizeClientVersion(clientVersion) : null;
+    owner.clientChannel ||= normalizeClientChannel(clientChannel);
+
+    if (event === "scan_requested" && !owner.firstScanAt) {
+      owner.firstScanAt = now.toISOString();
+    }
+    if (event === "monitoring_target_registered" && !owner.firstMonitoringTargetAt) {
+      owner.firstMonitoringTargetAt = now.toISOString();
+    }
+    if (!owner.firstReturnAt && isD1ToD7Return(owner.firstSeenAt, now)) {
+      owner.firstReturnAt = now.toISOString();
+    }
+    addUnique(owner.activeWeeks, weekKey(now), 12);
+  };
 
   return {
     recordPageLoad({ visitorKey = null, now = new Date(), source = "unknown" } = {}) {
@@ -496,6 +556,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         }
       }
       const safeBackendClientKey = hashPrivacyValue(clientKey, { prefix: "backend_client", length: 16 });
+      const safeCohortOwnerKey = hashPrivacyValue(clientKey, { prefix: "cohort_owner", length: 16 });
       if (sanitized.mode && safeBackendClientKey !== "unknown") {
         addToSetBucket(state.funnelClientKeysByMode, sanitized.mode, safeBackendClientKey, 100);
       }
@@ -571,6 +632,15 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
           }
         }
       }
+      recordCohortActivity({
+        ownerKey: safeCohortOwnerKey,
+        appId: sanitized.mode || sanitized.client,
+        client: sanitized.client,
+        clientVersion: sanitized.clientVersion,
+        clientChannel: sanitized.clientChannel,
+        event: sanitized.event,
+        now,
+      });
       pushRecentFunnelEvent(sanitized);
       persist();
       return true;
@@ -593,6 +663,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       const safeProductVersion = safeProduct ? normalizeClientVersion(clientVersion) : null;
       const safeRequesterKey = hashPrivacyValue(requesterKey, { prefix: "req", length: 16 });
       const safeClientKey = hashPrivacyValue(clientKey, { prefix: "client", length: 16 });
+      const safeCohortOwnerKey = hashPrivacyValue(clientKey, { prefix: "cohort_owner", length: 16 });
       state.scansRequested += 1;
       if (mode === "quiet") {
         state.quietModeScans += 1;
@@ -622,6 +693,14 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       if (safeClientKey !== "unknown") {
         state.scanClientKeys.add(safeClientKey);
       }
+      recordCohortActivity({
+        ownerKey: safeCohortOwnerKey,
+        appId: safeProduct,
+        client: safeProduct,
+        clientVersion: safeProductVersion,
+        event: "scan_requested",
+        now,
+      });
       const dateKey = now.toISOString().slice(0, 10);
       const dayBucket = getScanDayBucket(dateKey);
       dayBucket.requested += 1;
@@ -979,6 +1058,7 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
           todayFunnelBucket,
           state,
         }),
+        adoptionCohorts: buildAdoptionCohortSnapshot(state.cohortOwners),
         productPulse: buildProductPulseSnapshot({
           todayKey,
           todayClientConsumptionTotal,
@@ -1049,6 +1129,24 @@ function serializeSetBuckets(buckets = {}) {
   );
 }
 
+function serializeCohortOwners(owners = {}) {
+  return Object.fromEntries(
+    Object.entries(owners || {}).map(([key, owner]) => [
+      key,
+      sanitizeCohortOwner(owner),
+    ]).filter(([, owner]) => owner),
+  );
+}
+
+function hydrateCohortOwners(value = {}) {
+  return Object.fromEntries(
+    Object.entries(value || {}).map(([key, owner]) => [
+      key,
+      sanitizeCohortOwner(owner),
+    ]).filter(([, owner]) => owner),
+  );
+}
+
 function serializeNestedBuckets(buckets = {}) {
   return Object.fromEntries(
     Object.entries(buckets || {}).map(([key, values]) => [
@@ -1078,6 +1176,198 @@ function hydrateSetBuckets(value = {}) {
 
 function safeTargetOrigin(value) {
   return typeof value === "string" && /^https?:\/\/[^/\s]+$/i.test(value);
+}
+
+function addUnique(values, value, maxValues = 20) {
+  if (!value) {
+    return;
+  }
+  if (!values.includes(value)) {
+    values.push(value);
+    values.sort();
+  }
+  if (values.length > maxValues) {
+    values.splice(0, values.length - maxValues);
+  }
+}
+
+function dateOnly(value) {
+  const parsed = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  return Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate());
+}
+
+function weekKey(value) {
+  const parsed = value instanceof Date ? new Date(value) : new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  const day = parsed.getUTCDay() || 7;
+  const monday = new Date(Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate()));
+  monday.setUTCDate(monday.getUTCDate() - day + 1);
+  return monday.toISOString().slice(0, 10);
+}
+
+function isD1ToD7Return(firstSeenAt, currentDate) {
+  const firstDay = dateOnly(firstSeenAt);
+  const currentDay = dateOnly(currentDate);
+  if (firstDay === null || currentDay === null) {
+    return false;
+  }
+  const days = Math.floor((currentDay - firstDay) / 86_400_000);
+  return days >= 1 && days <= 7;
+}
+
+function nextWeekKey(value) {
+  const parsed = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  parsed.setUTCDate(parsed.getUTCDate() + 7);
+  return parsed.toISOString().slice(0, 10);
+}
+
+function rate(numerator, denominator) {
+  if (!denominator) {
+    return 0;
+  }
+  return Number(((numerator / denominator) * 100).toFixed(1));
+}
+
+function sanitizeCohortOwner(owner) {
+  if (!owner || typeof owner !== "object") {
+    return null;
+  }
+  const appId = sanitizeTelemetryText(owner.appId, 80);
+  const ownerKey = sanitizeTelemetryText(owner.ownerKey, 80);
+  const firstSeenAt = sanitizeTelemetryText(owner.firstSeenAt, 40);
+  const firstSeenWeek = sanitizeTelemetryText(owner.firstSeenWeek || weekKey(firstSeenAt), 20);
+  if (!appId || !ownerKey || !firstSeenAt || !firstSeenWeek) {
+    return null;
+  }
+  const client = normalizeClientId(owner.client);
+  return {
+    appId,
+    ownerKey,
+    firstSeenAt,
+    firstSeenWeek,
+    client,
+    clientVersion: client ? normalizeClientVersion(owner.clientVersion) : null,
+    clientChannel: normalizeClientChannel(owner.clientChannel),
+    firstScanAt: sanitizeTelemetryText(owner.firstScanAt, 40),
+    firstMonitoringTargetAt: sanitizeTelemetryText(owner.firstMonitoringTargetAt, 40),
+    firstReturnAt: sanitizeTelemetryText(owner.firstReturnAt, 40),
+    activeWeeks: Array.isArray(owner.activeWeeks)
+      ? [...new Set(owner.activeWeeks.map((week) => sanitizeTelemetryText(week, 20)).filter(Boolean))]
+        .sort()
+        .slice(-12)
+      : [],
+  };
+}
+
+function emptyCohortRow(appId, week) {
+  return {
+    appId,
+    week,
+    newOwners: 0,
+    firstScanOwners: 0,
+    firstMonitoringTargetOwners: 0,
+    returnedWithin7DaysOwners: 0,
+    firstScanRate: 0,
+    firstMonitoringTargetRate: 0,
+    returnedWithin7DaysRate: 0,
+  };
+}
+
+function buildAdoptionCohortSnapshot(owners = {}) {
+  const rows = {};
+  const activeByAppWeek = {};
+  const ownerList = Object.values(owners || {})
+    .map(sanitizeCohortOwner)
+    .filter(Boolean);
+
+  for (const owner of ownerList) {
+    const rowKey = `${owner.appId}:${owner.firstSeenWeek}`;
+    rows[rowKey] ||= emptyCohortRow(owner.appId, owner.firstSeenWeek);
+    rows[rowKey].newOwners += 1;
+    if (owner.firstScanAt) rows[rowKey].firstScanOwners += 1;
+    if (owner.firstMonitoringTargetAt) rows[rowKey].firstMonitoringTargetOwners += 1;
+    if (owner.firstReturnAt) rows[rowKey].returnedWithin7DaysOwners += 1;
+
+    for (const week of owner.activeWeeks || []) {
+      const activeKey = `${owner.appId}:${week}`;
+      activeByAppWeek[activeKey] ||= new Set();
+      activeByAppWeek[activeKey].add(owner.ownerKey);
+    }
+  }
+
+  const weeklyByApp = Object.values(rows)
+    .map((row) => ({
+      ...row,
+      firstScanRate: rate(row.firstScanOwners, row.newOwners),
+      firstMonitoringTargetRate: rate(row.firstMonitoringTargetOwners, row.newOwners),
+      returnedWithin7DaysRate: rate(row.returnedWithin7DaysOwners, row.newOwners),
+    }))
+    .sort((left, right) => (
+      left.week.localeCompare(right.week) || left.appId.localeCompare(right.appId)
+    ));
+
+  const repeatWeekByApp = Object.entries(activeByAppWeek)
+    .map(([key, ownersThisWeek]) => {
+      const [appId, week] = key.split(":");
+      const nextWeek = nextWeekKey(week);
+      const ownersNextWeek = activeByAppWeek[`${appId}:${nextWeek}`] || new Set();
+      const retainedOwners = [...ownersThisWeek].filter((ownerKey) => ownersNextWeek.has(ownerKey)).length;
+      return {
+        appId,
+        week,
+        activeOwners: ownersThisWeek.size,
+        nextWeek,
+        retainedNextWeekOwners: retainedOwners,
+        retainedNextWeekRate: rate(retainedOwners, ownersThisWeek.size),
+      };
+    })
+    .sort((left, right) => (
+      left.week.localeCompare(right.week) || left.appId.localeCompare(right.appId)
+    ));
+
+  const totalsByApp = {};
+  for (const row of weeklyByApp) {
+    totalsByApp[row.appId] ||= {
+      appId: row.appId,
+      newOwners: 0,
+      firstScanOwners: 0,
+      firstMonitoringTargetOwners: 0,
+      returnedWithin7DaysOwners: 0,
+      firstScanRate: 0,
+      firstMonitoringTargetRate: 0,
+      returnedWithin7DaysRate: 0,
+    };
+    totalsByApp[row.appId].newOwners += row.newOwners;
+    totalsByApp[row.appId].firstScanOwners += row.firstScanOwners;
+    totalsByApp[row.appId].firstMonitoringTargetOwners += row.firstMonitoringTargetOwners;
+    totalsByApp[row.appId].returnedWithin7DaysOwners += row.returnedWithin7DaysOwners;
+  }
+  for (const total of Object.values(totalsByApp)) {
+    total.firstScanRate = rate(total.firstScanOwners, total.newOwners);
+    total.firstMonitoringTargetRate = rate(total.firstMonitoringTargetOwners, total.newOwners);
+    total.returnedWithin7DaysRate = rate(total.returnedWithin7DaysOwners, total.newOwners);
+  }
+
+  return {
+    privacy: "Aggregate only; owner keys are hashed internally and are not exposed.",
+    limitations: ownerList.length
+      ? []
+      : ["No cohort owners have been recorded since cohort tracking was enabled."],
+    trackedOwners: ownerList.length,
+    weeklyByApp,
+    repeatWeekByApp,
+    totalsByApp: Object.fromEntries(
+      Object.entries(totalsByApp).sort(([left], [right]) => left.localeCompare(right)),
+    ),
+  };
 }
 
 function sumBucketValues(bucket = {}) {

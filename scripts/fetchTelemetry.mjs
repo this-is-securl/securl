@@ -28,6 +28,12 @@ const describeGrowthLoop = (summary = {}) => [
   `share cards ${summary.shareCardReads ?? 0}`,
   `copied links ${summary.shareLinksCopied ?? 0}`,
 ].join(", ");
+const describeCohortRow = (row = {}) => [
+  `new ${row.newOwners ?? 0}`,
+  `scan ${row.firstScanOwners ?? 0} (${row.firstScanRate ?? 0}%)`,
+  `watch ${row.firstMonitoringTargetOwners ?? 0} (${row.firstMonitoringTargetRate ?? 0}%)`,
+  `D1-D7 ${row.returnedWithin7DaysOwners ?? 0} (${row.returnedWithin7DaysRate ?? 0}%)`,
+].join(", ");
 
 const main = async () => {
   const vars = process.env.TELEMETRY_TOKEN ? {} : readRailwayVariables();
@@ -160,6 +166,36 @@ const main = async () => {
     console.log("  Today by client:");
     for (const [client, summary] of todayGrowthClients) {
       console.log(`    - ${client}: ${describeGrowthLoop(summary)}`);
+    }
+  }
+  const cohorts = telemetry.adoptionCohorts || {};
+  console.log("");
+  console.log("Adoption cohorts");
+  console.log(`  Tracked owners: ${cohorts.trackedOwners ?? 0}`);
+  console.log(`  Privacy: ${cohorts.privacy || "Aggregate only."}`);
+  const limitations = cohorts.limitations || [];
+  if (limitations.length) {
+    console.log("  Limitations:");
+    for (const limitation of limitations.slice(0, 3)) {
+      console.log(`    - ${limitation}`);
+    }
+  }
+  const cohortRows = cohorts.weeklyByApp || [];
+  if (cohortRows.length) {
+    console.log("  Weekly new-owner cohorts:");
+    for (const row of cohortRows.slice(-8)) {
+      console.log(`    - ${row.week} ${row.appId}: ${describeCohortRow(row)}`);
+    }
+  } else {
+    console.log("  Weekly new-owner cohorts: none yet");
+  }
+  const repeatRows = (cohorts.repeatWeekByApp || [])
+    .filter((row) => Number(row.activeOwners || 0) > 0)
+    .slice(-8);
+  if (repeatRows.length) {
+    console.log("  Week-to-week repeat:");
+    for (const row of repeatRows) {
+      console.log(`    - ${row.week} ${row.appId}: active ${row.activeOwners}, next-week retained ${row.retainedNextWeekOwners} (${row.retainedNextWeekRate}%)`);
     }
   }
   console.log("");
