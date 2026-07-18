@@ -9,6 +9,13 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 ### Backend and docs
 - Added protected product-pulse telemetry and optional release-channel attribution for hosted/mobile clients. These are backend/API-service changes and do not change the published `securl` package surface.
 
+## [1.25.1] - 2026-07-18
+
+### Changed
+- Added a lightweight CLI and npm README adoption bridge from CI scans to mobile
+  monitoring: developers running `securl` in CI are now pointed to saving the same target
+  in the mobile apps for certificate, header, and posture drift alerts.
+
 ## [1.25.0] - 2026-07-18
 
 ### Added

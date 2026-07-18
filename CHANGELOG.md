@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07-18 — core 1.25.1 CI-to-mobile adoption bridge
+
+### Changed
+
+- Added a short CLI help and npm README bridge from CI scans to mobile monitoring:
+  developers running `securl` in release checks are now pointed to saving the same target
+  in the mobile apps for certificate, header, and posture drift alerts.
+- Updated the hosted app mobile CTA and adoption quickstart with the same “CI checks →
+  phone alerts” path.
+
 ## 2026-07-18 — core 1.25.0 monitoring control-room release candidate
 
 ### Added

@@ -748,11 +748,11 @@ const Index = () => {
                     SecURL on mobile
                   </p>
                   <h2 className="text-xl font-black tracking-[-0.03em] text-white sm:text-2xl">
-                    Check posture anywhere
+                    Turn CI checks into phone alerts
                   </h2>
                   <p className="mx-auto max-w-md text-sm leading-6 text-zinc-300 sm:mx-0">
-                    Run scans, track monitored targets, and get alerts when a site's protection
-                    changes — from your pocket.
+                    Already running securl before releases? Save the same target in mobile
+                    and get certificate, header, and posture drift alerts from your pocket.
                   </p>
                 </div>
                 <div className="flex flex-col items-center gap-3 sm:items-end">

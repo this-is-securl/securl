@@ -41,6 +41,10 @@ npx securl scan "$PUBLIC_URL" --format manifest --output posture-manifest.json
 
 Once the team trusts the output, add policy checks, threshold checks, or SARIF upload as a second step. Do not turn SecURL into theatre: make the gate reflect a real risk decision your team is willing to maintain.
 
+If `securl` is already running in CI, make the next step human-visible: save the same
+production URL in the SecURL mobile apps so certificate, header, and posture drift can
+reach the release owner on their phone.
+
 ### 4. Save important targets for monitoring
 
 A one-time scan answers “what does this look like today?” Monitoring answers “what changed?”
