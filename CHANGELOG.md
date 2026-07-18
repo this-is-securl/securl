@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-07-18 — core 1.25.0 monitoring control-room release candidate
+
+### Added
+
+- Added `monitoring-policy-fit-v1` to complete the 1.25 control-room contract.
+- Exposed compact server-authored `policyFit` verdicts across posture monitoring target
+  views, mobile summaries, attention rows, target detail, and timelines for targets with
+  an observation policy.
+- Advertised the additive capability through `GET /api/capabilities` while preserving
+  existing mobile/API contracts.
+
+### Verified
+
+- `node --test server/test/scanDtos.test.mjs server/test/server.test.mjs`
+
 ## 2026-07-12 — core 1.23.1 certificate DNS-pinning security patch
 
 ### Security

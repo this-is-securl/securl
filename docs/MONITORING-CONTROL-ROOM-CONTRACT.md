@@ -1,10 +1,9 @@
 # Monitoring Control Room Contract
 
-Status: partial implementation for the `1.25` monitoring control-room milestone.
-`monitoring-attention-v1` and `monitoring-timeline-v1` are implemented in the backend and
-should only be handed to mobile after they are merged, deployed, production-smoked, and
-recorded as `BACKEND_READY` in the mobile/backend channel. Policy-fit resources remain
-proposed.
+Status: implemented contract for the `1.25` monitoring control-room milestone.
+`monitoring-attention-v1`, `monitoring-timeline-v1`, and `monitoring-policy-fit-v1` are
+implemented in the backend as additive resources/fields. Clients must still feature-detect
+each capability before consuming it.
 
 ## Goal
 
@@ -25,7 +24,6 @@ the new resources:
 - `monitoring-timeline-v1`: stable per-target timeline DTOs are available.
 - `monitoring-policy-fit-v1`: compact policy-fit verdicts are available on monitoring
   surfaces.
-  Proposed, not live.
 
 Until a specific flag is present, clients must continue using the existing
 `/api/monitoring-mobile-summary`, `/api/monitoring-cert-summary`,
@@ -145,12 +143,38 @@ Response:
     "appId": "com.ktbatterham.headerwatch",
     "policy": "securl-baseline-v1"
   },
+  "policyFit": {
+    "verdict": "drift",
+    "policy": "securl-baseline-v1",
+    "policyName": "SecURL baseline",
+    "policyVersion": "1.0",
+    "changedSince": "2026-07-15T11:58:00.000Z",
+    "evaluatedAt": "2026-07-15T11:58:00.000Z",
+    "headline": "No longer matches SecURL baseline",
+    "summary": {
+      "rulesEvaluated": 6,
+      "violations": 1,
+      "bySeverity": { "critical": 0, "warning": 1, "info": 0 },
+      "highestSeverity": "warning"
+    },
+    "topViolations": [
+      {
+        "ruleId": "hsts-present",
+        "title": "HSTS must be present",
+        "severity": "warning",
+        "scope": "observation",
+        "kind": "http.header.strict-transport-security",
+        "summary": "HSTS must be present: status eq \"observed\" was not satisfied."
+      }
+    ]
+  },
   "summary": {
     "events": 1,
     "latestEventId": "evt_abc",
     "latestChangedAt": "2026-07-15T11:58:00.000Z",
     "hasCritical": false,
-    "hasWarning": true
+    "hasWarning": true,
+    "policyVerdict": "drift"
   },
   "timeline": [
     {
@@ -223,19 +247,39 @@ Rules:
 
 ## Policy-fit block
 
-When `monitoring-policy-fit-v1` is advertised, monitoring list/detail resources may include:
+When `monitoring-policy-fit-v1` is advertised, posture monitoring resources with an
+`observationPolicy` may include:
 
 ```jsonc
 "policyFit": {
   "verdict": "pass",                 // pass | drift | fail | unknown
-  "policy": "production",
+  "policy": "securl-baseline-v1",
+  "policyName": "SecURL baseline",
+  "policyVersion": "1.0",
   "changedSince": null,
-  "headline": "Still meets production policy"
+  "evaluatedAt": "2026-07-15T11:58:00.000Z",
+  "headline": "Still meets SecURL baseline",
+  "summary": {
+    "rulesEvaluated": 6,
+    "violations": 0,
+    "bySeverity": { "critical": 0, "warning": 0, "info": 0 },
+    "highestSeverity": null
+  },
+  "topViolations": []
 }
 ```
 
 The block must be server-authored and compact. Mobile and web clients should render it as
 an explanation, not as a local rule engine.
+
+Verdict semantics:
+
+- `pass`: the latest completed scan satisfied the selected observation policy.
+- `fail`: the latest completed scan violates policy, but no change-rule violation is
+  present in the latest comparison.
+- `drift`: the latest completed scan violates a change-scoped rule compared with the
+  previous completed scan.
+- `unknown`: no completed scan is available yet.
 
 ## Push-health block
 

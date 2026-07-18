@@ -45,13 +45,10 @@ These headers are additive and privacy-safe. They are used for aggregate product
 - Use `GET /api/monitoring-health` for owner-scoped reliability status: due/overdue targets, cert attention, posture failures, scheduler state, notification outbox state, and per-app push registration health.
 - Use `GET /api/monitoring-attention` when `GET /api/capabilities` advertises `monitoring-attention-v1`. It returns an owner/app-scoped attention inbox with backend-authored headlines, severity, reason, safe links, and aggregate push health.
 - Use `GET /api/monitoring-targets/:id/timeline` when `GET /api/capabilities` advertises `monitoring-timeline-v1`. It returns stable per-target event identity, server-authored explanations, evidence snippets, and scan/history links for attention-row drill-in.
+- Render `policyFit` blocks when `GET /api/capabilities` advertises `monitoring-policy-fit-v1`. They are compact server-authored pass/drift/fail/unknown verdicts for posture targets with an observation policy; clients should not evaluate policy rules locally.
 - Use `GET /api/monitoring-mobile-summary` for watch-list refreshes. It returns compact target state, next-check timing, posture/certificate change summaries, monitoring events, signal-clarity headlines, and stable action hints without loading full scan detail.
 - Use `GET /api/monitoring-cert-summary` for the Cert Watch watch-list home screen. It returns only certificate targets, attention counts, next scheduled check, recent certificate changes, monitoring events, and Cert Watch push registration health.
 - Use `GET /api/certificates/live?url=...` for Cert Watch refreshes that only need the currently served TLS certificate.
-
-Proposed for a later `1.25` slice: [`MONITORING-CONTROL-ROOM-CONTRACT.md`](MONITORING-CONTROL-ROOM-CONTRACT.md)
-defines future `policyFit` payloads. These are not live consumer resources until
-`GET /api/capabilities` advertises `monitoring-policy-fit-v1`.
 
 ## Investigation And Reporting
 

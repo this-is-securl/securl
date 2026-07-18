@@ -140,6 +140,59 @@ function buildCompletedRecord(id, resultOverrides = {}) {
   };
 }
 
+function buildHeaderObservationLedger({ status = "observed", generatedAt = "2026-06-19T08:00:00.000Z" } = {}) {
+  return {
+    version: "1.0",
+    target: "https://example.com/",
+    generatedAt,
+    observations: [{
+      id: "obs_hsts",
+      category: "header",
+      kind: "http.header.strict-transport-security",
+      subject: "https://example.com/",
+      status,
+      value: status === "observed" ? "max-age=31536000" : null,
+      confidence: "high",
+      source: "header",
+      observedAt: generatedAt,
+      freshUntil: "2026-06-19T09:00:00.000Z",
+      evidence: [],
+    }],
+    summary: {
+      total: 1,
+      byStatus: { [status]: 1 },
+      byCategory: { header: 1 },
+      highConfidence: 1,
+    },
+  };
+}
+
+const HEADER_POLICY = {
+  id: "header-baseline",
+  name: "Header baseline",
+  version: "1.0",
+  rules: [
+    {
+      id: "hsts-present",
+      title: "HSTS must stay present",
+      severity: "warning",
+      scope: "observation",
+      selector: { kind: "http.header.strict-transport-security" },
+      assertion: { field: "status", operator: "eq", value: "observed" },
+      requireMatch: true,
+    },
+    {
+      id: "critical-regression",
+      title: "Critical posture regressions are not allowed",
+      severity: "critical",
+      scope: "change",
+      selector: {},
+      assertion: { field: "severity", operator: "neq", value: "critical" },
+      requireMatch: false,
+    },
+  ],
+};
+
 test("vendor payload upgrades persisted pre-inventory scan results", () => {
   const scan = buildCompletedRecord("legacy-vendors", {
     vendorExposure: {
@@ -781,6 +834,64 @@ test("mobile monitoring summary exposes compact posture drift for apps", () => {
   assert.equal(target.changes.postureRiskEvents, 6);
   assert.ok(target.changes.monitoringEvents > 0);
   assert.equal(payload.summary.changes, target.changes.postureRiskEvents);
+});
+
+test("monitoring control-room payloads expose compact policy fit", () => {
+  const target = {
+    id: "target-policy-fit",
+    url: "https://example.com/",
+    label: "Example policy target",
+    cadence: "daily",
+    kind: "posture",
+    mode: "quiet",
+    appId: "com.ktbatterham.securl",
+    observationPolicy: HEADER_POLICY,
+    addedAt: "2026-06-19T08:00:00.000Z",
+    lastScannedAt: "2026-06-20T08:00:00.000Z",
+  };
+  const records = [
+    buildCompletedRecord("scan-current-policy", {
+      scannedAt: "2026-06-20T08:00:00.000Z",
+      score: 58,
+      grade: "D",
+      observationLedger: buildHeaderObservationLedger({
+        status: "missing",
+        generatedAt: "2026-06-20T08:00:00.000Z",
+      }),
+    }),
+    buildCompletedRecord("scan-previous-policy", {
+      scannedAt: "2026-06-19T08:00:00.000Z",
+      score: 92,
+      grade: "A",
+      observationLedger: buildHeaderObservationLedger({
+        status: "observed",
+        generatedAt: "2026-06-19T08:00:00.000Z",
+      }),
+    }),
+  ];
+
+  const mobilePayload = buildMonitoringMobileSummaryPayload([{ target, records }]);
+  const mobileTarget = mobilePayload.targets[0];
+  assert.equal(mobileTarget.policyFit.verdict, "drift");
+  assert.equal(mobileTarget.policyFit.policy, "header-baseline");
+  assert.equal(mobileTarget.policyFit.summary.highestSeverity, "critical");
+  assert.ok(mobileTarget.policyFit.topViolations.length >= 2);
+  assert.equal(mobileTarget.policyFit.topViolations[0].severity, "critical");
+
+  const attentionPayload = buildMonitoringAttentionPayload({ targetEntries: [{ target, records }] });
+  assert.equal(attentionPayload.attention[0].targetId, "target-policy-fit");
+  assert.equal(attentionPayload.attention[0].policyFit.verdict, "drift");
+  assert.equal(attentionPayload.attention[0].policyFit.headline, "No longer matches Header baseline");
+
+  const detailPayload = buildMonitoringTargetDetailPayload(target, records);
+  assert.equal(detailPayload.target.policyFit.verdict, "drift");
+  assert.equal(detailPayload.policyEvaluation.summary.highestSeverity, "critical");
+
+  const timelinePayload = buildMonitoringTargetTimelinePayload(target, records);
+  assert.equal(timelinePayload.policyFit.verdict, "drift");
+  assert.equal(timelinePayload.summary.policyVerdict, "drift");
+  assert.equal(timelinePayload.timeline[0].policy.id, "header-baseline");
+  assert.equal(timelinePayload.timeline[0].policy.verdict, "drift");
 });
 
 test("monitoring target detail decorates comparison events with stable navigation identity", () => {

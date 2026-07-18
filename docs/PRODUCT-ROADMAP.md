@@ -96,6 +96,9 @@ Delivered releases:
   evaluator and Cloudflare, Akamai, and Fastly WAF/technology detection migrated into a
   constrained pack. The slice deliberately preserves existing outputs while proving the
   rule seam, safety model, and package checks. See [`DETECTION-PACKS.md`](./DETECTION-PACKS.md).
+- `1.25` release candidate: Monitoring control-room contract with attention rollups,
+  stable timeline DTOs, push-health confidence, and compact server-authored policy-fit
+  verdicts for posture targets with observation policies.
 
 ### 2. Monitoring As The Product
 
@@ -226,7 +229,7 @@ The path to `1.25` should make the current product thesis obvious:
 | `1.22` | Manifest schema contract | CI, evidence archives, and integrators can validate Posture Manifest v1 with the exported JSON Schema and `securl schema manifest`. |
 | `1.23` | External exposure intelligence | Shipped: stable third-party, infrastructure, identity, AI, SRI, data-flow, and supply-chain inventory for package, CLI, and hosted API consumers. |
 | `1.24` | Detection-pack architecture | Shipped: constrained internal detection-pack seam with first-party edge-provider migration and output-equivalence checks. |
-| `1.25` | Monitoring control-room milestone | Cert Watch, Header Watch, SecURL, web, API, and alerts share a reliable, push-driven monitoring foundation with attention rollups, timeline DTOs, concise policy/manifest summaries, and visible push-health state. |
+| `1.25` | Monitoring control-room milestone | Release candidate: Cert Watch, Header Watch, SecURL, web, API, and alerts share a reliable, push-driven monitoring foundation with attention rollups, timeline DTOs, concise policy-fit summaries, and visible push-health state. |
 
 ## Ambition To 1.30
 
