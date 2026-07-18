@@ -88,6 +88,10 @@ npx securl scan https://example.com \
   --fail-on-regression
 ```
 
+Running `securl` in CI? Save the same production URL in the SecURL mobile apps so the
+developer who owns the release can get certificate, header, and posture drift alerts on
+their phone. Start at [securl.online/downloads](https://securl.online/downloads).
+
 ### 3. Node.js SDK scan
 
 ```js

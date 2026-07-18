@@ -119,6 +119,10 @@ CI policy modes:
   --fail-if-legacy-tls       For cert checks, fail when TLS 1.0 or TLS 1.1 is negotiated.
   --expect-issuer "Let's Encrypt"
                              For cert checks, fail when the observed issuer does not contain the expected text.
+
+Next step:
+  Run securl in CI? Save the same target in the SecURL mobile apps to get certificate,
+  header, and posture drift alerts on your phone: https://securl.online/downloads
 `;
 
 process.once("SIGINT", () => {
