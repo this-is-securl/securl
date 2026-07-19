@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-07-19 — core 1.26.0 mobile resource schema contracts
+
+### Added
+
+- Added package-exported JSON Schemas for scan mobile summary, monitoring mobile summary,
+  and monitoring certificate summary resources.
+- Added matching `securl schema` CLI targets so mobile CI can diff and validate its
+  runtime boundaries without duplicating backend DTO interpretation.
+- Captured the exact nested policy-fit aggregate and violation shapes that caused the
+  request #9 adoption mismatch, while allowing additive resource evolution.
+
+### Verified
+
+- `npm run release:package:check`
+- CLI schema print/write tests and package-surface tests.
+
 ## 2026-07-18 — core 1.25.1 CI-to-mobile adoption bridge
 
 ### Changed

@@ -9,6 +9,7 @@ import {
   buildHistoryDiffFromSnapshots,
   buildPostureManifest,
   formatErrorMessage,
+  MOBILE_RESOURCE_SCHEMAS,
   POSTURE_MANIFEST_SCHEMA,
   scanLiveCertificate,
   snapshotFromAnalysis,
@@ -38,7 +39,7 @@ type ParsedArgs =
   | { command: "help" }
   | {
       command: "schema";
-      schema: "manifest";
+      schema: "manifest" | keyof typeof MOBILE_RESOURCE_SCHEMAS;
       outputPath: string | null;
     }
   | {
@@ -76,7 +77,7 @@ Usage:
   securl scan <target...> [--format json|markdown|summary|sarif|ci-json|manifest|exposure] [--baseline <report.json>] [--output <file>] [--quiet|--deep-passive] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
   securl compare <current-report.json> <baseline-report.json> [--format json|markdown|summary|sarif|ci-json] [--output <file>] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
   securl cert <target> [--format json|markdown|summary|ci-json] [--output <file>] [--policy production|strict|renewal-watch] [--fail-if-invalid] [--fail-if-expiring-within <days>] [--fail-if-legacy-tls] [--expect-issuer <text>]
-  securl schema manifest [--output <file>]
+  securl schema manifest|mobile-summary|monitoring-mobile-summary|monitoring-cert-summary [--output <file>]
 
 Examples:
   npx securl scan example.com
@@ -87,6 +88,7 @@ Examples:
   npx securl scan example.com --format manifest --output posture-manifest.json
   npx securl scan example.com --format exposure --output external-exposure.json
   npx securl schema manifest --output posture-manifest.schema.json
+  npx securl schema monitoring-mobile-summary --output monitoring-mobile-summary.schema.json
   npx securl scan example.com --format json --output report.json
   npx securl scan example.com --quiet
   npx securl scan example.com --deep-passive
@@ -318,8 +320,9 @@ const parseArgs = (argv: string[]): ParsedArgs => {
 
   if (command === "schema") {
     const [schema, unexpected] = positionals;
-    if (schema !== "manifest" || unexpected) {
-      throw new Error("Schema command supports exactly one target: securl schema manifest");
+    const schemaNames = ["manifest", ...Object.keys(MOBILE_RESOURCE_SCHEMAS)];
+    if (!schema || !schemaNames.includes(schema) || unexpected) {
+      throw new Error(`Schema command supports exactly one target: securl schema ${schemaNames.join(" | ")}`);
     }
     if (
       format !== "summary"
@@ -335,7 +338,7 @@ const parseArgs = (argv: string[]): ParsedArgs => {
 
     return {
       command: "schema",
-      schema,
+      schema: schema as "manifest" | keyof typeof MOBILE_RESOURCE_SCHEMAS,
       outputPath,
     };
   }
@@ -1114,7 +1117,10 @@ const main = async () => {
     let policyMessages: string[] = [];
 
     if (parsed.command === "schema") {
-      output = `${JSON.stringify(POSTURE_MANIFEST_SCHEMA, null, 2)}\n`;
+      const schema = parsed.schema === "manifest"
+        ? POSTURE_MANIFEST_SCHEMA
+        : MOBILE_RESOURCE_SCHEMAS[parsed.schema];
+      output = `${JSON.stringify(schema, null, 2)}\n`;
       if (parsed.outputPath) {
         await writeFile(parsed.outputPath, output, "utf8");
       } else {

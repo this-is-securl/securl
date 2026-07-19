@@ -42,6 +42,45 @@ test("CLI schema command writes the posture manifest JSON Schema", async () => {
   assert.equal(output.properties.manifestId.pattern, "^pm_[a-f0-9]{24}$");
 });
 
+test("CLI schema command prints mobile resource JSON Schemas", async () => {
+  const expected = {
+    "mobile-summary": "https://securl.online/schemas/scan-mobile-summary-v1.json",
+    "monitoring-mobile-summary": "https://securl.online/schemas/monitoring-mobile-summary-v1.json",
+    "monitoring-cert-summary": "https://securl.online/schemas/monitoring-cert-summary-v1.json",
+  };
+
+  for (const [name, schemaId] of Object.entries(expected)) {
+    const { stdout } = await execFile(process.execPath, [cliPath, "schema", name]);
+    const output = JSON.parse(stdout);
+    assert.equal(output.$id, schemaId);
+    assert.equal(output.$schema, "https://json-schema.org/draft/2020-12/schema");
+  }
+
+  const { stdout } = await execFile(process.execPath, [cliPath, "schema", "monitoring-mobile-summary"]);
+  const monitoring = JSON.parse(stdout);
+  const policyFit = monitoring.properties.targets.items.properties.policyFit;
+  assert.equal(policyFit.properties.summary.type, "object");
+  assert.equal(policyFit.properties.topViolations.items.properties.summary.type, "string");
+  assert.deepEqual(policyFit.properties.verdict.enum, ["pass", "drift", "fail", "unknown"]);
+});
+
+test("CLI schema command writes a mobile resource JSON Schema", async () => {
+  const tempDir = await mkdtemp(join(tmpdir(), "epi-cli-"));
+  const outputPath = join(tempDir, "monitoring-mobile-summary.schema.json");
+
+  await execFile(process.execPath, [
+    cliPath,
+    "schema",
+    "monitoring-mobile-summary",
+    "--output",
+    outputPath,
+  ]);
+  const output = JSON.parse(await readFile(outputPath, "utf8"));
+
+  assert.equal(output.$id, "https://securl.online/schemas/monitoring-mobile-summary-v1.json");
+  assert.deepEqual(output.required, ["apiVersion", "summary", "targets"]);
+});
+
 test("CLI schema command rejects scan-only options", async () => {
   await assert.rejects(
     execFile(process.execPath, [cliPath, "schema", "manifest", "--quiet"]),

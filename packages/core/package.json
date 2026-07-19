@@ -1,6 +1,6 @@
 {
   "name": "securl",
-  "version": "1.25.1",
+  "version": "1.26.0",
   "type": "module",
   "description": "Passive external security posture scanner for public URLs and web services.",
   "author": {
@@ -62,6 +62,10 @@
     "./posture-manifest": {
       "types": "./dist/postureManifest.d.ts",
       "default": "./dist/postureManifest.js"
+    },
+    "./mobile-schemas": {
+      "types": "./dist/mobileSchemas.d.ts",
+      "default": "./dist/mobileSchemas.js"
     },
     "./posture-drift": {
       "types": "./dist/postureDrift.d.ts",

@@ -360,6 +360,29 @@ console.log(
 npx securl schema manifest --output posture-manifest.schema.json
 ```
 
+### 11a. Hosted mobile resource schemas
+
+Version `1.26.0+` exports versioned JSON Schemas for the compact hosted resources used by
+mobile clients. The schemas keep additive fields compatible while fixing the types and
+required fields clients need for runtime boundaries, including the full nested
+`policyFit.summary` and `policyFit.topViolations` shapes.
+
+```js
+import {
+  MONITORING_MOBILE_SUMMARY_SCHEMA,
+  MONITORING_CERT_SUMMARY_SCHEMA,
+} from "securl/mobile-schemas";
+
+console.log(MONITORING_MOBILE_SUMMARY_SCHEMA.$id);
+console.log(MONITORING_CERT_SUMMARY_SCHEMA.$id);
+```
+
+```sh
+npx securl schema mobile-summary
+npx securl schema monitoring-mobile-summary --output monitoring-mobile-summary.schema.json
+npx securl schema monitoring-cert-summary --output monitoring-cert-summary.schema.json
+```
+
 ### 12. External Exposure Inventory v1
 
 Version `1.23.0+` turns the existing vendor brief into a stable external inventory covering visible third-party, infrastructure, identity, and AI providers. Entries carry deterministic IDs, role, data-flow purpose, SRI integrity status, confidence, evidence, review priority, and an owner-oriented action without claiming that passive evidence proves an internal dependency relationship.
@@ -561,6 +584,9 @@ npx securl scan example.com --format sarif
 npx securl scan example.com --format ci-json
 npx securl scan example.com --format manifest
 npx securl schema manifest
+npx securl schema mobile-summary
+npx securl schema monitoring-mobile-summary
+npx securl schema monitoring-cert-summary
 ```
 
 Fast certificate checks:
@@ -577,7 +603,7 @@ npx securl cert example.com --format markdown --output certificate.md
 
 `securl cert` performs a bounded TLS handshake only. It is useful for Cert Watch-style automation, release checks, and lightweight inventory tasks where a full posture scan would be unnecessary.
 
-The CLI writes machine-readable report output to stdout, and lightweight multi-target progress to stderr only when running interactively. This keeps JSON/SARIF/manifest output pipe-friendly. Use `--format manifest` when CI, self-hosted monitoring, or evidence archives need the same Posture Manifest v1 recipe card exposed by the hosted API. Use `securl schema manifest` when downstream tools need the JSON Schema contract without running a scan.
+The CLI writes machine-readable report output to stdout, and lightweight multi-target progress to stderr only when running interactively. This keeps JSON/SARIF/manifest output pipe-friendly. Use `--format manifest` when CI, self-hosted monitoring, or evidence archives need the same Posture Manifest v1 recipe card exposed by the hosted API. Use `securl schema manifest` or one of the mobile-resource schema targets when downstream tools need a JSON Schema contract without running a scan.
 
 Scan modes:
 
