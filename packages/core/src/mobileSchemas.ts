@@ -1,0 +1,242 @@
+const nullableDateTime = { type: ["string", "null"], format: "date-time" } as const;
+const nullableString = { type: ["string", "null"] } as const;
+const nonNegativeInteger = { type: "integer", minimum: 0 } as const;
+
+export const MONITORING_POLICY_FIT_SCHEMA = {
+  type: ["object", "null"],
+  additionalProperties: true,
+  required: [
+    "verdict",
+    "policy",
+    "policyName",
+    "policyVersion",
+    "changedSince",
+    "evaluatedAt",
+    "headline",
+    "summary",
+    "topViolations",
+  ],
+  properties: {
+    verdict: { enum: ["pass", "drift", "fail", "unknown"] },
+    policy: { type: "string", minLength: 1 },
+    policyName: { type: "string", minLength: 1 },
+    policyVersion: { type: "string", minLength: 1 },
+    changedSince: nullableDateTime,
+    evaluatedAt: nullableDateTime,
+    headline: { type: "string", minLength: 1 },
+    summary: {
+      type: "object",
+      additionalProperties: false,
+      required: ["rulesEvaluated", "violations", "bySeverity", "highestSeverity"],
+      properties: {
+        rulesEvaluated: nonNegativeInteger,
+        violations: nonNegativeInteger,
+        bySeverity: {
+          type: "object",
+          additionalProperties: false,
+          required: ["critical", "warning", "info"],
+          properties: {
+            critical: nonNegativeInteger,
+            warning: nonNegativeInteger,
+            info: nonNegativeInteger,
+          },
+        },
+        highestSeverity: { enum: ["critical", "warning", "info", null] },
+      },
+    },
+    topViolations: {
+      type: "array",
+      maxItems: 3,
+      items: {
+        type: "object",
+        additionalProperties: true,
+        required: ["id", "ruleId", "title", "severity", "scope", "kind", "subject", "summary"],
+        properties: {
+          id: { type: "string", minLength: 1 },
+          ruleId: { type: "string", minLength: 1 },
+          title: { type: "string", minLength: 1 },
+          severity: { enum: ["critical", "warning", "info"] },
+          scope: { enum: ["observation", "change"] },
+          kind: { type: "string", minLength: 1 },
+          subject: nullableString,
+          summary: { type: "string", minLength: 1 },
+        },
+      },
+    },
+  },
+} as const;
+
+const monitoringTargetSchema = {
+  type: "object",
+  additionalProperties: true,
+  required: [
+    "id",
+    "kind",
+    "url",
+    "label",
+    "cadence",
+    "mode",
+    "appId",
+    "policy",
+    "policyFit",
+    "addedAt",
+    "lastCheckedAt",
+    "nextDueAt",
+    "due",
+    "nextCheck",
+    "status",
+    "latestScan",
+    "scoreDelta",
+    "latestDigest",
+    "cert",
+    "posture",
+    "events",
+    "change",
+    "actions",
+    "changes",
+  ],
+  properties: {
+    id: { type: "string", minLength: 1 },
+    kind: { enum: ["posture", "cert"] },
+    url: { type: "string", minLength: 1 },
+    label: { type: "string", minLength: 1 },
+    cadence: { type: "string", minLength: 1 },
+    mode: { type: ["string", "null"] },
+    appId: { type: ["string", "null"] },
+    policy: { type: ["string", "null"] },
+    policyFit: MONITORING_POLICY_FIT_SCHEMA,
+    addedAt: { type: "string", format: "date-time" },
+    lastCheckedAt: nullableDateTime,
+    nextDueAt: nullableDateTime,
+    due: { type: "boolean" },
+    nextCheck: { type: "object", additionalProperties: true },
+    status: { type: "object", additionalProperties: true },
+    latestScan: { type: ["object", "null"], additionalProperties: true },
+    scoreDelta: { type: ["number", "null"] },
+    latestDigest: { type: ["object", "null"], additionalProperties: true },
+    cert: { type: ["object", "null"], additionalProperties: true },
+    posture: { type: ["object", "null"], additionalProperties: true },
+    events: { type: "array", items: { type: "object", additionalProperties: true } },
+    change: { type: ["object", "null"], additionalProperties: true },
+    actions: { type: "array", items: { type: "object", additionalProperties: true } },
+    changes: {
+      type: "object",
+      additionalProperties: false,
+      required: ["postureRiskEvents", "certEvents", "monitoringEvents"],
+      properties: {
+        postureRiskEvents: nonNegativeInteger,
+        certEvents: nonNegativeInteger,
+        monitoringEvents: nonNegativeInteger,
+      },
+    },
+  },
+} as const;
+
+export const SCAN_MOBILE_SUMMARY_SCHEMA = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://securl.online/schemas/scan-mobile-summary-v1.json",
+  title: "SecURL Scan Mobile Summary v1",
+  description: "Compact hosted scan result returned by GET /api/scans/:id/mobile-summary.",
+  type: "object",
+  additionalProperties: true,
+  required: ["apiVersion", "scan", "ready", "digest", "insights"],
+  properties: {
+    apiVersion: { type: "string", minLength: 1 },
+    scan: { type: "object", additionalProperties: true },
+    ready: { type: "boolean" },
+    digest: { type: ["object", "null"], additionalProperties: true },
+    insights: { type: ["object", "null"], additionalProperties: true },
+  },
+} as const;
+
+export const MONITORING_MOBILE_SUMMARY_SCHEMA = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://securl.online/schemas/monitoring-mobile-summary-v1.json",
+  title: "SecURL Monitoring Mobile Summary v1",
+  description: "Owner-scoped posture and certificate watch-list resource.",
+  type: "object",
+  additionalProperties: true,
+  required: ["apiVersion", "summary", "targets"],
+  properties: {
+    apiVersion: { type: "string", minLength: 1 },
+    summary: {
+      type: "object",
+      additionalProperties: false,
+      required: ["totalTargets", "dueTargets", "postureTargets", "certTargets", "changes"],
+      properties: {
+        totalTargets: nonNegativeInteger,
+        dueTargets: nonNegativeInteger,
+        postureTargets: nonNegativeInteger,
+        certTargets: nonNegativeInteger,
+        changes: nonNegativeInteger,
+      },
+    },
+    targets: { type: "array", items: monitoringTargetSchema },
+  },
+} as const;
+
+export const MONITORING_CERT_SUMMARY_SCHEMA = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://securl.online/schemas/monitoring-cert-summary-v1.json",
+  title: "SecURL Monitoring Certificate Summary v1",
+  description: "Owner-scoped certificate watch-list and push-health resource.",
+  type: "object",
+  additionalProperties: true,
+  required: ["apiVersion", "summary", "push", "recentChanges", "targets"],
+  properties: {
+    apiVersion: { type: "string", minLength: 1 },
+    summary: {
+      type: "object",
+      additionalProperties: false,
+      required: [
+        "totalCerts",
+        "dueCerts",
+        "healthyCerts",
+        "expiringCerts",
+        "expiredCerts",
+        "unreachableCerts",
+        "unknownCerts",
+        "needsAttention",
+        "changes",
+        "nextCheckAt",
+        "nextCheckTargetId",
+      ],
+      properties: {
+        totalCerts: nonNegativeInteger,
+        dueCerts: nonNegativeInteger,
+        healthyCerts: nonNegativeInteger,
+        expiringCerts: nonNegativeInteger,
+        expiredCerts: nonNegativeInteger,
+        unreachableCerts: nonNegativeInteger,
+        unknownCerts: nonNegativeInteger,
+        needsAttention: nonNegativeInteger,
+        changes: nonNegativeInteger,
+        nextCheckAt: nullableDateTime,
+        nextCheckTargetId: nullableString,
+      },
+    },
+    push: { type: "object", additionalProperties: true },
+    recentChanges: { type: "array", maxItems: 10, items: { type: "object", additionalProperties: true } },
+    targets: {
+      type: "array",
+      items: {
+        ...monitoringTargetSchema,
+        properties: {
+          ...monitoringTargetSchema.properties,
+          kind: { const: "cert" },
+          policyFit: { type: "null" },
+          health: { type: "object", additionalProperties: true },
+        },
+        required: [...monitoringTargetSchema.required, "health"],
+      },
+    },
+  },
+} as const;
+
+export const MOBILE_RESOURCE_SCHEMAS = {
+  "mobile-summary": SCAN_MOBILE_SUMMARY_SCHEMA,
+  "monitoring-mobile-summary": MONITORING_MOBILE_SUMMARY_SCHEMA,
+  "monitoring-cert-summary": MONITORING_CERT_SUMMARY_SCHEMA,
+} as const;
+
+export type MobileResourceSchemaName = keyof typeof MOBILE_RESOURCE_SCHEMAS;

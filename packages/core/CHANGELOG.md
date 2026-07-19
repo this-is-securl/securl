@@ -9,6 +9,16 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 ### Backend and docs
 - Added protected product-pulse telemetry and optional release-channel attribution for hosted/mobile clients. These are backend/API-service changes and do not change the published `securl` package surface.
 
+## [1.26.0] - 2026-07-19
+
+### Added
+- Added versioned JSON Schemas for hosted scan mobile summaries, monitoring mobile
+  summaries, and monitoring certificate summaries.
+- Added `securl schema mobile-summary`, `securl schema monitoring-mobile-summary`, and
+  `securl schema monitoring-cert-summary`, each with optional `--output` support.
+- Exported the schemas from the package root and `securl/mobile-schemas`, including the
+  exact nested `policyFit.summary` and `policyFit.topViolations` contract.
+
 ## [1.25.1] - 2026-07-18
 
 ### Changed

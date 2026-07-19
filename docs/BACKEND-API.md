@@ -103,6 +103,12 @@ npm run smoke:api -- --base-url=https://securl-app-production.up.railway.app --t
 
 ## Current monitoring resources
 
+Published package `securl@1.26.0+` exposes versioned JSON Schemas for the compact mobile
+resources through `securl/mobile-schemas` and the CLI targets `securl schema
+mobile-summary`, `monitoring-mobile-summary`, and `monitoring-cert-summary`. These schemas
+are the machine-readable source of truth for client runtime boundaries; API capability
+flags still govern whether optional feature blocks should be rendered.
+
 - `POST /api/monitoring-targets`
 - `GET /api/monitoring-targets`
 - `GET /api/monitoring-health`

@@ -11,6 +11,7 @@ test("package surface exports expected public functions", async () => {
   const pkg = await import("../dist/index.js");
   const postureDigest = await import("../dist/postureDigest.js");
   const postureManifest = await import("../dist/postureManifest.js");
+  const mobileSchemas = await import("../dist/mobileSchemas.js");
   const postureDrift = await import("../dist/postureDrift.js");
   const remediationPlan = await import("../dist/postureRemediation.js");
   const evidenceQuality = await import("../dist/evidenceQuality.js");
@@ -39,6 +40,9 @@ test("package surface exports expected public functions", async () => {
   assert.equal(typeof postureManifest.buildPostureManifest, "function");
   assert.equal(pkg.POSTURE_MANIFEST_SCHEMA.$id, "https://securl.online/schemas/posture-manifest-v1.json");
   assert.equal(postureManifest.POSTURE_MANIFEST_SCHEMA.title, "SecURL Posture Manifest v1");
+  assert.equal(pkg.MONITORING_MOBILE_SUMMARY_SCHEMA.$id, "https://securl.online/schemas/monitoring-mobile-summary-v1.json");
+  assert.equal(mobileSchemas.MONITORING_CERT_SUMMARY_SCHEMA.$id, "https://securl.online/schemas/monitoring-cert-summary-v1.json");
+  assert.equal(pkg.MOBILE_RESOURCE_SCHEMAS["mobile-summary"].title, "SecURL Scan Mobile Summary v1");
   assert.equal(typeof pkg.buildPostureDriftReportFromSnapshots, "function");
   assert.equal(typeof postureDrift.buildPostureDriftReportFromSnapshots, "function");
   assert.equal(typeof pkg.buildPostureRemediationPlan, "function");
@@ -118,6 +122,7 @@ test("package surface exposes both long and short CLI binary names", async () =>
   assert.equal(packageJson.bin["external-posture-insight"], "dist/cli.js");
   assert.equal(packageJson.exports["./monitoring-events"].default, "./dist/monitoringEvents.js");
   assert.equal(packageJson.exports["./posture-manifest"].default, "./dist/postureManifest.js");
+  assert.equal(packageJson.exports["./mobile-schemas"].default, "./dist/mobileSchemas.js");
 });
 
 test("library risk lookups use the shared scanner transport rather than raw fetch", async () => {

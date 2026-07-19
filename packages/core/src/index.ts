@@ -81,6 +81,13 @@ export {
 export { buildPostureDigest } from "./postureDigest.js";
 export { buildPostureManifest, POSTURE_MANIFEST_SCHEMA } from "./postureManifest.js";
 export {
+  MOBILE_RESOURCE_SCHEMAS,
+  MONITORING_CERT_SUMMARY_SCHEMA,
+  MONITORING_MOBILE_SUMMARY_SCHEMA,
+  MONITORING_POLICY_FIT_SCHEMA,
+  SCAN_MOBILE_SUMMARY_SCHEMA,
+} from "./mobileSchemas.js";
+export {
   buildPostureDriftReport,
   buildPostureDriftReportFromDiff,
   buildPostureDriftReportFromSnapshots,
