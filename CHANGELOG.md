@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-07-20 — focused hosted acquisition funnel
+
+### Changed
+
+- Reworked the hosted scanner's first screen around one promise and one primary action:
+  scan a site free, then keep it watched for meaningful security drift.
+- Removed competing hero links and replaced them with concise trust signals covering
+  price, sign-up, and passive-scan behavior.
+- Updated page and social metadata to match the acquisition promise.
+
+### Fixed
+
+- Changed browser telemetry beacons to a CORS-safelisted `text/plain` JSON payload so
+  Safari can reliably send cross-origin page-load and funnel events without preflight.
+
+### Classification
+
+- `HOSTED_ONLY` — no npm package API, schema, CLI, or engine behavior changed.
+
 ## 2026-07-20 — core 1.26.1 global-unicast outbound boundary
 
 ### Security

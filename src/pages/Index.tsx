@@ -311,13 +311,13 @@ const Index = () => {
 
                 <div className="space-y-5">
                   <h1 className="max-w-3xl text-3xl font-black tracking-[-0.06em] text-white sm:text-5xl lg:text-6xl">
-                    See what attackers see.
-                    <br className="hidden sm:block" /> Keep watching what changes.
+                    Scan once.
+                    <br className="hidden sm:block" /> Know when your site changes.
                   </h1>
                   <p className="max-w-lg text-lg font-semibold leading-8 text-zinc-200">
-                    Paste a URL for an outside-in posture read, then put the same engine
-                    in CI and route the changes worth knowing about to your phone —
-                    <span className="text-[#d89a63]"> without credentials or noisy scanning.</span>
+                    Get a free outside-in security report now. Then keep the same site
+                    watched for certificate, header, and posture drift —
+                    <span className="text-[#d89a63]"> without credentials, agents, or noisy scanning.</span>
                   </p>
                 </div>
               </div>
@@ -329,31 +329,12 @@ const Index = () => {
                 scanStage={scanStage}
               />
 
-              <div className="flex flex-wrap gap-2 text-xs font-semibold text-zinc-400">
-                <a
-                  href="https://www.npmjs.com/package/securl"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 transition hover:border-[#b56a2c]/35 hover:bg-[#b56a2c]/10 hover:text-[#f0d5bc]"
-                >
-                  npx securl scan example.com
-                </a>
-                <a
-                  href="https://github.com/this-is-securl/securl/blob/main/docs/ADOPTION-QUICKSTART.md"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 transition hover:border-[#b56a2c]/35 hover:bg-[#b56a2c]/10 hover:text-[#f0d5bc]"
-                >
-                  CI adoption guide
-                </a>
-                <a
-                  href="https://securl.online/downloads"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 transition hover:border-[#b56a2c]/35 hover:bg-[#b56a2c]/10 hover:text-[#f0d5bc]"
-                >
-                  Get mobile alerts
-                </a>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold text-zinc-400">
+                <span>Free to try</span>
+                <span aria-hidden="true" className="text-[#b56a2c]">•</span>
+                <span>No sign-up required</span>
+                <span aria-hidden="true" className="text-[#b56a2c]">•</span>
+                <span>Passive checks only</span>
               </div>
             </div>
 
