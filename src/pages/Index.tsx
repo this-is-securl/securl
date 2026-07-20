@@ -1,5 +1,4 @@
-import { Activity, BookOpen, Clock3, Code2, GitBranch, Layers3, Package, Sparkles } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { Activity, Clock3, Layers3, Sparkles } from "lucide-react";
 import { GRADE_PALETTE } from "@/components/SecurityGrade";
 import { toast } from "sonner";
 import { AuthCard } from "@/components/AuthCard";
@@ -9,8 +8,6 @@ import { buildReportWorkspaceSections } from "@/lib/reportWorkspace";
 import { ReportSectionNav } from "@/components/report/ReportSectionNav";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useScanWorkspace } from "@/hooks/useScanWorkspace";
-import { OutputPreview } from "@/components/landing/OutputPreview";
-import { CapabilityStrip } from "@/components/landing/CapabilityStrip";
 import { AppStoreBadge } from "@/components/AppStoreBadge";
 import { AndroidDownloadsBadge } from "@/components/AndroidDownloadsBadge";
 import { recordTelemetryEvent } from "@/lib/apiClient";
@@ -32,67 +29,6 @@ const sampleChipStyle = (sev: HeroSampleChip["sev"]) => {
     return { background: "rgba(217,119,6,0.10)", borderColor: "rgba(217,119,6,0.25)", color: "#fbbf24" };
   return { background: "rgba(100,116,139,0.08)", borderColor: "rgba(100,116,139,0.20)", color: "#94a3b8" };
 };
-
-interface EngineLink {
-  icon: LucideIcon;
-  label: string;
-  detail: string;
-  href: string;
-}
-
-const ENGINE_LINKS: EngineLink[] = [
-  {
-    icon: Package,
-    label: "npm package",
-    detail: "Run securl in CLI, CI, or Node.",
-    href: "https://www.npmjs.com/package/securl",
-  },
-  {
-    icon: BookOpen,
-    label: "Integrator docs",
-    detail: "API resources, manifests, and client flows.",
-    href: "https://github.com/this-is-securl/securl/blob/main/docs/API-INTEGRATION-GUIDE.md",
-  },
-  {
-    icon: Code2,
-    label: "Safety model",
-    detail: "Passive boundary and hosted API controls.",
-    href: "https://github.com/this-is-securl/securl/blob/main/docs/ARCHITECTURE-SAFETY.md",
-  },
-  {
-    icon: GitBranch,
-    label: "Source code",
-    detail: "MIT licensed engine and web app.",
-    href: "https://github.com/this-is-securl/securl",
-  },
-];
-
-const ADOPTION_PATH: EngineLink[] = [
-  {
-    icon: Activity,
-    label: "1. Scan live",
-    detail: "Paste a public URL and get the outside-in report a teammate can read in minutes.",
-    href: "https://app.securl.online",
-  },
-  {
-    icon: Package,
-    label: "2. Gate releases",
-    detail: "Run the same engine with npx in CI and export Markdown, JSON, or CI JSON.",
-    href: "https://www.npmjs.com/package/securl",
-  },
-  {
-    icon: Clock3,
-    label: "3. Watch for drift",
-    detail: "Save the target so certificate, header, and posture changes don't disappear after deploy.",
-    href: "https://github.com/this-is-securl/securl/blob/main/docs/ADOPTION-QUICKSTART.md",
-  },
-  {
-    icon: BookOpen,
-    label: "4. Get phone alerts",
-    detail: "Use the mobile apps as the control room for the same public sites your pipeline checks.",
-    href: "https://securl.online/downloads",
-  },
-];
 
 const HeroPreviewCard = () => {
   const palette = GRADE_PALETTE[HERO_SAMPLE.grade] ?? GRADE_PALETTE.U;
@@ -462,311 +398,63 @@ const Index = () => {
           </section>
         )}
 
-        {/* ── Landing content (pre-scan only) ───────────────────────────── */}
-        {!analysisData && (
-          <div className="mt-8 space-y-10">
+        {/* ── Product continuation (after first value or for returning users) */}
+        {(analysisData || hasHistory || isAuthenticated) && (
+          <section className="mt-10 space-y-5">
+            <div className="flex items-center gap-2.5 px-1">
+              <Activity className="h-4 w-4 text-[#d89a63]" />
+              <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">
+                Keep this useful
+              </span>
+              <span className="h-px flex-1 bg-white/6" />
+            </div>
 
-            {/* 1 — Output preview */}
-            <section>
-              <div className="mb-6 text-center">
-                <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.22em] text-[#d89a63]">
-                  What you get
-                </p>
-                <h2 className="text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl">
-                  Not a list of headers. A verdict.
-                </h2>
-                <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-zinc-300">
-                  Every scan returns a graded posture assessment with ranked findings, consequence
-                  context, and specific remediation steps — structured for action, not auditing.
-                </p>
-              </div>
-              <OutputPreview />
-            </section>
-
-            {/* 2 — Differentiation band */}
-            <section className="rounded-[1.75rem] border border-white/8 bg-white/3 px-4 py-8 text-center shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] sm:px-8 sm:py-14">
-              <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-500">
-                Why SecURL
-              </p>
-              <h2 className="text-3xl font-black tracking-tighter text-white sm:text-4xl lg:text-[3.25rem] lg:leading-[1.1]">
-                Security tools give you data.
-                <br />
-                <span className="text-[#d89a63]">SecURL gives you a read.</span>
-              </h2>
-              <p className="mx-auto mt-5 max-w-lg text-base font-medium leading-7 text-zinc-300">
-                No agents. No configuration. No credentials. Just how your site looks to an informed
-                external observer — graded, ranked, and ready to act on.
-              </p>
-              <div className="mx-auto mt-9 grid max-w-md grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-6">
-                {[
-                  { value: "7",    label: "Posture areas"      },
-                  { value: "~20s", label: "To a graded result" },
-                  { value: "PDF",  label: "Export included"    },
-                ].map(({ value, label }) => (
-                  <div key={label} className="text-center">
-                    <p className="text-3xl font-black tracking-[-0.04em] text-white">{value}</p>
-                    <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
-                      {label}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* 3 — CLI to phone bridge */}
-            <section className="overflow-hidden rounded-[1.75rem] border border-[#b56a2c]/25 bg-[radial-gradient(circle_at_top_left,rgba(181,106,44,0.18),rgba(255,255,255,0.03)_42%,rgba(255,255,255,0.02))] px-4 py-8 shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] sm:px-8 sm:py-10">
-              <div className="grid gap-6 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
-                <div>
-                  <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#d89a63]">
-                    Built for the audience already arriving
-                  </p>
-                  <h2 className="text-2xl font-black tracking-[-0.04em] text-white sm:text-3xl">
-                    Running SecURL in CI? Make the alerts follow you.
+            <div className="grid gap-5 lg:grid-cols-2">
+              <div className="rounded-[1.7rem] border border-white/10 bg-white/4 p-4 sm:p-5">
+                <div className="mb-4">
+                  <h2 className="text-xl font-black tracking-[-0.03em] text-white">
+                    Watch the targets that matter
                   </h2>
-                  <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-300">
-                    The CLI is the fast path for developers. The web app makes results readable,
-                    monitoring keeps the target alive between releases, and the mobile apps turn
-                    material certificate, header, and posture drift into timely alerts.
+                  <p className="mt-2 text-sm leading-6 text-zinc-300">
+                    Save a completed scan to track grade, certificate, header, and posture
+                    drift instead of starting from scratch after every release.
                   </p>
                 </div>
-                <div className="rounded-[1.2rem] border border-white/10 bg-zinc-950/55 p-4">
-                  <div className="font-mono text-xs leading-6 text-zinc-300">
-                    <span className="text-zinc-500">$ </span>npx securl scan https://example.com --format ci-json
-                    <br />
-                    <span className="text-zinc-500">$ </span>npx securl scan https://example.com --format markdown
-                  </div>
-                  <div className="mt-4 grid gap-2 text-xs font-semibold text-zinc-300 sm:grid-cols-3">
-                    {["Fail noisy regressions", "Share readable evidence", "Save target on mobile"].map((item) => (
-                      <div key={item} className="rounded-xl border border-white/8 bg-white/5 px-3 py-2">
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* 4 — Capability strip */}
-            <section>
-              <div className="mb-6">
-                <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#d89a63]">
-                  What it checks
-                </p>
-                <h2 className="text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl">
-                  Coverage across seven posture areas
-                </h2>
-              </div>
-              <CapabilityStrip />
-            </section>
-
-            {/* 5 — Adoption path */}
-            <section className="rounded-[1.75rem] border border-[#b56a2c]/20 bg-[#b56a2c]/8 px-4 py-8 shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] sm:px-8 sm:py-10">
-              <div className="grid gap-7 lg:grid-cols-[0.78fr_1.22fr] lg:items-start">
-                <div>
-                  <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#d89a63]">
-                    Adopt in minutes
-                  </p>
-                  <h2 className="text-2xl font-black tracking-[-0.04em] text-white sm:text-3xl">
-                    One public URL can become a report, a CI gate, and a watched target
-                  </h2>
-                  <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-300">
-                    SecURL is deliberately easy to try: no agent, no credentials, no target-side install.
-                    Start with the hosted scan, then keep the same posture evidence alive in CLI,
-                    monitoring, mobile workflows, and shareable reports.
-                  </p>
-                  <div className="mt-5 rounded-[1rem] border border-white/10 bg-zinc-950/55 p-4 font-mono text-xs leading-6 text-zinc-300">
-                    <span className="text-zinc-500">$ </span>npx securl scan example.com --format markdown
-                    <br />
-                    <span className="text-zinc-500">$ </span>npx securl scan example.com --format ci-json
-                  </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {ADOPTION_PATH.map(({ icon: Icon, label, detail, href }) => (
-                    <a
-                      key={label}
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group flex min-h-28 items-start gap-3 rounded-[1.15rem] border border-white/[0.08] bg-zinc-950/35 p-4 text-left transition-colors duration-200 hover:border-[#b56a2c]/40 hover:bg-[#b56a2c]/10"
-                    >
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.75rem] bg-[#b56a2c]/12 text-[#d89a63] transition-colors group-hover:bg-[#b56a2c]/18">
-                        <Icon className="h-4 w-4" aria-hidden="true" />
-                      </span>
-                      <span>
-                        <span className="block text-sm font-bold text-zinc-100">{label}</span>
-                        <span className="mt-1 block text-xs leading-5 text-zinc-400">{detail}</span>
-                      </span>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            {/* 6 — Engine and integration links */}
-            <section className="rounded-[1.75rem] border border-white/8 bg-white/3 px-4 py-8 shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] sm:px-8 sm:py-10">
-              <div className="grid gap-7 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
-                <div>
-                  <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#d89a63]">
-                    Engine first
-                  </p>
-                  <h2 className="text-2xl font-black tracking-[-0.04em] text-white sm:text-3xl">
-                    One engine behind every surface
-                  </h2>
-                  <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-300">
-                    Use the same passive posture intelligence from the hosted scanner,
-                    npm package, CI jobs, API clients, and mobile apps.
-                  </p>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {ENGINE_LINKS.map(({ icon: Icon, label, detail, href }) => (
-                    <a
-                      key={label}
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group flex min-h-24 items-start gap-3 rounded-[1.15rem] border border-white/[0.07] bg-zinc-950/35 p-4 text-left transition-colors duration-200 hover:border-[#b56a2c]/35 hover:bg-[#b56a2c]/8"
-                    >
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.75rem] bg-[#b56a2c]/12 text-[#d89a63] transition-colors group-hover:bg-[#b56a2c]/18">
-                        <Icon className="h-4 w-4" aria-hidden="true" />
-                      </span>
-                      <span>
-                        <span className="block text-sm font-bold text-zinc-100">{label}</span>
-                        <span className="mt-1 block text-xs leading-5 text-zinc-400">{detail}</span>
-                      </span>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            {/* 7 — Account + history section */}
-            <section>
-              <div className="mb-6">
-                <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">
-                  Save your work
-                </p>
-                <h2 className="text-xl font-black tracking-[-0.03em] text-white">
-                  Keep scans, history, and monitoring targets across sessions
-                </h2>
-                <p className="mt-2 max-w-xl text-sm leading-6 text-zinc-300">
-                  Account mode makes everything portable — scan history, monitored targets, and
-                  mobile access all follow your account instead of being tied to one browser.
-                </p>
-              </div>
-
-              <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
-                {/* Left: recent scans + monitoring */}
-                <div className="rounded-[1.7rem] border border-white/10 bg-white/4 p-4 sm:p-5">
-                  {!isAuthenticated ? (
-                    <div className="mb-4 rounded-[1.25rem] border border-[#b56a2c]/25 bg-[#b56a2c]/8 px-4 py-3 text-sm leading-6 text-[#f0d5bc]">
-                      Signed-out mode keeps recent scans and monitoring in this browser only.
-                    </div>
-                  ) : (
-                    <div className="mb-4 rounded-[1.25rem] border border-emerald-400/20 bg-emerald-400/8 px-4 py-3 text-sm leading-6 text-emerald-200">
-                      Account mode is active — scans and monitoring targets follow{" "}
-                      <span className="font-semibold text-white">{authSession?.user.email}</span>.
-                    </div>
-                  )}
-
-                  {hasHistory ? (
-                    <div className="space-y-5">
-                      {recentScans.length > 0 && (
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
-                            <Clock3 className="h-4 w-4 text-[#d89a63]" />
-                            Recent scans
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            {recentScans.slice(0, 3).map((scan) => (
-                              <button
-                                key={scan.id ?? scan.url}
-                                type="button"
-                                onClick={() => void openRecentScan(scan)}
-                                disabled={isLoading}
-                                className={`rounded-[1.2rem] border px-4 py-3 text-left shadow-xs transition duration-300 ${
-                                  activeRecentScanUrl === (scan.id ?? scan.url)
-                                    ? "border-[#b56a2c]/45 bg-[#b56a2c]/12"
-                                    : "border-white/10 bg-zinc-950/45 hover:border-[#b56a2c]/25 hover:bg-white/8"
-                                } ${isLoading ? "cursor-wait" : ""}`}
-                              >
-                                <div className="flex items-center justify-between gap-3">
-                                  <span className="truncate text-sm font-medium text-zinc-100">
-                                    {scan.url}
-                                  </span>
-                                  <span
-                                    className="text-sm font-bold uppercase tracking-[0.14em]"
-                                    style={{ color: (GRADE_PALETTE[scan.grade ?? "U"] ?? GRADE_PALETTE.U).textColor }}
-                                  >
-                                    {scan.grade}
-                                  </span>
-                                </div>
-                                <p className="mt-1 text-xs text-zinc-500">
-                                  {new Date(scan.scannedAt).toLocaleString()}
-                                </p>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      <div className={recentScans.length > 0 ? "border-t border-white/10 pt-5" : ""}>
-                        <MonitoredTargetsPanel
-                          targets={monitoredViews}
-                          currentUrl={null}
-                          monitoredCount={monitoredTargets.length}
-                          dueCount={monitoredViews.filter((t) => t.due).length}
-                          embedded
-                          onAddDaily={() => saveCurrentAsMonitored("daily")}
-                          onAddWeekly={() => saveCurrentAsMonitored("weekly")}
-                          onRunDue={runDueScans}
-                          onRunTarget={(url) => void runTargetScan(url, true)}
-                          onRemove={removeMonitoredTarget}
-                          busy={isLoading}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-start gap-3">
-                      <Activity className="mt-0.5 h-4 w-4 shrink-0 text-[#d89a63]" />
-                      <div>
-                        <p className="text-sm font-semibold text-zinc-200">Monitoring & drift tracking</p>
-                        <p className="mt-1 text-xs leading-5 text-zinc-400">
-                          Scan a target above, then pin it here. SecURL will track grade changes,
-                          new findings, and resolved issues between scans — so regressions don't go unnoticed.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Right: auth card */}
-                <AuthCard
-                  authSession={authSession}
-                  isLoading={authLoading}
-                  isSubmitting={authSubmitting}
-                  mode={authMode}
-                  setMode={setAuthMode}
-                  signIn={signIn}
-                  signUp={signUp}
-                  signOut={signOut}
+                <MonitoredTargetsPanel
+                  targets={monitoredViews}
+                  currentUrl={analysisData?.finalUrl ?? analysisData?.normalizedUrl ?? null}
+                  monitoredCount={monitoredTargets.length}
+                  dueCount={monitoredViews.filter((target) => target.due).length}
+                  embedded
+                  onAddDaily={() => saveCurrentAsMonitored("daily")}
+                  onAddWeekly={() => saveCurrentAsMonitored("weekly")}
+                  onRunDue={runDueScans}
+                  onRunTarget={(url) => void runTargetScan(url, true)}
+                  onRemove={removeMonitoredTarget}
+                  busy={isLoading}
                 />
               </div>
-            </section>
 
-            {/* 8 — Mobile apps */}
-            <section className="rounded-[1.75rem] border border-white/8 bg-white/3 px-4 py-8 shadow-[0_1px_0_rgba(255,255,255,0.05)_inset] sm:px-8 sm:py-10">
-              <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:justify-between sm:text-left">
-                <div className="space-y-1.5">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#d89a63]">
-                    SecURL on mobile
-                  </p>
-                  <h2 className="text-xl font-black tracking-[-0.03em] text-white sm:text-2xl">
-                    Turn release checks into phone alerts
+              <AuthCard
+                authSession={authSession}
+                isLoading={authLoading}
+                isSubmitting={authSubmitting}
+                mode={authMode}
+                setMode={setAuthMode}
+                signIn={signIn}
+                signUp={signUp}
+                signOut={signOut}
+              />
+            </div>
+
+            {analysisData && (
+              <div className="flex flex-col items-center gap-5 rounded-[1.7rem] border border-[#b56a2c]/20 bg-[#b56a2c]/8 p-5 text-center sm:flex-row sm:justify-between sm:text-left">
+                <div>
+                  <h2 className="text-lg font-black tracking-[-0.03em] text-white">
+                    Want the changes sent to your phone?
                   </h2>
-                  <p className="mx-auto max-w-md text-sm leading-6 text-zinc-300 sm:mx-0">
-                    Already running securl before releases? Install the app, save the same target,
-                    and let certificate, header, and posture drift reach you before users do.
+                  <p className="mt-1 max-w-xl text-sm leading-6 text-zinc-300">
+                    Use SecURL mobile as the control room for this same watched target.
                   </p>
                 </div>
                 <div className="flex flex-col items-center gap-3 sm:items-end">
@@ -774,9 +462,8 @@ const Index = () => {
                   <AndroidDownloadsBadge className="shrink-0" />
                 </div>
               </div>
-            </section>
-
-          </div>
+            )}
+          </section>
         )}
       </div>
     </div>

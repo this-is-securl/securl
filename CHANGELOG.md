@@ -19,6 +19,23 @@
 
 - `HOSTED_ONLY` — no npm package API, schema, CLI, or engine behavior changed.
 
+## 2026-07-20 — separate acquisition site from product workspace
+
+### Changed
+
+- Removed the long-form marketing journey from the rendered hosted app. The app now opens
+  as a focused scan workspace while `securl.online` owns positioning, comparisons, engine,
+  package, and channel education.
+- Returning users and completed scans now lead directly into monitoring and account
+  continuity; mobile installation is offered only after a scan produces value.
+- Preserved the existing attributed `securl.online` → `app.securl.online` target handoff,
+  report routes, browser history, owner storage, and authentication without an iframe.
+
+### Classification
+
+- `HOSTED_ONLY` — no npm package API, backend contract, mobile client, or download URL
+  changed.
+
 ## 2026-07-20 — core 1.26.1 global-unicast outbound boundary
 
 ### Security
