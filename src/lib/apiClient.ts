@@ -59,7 +59,9 @@ export const recordPageLoad = () => {
     currentUrl: typeof window !== "undefined" ? window.location.href : "",
   });
   if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
-    navigator.sendBeacon(url, new Blob([payload], { type: "application/json" }));
+    // text/plain is CORS-safelisted, so Safari can queue this cross-origin beacon
+    // without a preflight. The backend parses the JSON body independently of MIME type.
+    navigator.sendBeacon(url, new Blob([payload], { type: "text/plain;charset=UTF-8" }));
     return;
   }
 
@@ -106,7 +108,7 @@ export const recordTelemetryEvent = (
     currentUrl: typeof window !== "undefined" ? window.location.href : "",
   });
   if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
-    navigator.sendBeacon(url, new Blob([payload], { type: "application/json" }));
+    navigator.sendBeacon(url, new Blob([payload], { type: "text/plain;charset=UTF-8" }));
     return;
   }
 

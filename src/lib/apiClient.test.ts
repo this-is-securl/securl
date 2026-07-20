@@ -130,6 +130,26 @@ describe("api client URL helpers", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/capabilities");
   });
 
+  it("uses a CORS-safelisted MIME type for cross-origin telemetry beacons", async () => {
+    const sendBeacon = vi.fn().mockReturnValue(true);
+    vi.stubGlobal("navigator", { sendBeacon });
+    vi.stubGlobal("document", { referrer: "https://www.npmjs.com/package/securl" });
+    vi.stubGlobal("window", {
+      ...window,
+      location: { href: "https://app.securl.online/?utm_source=npm" },
+    });
+
+    const { recordPageLoad, recordTelemetryEvent } = await import("./apiClient");
+    recordPageLoad();
+    recordTelemetryEvent("scan_started", { mode: "standard" });
+
+    expect(sendBeacon).toHaveBeenCalledTimes(2);
+    for (const [, body] of sendBeacon.mock.calls) {
+      expect(body).toBeInstanceOf(Blob);
+      expect((body as Blob).type).toBe("text/plain;charset=utf-8");
+    }
+  });
+
   it("falls back to crypto.getRandomValues when randomUUID is unavailable", async () => {
     const browserStorage = await import("@/lib/browserStorage");
     vi.mocked(browserStorage.readBrowserStorage).mockResolvedValue(null);

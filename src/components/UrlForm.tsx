@@ -60,7 +60,7 @@ export const UrlForm = ({ onSubmit, isLoading, initialValue = "", scanStage = nu
           className="h-12 rounded-[1.25rem] bg-[#b56a2c] px-6 text-sm font-bold text-white sm:h-14 sm:px-10 sm:text-base shadow-[0_8px_32px_-8px_rgba(181,106,44,0.55),0_0_0_1px_rgba(181,106,44,0.30)_inset] hover:bg-[#9d5a23] hover:shadow-[0_14px_40px_-8px_rgba(181,106,44,0.70),0_0_0_1px_rgba(181,106,44,0.40)_inset] active:scale-[0.98] transition-all duration-200"
         >
           <Search className="mr-2.5 h-5 w-5" />
-          {isLoading ? "Scanning…" : "Run Scan"}
+          {isLoading ? "Scanning…" : "Scan my site free"}
         </Button>
       </div>
       <p className="px-2 pt-3 text-sm text-zinc-400">
