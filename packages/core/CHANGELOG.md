@@ -9,6 +9,14 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 ### Backend and docs
 - Added protected product-pulse telemetry and optional release-channel attribution for hosted/mobile clients. These are backend/API-service changes and do not change the published `securl` package surface.
 
+## [1.26.1] - 2026-07-20
+
+### Security
+- Restricted shared outbound target validation to globally routable unicast IPv4 and
+  IPv6 addresses. Literal and DNS-resolved special-purpose, documentation, benchmark,
+  multicast, reserved, and broadcast destinations are now rejected before pinned
+  connections are created.
+
 ## [1.26.0] - 2026-07-19
 
 ### Added
