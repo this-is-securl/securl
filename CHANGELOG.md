@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-07-20 — core 1.26.1 global-unicast outbound boundary
+
+### Security
+
+- Hardened the shared scanner and certificate-probe target validator to accept only
+  globally routable unicast IPv4 and IPv6 destinations.
+- Blocked special-purpose, documentation, benchmark, multicast, reserved, and broadcast
+  addresses in both URL literals and DNS answer sets while preserving DNS pinning.
+
+### Verified
+
+- Focused network-validation tests covering IPv4 and IPv6 special-purpose ranges,
+  mixed DNS answers, valid public literals, and pinned lookup behavior.
+
 ## 2026-07-19 — core 1.26.0 mobile resource schema contracts
 
 ### Added

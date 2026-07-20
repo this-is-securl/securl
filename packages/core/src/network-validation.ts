@@ -30,22 +30,45 @@ function stripBrackets(value: string): string {
   return value.replace(/^\[(.*)\]$/, "$1");
 }
 
+/**
+ * Historical public API name. Returns true for every IPv4 destination that is
+ * unsuitable for public outbound requests, including private and other IANA
+ * non-global special-purpose ranges.
+ */
 export function isPrivateIpv4(value: string): boolean {
-  const [first, second] = value.split(".").map((part) => Number(part));
-  if ([first, second].some((part) => Number.isNaN(part))) {
+  const octets = value.split(".").map((part) => Number(part));
+  if (octets.length !== 4 || octets.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
     return false;
   }
+  const address = octets.reduce((result, octet) => (result << 8n) | BigInt(octet), 0n);
+  const inCidr = (base: string, prefix: number): boolean => {
+    const baseValue = base.split(".").reduce((result, octet) => (result << 8n) | BigInt(octet), 0n);
+    const shift = BigInt(32 - prefix);
+    return (address >> shift) === (baseValue >> shift);
+  };
 
-  return (
-    first === 10 ||
-    first === 127 ||
-    first === 0 ||
-    (first === 100 && second >= 64 && second <= 127) ||
-    (first === 169 && second === 254) ||
-    (first === 172 && second >= 16 && second <= 31) ||
-    (first === 192 && second === 168) ||
-    (first === 198 && (second === 18 || second === 19))
-  );
+  // IANA IPv4 special-purpose ranges that are not globally routable unicast.
+  // Two anycast services inside 192.0.0.0/24 are explicitly globally reachable.
+  if (value === "192.0.0.9" || value === "192.0.0.10") {
+    return false;
+  }
+  return [
+    ["0.0.0.0", 8],
+    ["10.0.0.0", 8],
+    ["100.64.0.0", 10],
+    ["127.0.0.0", 8],
+    ["169.254.0.0", 16],
+    ["172.16.0.0", 12],
+    ["192.0.0.0", 24],
+    ["192.0.2.0", 24],
+    ["192.88.99.0", 24],
+    ["192.168.0.0", 16],
+    ["198.18.0.0", 15],
+    ["198.51.100.0", 24],
+    ["203.0.113.0", 24],
+    ["224.0.0.0", 4],
+    ["240.0.0.0", 4],
+  ].some(([base, prefix]) => inCidr(base as string, prefix as number));
 }
 
 // Decode the IPv4 address embedded in IPv4-mapped (::ffff:a.b.c.d / ::ffff:HHHH:HHHH),
@@ -81,42 +104,60 @@ function extractEmbeddedIpv4(normalized: string): string | null {
   return null;
 }
 
+/** IPv6 counterpart to {@link isPrivateIpv4}; includes non-unicast special use. */
 export function isPrivateIpv6(value: string): boolean {
   const normalized = stripBrackets(value.toLowerCase());
-
-  if (normalized === "::1" || normalized === "::") {
-    return true;
-  }
-
-  // Unique local (fc00::/7) and link-local (fe80::/10, i.e. fe80–febf).
-  const firstHextet = Number.parseInt(normalized.split(":")[0] || "", 16);
-  if (!Number.isNaN(firstHextet)) {
-    if ((firstHextet & 0xfe00) === 0xfc00) {
-      return true; // fc00::/7
+  const parse = (input: string): bigint | null => {
+    let expanded = input;
+    const embedded = extractEmbeddedIpv4(input);
+    if (/\d+\.\d+\.\d+\.\d+$/.test(input) && embedded) {
+      const parts = embedded.split(".").map(Number);
+      expanded = input.replace(/\d+\.\d+\.\d+\.\d+$/, `${((parts[0] << 8) | parts[1]).toString(16)}:${((parts[2] << 8) | parts[3]).toString(16)}`);
     }
-    if ((firstHextet & 0xffc0) === 0xfe80) {
-      return true; // fe80::/10
-    }
-    if (firstHextet === 0xfec0) {
-      return true; // deprecated site-local
-    }
-  }
+    const halves = expanded.split("::");
+    if (halves.length > 2) return null;
+    const left = halves[0] ? halves[0].split(":") : [];
+    const right = halves[1] ? halves[1].split(":") : [];
+    const missing = 8 - left.length - right.length;
+    if ((halves.length === 1 && missing !== 0) || missing < 0) return null;
+    const words = [...left, ...Array(missing).fill("0"), ...right];
+    if (words.length !== 8 || words.some((word) => !/^[0-9a-f]{1,4}$/.test(word))) return null;
+    return words.reduce((result, word) => (result << 16n) | BigInt(`0x${word}`), 0n);
+  };
+  const address = parse(normalized);
+  if (address === null) return false;
+  const inCidr = (base: string, prefix: number): boolean => {
+    const baseValue = parse(base);
+    if (baseValue === null) return false;
+    const shift = BigInt(128 - prefix);
+    return (address >> shift) === (baseValue >> shift);
+  };
 
-  // IPv4-mapped (::ffff:*) is never a routable IPv6 destination; block and, when
-  // possible, also classify the embedded IPv4 so the message is accurate.
-  if (normalized.startsWith("::ffff:")) {
-    return true;
-  }
-
-  // 6to4 and NAT64 tunnels can smuggle a private IPv4 destination.
+  // Preserve globally routable 6to4 destinations, but apply the complete IPv4
+  // boundary to the gateway embedded in the 2002::/16 address.
   if (normalized.startsWith("2002:") || normalized.startsWith("64:ff9b:")) {
     const embedded = extractEmbeddedIpv4(normalized);
-    if (embedded && isPrivateIpv4(embedded)) {
-      return true;
-    }
+    return embedded ? isPrivateIpv4(embedded) : true;
   }
 
-  return false;
+  // IANA IPv6 special-purpose space that is not globally routable unicast.
+  return [
+    ["::", 128],
+    ["::1", 128],
+    ["::ffff:0:0", 96],
+    ["64:ff9b:1::", 48],
+    ["100::", 64],
+    ["2001::", 32], // Teredo
+    ["2001:2::", 48], // benchmarking
+    ["2001:10::", 28], // deprecated ORCHID
+    ["2001:20::", 28], // ORCHIDv2 identifiers, not routed locators
+    ["2001:db8::", 32], // documentation
+    ["3fff::", 20], // documentation
+    ["fc00::", 7],
+    ["fe80::", 10],
+    ["fec0::", 10], // deprecated site-local
+    ["ff00::", 8],
+  ].some(([base, prefix]) => inCidr(base as string, prefix as number));
 }
 
 export function isLocalHostname(hostname: string): boolean {

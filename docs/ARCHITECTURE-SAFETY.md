@@ -32,7 +32,7 @@ The public backend is the riskiest trust boundary because it accepts URLs from c
 
 - **URL scheme control**: scan targets are restricted to HTTP and HTTPS.
 - **Credential rejection**: URLs with embedded credentials are rejected.
-- **Private network protection**: private IPs, loopback, local hostnames, cloud metadata ranges, and mixed public/private DNS resolution are blocked.
+- **Global-unicast network boundary**: outbound targets must resolve exclusively to globally routable unicast addresses. Private and loopback space, local hostnames, cloud metadata, documentation and benchmark ranges, multicast, reserved/broadcast space, and mixed safe/unsafe DNS answers are blocked.
 - **DNS rebinding protection**: outbound sockets are pinned to validated public addresses where the backend performs privileged delivery or scan actions.
 - **Timeouts and bounded retries**: scans, certificate reads, scheduler work, APNs delivery, webhook delivery, and queue recovery use explicit limits.
 - **Rate limiting**: scan creation is rate-limited, with distributed limiting available for multi-instance deployments.
