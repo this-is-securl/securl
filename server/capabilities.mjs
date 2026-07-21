@@ -41,6 +41,12 @@ export function buildCapabilitiesPayload({
           channel: "X-SecURL-Client-Channel",
         },
         channels: ["app-store", "testflight", "development", "automation"],
+        attribution: {
+          categories: ["verified", "unverified", "automation"],
+          verifiedBy: ["session", "api-key", "owner-bound", "server-inferred"],
+          selfReportedHeadersAreUnverified: true,
+          automationOverridesReportedIdentity: true,
+        },
       },
     },
     auth: {

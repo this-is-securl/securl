@@ -584,6 +584,8 @@ export async function handleScanResourceRequest({
         client: clientMetadata.client,
         clientVersion: clientMetadata.version,
         clientChannel: clientMetadata.channel,
+        clientAttribution: clientMetadata.category,
+        clientProvenance: clientMetadata.provenance,
       });
       sendJson(response, 200, payload);
     } catch (error) {

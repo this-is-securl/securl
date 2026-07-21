@@ -76,14 +76,47 @@ export function inferClientChannel({ client = null, version = null } = {}) {
   return null;
 }
 
-export function readClientMetadata(request, { fallbackClient = null } = {}) {
-  const client = normalizeClientId(request?.headers?.[CLIENT_ID_HEADER])
-    || normalizeClientId(fallbackClient);
+export function classifyClientAttribution({
+  client = null,
+  version = null,
+  channel = null,
+  authMode = null,
+  serverInferred = false,
+} = {}) {
+  if (channel === "automation" || inferClientChannel({ client, version }) === "automation") {
+    return { category: "automation", provenance: "automation" };
+  }
+  if (authMode === "session") {
+    return { category: "verified", provenance: "session" };
+  }
+  if (authMode === "api-key") {
+    return { category: "verified", provenance: "api-key" };
+  }
+  if (authMode === "scan-owner" || authMode === "owner-bound") {
+    return { category: "verified", provenance: "owner-bound" };
+  }
+  if (serverInferred || authMode === "server-inferred") {
+    return { category: "verified", provenance: "server-inferred" };
+  }
+  return { category: "unverified", provenance: "self-reported" };
+}
+
+export function readClientMetadata(request, { fallbackClient = null, authState = null } = {}) {
+  const reportedClient = normalizeClientId(request?.headers?.[CLIENT_ID_HEADER]);
+  const fallback = normalizeClientId(fallbackClient);
+  const client = reportedClient || fallback;
   const version = client
     ? normalizeClientVersion(request?.headers?.[CLIENT_VERSION_HEADER])
     : null;
   const channel = normalizeClientChannel(request?.headers?.[CLIENT_CHANNEL_HEADER])
     || inferClientChannel({ client, version });
   const appId = inferAppIdFromClient(client) || inferAppIdFromClient(fallbackClient);
-  return { client, version, channel, appId };
+  const attribution = classifyClientAttribution({
+    client,
+    version,
+    channel,
+    authMode: authState?.authMode,
+    serverInferred: !reportedClient && Boolean(fallback),
+  });
+  return { client, version, channel, appId, ...attribution };
 }

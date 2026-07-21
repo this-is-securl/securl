@@ -164,7 +164,7 @@ export async function handlePushDeviceCollectionRequest({
       requesterScope: authState.requesterScope,
       ownerId: authState.ownerId,
     });
-    const clientMetadata = readClientMetadata?.(request, { fallbackClient: device.appId }) || {};
+    const clientMetadata = readClientMetadata?.(request, { fallbackClient: device.appId, authState }) || {};
     telemetry?.recordFunnelEvent?.({
       event: "notification_device_registered",
       source: "backend_api",
@@ -172,6 +172,8 @@ export async function handlePushDeviceCollectionRequest({
       client: clientMetadata.client,
       clientVersion: clientMetadata.version,
       clientChannel: clientMetadata.channel,
+      clientAttribution: clientMetadata.category,
+      clientProvenance: clientMetadata.provenance,
       clientKey: authState.ownerId || authState.requesterScope || null,
     });
 
@@ -220,7 +222,7 @@ export async function handlePushDeviceHealthRequest({
       requesterScope: authState.ownerId ? null : authState.requesterScope,
       limit: clampLimit(requestUrl.searchParams.get("limit"), 100, 250),
     });
-    const clientMetadata = readClientMetadata?.(request) || {};
+    const clientMetadata = readClientMetadata?.(request, { authState }) || {};
     telemetry?.recordFunnelEvent?.({
       event: "notification_device_health_read",
       source: "backend_api",
@@ -228,6 +230,8 @@ export async function handlePushDeviceHealthRequest({
       client: clientMetadata.client,
       clientVersion: clientMetadata.version,
       clientChannel: clientMetadata.channel,
+      clientAttribution: clientMetadata.category,
+      clientProvenance: clientMetadata.provenance,
       clientKey: authState.ownerId || authState.requesterScope || null,
     });
     const activeDevices = devices.filter((device) => !device.disabledAt);
@@ -343,7 +347,7 @@ export async function handlePushDeviceItemRequest({
       }
 
       const delivery = await notificationService.sendTestNotification({ device });
-      const clientMetadata = readClientMetadata?.(request, { fallbackClient: device.appId }) || {};
+      const clientMetadata = readClientMetadata?.(request, { fallbackClient: device.appId, authState }) || {};
       telemetry?.recordFunnelEvent?.({
         event: "notification_test_requested",
         source: "backend_api",
@@ -351,6 +355,8 @@ export async function handlePushDeviceItemRequest({
         client: clientMetadata.client,
         clientVersion: clientMetadata.version,
         clientChannel: clientMetadata.channel,
+        clientAttribution: clientMetadata.category,
+        clientProvenance: clientMetadata.provenance,
         clientKey: authState.ownerId || authState.requesterScope || null,
       });
       sendJson(response, delivery.sent === 1 ? 200 : 503, {

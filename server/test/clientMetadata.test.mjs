@@ -6,6 +6,7 @@ import {
   normalizeClientVersion,
   inferAppIdFromClient,
   inferClientChannel,
+  classifyClientAttribution,
   readClientMetadata,
 } from "../clientMetadata.mjs";
 
@@ -36,6 +37,8 @@ test("client metadata is optional, ignores malformed headers, and supports app i
     version: null,
     channel: null,
     appId: null,
+    category: "unverified",
+    provenance: "self-reported",
   });
   assert.deepEqual(readClientMetadata({
     headers: {
@@ -48,6 +51,8 @@ test("client metadata is optional, ignores malformed headers, and supports app i
     version: "1.2.0+19",
     channel: "app-store",
     appId: "com.ktbatterham.securl",
+    category: "unverified",
+    provenance: "self-reported",
   });
   assert.deepEqual(readClientMetadata({
     headers: {
@@ -59,5 +64,39 @@ test("client metadata is optional, ignores malformed headers, and supports app i
     version: "1.2.0",
     channel: null,
     appId: "com.ktbatterham.securl",
+    category: "verified",
+    provenance: "server-inferred",
+  });
+});
+
+test("client attribution distinguishes verified identities and forces automation", () => {
+  assert.deepEqual(classifyClientAttribution({ client: "securl-ios", authMode: "session" }), {
+    category: "verified",
+    provenance: "session",
+  });
+  assert.deepEqual(classifyClientAttribution({ client: "claimed-mobile" }), {
+    category: "unverified",
+    provenance: "self-reported",
+  });
+  assert.deepEqual(classifyClientAttribution({
+    client: "securl-api-smoke",
+    channel: "app-store",
+    authMode: "session",
+  }), {
+    category: "automation",
+    provenance: "automation",
+  });
+  assert.deepEqual(readClientMetadata({
+    headers: {
+      "x-securl-client": "securl-ios",
+      "x-securl-client-channel": "app-store",
+    },
+  }, { authState: { authMode: "api-key" } }), {
+    client: "securl-ios",
+    version: null,
+    channel: "app-store",
+    appId: "com.ktbatterham.securl",
+    category: "verified",
+    provenance: "api-key",
   });
 });
