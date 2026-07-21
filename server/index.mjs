@@ -253,13 +253,15 @@ function buildScanTelemetryContext({ request = null, body = {}, authState = {}, 
     ? body.referrer
     : String(request?.headers?.referer || request?.headers?.origin || "");
   const currentUrl = typeof body.currentUrl === "string" ? body.currentUrl : "";
-  const clientMetadata = readClientMetadata(request, { fallbackClient: body.appId });
+  const clientMetadata = readClientMetadata(request, { fallbackClient: body.appId, authState });
   return {
     source: classifyTrafficSource({ referrer, currentUrl }),
     channel: channel || classifyAuthChannel(authState),
     clientKey: request ? buildVisitorKey(request) : authState.clientIp || null,
     client: clientMetadata.client,
     clientVersion: clientMetadata.version,
+    clientAttribution: clientMetadata.category,
+    clientProvenance: clientMetadata.provenance,
   };
 }
 
@@ -311,6 +313,8 @@ async function runScanAnalysis({ validatedTarget, mode, clientIp, requesterScope
     channel: telemetryContext.channel,
     client: telemetryContext.client,
     clientVersion: telemetryContext.clientVersion,
+    clientAttribution: telemetryContext.clientAttribution,
+    clientProvenance: telemetryContext.clientProvenance,
   });
   log("info", "analysis_requested", {
     clientIpHash,

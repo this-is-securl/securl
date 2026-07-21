@@ -32,6 +32,7 @@ export async function handleLiveCertificateRequest({
 
   const clientMetadata = readClientMetadata?.(request, {
     fallbackClient: requestUrl.searchParams.get("appId"),
+    authState,
   }) || {};
   const ownerOrScope = authState.ownerId || authState.requesterScope || null;
   const target = requestUrl.searchParams.get("url") || requestUrl.searchParams.get("target") || "";
@@ -48,6 +49,8 @@ export async function handleLiveCertificateRequest({
         client: clientMetadata.client,
         clientVersion: clientMetadata.version,
         clientChannel: clientMetadata.channel,
+        clientAttribution: clientMetadata.category,
+        clientProvenance: clientMetadata.provenance,
         clientKey: ownerOrScope,
       });
       sendJson(response, 400, {
@@ -76,6 +79,8 @@ export async function handleLiveCertificateRequest({
       client: clientMetadata.client,
       clientVersion: clientMetadata.version,
       clientChannel: clientMetadata.channel,
+      clientAttribution: clientMetadata.category,
+      clientProvenance: clientMetadata.provenance,
       clientKey: ownerOrScope,
     });
     sendJson(response, 200, {
@@ -96,6 +101,8 @@ export async function handleLiveCertificateRequest({
       client: clientMetadata.client,
       clientVersion: clientMetadata.version,
       clientChannel: clientMetadata.channel,
+      clientAttribution: clientMetadata.category,
+      clientProvenance: clientMetadata.provenance,
       clientKey: ownerOrScope,
     });
     telemetry.recordFailure(classifyScanFailure(error), {

@@ -327,6 +327,8 @@ test("telemetry tracker reports aggregate adoption cohorts without exposing owne
     client: "securl-ios",
     clientVersion: "1.1.0+21",
     clientChannel: "app-store",
+    clientAttribution: "verified",
+    clientProvenance: "owner-bound",
     clientKey: "owner-one",
     now: new Date("2026-07-06T08:00:00Z"),
   });
@@ -336,6 +338,8 @@ test("telemetry tracker reports aggregate adoption cohorts without exposing owne
     channel: "browser_owner",
     client: "com.ktbatterham.securl",
     clientVersion: "1.1.0+21",
+    clientAttribution: "verified",
+    clientProvenance: "owner-bound",
     clientKey: "owner-one",
     requesterKey: "owner-one",
     target: "https://example.com",
@@ -348,6 +352,8 @@ test("telemetry tracker reports aggregate adoption cohorts without exposing owne
     client: "securl-ios",
     clientVersion: "1.1.0+21",
     clientChannel: "app-store",
+    clientAttribution: "verified",
+    clientProvenance: "owner-bound",
     clientKey: "owner-one",
     target: "https://example.com",
     targetKind: "posture",
@@ -361,6 +367,8 @@ test("telemetry tracker reports aggregate adoption cohorts without exposing owne
     client: "securl-ios",
     clientVersion: "1.1.0+21",
     clientChannel: "app-store",
+    clientAttribution: "verified",
+    clientProvenance: "owner-bound",
     clientKey: "owner-one",
     now: new Date("2026-07-07T09:00:00Z"),
   });
@@ -371,6 +379,8 @@ test("telemetry tracker reports aggregate adoption cohorts without exposing owne
     client: "securl-ios",
     clientVersion: "1.1.0+21",
     clientChannel: "app-store",
+    clientAttribution: "verified",
+    clientProvenance: "owner-bound",
     clientKey: "owner-one",
     now: new Date("2026-07-13T09:00:00Z"),
   });
@@ -381,6 +391,8 @@ test("telemetry tracker reports aggregate adoption cohorts without exposing owne
     client: "cert-watch-ios",
     clientVersion: "1.1.0+17",
     clientChannel: "app-store",
+    clientAttribution: "verified",
+    clientProvenance: "owner-bound",
     clientKey: "owner-two",
     now: new Date("2026-07-07T10:00:00Z"),
   });
@@ -536,6 +548,53 @@ test("client telemetry bounds attacker-controlled product cardinality", () => {
   assert.equal(snapshot.funnel.byClientVersion.other.live_certificate_read, 11);
   assert.equal(snapshot.funnel.todayByClient.other.live_certificate_read, 111);
   assert.equal(snapshot.funnel.todayByClientVersion.other.live_certificate_read, 11);
+});
+
+test("client telemetry keeps trusted, self-reported, and automation identity partitions separate", () => {
+  const telemetry = createTelemetryTracker();
+  telemetry.recordFunnelEvent({
+    event: "live_certificate_read",
+    source: "backend_api",
+    client: "cert-watch-ios",
+    clientVersion: "1.2.0",
+    clientChannel: "app-store",
+    clientAttribution: "verified",
+    clientProvenance: "session",
+  });
+  telemetry.recordFunnelEvent({
+    event: "live_certificate_read",
+    source: "backend_api",
+    client: "cert-watch-ios",
+    clientVersion: "9.9.9",
+    clientChannel: "app-store",
+  });
+  telemetry.recordFunnelEvent({
+    event: "live_certificate_read",
+    source: "backend_api",
+    client: "cert-watch-ios-smoke",
+    clientVersion: "smoke",
+    clientChannel: "app-store",
+    clientAttribution: "verified",
+    clientProvenance: "session",
+  });
+  telemetry.recordScanRequested({
+    mode: "quiet",
+    source: "direct",
+    channel: "api_key",
+    client: "securl-cli",
+    clientVersion: "1.26.1",
+    clientAttribution: "verified",
+    clientProvenance: "api-key",
+  });
+
+  const attribution = telemetry.snapshot().clients.identity.attribution;
+  assert.equal(attribution.verified.eventsByClient["cert-watch-ios"].live_certificate_read, 1);
+  assert.equal(attribution.unverified.eventsByClient["cert-watch-ios"].live_certificate_read, 1);
+  assert.equal(attribution.automation.eventsByClient["cert-watch-ios-smoke"].live_certificate_read, 1);
+  assert.equal(attribution.verified.scanRequestsByClient["securl-cli"], 1);
+  assert.equal(attribution.today.verified.eventsByClient["cert-watch-ios"].live_certificate_read, 1);
+  assert.equal(attribution.today.automation.eventsByClient["cert-watch-ios-smoke"].live_certificate_read, 1);
+  assert.equal(attribution.verified.eventsByClient["cert-watch-ios-smoke"], undefined);
 });
 
 test("traffic source classification groups common public launch channels", () => {

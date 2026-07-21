@@ -488,6 +488,9 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
       channel: "X-SecURL-Client-Channel",
     });
     assert.deepEqual(payload.service.clientTelemetry.channels, ["app-store", "testflight", "development", "automation"]);
+    assert.deepEqual(payload.service.clientTelemetry.attribution.categories, ["verified", "unverified", "automation"]);
+    assert.equal(payload.service.clientTelemetry.attribution.selfReportedHeadersAreUnverified, true);
+    assert.equal(payload.service.clientTelemetry.attribution.automationOverridesReportedIdentity, true);
     assert.equal(payload.service.clientTelemetry.optional, true);
     assert.equal(payload.service.clientTelemetry.privacySafe, true);
     assert.deepEqual(payload.scans.modes, ["standard", "quiet", "deep-passive"]);
@@ -648,6 +651,14 @@ test("live certificate endpoint validates HTTPS targets before doing a cheap TLS
       1,
     );
     assert.equal(telemetryPayload.clients.consumption.today.liveCertificateFailures, 1);
+    assert.equal(
+      telemetryPayload.clients.identity.attribution.verified.eventsByClient["cert-watch-ios"].live_certificate_failed,
+      1,
+    );
+    assert.equal(
+      telemetryPayload.clients.identity.attribution.unverified.eventsByClient["cert-watch-ios"],
+      undefined,
+    );
   } finally {
     await server.stop();
   }

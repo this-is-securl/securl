@@ -1,7 +1,12 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { hashPrivacyValue, targetForPrivacy } from "./privacy.mjs";
-import { normalizeClientChannel, normalizeClientId, normalizeClientVersion } from "./clientMetadata.mjs";
+import {
+  classifyClientAttribution,
+  normalizeClientChannel,
+  normalizeClientId,
+  normalizeClientVersion,
+} from "./clientMetadata.mjs";
 
 export function createTelemetryTracker({ storagePath = "" } = {}) {
   const persistence = storagePath ? "file" : "memory";
@@ -41,6 +46,8 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     funnelEventsByMode: {},
     funnelEventsByClient: {},
     funnelEventsByClientVersion: {},
+    clientAttributionBuckets: {},
+    clientAttributionDays: {},
     funnelClientKeysByClient: {},
     funnelClientKeysByClientVersion: {},
     funnelClientKeysByMode: {},
@@ -101,6 +108,8 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     ),
     funnelClientKeysByClient: serializeSetBuckets(state.funnelClientKeysByClient),
     funnelClientKeysByClientVersion: serializeSetBuckets(state.funnelClientKeysByClientVersion),
+    clientAttributionBuckets: structuredClone(state.clientAttributionBuckets),
+    clientAttributionDays: structuredClone(state.clientAttributionDays),
     funnelClientKeysByMode: serializeSetBuckets(state.funnelClientKeysByMode),
     funnelTargetOriginsByMode: serializeSetBuckets(state.funnelTargetOriginsByMode),
     funnelClientChannelsByMode: serializeNestedBuckets(state.funnelClientChannelsByMode),
@@ -189,6 +198,8 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     state.funnelEventsByMode = { ...(value.funnelEventsByMode || {}) };
     state.funnelEventsByClient = { ...(value.funnelEventsByClient || {}) };
     state.funnelEventsByClientVersion = { ...(value.funnelEventsByClientVersion || {}) };
+    state.clientAttributionBuckets = hydrateAttributionBuckets(value.clientAttributionBuckets);
+    state.clientAttributionDays = hydrateAttributionBuckets(value.clientAttributionDays);
     state.funnelClientKeysByClient = hydrateSetBuckets(value.funnelClientKeysByClient);
     state.funnelClientKeysByClientVersion = hydrateSetBuckets(value.funnelClientKeysByClientVersion);
     state.funnelClientKeysByMode = hydrateSetBuckets(value.funnelClientKeysByMode);
@@ -269,6 +280,51 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       buckets[safeBucketKey] = {};
     }
     incrementBucket(buckets[safeBucketKey], key);
+  };
+  const recordAttributedClient = ({
+    scope,
+    client,
+    clientVersion,
+    event = null,
+    scan = false,
+  }) => {
+    if (!client) return;
+    const bucket = scope;
+    bucket.eventsByClient ||= {};
+    bucket.eventsByClientVersion ||= {};
+    bucket.scanRequestsByClient ||= {};
+    bucket.scanRequestsByClientVersion ||= {};
+    if (scan) {
+      incrementBucket(bucket.scanRequestsByClient, boundedBucketKey(bucket.scanRequestsByClient, client, 100));
+    } else if (event) {
+      const key = boundedBucketKey(bucket.eventsByClient, client, 100);
+      bucket.eventsByClient[key] ||= {};
+      incrementBucket(bucket.eventsByClient[key], event);
+    }
+    if (clientVersion) {
+      const version = `${client}@${clientVersion}`;
+      const versionMap = scan ? bucket.scanRequestsByClientVersion : bucket.eventsByClientVersion;
+      if (scan) {
+        incrementBucket(versionMap, boundedBucketKey(versionMap, version, 200));
+      } else {
+        const key = boundedBucketKey(versionMap, version, 200);
+        versionMap[key] ||= {};
+        incrementBucket(versionMap[key], event);
+      }
+    }
+  };
+  const attributionFor = ({ client, clientVersion, clientChannel, clientAttribution, clientProvenance }) => {
+    const forced = classifyClientAttribution({ client, version: clientVersion, channel: clientChannel });
+    if (forced.category === "automation") return forced;
+    if (clientAttribution === "verified") {
+      return {
+        category: "verified",
+        provenance: ["session", "api-key", "owner-bound", "server-inferred"].includes(clientProvenance)
+          ? clientProvenance
+          : "server-inferred",
+      };
+    }
+    return { category: "unverified", provenance: "self-reported" };
   };
   const addToSetBucket = (buckets, bucketKey, value, maxKeys = 100) => {
     if (!value) {
@@ -492,6 +548,8 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       client = null,
       clientVersion = null,
       clientChannel = null,
+      clientAttribution = "unverified",
+      clientProvenance = "self-reported",
       clientKey = null,
       targetKind = null,
       outcome = null,
@@ -510,6 +568,8 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         clientChannel,
         targetKind,
         outcome,
+        clientAttribution,
+        clientProvenance,
       });
       if (!sanitized) {
         return false;
@@ -555,6 +615,15 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
           incrementBucket(state.funnelEventsByClientVersion[boundedVersionKey], sanitized.event);
         }
       }
+      if (sanitized.client) {
+        state.clientAttributionBuckets[sanitized.clientAttribution] ||= {};
+        recordAttributedClient({
+          scope: state.clientAttributionBuckets[sanitized.clientAttribution],
+          client: sanitized.client,
+          clientVersion: sanitized.clientVersion,
+          event: sanitized.event,
+        });
+      }
       const safeBackendClientKey = hashPrivacyValue(clientKey, { prefix: "backend_client", length: 16 });
       const safeCohortOwnerKey = hashPrivacyValue(clientKey, { prefix: "cohort_owner", length: 16 });
       if (sanitized.mode && safeBackendClientKey !== "unknown") {
@@ -577,6 +646,16 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       }
       const dateKey = now.toISOString().slice(0, 10);
       const dayBucket = getFunnelDayBucket(dateKey);
+      state.clientAttributionDays[dateKey] ||= {};
+      state.clientAttributionDays[dateKey][sanitized.clientAttribution] ||= {};
+      if (sanitized.client) {
+        recordAttributedClient({
+          scope: state.clientAttributionDays[dateKey][sanitized.clientAttribution],
+          client: sanitized.client,
+          clientVersion: sanitized.clientVersion,
+          event: sanitized.event,
+        });
+      }
       incrementBucket(dayBucket.events, sanitized.event);
       if (!dayBucket.sources[sanitized.source]) {
         dayBucket.sources[sanitized.source] = {};
@@ -632,15 +711,17 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
           }
         }
       }
-      recordCohortActivity({
-        ownerKey: safeCohortOwnerKey,
-        appId: sanitized.mode || sanitized.client,
-        client: sanitized.client,
-        clientVersion: sanitized.clientVersion,
-        clientChannel: sanitized.clientChannel,
-        event: sanitized.event,
-        now,
-      });
+      if (sanitized.clientAttribution === "verified") {
+        recordCohortActivity({
+          ownerKey: safeCohortOwnerKey,
+          appId: sanitized.mode || sanitized.client,
+          client: sanitized.client,
+          clientVersion: sanitized.clientVersion,
+          clientChannel: sanitized.clientChannel,
+          event: sanitized.event,
+          now,
+        });
+      }
       pushRecentFunnelEvent(sanitized);
       persist();
       return true;
@@ -654,6 +735,8 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       target = null,
       client = null,
       clientVersion = null,
+      clientAttribution = "unverified",
+      clientProvenance = "self-reported",
       now = new Date(),
     } = {}) {
       const normalizedSource = normalizeTrafficSource(source);
@@ -661,6 +744,13 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       const targetOrigin = targetForPrivacy(target);
       const safeProduct = normalizeClientId(client);
       const safeProductVersion = safeProduct ? normalizeClientVersion(clientVersion) : null;
+      const attribution = attributionFor({
+        client: safeProduct,
+        clientVersion: safeProductVersion,
+        clientChannel: channel,
+        clientAttribution,
+        clientProvenance,
+      });
       const safeRequesterKey = hashPrivacyValue(requesterKey, { prefix: "req", length: 16 });
       const safeClientKey = hashPrivacyValue(clientKey, { prefix: "client", length: 16 });
       const safeCohortOwnerKey = hashPrivacyValue(clientKey, { prefix: "cohort_owner", length: 16 });
@@ -671,6 +761,22 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       incrementBucket(state.scanSourceBuckets, normalizedSource);
       incrementBucket(state.scanChannelBuckets, normalizedChannel);
       if (safeProduct) {
+        state.clientAttributionBuckets[attribution.category] ||= {};
+        recordAttributedClient({
+          scope: state.clientAttributionBuckets[attribution.category],
+          client: safeProduct,
+          clientVersion: safeProductVersion,
+          scan: true,
+        });
+        const dateKey = now.toISOString().slice(0, 10);
+        state.clientAttributionDays[dateKey] ||= {};
+        state.clientAttributionDays[dateKey][attribution.category] ||= {};
+        recordAttributedClient({
+          scope: state.clientAttributionDays[dateKey][attribution.category],
+          client: safeProduct,
+          clientVersion: safeProductVersion,
+          scan: true,
+        });
         incrementBucket(
           state.scanProductBuckets,
           boundedBucketKey(state.scanProductBuckets, safeProduct, 100),
@@ -693,14 +799,16 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       if (safeClientKey !== "unknown") {
         state.scanClientKeys.add(safeClientKey);
       }
-      recordCohortActivity({
-        ownerKey: safeCohortOwnerKey,
-        appId: safeProduct,
-        client: safeProduct,
-        clientVersion: safeProductVersion,
-        event: "scan_requested",
-        now,
-      });
+      if (attribution.category === "verified") {
+        recordCohortActivity({
+          ownerKey: safeCohortOwnerKey,
+          appId: safeProduct,
+          client: safeProduct,
+          clientVersion: safeProductVersion,
+          event: "scan_requested",
+          now,
+        });
+      }
       const dateKey = now.toISOString().slice(0, 10);
       const dayBucket = getScanDayBucket(dateKey);
       dayBucket.requested += 1;
@@ -725,6 +833,8 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         clientKey: safeClientKey,
         client: safeProduct,
         clientVersion: safeProductVersion,
+        clientAttribution: attribution.category,
+        clientProvenance: attribution.provenance,
       });
       persist();
     },
@@ -969,6 +1079,17 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         },
         clients: {
           identity: {
+            attribution: {
+              semantics: "Client headers are self-reported unless bound to successful authentication or inferred by the server; automation always remains separate.",
+              verified: cloneAttributionBucket(state.clientAttributionBuckets.verified),
+              unverified: cloneAttributionBucket(state.clientAttributionBuckets.unverified),
+              automation: cloneAttributionBucket(state.clientAttributionBuckets.automation),
+              today: {
+                verified: cloneAttributionBucket(state.clientAttributionDays[todayKey]?.verified),
+                unverified: cloneAttributionBucket(state.clientAttributionDays[todayKey]?.unverified),
+                automation: cloneAttributionBucket(state.clientAttributionDays[todayKey]?.automation),
+              },
+            },
             scanRequestsByClient: { ...state.scanProductBuckets },
             scanRequestsByClientVersion: { ...state.scanProductVersionBuckets },
             backendEventsByClient: Object.fromEntries(
@@ -1163,6 +1284,20 @@ function hydrateNestedBuckets(value = {}) {
       { ...(values || {}) },
     ]),
   );
+}
+
+function hydrateAttributionBuckets(value = {}) {
+  return value && typeof value === "object" ? structuredClone(value) : {};
+}
+
+function cloneAttributionBucket(value = {}) {
+  const bucket = hydrateAttributionBuckets(value);
+  return {
+    eventsByClient: bucket.eventsByClient || {},
+    eventsByClientVersion: bucket.eventsByClientVersion || {},
+    scanRequestsByClient: bucket.scanRequestsByClient || {},
+    scanRequestsByClientVersion: bucket.scanRequestsByClientVersion || {},
+  };
 }
 
 function hydrateSetBuckets(value = {}) {
@@ -1534,6 +1669,13 @@ function sanitizeRecentScan(value) {
   const channel = normalizeScanChannel(value.channel);
   const source = normalizeTrafficSource(value.source);
   const client = normalizeClientId(value.client);
+  const attribution = classifyClientAttribution({
+    client,
+    version: value.clientVersion,
+    channel,
+    authMode: value.clientAttribution === "verified" ? value.clientProvenance : null,
+    serverInferred: value.clientProvenance === "server-inferred",
+  });
   return {
     occurredAt,
     target: sanitizeTelemetryText(targetForPrivacy(value.target), 240),
@@ -1544,6 +1686,8 @@ function sanitizeRecentScan(value) {
     clientKey: sanitizeTelemetryText(value.clientKey, 80),
     client,
     clientVersion: client ? normalizeClientVersion(value.clientVersion) : null,
+    clientAttribution: attribution.category,
+    clientProvenance: attribution.provenance,
   };
 }
 
@@ -1588,6 +1732,15 @@ function sanitizeFunnelEvent(value) {
     return null;
   }
   const client = normalizeClientId(value.client);
+  const normalizedChannel = normalizeClientChannel(value.clientChannel);
+  const suppliedAttribution = value.clientAttribution === "verified" ? "verified" : "unverified";
+  const attribution = classifyClientAttribution({
+    client,
+    version: value.clientVersion,
+    channel: normalizedChannel,
+    authMode: suppliedAttribution === "verified" ? value.clientProvenance : null,
+    serverInferred: value.clientProvenance === "server-inferred",
+  });
   return {
     occurredAt: sanitizeTelemetryText(value.occurredAt, 40) || new Date().toISOString(),
     event,
@@ -1598,7 +1751,9 @@ function sanitizeFunnelEvent(value) {
     mode: sanitizeTelemetryText(value.mode, 40),
     client,
     clientVersion: client ? normalizeClientVersion(value.clientVersion) : null,
-    clientChannel: normalizeClientChannel(value.clientChannel),
+    clientChannel: attribution.category === "automation" ? "automation" : normalizedChannel,
+    clientAttribution: attribution.category,
+    clientProvenance: attribution.provenance,
     targetKind: sanitizeTargetKind(value.targetKind),
     outcome: sanitizeOutcome(value.outcome),
   };

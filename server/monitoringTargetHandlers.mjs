@@ -122,7 +122,7 @@ export async function handleMonitoringMobileSummaryRequest({
   }
 
   try {
-    const clientMetadata = readClientMetadata?.(request) || {};
+    const clientMetadata = readClientMetadata?.(request, { authState }) || {};
     telemetry?.recordFunnelEvent?.({
       event: "monitoring_mobile_summary_read",
       source: "backend_api",
@@ -130,6 +130,8 @@ export async function handleMonitoringMobileSummaryRequest({
       client: clientMetadata.client,
       clientVersion: clientMetadata.version,
       clientChannel: clientMetadata.channel,
+      clientAttribution: clientMetadata.category,
+      clientProvenance: clientMetadata.provenance,
       clientKey: authState.ownerId || authState.requesterScope || null,
     });
     const limit = clampLimit(requestUrl.searchParams.get("limit"), 100, 250);
@@ -184,7 +186,7 @@ export async function handleMonitoringCertSummaryRequest({
   }
 
   try {
-    const clientMetadata = readClientMetadata?.(request, { fallbackClient: "com.ktbatterham.certwatch" }) || {};
+    const clientMetadata = readClientMetadata?.(request, { fallbackClient: "com.ktbatterham.certwatch", authState }) || {};
     const ownerOrScope = authState.ownerId || authState.requesterScope || null;
     telemetry?.recordFunnelEvent?.({
       event: "cert_watchlist_summary_read",
@@ -193,6 +195,8 @@ export async function handleMonitoringCertSummaryRequest({
       client: clientMetadata.client,
       clientVersion: clientMetadata.version,
       clientChannel: clientMetadata.channel,
+      clientAttribution: clientMetadata.category,
+      clientProvenance: clientMetadata.provenance,
       clientKey: ownerOrScope,
     });
 
@@ -255,7 +259,7 @@ export async function handleMonitoringAttentionRequest({
   }
 
   try {
-    const clientMetadata = readClientMetadata?.(request) || {};
+    const clientMetadata = readClientMetadata?.(request, { authState }) || {};
     const requestedAppId = normalizeMonitoringAppId(requestUrl.searchParams.get("appId"));
     telemetry?.recordFunnelEvent?.({
       event: "monitoring_attention_read",
@@ -264,6 +268,8 @@ export async function handleMonitoringAttentionRequest({
       client: clientMetadata.client,
       clientVersion: clientMetadata.version,
       clientChannel: clientMetadata.channel,
+      clientAttribution: clientMetadata.category,
+      clientProvenance: clientMetadata.provenance,
       clientKey: authState.ownerId || authState.requesterScope || null,
     });
 
@@ -342,7 +348,7 @@ export async function handleMonitoringHealthRequest({
   }
 
   try {
-    const clientMetadata = readClientMetadata?.(request) || {};
+    const clientMetadata = readClientMetadata?.(request, { authState }) || {};
     telemetry?.recordFunnelEvent?.({
       event: "monitoring_health_read",
       source: "backend_api",
@@ -350,6 +356,8 @@ export async function handleMonitoringHealthRequest({
       client: clientMetadata.client,
       clientVersion: clientMetadata.version,
       clientChannel: clientMetadata.channel,
+      clientAttribution: clientMetadata.category,
+      clientProvenance: clientMetadata.provenance,
       clientKey: authState.ownerId || authState.requesterScope || null,
     });
 
@@ -519,7 +527,7 @@ export async function handleMonitoringTargetCollectionRequest({
       });
       viewTarget = outcome.target;
     }
-    const clientMetadata = readClientMetadata?.(request, { fallbackClient: appId }) || {};
+    const clientMetadata = readClientMetadata?.(request, { fallbackClient: appId, authState }) || {};
     telemetry?.recordFunnelEvent?.({
       event: "monitoring_target_registered",
       source: "backend_api",
@@ -528,6 +536,8 @@ export async function handleMonitoringTargetCollectionRequest({
       client: clientMetadata.client,
       clientVersion: clientMetadata.version,
       clientChannel: clientMetadata.channel,
+      clientAttribution: clientMetadata.category,
+      clientProvenance: clientMetadata.provenance,
       clientKey: authState.ownerId || authState.requesterScope || null,
       targetKind: kind,
       outcome: existingTarget ? "updated" : "created",
@@ -649,7 +659,7 @@ export async function handleMonitoringTargetItemRequest({
         return true;
       }
 
-      const clientMetadata = readClientMetadata?.(request) || {};
+      const clientMetadata = readClientMetadata?.(request, { authState }) || {};
       telemetry?.recordFunnelEvent?.({
         event: "monitoring_timeline_read",
         source: "backend_api",
@@ -657,6 +667,8 @@ export async function handleMonitoringTargetItemRequest({
         client: clientMetadata.client,
         clientVersion: clientMetadata.version,
         clientChannel: clientMetadata.channel,
+        clientAttribution: clientMetadata.category,
+        clientProvenance: clientMetadata.provenance,
         clientKey: authState.ownerId || authState.requesterScope || null,
       });
 

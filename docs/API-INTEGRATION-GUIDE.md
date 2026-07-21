@@ -29,7 +29,7 @@ First-party examples:
 - `cert-watch-ios`
 - `automation`
 
-The backend uses these values for aggregate product pulse and compatibility tracking. Do not send device ids, user ids, APNs tokens, email addresses, or long random identifiers in these headers.
+The backend uses these values for aggregate product pulse and compatibility tracking. Do not send device ids, user ids, APNs tokens, email addresses, or long random identifiers in these headers. These values are self-reported metadata, not credentials: requests authorized by a session, API key, or stable owner token are reported separately from unauthenticated assertions, while smoke/CI identities are always classified as automation. Clients do not need to change request handling; the provenance fields are additive telemetry semantics.
 
 ## Basic Scan Flow
 
