@@ -38,7 +38,7 @@ SecURL is not a URL shortener. It assesses the external security posture of URLs
 Use the hosted scanner if you want the quickest feel for the product, or run the same engine from the terminal:
 
 - [securl.online](https://securl.online) — product and landing page
-- [app.securl.online](https://app.securl.online) — live scanner and report workspace
+- [app.securl.online](https://app.securl.online/?utm_source=securl_github&utm_medium=docs&utm_campaign=package_scan_bridge) — live scanner and report workspace
 - [SecURL on the App Store](https://apps.apple.com/app/securl/id6774322464) — iOS app
 - [Android downloads](https://securl.online/downloads) — self-hosted APKs for the mobile suite
 - [`securl`](https://www.npmjs.com/package/securl) — reusable CLI and Node engine
@@ -55,7 +55,7 @@ For a five-minute path from first scan to CI/monitoring evidence, read [`docs/AD
 
 ## Current Engine Surface
 
-`securl@1.24.0` is the current npm package release. It includes:
+`securl@1.26.2` is the current repository package version. It includes:
 
 - Detection-pack architecture foundation with a constrained first-party rules seam, schema validation, and output-equivalence checks.
 - External Exposure Inventory v1 across visible third-party, infrastructure, identity, and AI dependencies, with stable IDs, data-flow purpose, confidence, evidence, SRI status, and review priority.

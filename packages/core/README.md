@@ -52,7 +52,7 @@ npm install -g securl
 securl scan example.com
 ```
 
-Prefer the hosted report workspace? Use [app.securl.online](https://app.securl.online). For the product overview, start at [securl.online](https://securl.online). Prefer mobile? Install [SecURL on the App Store](https://apps.apple.com/app/securl/id6774322464).
+Prefer the full hosted report and optional monitoring? [Open the free scanner](https://app.securl.online/?utm_source=securl_npm&utm_medium=docs&utm_campaign=package_scan_bridge). For the product overview, start at [securl.online](https://securl.online). Prefer mobile? Install [SecURL on the App Store](https://apps.apple.com/app/securl/id6774322464).
 
 ## Common use cases
 
