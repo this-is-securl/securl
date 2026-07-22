@@ -9,6 +9,13 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 ### Backend and docs
 - Added protected product-pulse telemetry and optional release-channel attribution for hosted/mobile clients. These are backend/API-service changes and do not change the published `securl` package surface.
 
+## [1.26.2] - 2026-07-22
+
+### Changed
+- Added an attributed, target-prefilled hosted-report next step after successful
+  interactive single-target summary scans. The prompt is suppressed for structured,
+  redirected, piped, file, batch, baseline, and policy/CI output.
+
 ## [1.26.1] - 2026-07-20
 
 ### Security

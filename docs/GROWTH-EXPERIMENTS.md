@@ -63,3 +63,27 @@ holding a funnel that is not producing users.
   traffic or visible abandonment indicates another reversible funnel change.
 - **Rollback:** re-enable the legacy app landing composition and redeploy the previous
   Hostinger build. No backend, package, mobile, or download rollback is required.
+
+## Experiment 003 — package/docs-to-hosted-scan bridge
+
+- **Owner/surfaces:** published `securl` CLI and npm/GitHub README paths into
+  `app.securl.online`.
+- **Prepared:** 2026-07-22. The experiment starts only after the package patch is published
+  and installed-package smoke verification passes.
+- **Baseline:** npm demand is materially stronger than owned-web demand (146 daily and 869
+  weekly downloads at the 2026-07-22 morning read), while the hosted funnel recorded no
+  handoffs or scans that day.
+- **Hypothesis:** package users who have just received a useful local result are more likely
+  to try the richer hosted report when the next step is contextual, target-prefilled, and
+  attributable.
+- **Change:** attributed scanner links in the package and repository READMEs. A successful
+  single-target summary scan also shows a concise target-prefilled link, but only when both
+  output streams are terminals. Batch, redirected, piped, file, structured-format,
+  baseline, and policy/CI runs stay unchanged.
+- **Primary read:** `securl_cli` and `securl_npm` attributed page loads -> scan starts ->
+  completions. `securl_github` is reported separately. Secondary read: monitoring saves;
+  guardrails: CLI output compatibility, automation noise, scan failures, and auth rejects.
+- **Review:** first directional review seven days after publication. Low volume supports
+  another reversible iteration but must not be presented as proof of causality.
+- **Rollback:** remove the interactive prompt and attributed README links in a package patch.
+  Hosted API, engine findings, mobile clients, and monitoring contracts are unchanged.

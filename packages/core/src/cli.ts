@@ -15,6 +15,7 @@ import {
   snapshotFromAnalysis,
 } from "./index.js";
 import type { AnalysisResult, HistoryDiff, LiveCertificateResult, ScanIssue } from "./types.js";
+import { buildCliGrowthBridge } from "./cliGrowthBridge.js";
 
 const require = createRequire(import.meta.url);
 const corePackage = require("../package.json") as { version?: string };
@@ -1208,6 +1209,21 @@ const main = async () => {
         await writeFile(parsed.outputPath, output, "utf8");
       } else {
         process.stdout.write(output);
+      }
+      const growthBridge = buildCliGrowthBridge({
+        targetUrl: analyses[0]?.finalUrl ?? parsed.targets[0],
+        targetCount: analyses.length,
+        format: parsed.format,
+        outputPath: parsed.outputPath,
+        baselinePath: parsed.baselinePath,
+        hasPolicy: parsed.failOnSeverity !== null
+          || parsed.failOnRegression
+          || parsed.failIfScoreBelow !== null,
+        stdoutIsTty: Boolean(process.stdout.isTTY),
+        stderrIsTty: Boolean(process.stderr.isTTY),
+      });
+      if (growthBridge) {
+        process.stderr.write(`\n${growthBridge}`);
       }
       if (policyMessages.length) {
         process.stderr.write(`${policyMessages.join("\n")}\n`);
