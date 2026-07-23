@@ -16,10 +16,14 @@ import {
 } from "./index.js";
 import type { AnalysisResult, HistoryDiff, LiveCertificateResult, ScanIssue } from "./types.js";
 import { buildCliGrowthBridge } from "./cliGrowthBridge.js";
+import { formatPublishedScan, publishHostedScan } from "./cliPublishBridge.js";
 
 const require = createRequire(import.meta.url);
 const corePackage = require("../package.json") as { version?: string };
 const CORE_ENGINE_VERSION = corePackage.version ?? null;
+const qrcodeTerminal = require("qrcode-terminal") as {
+  generate(value: string, options: { small: boolean }, callback: (output: string) => void): void;
+};
 
 type OutputFormat = "json" | "markdown" | "summary" | "sarif" | "ci-json" | "manifest" | "exposure";
 type FailOnSeverity = Exclude<ScanIssue["severity"], "good">;
@@ -53,6 +57,8 @@ type ParsedArgs =
       failOnRegression: boolean;
       failIfScoreBelow: number | null;
       scanMode: ScanMode;
+      publish: boolean;
+      notify: boolean;
     }
   | {
       command: "compare";
@@ -75,7 +81,7 @@ type ParsedArgs =
 const usage = `SecURL CLI
 
 Usage:
-  securl scan <target...> [--format json|markdown|summary|sarif|ci-json|manifest|exposure] [--baseline <report.json>] [--output <file>] [--quiet|--deep-passive] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
+  securl scan <target...> [--publish|--notify] [--format json|markdown|summary|sarif|ci-json|manifest|exposure] [--baseline <report.json>] [--output <file>] [--quiet|--deep-passive] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
   securl compare <current-report.json> <baseline-report.json> [--format json|markdown|summary|sarif|ci-json] [--output <file>] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
   securl cert <target> [--format json|markdown|summary|ci-json] [--output <file>] [--policy production|strict|renewal-watch] [--fail-if-invalid] [--fail-if-expiring-within <days>] [--fail-if-legacy-tls] [--expect-issuer <text>]
   securl schema manifest|mobile-summary|monitoring-mobile-summary|monitoring-cert-summary [--output <file>]
@@ -93,6 +99,8 @@ Examples:
   npx securl scan example.com --format json --output report.json
   npx securl scan example.com --quiet
   npx securl scan example.com --deep-passive
+  npx securl scan example.com --publish
+  npx securl scan example.com --notify
   npx securl scan example.com --baseline previous-report.json
   npx securl scan example.com --baseline previous-report.json --fail-on-regression
   npx securl scan example.com github.com --fail-on warning
@@ -108,6 +116,11 @@ Scan modes:
   default scan   Fetches the primary response plus bounded passive enrichment: HTML, DNS/mail, CT, OSV, exposure, CORS, API-surface, and public trust signals.
   --quiet        Keeps primary response, TLS, headers, cookies, redirects, DNS/mail, CT summary, infrastructure, and public trust checks; skips page-body analysis, related-page crawl, security.txt fetch, identity discovery, exposure probes, CORS probes, API probes, OSV lookups, and CT host sampling.
   --deep-passive Expands passive CT host sampling, related-page crawl, exposure probes, and API-surface probes while keeping strict request limits and scan timeout bounds.
+
+Hosted continuation:
+  --publish      After the local scan, explicitly create an authoritative hosted scan and print its durable report and mobile bridge links.
+  --notify       Do the same, then print a compact QR code for opening the pre-filled target in the mobile suite.
+                 Both options support one interactive summary target only. No local scan payload is uploaded.
 
 CI policy modes:
   --fail-on warning          Fail when findings at or above the selected severity are present.
@@ -183,6 +196,8 @@ const parseArgs = (argv: string[]): ParsedArgs => {
   let failOnRegression = false;
   let failIfScoreBelow: number | null = null;
   let scanMode: ScanMode = "standard";
+  let publish = false;
+  let notify = false;
   const certPolicy: CertPolicyOptions = {
     profile: null,
     failIfInvalid: false,
@@ -271,6 +286,17 @@ const parseArgs = (argv: string[]): ParsedArgs => {
       continue;
     }
 
+    if (arg === "--publish") {
+      publish = true;
+      continue;
+    }
+
+    if (arg === "--notify") {
+      publish = true;
+      notify = true;
+      continue;
+    }
+
     if (arg === "--policy") {
       const value = args[index + 1];
       if (!value || !["production", "strict", "renewal-watch"].includes(value)) {
@@ -319,6 +345,10 @@ const parseArgs = (argv: string[]): ParsedArgs => {
     positionals.push(arg);
   }
 
+  if (command !== "scan" && publish) {
+    throw new Error("--publish and --notify are only supported by the scan command.");
+  }
+
   if (command === "schema") {
     const [schema, unexpected] = positionals;
     const schemaNames = ["manifest", ...Object.keys(MOBILE_RESOURCE_SCHEMAS)];
@@ -357,6 +387,22 @@ const parseArgs = (argv: string[]): ParsedArgs => {
     if (certPolicyActive(certPolicy)) {
       throw new Error("Certificate policy options are only supported by the cert command.");
     }
+    if (
+      publish
+      && (
+        positionals.length !== 1
+        || format !== "summary"
+        || outputPath
+        || baselinePath
+        || failOnSeverity
+        || failOnRegression
+        || failIfScoreBelow !== null
+        || !process.stdout.isTTY
+        || !process.stderr.isTTY
+      )
+    ) {
+      throw new Error("--publish and --notify support one interactive summary scan without output, baseline, or policy options.");
+    }
 
     return {
       command: "scan",
@@ -368,6 +414,8 @@ const parseArgs = (argv: string[]): ParsedArgs => {
       failOnRegression,
       failIfScoreBelow,
       scanMode,
+      publish,
+      notify,
     };
   }
 
@@ -1210,20 +1258,37 @@ const main = async () => {
       } else {
         process.stdout.write(output);
       }
-      const growthBridge = buildCliGrowthBridge({
-        targetUrl: analyses[0]?.finalUrl ?? parsed.targets[0],
-        targetCount: analyses.length,
-        format: parsed.format,
-        outputPath: parsed.outputPath,
-        baselinePath: parsed.baselinePath,
-        hasPolicy: parsed.failOnSeverity !== null
-          || parsed.failOnRegression
-          || parsed.failIfScoreBelow !== null,
-        stdoutIsTty: Boolean(process.stdout.isTTY),
-        stderrIsTty: Boolean(process.stderr.isTTY),
-      });
-      if (growthBridge) {
-        process.stderr.write(`\n${growthBridge}`);
+      if (!parsed.publish) {
+        const growthBridge = buildCliGrowthBridge({
+          targetUrl: analyses[0]?.finalUrl ?? parsed.targets[0],
+          targetCount: analyses.length,
+          format: parsed.format,
+          outputPath: parsed.outputPath,
+          baselinePath: parsed.baselinePath,
+          hasPolicy: parsed.failOnSeverity !== null
+            || parsed.failOnRegression
+            || parsed.failIfScoreBelow !== null,
+          stdoutIsTty: Boolean(process.stdout.isTTY),
+          stderrIsTty: Boolean(process.stderr.isTTY),
+        });
+        if (growthBridge) {
+          process.stderr.write(`\n${growthBridge}`);
+        }
+      }
+      if (parsed.publish) {
+        process.stderr.write("\nCreating authoritative hosted report…\n");
+        const published = await publishHostedScan({
+          targetUrl: analyses[0].finalUrl,
+          scanMode: parsed.scanMode,
+          clientVersion: CORE_ENGINE_VERSION,
+        });
+        let qr: string | null = null;
+        if (parsed.notify) {
+          qr = await new Promise<string>((resolve) => {
+            qrcodeTerminal.generate(published.mobileBridgeUrl, { small: true }, resolve);
+          });
+        }
+        process.stderr.write(`\n${formatPublishedScan(published, qr)}`);
       }
       if (policyMessages.length) {
         process.stderr.write(`${policyMessages.join("\n")}\n`);

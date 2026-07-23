@@ -91,9 +91,28 @@ test("CLI schema command rejects scan-only options", async () => {
   );
 
   await assert.rejects(
+    execFile(process.execPath, [cliPath, "schema", "manifest", "--publish"]),
+    (error) => {
+      assert.match(error.stderr, /only supported by the scan command/);
+      return true;
+    },
+  );
+
+  await assert.rejects(
     execFile(process.execPath, [cliPath, "schema", "report"]),
     (error) => {
       assert.match(error.stderr, /Schema command supports exactly one target: securl schema manifest/);
+      return true;
+    },
+  );
+});
+
+test("CLI hosted continuation refuses non-interactive output before scanning", async () => {
+  await assert.rejects(
+    execFile(process.execPath, [cliPath, "scan", "https://example.com", "--publish"]),
+    (error) => {
+      assert.match(error.stderr, /one interactive summary scan/);
+      assert.doesNotMatch(error.stderr, /Creating authoritative hosted report/);
       return true;
     },
   );

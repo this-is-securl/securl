@@ -103,6 +103,9 @@ test("package surface includes a working CLI help entrypoint", async () => {
   assert.match(stdout, /--expect-issuer "Let's Encrypt"/);
   assert.match(stdout, /--quiet/);
   assert.match(stdout, /--deep-passive/);
+  assert.match(stdout, /--publish/);
+  assert.match(stdout, /--notify/);
+  assert.match(stdout, /No local scan payload is uploaded/);
   assert.match(stdout, /Scan modes:/);
   assert.match(stdout, /CI policy modes:/);
   assert.match(stdout, /compare <current-report\.json> <baseline-report\.json>/);

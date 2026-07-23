@@ -6,6 +6,12 @@ The format is based on Keep a Changelog and this package follows Semantic Versio
 
 ## [Unreleased]
 
+### Added
+- Added explicit single-target interactive `--publish` and `--notify` CLI continuation.
+  The CLI creates an authoritative hosted scan without uploading the local result, waits
+  for its durable report, and prints the report/mobile bridge links. `--notify` also
+  renders a compact terminal QR code; the mobile bridge only pre-fills the target.
+
 ### Backend and docs
 - Added protected product-pulse telemetry and optional release-channel attribution for hosted/mobile clients. These are backend/API-service changes and do not change the published `securl` package surface.
 

@@ -54,6 +54,23 @@ securl scan example.com
 
 Prefer the full hosted report and optional monitoring? [Open the free scanner](https://app.securl.online/?utm_source=securl_npm&utm_medium=docs&utm_campaign=package_scan_bridge). For the product overview, start at [securl.online](https://securl.online). Prefer mobile? Install [SecURL on the App Store](https://apps.apple.com/app/securl/id6774322464).
 
+Explicitly continue one interactive summary scan into a durable hosted report:
+
+```bash
+npx securl scan example.com --publish
+```
+
+Add `--notify` instead to print a compact QR code for the
+`securl.online/m/<scanId>` mobile bridge:
+
+```bash
+npx securl scan example.com --notify
+```
+
+These options ask the hosted backend to perform its own authoritative scan. The local
+analysis payload is never uploaded. The mobile bridge only pre-fills the target; running
+a scan or saving a watch remains an explicit tap.
+
 ## Common use cases
 
 ### 1. Quick CLI posture check
