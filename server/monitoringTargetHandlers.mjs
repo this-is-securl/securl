@@ -542,6 +542,12 @@ export async function handleMonitoringTargetCollectionRequest({
       targetKind: kind,
       outcome: existingTarget ? "updated" : "created",
     });
+    telemetry?.recordMonitoringTargetState?.({
+      ownerKey: authState.ownerId || authState.requesterScope || null,
+      appId: appId || kind,
+      targetKey: savedTarget.id,
+      active: true,
+    });
 
     const records = await scanRepository.listPersistedRecords({
       ownerId: authState.ownerId,
@@ -800,6 +806,9 @@ export async function handleMonitoringTargetItemRequest({
       return true;
     }
 
+    const targetToDelete = await scanRepository.getMonitoringTarget(match[1], {
+      ownerId: authState.ownerId,
+    });
     const deleted = await scanRepository.deleteMonitoringTarget(match[1], {
       ownerId: authState.ownerId,
     });
@@ -809,6 +818,12 @@ export async function handleMonitoringTargetItemRequest({
       });
       return true;
     }
+    telemetry?.recordMonitoringTargetState?.({
+      ownerKey: authState.ownerId || authState.requesterScope || null,
+      appId: targetToDelete?.appId || targetToDelete?.kind || null,
+      targetKey: match[1],
+      active: false,
+    });
 
     sendJson(response, 200, {
       apiVersion: API_VERSION,

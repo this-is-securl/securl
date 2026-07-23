@@ -445,6 +445,82 @@ test("telemetry tracker reports aggregate adoption cohorts without exposing owne
   assert.equal(JSON.stringify(snapshot.adoptionCohorts).includes("smoke-owner"), false);
 });
 
+test("telemetry tracker reports sentinel retention and delivered-alert engagement privately", () => {
+  const telemetry = createTelemetryTracker();
+  const appId = "com.ktbatterham.headerwatch";
+  const ownerKey = "sentinel-owner";
+
+  telemetry.recordFunnelEvent({
+    event: "monitoring_target_registered",
+    source: "backend_api",
+    mode: appId,
+    client: "header-watch-ios",
+    clientVersion: "1.1.0+18",
+    clientChannel: "app-store",
+    clientAttribution: "verified",
+    clientProvenance: "owner-bound",
+    clientKey: ownerKey,
+    now: new Date("2026-06-01T08:00:00Z"),
+  });
+  telemetry.recordMonitoringTargetState({
+    ownerKey,
+    appId,
+    targetKey: "private-target-id",
+    active: true,
+    now: new Date("2026-06-01T08:00:00Z"),
+  });
+  telemetry.recordMonitoringTargetState({
+    ownerKey,
+    appId,
+    targetKey: "private-target-id",
+    active: false,
+    now: new Date("2026-06-10T08:00:00Z"),
+  });
+  telemetry.recordNotificationDelivery({
+    channel: "monitoring_posture",
+    attempted: 1,
+    attempts: 1,
+    sent: 1,
+    cohortRecipients: [{ ownerKey, appId }],
+    now: new Date("2026-06-15T08:00:00Z"),
+  });
+  telemetry.recordFunnelEvent({
+    event: "monitoring_attention_read",
+    source: "backend_api",
+    mode: appId,
+    client: "header-watch-ios",
+    clientVersion: "1.1.0+18",
+    clientChannel: "app-store",
+    clientAttribution: "verified",
+    clientProvenance: "owner-bound",
+    clientKey: ownerKey,
+    now: new Date("2026-06-16T08:00:00Z"),
+  });
+
+  const snapshot = telemetry.snapshot();
+  const retention = snapshot.adoptionCohorts.targetRetentionByApp[0];
+  const engagement = snapshot.adoptionCohorts.alertEngagementByApp[0];
+
+  assert.equal(retention.appId, appId);
+  assert.equal(retention.activatedOwners, 1);
+  assert.deepEqual(retention.checkpoints.N1, {
+    eligibleOwners: 1,
+    retainedOwners: 1,
+    retainedRate: 100,
+  });
+  assert.deepEqual(retention.checkpoints.N2, {
+    eligibleOwners: 1,
+    retainedOwners: 0,
+    retainedRate: 0,
+  });
+  assert.equal(engagement.deliveredAlerts, 1);
+  assert.equal(engagement.engagedWithin48Hours, 1);
+  assert.equal(engagement.engagementRate, 100);
+  const serialized = JSON.stringify(snapshot.adoptionCohorts);
+  assert.equal(serialized.includes(ownerKey), false);
+  assert.equal(serialized.includes("private-target-id"), false);
+});
+
 test("telemetry tracker can persist counters to disk", () => {
   const dir = mkdtempSync(join(tmpdir(), "securl-telemetry-"));
   const storagePath = join(dir, "telemetry.json");
