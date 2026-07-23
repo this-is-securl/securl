@@ -162,6 +162,7 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "node-html-parser": "^8.0.3"
+    "node-html-parser": "^8.0.3",
+    "qrcode-terminal": "0.12.0"
   }
 }
