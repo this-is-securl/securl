@@ -229,6 +229,15 @@ Use `npm run product:pulse` from the repository to print the compact pulse repor
 
 `notifications.delivery` reports aggregate batches, devices attempted, APNs attempts, sends, failures, retries, disabled invalid tokens, skipped reasons, channels, and today's counters. Notification payloads and device tokens are not retained in telemetry.
 
+Every completed notification decision contributes exactly one delivery batch, including
+no-op outcomes such as `no_drift`, `no_devices`, and `no_event`. Those outcomes retain
+their posture or certificate channel and appear in the skipped-reason counts, so a
+zero-device or zero-event decision is distinguishable from missing accounting. Monitoring
+scheduler snapshots expose matching certificate `notificationBatches`,
+`notificationSkipped`, and aggregate `notificationSkippedReasons` fields. This accounting
+is additive and does not change notification eligibility, retries, token disabling, or
+delivery behavior.
+
 ## Current auth resources
 
 - `POST /api/auth/register`

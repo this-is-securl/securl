@@ -130,9 +130,15 @@ test("bad APNs topics fail without disabling a valid device token", async () => 
 
 test("invalid APNs tokens are audited and disabled without retry", async () => {
   const repository = buildRepository();
+  const telemetryCalls = [];
   const service = createService({
     repository,
     transport: async () => ({ statusCode: 400, body: { reason: "BadDeviceToken" } }),
+    telemetry: {
+      recordNotificationDelivery(value) {
+        telemetryCalls.push(value);
+      },
+    },
   });
 
   const result = await service.sendTestNotification({ device: buildDevice() });
@@ -140,11 +146,15 @@ test("invalid APNs tokens are audited and disabled without retry", async () => {
   assert.equal(result.retried, 0);
   assert.equal(repository.attempts[0].status, "invalid_token");
   assert.deepEqual(repository.disabled, ["device-1"]);
+  assert.equal(telemetryCalls[0].channel, "device_test");
+  assert.equal(telemetryCalls[0].disabled, 1);
+  assert.equal(telemetryCalls[0].retried, 0);
 });
 
 test("transient APNs failures retry within bounds and preserve the final success", async () => {
   const repository = buildRepository();
   const delays = [];
+  const telemetryCalls = [];
   let calls = 0;
   const service = createService({
     repository,
@@ -156,6 +166,11 @@ test("transient APNs failures retry within bounds and preserve the final success
         : { statusCode: 200, apnsId: "apns-1", body: null };
     },
     sleep: async (delayMs) => delays.push(delayMs),
+    telemetry: {
+      recordNotificationDelivery(value) {
+        telemetryCalls.push(value);
+      },
+    },
   });
 
   const result = await service.sendTestNotification({ device: buildDevice() });
@@ -165,6 +180,9 @@ test("transient APNs failures retry within bounds and preserve the final success
   assert.deepEqual(delays, [100]);
   assert.equal(repository.attempts.length, 1);
   assert.equal(repository.attempts[0].status, "sent");
+  assert.equal(telemetryCalls[0].attempts, 2);
+  assert.equal(telemetryCalls[0].retried, 1);
+  assert.equal(telemetryCalls[0].sent, 1);
 });
 
 test("network failures stop after the configured attempt bound", async () => {
@@ -350,6 +368,94 @@ test("test notifications expose delivery telemetry without exposing tokens", asy
   assert.equal(JSON.stringify(result).includes("a".repeat(64)), false);
   assert.equal(telemetryCalls[0].channel, "device_test");
   assert.equal(telemetryCalls[0].sent, 1);
+});
+
+test("posture no-drift and certificate no-device outcomes use normalized delivery telemetry", async () => {
+  const telemetryCalls = [];
+  const repository = {
+    ...buildRepository(),
+    async listPersistedRecords() {
+      return [];
+    },
+    async listPushDeviceSecrets() {
+      return [];
+    },
+  };
+  const service = createService({
+    repository,
+    telemetry: {
+      recordNotificationDelivery(value) {
+        telemetryCalls.push(value);
+      },
+    },
+  });
+
+  const noDrift = await service.notifyMonitoringScanCompleted({
+    completedScan: {
+      id: "scan-no-drift",
+      ownerId: "owner-1",
+      requesterScope: "scope-1",
+      url: "https://example.com/",
+    },
+    result: { host: "example.com" },
+    telemetryContext: { channel: "monitoring_scheduler" },
+  });
+  assert.deepEqual(noDrift, {
+    attempted: 0,
+    attempts: 0,
+    sent: 0,
+    failed: 0,
+    disabled: 0,
+    retried: 0,
+    skipped: "no_drift",
+    results: [],
+  });
+  assert.equal(telemetryCalls[0].channel, "monitoring_posture");
+  assert.equal(telemetryCalls[0].skipped, "no_drift");
+
+  const delivery = await service.notifyCertMonitoringEvent({
+    target: {
+      id: "target-no-devices",
+      ownerId: "owner-1",
+      requesterScope: "scope-1",
+      appId: "com.ktbatterham.certwatch",
+      label: "Example",
+      url: "https://example.com/",
+    },
+    event: {
+      type: "cert_expiring",
+      severity: "warning",
+      title: "Certificate expiring",
+      body: "12 days remain.",
+    },
+    certState: { host: "example.com", daysRemaining: 12, reachable: true },
+  });
+  assert.equal(delivery.skipped, "no_devices");
+  assert.equal(telemetryCalls[1].channel, "monitoring_certificate");
+  assert.equal(telemetryCalls[1].skipped, "no_devices");
+});
+
+test("certificate no-event outcomes use normalized delivery telemetry", async () => {
+  const telemetryCalls = [];
+  const service = createService({
+    repository: buildRepository(),
+    telemetry: {
+      recordNotificationDelivery(value) {
+        telemetryCalls.push(value);
+      },
+    },
+  });
+
+  const result = await service.notifyCertMonitoringEvent({
+    target: buildDevice(),
+    event: null,
+    certState: null,
+  });
+
+  assert.equal(result.skipped, "no_event");
+  assert.equal(result.attempted, 0);
+  assert.equal(telemetryCalls[0].channel, "monitoring_certificate");
+  assert.equal(telemetryCalls[0].skipped, "no_event");
 });
 
 test("durable outbox delivers idempotently for repeated monitoring events", async () => {

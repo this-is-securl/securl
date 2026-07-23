@@ -65,10 +65,12 @@ test("monitoring sweep queues scans for due targets", async () => {
     queued: 1,
     certChecked: 0,
     certNotified: 0,
+    notificationBatches: 0,
     notificationAttempted: 0,
     notificationSent: 0,
     notificationFailed: 0,
     notificationSkipped: 0,
+    notificationSkippedReasons: {},
     skipped: 0,
     failed: 0,
   });
@@ -156,12 +158,42 @@ test("monitoring sweep runs certificate checks for due cert targets", async () =
   assert.equal(result.queued, 0);
   assert.equal(result.certChecked, 1);
   assert.equal(result.certNotified, 1);
+  assert.equal(result.notificationBatches, 1);
   assert.equal(result.notificationAttempted, 1);
   assert.equal(result.notificationSent, 1);
   assert.equal(result.notificationFailed, 0);
   assert.equal(repository.createdScans.length, 0);
   assert.equal(enqueued.length, 0);
   assert.equal(checked[0].id, target.id);
+});
+
+test("monitoring sweep reconciles certificate no-op batches and skipped reasons", async () => {
+  const targets = [
+    makeTarget({ id: "target-no-event", kind: "cert", appId: "com.ktbatterham.certwatch" }),
+    makeTarget({ id: "target-no-devices", kind: "cert", appId: "com.ktbatterham.certwatch" }),
+  ];
+  const repository = createFakeRepository({ targets });
+
+  const result = await runMonitoringSweep({
+    scanRepository: repository,
+    enqueueScan: () => {},
+    runCertificateCheck: async (target) => ({
+      event: target.id === "target-no-event" ? null : { type: "cert_expiring" },
+      notification: target.id === "target-no-event"
+        ? { attempted: 0, sent: 0, failed: 0, skipped: "no_event" }
+        : { attempted: 0, sent: 0, failed: 0, skipped: "no_devices" },
+    }),
+    now: NOW,
+    log: () => {},
+  });
+
+  assert.equal(result.certChecked, 2);
+  assert.equal(result.notificationBatches, 2);
+  assert.equal(result.notificationSkipped, 2);
+  assert.deepEqual(result.notificationSkippedReasons, {
+    no_event: 1,
+    no_devices: 1,
+  });
 });
 
 test("monitoring sweep honors hourly cadence against last cert check", async () => {

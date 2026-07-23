@@ -430,17 +430,28 @@ export function createNotificationService({
   let outboxRunning = false;
   let outboxLastDrain = null;
 
-  function recordDeliveryTelemetry(result, channel) {
+  function completeDelivery(result, channel) {
+    const completed = {
+      attempted: Number(result?.attempted || 0),
+      attempts: Number(result?.attempts || 0),
+      sent: Number(result?.sent || 0),
+      failed: Number(result?.failed || 0),
+      disabled: Number(result?.disabled || 0),
+      retried: Number(result?.retried || 0),
+      skipped: result?.skipped || null,
+      results: Array.isArray(result?.results) ? result.results : [],
+    };
     telemetry?.recordNotificationDelivery?.({
       channel,
-      attempted: result.attempted,
-      attempts: result.attempts,
-      sent: result.sent,
-      failed: result.failed,
-      disabled: result.disabled,
-      retried: result.retried,
-      skipped: result.skipped,
+      attempted: completed.attempted,
+      attempts: completed.attempts,
+      sent: completed.sent,
+      failed: completed.failed,
+      disabled: completed.disabled,
+      retried: completed.retried,
+      skipped: completed.skipped,
     });
+    return completed;
   }
 
   async function deliverPushPayload({
@@ -453,9 +464,7 @@ export function createNotificationService({
     persistToOutbox = true,
   }) {
     if (!devices.length) {
-      const result = { attempted: 0, attempts: 0, sent: 0, failed: 0, disabled: 0, retried: 0, skipped: "no_devices", results: [] };
-      recordDeliveryTelemetry(result, channel);
-      return result;
+      return completeDelivery({ skipped: "no_devices" }, channel);
     }
     let outboxEntries = Array.isArray(claimedEntries) ? claimedEntries : [];
     let deliveryDevices = devices;
@@ -475,9 +484,7 @@ export function createNotificationService({
       const claimedDeviceIds = new Set(outboxEntries.map((entry) => entry.deviceId));
       deliveryDevices = devices.filter((device) => claimedDeviceIds.has(device.id));
       if (!deliveryDevices.length) {
-        const result = { attempted: 0, attempts: 0, sent: 0, failed: 0, disabled: 0, retried: 0, skipped: "already_queued_or_processed", results: [] };
-        recordDeliveryTelemetry(result, channel);
-        return result;
+        return completeDelivery({ skipped: "already_queued_or_processed" }, channel);
       }
     }
     const outboxByDeviceId = new Map(outboxEntries.map((entry) => [entry.deviceId, entry]));
@@ -627,14 +634,21 @@ export function createNotificationService({
     const skipped = sent === 0 && attempts === 0 && uniqueStatuses.size === 1
       ? [...uniqueStatuses][0]
       : null;
-    const result = { attempted: deliveryDevices.length, attempts, sent, failed, disabled, retried, skipped, results };
-    recordDeliveryTelemetry(result, channel);
-    return result;
+    return completeDelivery({
+      attempted: deliveryDevices.length,
+      attempts,
+      sent,
+      failed,
+      disabled,
+      retried,
+      skipped,
+      results,
+    }, channel);
   }
 
   async function notifyMonitoringScanCompleted({ completedScan, result, telemetryContext = {} }) {
     if (telemetryContext.channel !== "monitoring_scheduler") {
-      return { attempted: 0, sent: 0, skipped: "not_monitoring_scheduler" };
+      return completeDelivery({ skipped: "not_monitoring_scheduler" }, "monitoring_posture");
     }
 
     const payload = await buildMonitoringPushPayload({
@@ -644,7 +658,7 @@ export function createNotificationService({
       targetId: telemetryContext.targetId ?? null,
     });
     if (!payload) {
-      return { attempted: 0, sent: 0, skipped: "no_drift" };
+      return completeDelivery({ skipped: "no_drift" }, "monitoring_posture");
     }
 
     const devices = await scanRepository.listPushDeviceSecrets({
@@ -652,9 +666,6 @@ export function createNotificationService({
       requesterScope: completedScan.ownerId ? null : completedScan.requesterScope,
       limit: 50,
     });
-    if (!devices.length) {
-      return { attempted: 0, sent: 0, skipped: "no_devices" };
-    }
 
     return deliverPushPayload({
       devices,
@@ -666,7 +677,7 @@ export function createNotificationService({
 
   async function notifyCertMonitoringEvent({ target, event, certState }) {
     if (!event || !target) {
-      return { attempted: 0, sent: 0, skipped: "no_event" };
+      return completeDelivery({ skipped: "no_event" }, "monitoring_certificate");
     }
 
     const devices = await scanRepository.listPushDeviceSecrets({
