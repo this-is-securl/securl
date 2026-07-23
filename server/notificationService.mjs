@@ -430,7 +430,7 @@ export function createNotificationService({
   let outboxRunning = false;
   let outboxLastDrain = null;
 
-  function completeDelivery(result, channel) {
+  function completeDelivery(result, channel, cohortRecipients = []) {
     const completed = {
       attempted: Number(result?.attempted || 0),
       attempts: Number(result?.attempts || 0),
@@ -450,6 +450,7 @@ export function createNotificationService({
       disabled: completed.disabled,
       retried: completed.retried,
       skipped: completed.skipped,
+      cohortRecipients,
     });
     return completed;
   }
@@ -609,6 +610,7 @@ export function createNotificationService({
       results.push({
         deviceId: device.id,
         provider,
+        sent: wasSent,
         status: finalClassification.status,
         reason: deliveryError,
         attempts: deviceAttempts,
@@ -634,6 +636,15 @@ export function createNotificationService({
     const skipped = sent === 0 && attempts === 0 && uniqueStatuses.size === 1
       ? [...uniqueStatuses][0]
       : null;
+    const sentDeviceIds = new Set(
+      results.filter((entry) => entry.sent).map((entry) => entry.deviceId),
+    );
+    const cohortRecipients = deliveryDevices
+      .filter((device) => sentDeviceIds.has(device.id))
+      .map((device) => ({
+        ownerKey: device.ownerId || device.requesterScope || null,
+        appId: device.appId || null,
+      }));
     return completeDelivery({
       attempted: deliveryDevices.length,
       attempts,
@@ -643,7 +654,7 @@ export function createNotificationService({
       retried,
       skipped,
       results,
-    }, channel);
+    }, channel, cohortRecipients);
   }
 
   async function notifyMonitoringScanCompleted({ completedScan, result, telemetryContext = {} }) {

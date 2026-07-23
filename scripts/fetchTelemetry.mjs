@@ -198,6 +198,30 @@ const main = async () => {
       console.log(`    - ${row.week} ${row.appId}: active ${row.activeOwners}, next-week retained ${row.retainedNextWeekOwners} (${row.retainedNextWeekRate}%)`);
     }
   }
+  const targetRetentionRows = cohorts.targetRetentionByApp || [];
+  if (targetRetentionRows.length) {
+    console.log("  Sentinel active-target retention:");
+    for (const row of targetRetentionRows) {
+      const checkpoints = ["N1", "N2", "N4"].map((label) => {
+        const checkpoint = row.checkpoints?.[label] || {};
+        return `${label} ${checkpoint.retainedOwners ?? 0}/${checkpoint.eligibleOwners ?? 0} (${checkpoint.retainedRate ?? 0}%)`;
+      });
+      console.log(`    ${row.appId}: activated ${row.activatedOwners ?? 0}; ${checkpoints.join("; ")}`);
+    }
+  } else {
+    console.log("  Sentinel active-target retention: awaiting post-deploy lifecycle observations");
+  }
+  const engagementRows = cohorts.alertEngagementByApp || [];
+  if (engagementRows.length) {
+    console.log("  Delivered-alert engagement:");
+    for (const row of engagementRows) {
+      console.log(
+        `    ${row.appId}: ${row.engagedWithin48Hours ?? 0}/${row.deliveredAlerts ?? 0} within 48h (${row.engagementRate ?? 0}%)`,
+      );
+    }
+  } else {
+    console.log("  Delivered-alert engagement: awaiting post-deploy delivered alerts");
+  }
   console.log("");
   console.log("Client consumption");
   const clientConsumption = telemetry.clients?.consumption || {};

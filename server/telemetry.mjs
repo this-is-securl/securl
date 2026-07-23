@@ -495,6 +495,8 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
         firstScanAt: null,
         firstMonitoringTargetAt: null,
         firstReturnAt: null,
+        monitoringTargets: [],
+        deliveredAlerts: [],
         activeWeeks: [],
       };
     }
@@ -517,7 +519,21 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
     if (!owner.firstReturnAt && isD1ToD7Return(owner.firstSeenAt, now)) {
       owner.firstReturnAt = now.toISOString();
     }
+    for (const alert of owner.deliveredAlerts || []) {
+      if (!alert.engagedAt && isWithinHours(alert.deliveredAt, now, 48)) {
+        alert.engagedAt = now.toISOString();
+      }
+    }
     addUnique(owner.activeWeeks, weekKey(now), 12);
+  };
+
+  const findCohortOwners = (ownerKey, appId = null) => {
+    if (!ownerKey || ownerKey === "unknown") return [];
+    const safeOwnerKey = hashPrivacyValue(ownerKey, { prefix: "cohort_owner", length: 16 });
+    const safeAppId = sanitizeTelemetryText(appId, 80);
+    return Object.values(state.cohortOwners).filter((owner) => (
+      owner.ownerKey === safeOwnerKey && (!safeAppId || owner.appId === safeAppId)
+    ));
   };
 
   return {
@@ -865,6 +881,9 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       disabled = 0,
       retried = 0,
       skipped = null,
+      ownerKey = null,
+      appId = null,
+      cohortRecipients = [],
       now = new Date(),
     } = {}) {
       const safeChannel = normalizeScanChannel(channel);
@@ -889,7 +908,55 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       incrementCounters(state.notificationDeliveryDays[dateKey], counters);
       const safeSkipped = sanitizeTelemetryText(skipped, 80);
       if (safeSkipped) incrementBucket(state.notificationDeliverySkipped, safeSkipped);
+      if (counters.sent > 0) {
+        const recipients = Array.isArray(cohortRecipients) && cohortRecipients.length
+          ? cohortRecipients
+          : [{ ownerKey, appId }];
+        const matchedOwners = new Set();
+        for (const recipient of recipients) {
+          for (const owner of findCohortOwners(recipient?.ownerKey, recipient?.appId)) {
+            matchedOwners.add(owner);
+          }
+        }
+        for (const owner of matchedOwners) {
+          owner.deliveredAlerts ||= [];
+          owner.deliveredAlerts.push({
+            deliveredAt: now.toISOString(),
+            engagedAt: null,
+            channel: safeChannel,
+          });
+          owner.deliveredAlerts = owner.deliveredAlerts.slice(-40);
+        }
+      }
       persist();
+    },
+    recordMonitoringTargetState({
+      ownerKey = null,
+      appId = null,
+      targetKey = null,
+      active = true,
+      now = new Date(),
+    } = {}) {
+      if (!targetKey) return false;
+      const safeTargetKey = hashPrivacyValue(targetKey, { prefix: "cohort_target", length: 16 });
+      const owners = findCohortOwners(ownerKey, appId);
+      for (const owner of owners) {
+        owner.monitoringTargets ||= [];
+        let target = owner.monitoringTargets.find((entry) => entry.targetKey === safeTargetKey);
+        if (!target && active) {
+          target = {
+            targetKey: safeTargetKey,
+            registeredAt: now.toISOString(),
+            removedAt: null,
+          };
+          owner.monitoringTargets.push(target);
+          owner.monitoringTargets = owner.monitoringTargets.slice(-100);
+        } else if (target) {
+          target.removedAt = active ? null : now.toISOString();
+        }
+      }
+      persist();
+      return owners.length > 0;
     },
     recordFailure(failureClass, details = {}) {
       incrementBucket(state.failureClasses, failureClass);
@@ -1355,6 +1422,14 @@ function isD1ToD7Return(firstSeenAt, currentDate) {
   return days >= 1 && days <= 7;
 }
 
+function isWithinHours(startedAt, currentDate, hours) {
+  const started = new Date(startedAt).getTime();
+  const current = new Date(currentDate).getTime();
+  if (!Number.isFinite(started) || !Number.isFinite(current)) return false;
+  const elapsed = current - started;
+  return elapsed >= 0 && elapsed <= hours * 3_600_000;
+}
+
 function nextWeekKey(value) {
   const parsed = new Date(`${value}T00:00:00Z`);
   if (Number.isNaN(parsed.getTime())) {
@@ -1401,11 +1476,40 @@ function sanitizeCohortOwner(owner) {
     firstScanAt: sanitizeTelemetryText(owner.firstScanAt, 40),
     firstMonitoringTargetAt: sanitizeTelemetryText(owner.firstMonitoringTargetAt, 40),
     firstReturnAt: sanitizeTelemetryText(owner.firstReturnAt, 40),
+    monitoringTargets: Array.isArray(owner.monitoringTargets)
+      ? owner.monitoringTargets.map(sanitizeCohortTarget).filter(Boolean).slice(-100)
+      : [],
+    deliveredAlerts: Array.isArray(owner.deliveredAlerts)
+      ? owner.deliveredAlerts.map(sanitizeCohortAlert).filter(Boolean).slice(-40)
+      : [],
     activeWeeks: Array.isArray(owner.activeWeeks)
       ? [...new Set(owner.activeWeeks.map((week) => sanitizeTelemetryText(week, 20)).filter(Boolean))]
         .sort()
         .slice(-12)
       : [],
+  };
+}
+
+function sanitizeCohortTarget(target) {
+  if (!target || typeof target !== "object") return null;
+  const targetKey = sanitizeTelemetryText(target.targetKey, 80);
+  const registeredAt = sanitizeTelemetryText(target.registeredAt, 40);
+  if (!targetKey || !registeredAt) return null;
+  return {
+    targetKey,
+    registeredAt,
+    removedAt: sanitizeTelemetryText(target.removedAt, 40),
+  };
+}
+
+function sanitizeCohortAlert(alert) {
+  if (!alert || typeof alert !== "object") return null;
+  const deliveredAt = sanitizeTelemetryText(alert.deliveredAt, 40);
+  if (!deliveredAt) return null;
+  return {
+    deliveredAt,
+    engagedAt: sanitizeTelemetryText(alert.engagedAt, 40),
+    channel: normalizeScanChannel(alert.channel),
   };
 }
 
@@ -1442,6 +1546,8 @@ function buildAdoptionCohortSnapshot(owners = {}) {
   const ownerList = Object.values(owners || {})
     .map(sanitizeCohortOwner)
     .filter(Boolean);
+  const targetRetentionByApp = {};
+  const alertEngagementByApp = {};
 
   for (const owner of ownerList) {
     const rowKey = `${owner.appId}:${owner.firstSeenWeek}`;
@@ -1455,6 +1561,47 @@ function buildAdoptionCohortSnapshot(owners = {}) {
       const activeKey = `${owner.appId}:${week}`;
       activeByAppWeek[activeKey] ||= new Set();
       activeByAppWeek[activeKey].add(owner.ownerKey);
+    }
+
+    if (owner.monitoringTargets?.length) {
+      targetRetentionByApp[owner.appId] ||= {
+        appId: owner.appId,
+        activatedOwners: 0,
+        checkpoints: {
+          N1: { eligibleOwners: 0, retainedOwners: 0, retainedRate: 0 },
+          N2: { eligibleOwners: 0, retainedOwners: 0, retainedRate: 0 },
+          N4: { eligibleOwners: 0, retainedOwners: 0, retainedRate: 0 },
+        },
+      };
+      const firstTargetAt = owner.monitoringTargets
+        .map((target) => target.registeredAt)
+        .sort()[0];
+      targetRetentionByApp[owner.appId].activatedOwners += 1;
+      for (const [label, weeks] of [["N1", 1], ["N2", 2], ["N4", 4]]) {
+        const checkpoint = new Date(firstTargetAt).getTime() + weeks * 7 * 86_400_000;
+        if (Date.now() < checkpoint) continue;
+        const bucket = targetRetentionByApp[owner.appId].checkpoints[label];
+        bucket.eligibleOwners += 1;
+        if (owner.monitoringTargets.some((target) => (
+          new Date(target.registeredAt).getTime() <= checkpoint
+          && (!target.removedAt || new Date(target.removedAt).getTime() > checkpoint)
+        ))) {
+          bucket.retainedOwners += 1;
+        }
+      }
+    }
+
+    if (owner.deliveredAlerts?.length) {
+      alertEngagementByApp[owner.appId] ||= {
+        appId: owner.appId,
+        deliveredAlerts: 0,
+        engagedWithin48Hours: 0,
+        engagementRate: 0,
+      };
+      alertEngagementByApp[owner.appId].deliveredAlerts += owner.deliveredAlerts.length;
+      alertEngagementByApp[owner.appId].engagedWithin48Hours += owner.deliveredAlerts
+        .filter((alert) => alert.engagedAt)
+        .length;
     }
   }
 
@@ -1510,6 +1657,14 @@ function buildAdoptionCohortSnapshot(owners = {}) {
     total.firstMonitoringTargetRate = rate(total.firstMonitoringTargetOwners, total.newOwners);
     total.returnedWithin7DaysRate = rate(total.returnedWithin7DaysOwners, total.newOwners);
   }
+  for (const summary of Object.values(targetRetentionByApp)) {
+    for (const checkpoint of Object.values(summary.checkpoints)) {
+      checkpoint.retainedRate = rate(checkpoint.retainedOwners, checkpoint.eligibleOwners);
+    }
+  }
+  for (const summary of Object.values(alertEngagementByApp)) {
+    summary.engagementRate = rate(summary.engagedWithin48Hours, summary.deliveredAlerts);
+  }
 
   return {
     privacy: "Aggregate only; owner keys are hashed internally and are not exposed.",
@@ -1519,6 +1674,10 @@ function buildAdoptionCohortSnapshot(owners = {}) {
     trackedOwners: ownerList.length,
     weeklyByApp,
     repeatWeekByApp,
+    targetRetentionByApp: Object.values(targetRetentionByApp)
+      .sort((left, right) => left.appId.localeCompare(right.appId)),
+    alertEngagementByApp: Object.values(alertEngagementByApp)
+      .sort((left, right) => left.appId.localeCompare(right.appId)),
     totalsByApp: Object.fromEntries(
       Object.entries(totalsByApp).sort(([left], [right]) => left.localeCompare(right)),
     ),
