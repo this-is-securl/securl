@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Dependabot version sentinel for the checksum-pinned Railway deployment CLI.",
   "devDependencies": {
-    "@railway/cli": "5.30.1"
+    "@railway/cli": "5.30.3"
   },
   "overrides": {
     "@railway/cli": {
