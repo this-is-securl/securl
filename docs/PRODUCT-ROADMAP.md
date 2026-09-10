@@ -15,9 +15,9 @@ moved, who needs to care, and can I trust the evidence?"
 
 The roadmap is based on the signals now visible across the product system:
 
-- The `securl` npm package retains provenance and no install scripts, but current demand is weak:
-  20 downloads in the latest trailing week and no public GitHub dependency or reusable-workflow
-  evidence. Package-download counts alone must not be treated as developer adoption.
+- The `securl` npm package retains provenance and no install scripts. The latest trailing week has
+  113 downloads, but an isolated spike and no public GitHub dependency or reusable-workflow evidence
+  mean package-download counts alone must not be treated as developer adoption.
 - The iOS apps have real backend activity, especially Cert Watch live certificate reads,
   SecURL monitoring-target creation, and share-card reads.
 - App Store Connect's 30-day view through 24 August recorded 33 first-time SecURL downloads,
@@ -36,16 +36,18 @@ The roadmap is based on the signals now visible across the product system:
 The engine, hosted API and monitoring foundations are healthy, while acquisition remains
 the evidenced constraint. The mobile suite has consolidated into SecURL and broadened from
 developer-only posture scanning to checking an unfamiliar link or QR before opening it.
-The next active distribution experiment is the permission-minimal browser extension, which
-puts the public Link Checker into an existing right-click decision without requiring an app
-install or automatic scan. Its local flow is proven; public distribution and measurable
-`browser_extension` completions are not.
+The active distribution experiment is the permission-minimal browser extension, which puts
+the public Link Checker into an existing right-click decision without requiring an app install
+or automatic scan. Chrome Web Store version 0.1.0 became publicly listed on 10 September 2026.
+The local flow and distribution are now proven; discovery and measurable `browser_extension`
+presets, submitted inspections and completed inspections are not. The public baseline at approval
+is zero attributed extension inspections.
 
 Current priority order is:
 
-1. **Finish one browser-extension experiment**: complete Chrome Web Store distribution, then
-   measure extension-origin presets, submitted inspections and completed inspections. Do not
-   infer adoption from repository stars, listing impressions or package downloads.
+1. **Measure one browser-extension experiment**: confirm the public listing is discoverable, then
+   measure extension-origin presets, submitted inspections and completed inspections. Do not infer
+   adoption from approval, listing impressions, repository stars or package downloads.
 2. **Keep attribution honest**: count privacy-safe link-inspection starts and terminal outcomes
    by bounded entry point without storing inspected URLs or QR payloads in product telemetry.
 3. **Observe before adding capability**: use useful exposure, completed inspections, monitoring
