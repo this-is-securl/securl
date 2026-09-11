@@ -657,6 +657,11 @@ test("live certificate endpoint validates HTTPS targets before doing a cheap TLS
     const telemetryResponse = await fetch(`${server.baseUrl}/api/telemetry`);
     const telemetryPayload = await telemetryResponse.json();
     assert.equal(telemetryResponse.status, 200);
+    const ownerRejection = telemetryPayload.failures.recent.find(
+      (failure) => failure.class === "auth_rejected",
+    );
+    assert.equal(ownerRejection.source, "/api/certificates/live");
+    assert.equal(ownerRejection.message, "scan_owner_missing_or_invalid");
     assert.equal(telemetryPayload.funnel.today.live_certificate_failed, 1);
     assert.equal(telemetryPayload.funnel.todayByMode["com.ktbatterham.certwatch"].live_certificate_failed, 1);
     assert.equal(telemetryPayload.funnel.todayByClient["cert-watch-ios"].live_certificate_failed, 1);

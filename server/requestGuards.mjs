@@ -366,7 +366,10 @@ export function createRequestGuards({
 
     if (presentedBearerToken && !sessionAuth && !apiKeyAuth) {
       telemetry.recordAuthRejected();
-      telemetry.recordFailure("auth_rejected");
+      telemetry.recordFailure("auth_rejected", {
+        source: requestPath,
+        message: "session_token_rejected",
+      });
       recordAbuseSignal("session_token_rejected", {
         clientIpHash: hashClientIp(clientIp),
         path: requestPath,
@@ -384,7 +387,10 @@ export function createRequestGuards({
 
     if (presentedUserApiKey && !apiKeyAuth && !sessionAuth) {
       telemetry.recordAuthRejected();
-      telemetry.recordFailure("auth_rejected");
+      telemetry.recordFailure("auth_rejected", {
+        source: requestPath,
+        message: "user_api_key_rejected",
+      });
       recordAbuseSignal("user_api_key_rejected", {
         clientIpHash: hashClientIp(clientIp),
         path: requestPath,
@@ -487,7 +493,10 @@ export function createRequestGuards({
 
     if (apiKey && !timingSafeStringEqual(presentedApiKey, apiKey)) {
       telemetry.recordAuthRejected();
-      telemetry.recordFailure("auth_rejected");
+      telemetry.recordFailure("auth_rejected", {
+        source: requestPath,
+        message: "deployment_api_key_rejected",
+      });
       recordAbuseSignal("api_key_rejected", {
         clientIpHash: hashClientIp(clientIp),
         path: requestPath,
@@ -513,7 +522,10 @@ export function createRequestGuards({
 
     if (requireScanOwner && !ownerId) {
       telemetry.recordAuthRejected();
-      telemetry.recordFailure("auth_rejected");
+      telemetry.recordFailure("auth_rejected", {
+        source: requestPath,
+        message: "scan_owner_missing_or_invalid",
+      });
       recordAbuseSignal("scan_owner_missing", {
         clientIpHash: hashClientIp(clientIp),
         requesterScope: redactRequesterScope(requesterScope),
