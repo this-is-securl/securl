@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import dns from "node:dns/promises";
 import net from "node:net";
 import { promisify } from "node:util";
+import { readClientMetadata } from "./clientMetadata.mjs";
 import { hashClientIp, redactRequesterScope } from "./privacy.mjs";
 
 const scryptAsync = promisify(crypto.scrypt);
@@ -347,6 +348,13 @@ export function createRequestGuards({
     sendRateLimitedResponse = sendRateLimited,
   }) {
     const clientIp = getClientIp(request, { trustProxy, isLocalHostname, isPrivateAddress }) || "unknown";
+    const clientMetadata = readClientMetadata(request);
+    const authFailureDetails = (message) => ({
+      source: requestPath,
+      message,
+      client: clientMetadata.client,
+      clientVersion: clientMetadata.version,
+    });
     const presentedApiKey = getPresentedApiKey(request);
     const presentedScanOwner = getPresentedScanOwner(request, scanOwnerHeader);
     const presentedBearerToken = getPresentedBearerToken(request);
@@ -366,10 +374,7 @@ export function createRequestGuards({
 
     if (presentedBearerToken && !sessionAuth && !apiKeyAuth) {
       telemetry.recordAuthRejected();
-      telemetry.recordFailure("auth_rejected", {
-        source: requestPath,
-        message: "session_token_rejected",
-      });
+      telemetry.recordFailure("auth_rejected", authFailureDetails("session_token_rejected"));
       recordAbuseSignal("session_token_rejected", {
         clientIpHash: hashClientIp(clientIp),
         path: requestPath,
@@ -387,10 +392,7 @@ export function createRequestGuards({
 
     if (presentedUserApiKey && !apiKeyAuth && !sessionAuth) {
       telemetry.recordAuthRejected();
-      telemetry.recordFailure("auth_rejected", {
-        source: requestPath,
-        message: "user_api_key_rejected",
-      });
+      telemetry.recordFailure("auth_rejected", authFailureDetails("user_api_key_rejected"));
       recordAbuseSignal("user_api_key_rejected", {
         clientIpHash: hashClientIp(clientIp),
         path: requestPath,
@@ -493,10 +495,7 @@ export function createRequestGuards({
 
     if (apiKey && !timingSafeStringEqual(presentedApiKey, apiKey)) {
       telemetry.recordAuthRejected();
-      telemetry.recordFailure("auth_rejected", {
-        source: requestPath,
-        message: "deployment_api_key_rejected",
-      });
+      telemetry.recordFailure("auth_rejected", authFailureDetails("deployment_api_key_rejected"));
       recordAbuseSignal("api_key_rejected", {
         clientIpHash: hashClientIp(clientIp),
         path: requestPath,
@@ -522,10 +521,7 @@ export function createRequestGuards({
 
     if (requireScanOwner && !ownerId) {
       telemetry.recordAuthRejected();
-      telemetry.recordFailure("auth_rejected", {
-        source: requestPath,
-        message: "scan_owner_missing_or_invalid",
-      });
+      telemetry.recordFailure("auth_rejected", authFailureDetails("scan_owner_missing_or_invalid"));
       recordAbuseSignal("scan_owner_missing", {
         clientIpHash: hashClientIp(clientIp),
         requesterScope: redactRequesterScope(requesterScope),

@@ -475,6 +475,8 @@ export function createTelemetryTracker({ storagePath = "" } = {}) {
       target: details.target,
       message: details.message,
       source: details.source,
+      client: details.client,
+      clientVersion: details.clientVersion,
     });
     if (!failure) {
       return;
@@ -1964,12 +1966,15 @@ function sanitizeRecentFailure(value) {
   if (!failureClass) {
     return null;
   }
+  const client = normalizeClientId(value.client);
   return {
     occurredAt: sanitizeTelemetryText(value.occurredAt, 40) || new Date().toISOString(),
     class: failureClass,
     target: sanitizeTelemetryText(targetForPrivacy(value.target), 240),
     message: sanitizeTelemetryText(value.message, 240),
     source: sanitizeTelemetryText(value.source, 80),
+    client,
+    clientVersion: client ? normalizeClientVersion(value.clientVersion) : null,
   };
 }
 

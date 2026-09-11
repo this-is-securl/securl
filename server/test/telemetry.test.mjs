@@ -99,6 +99,12 @@ test("telemetry tracker records aggregate counts", () => {
     message: "Localhost and private network targets are not allowed.\n",
     source: "scan_analysis",
   });
+  telemetry.recordFailure("auth_rejected", {
+    source: "/api/certificates/live",
+    message: "scan_owner_missing_or_invalid",
+    client: "cert-watch-ios",
+    clientVersion: "1.0.3+8",
+  });
   telemetry.recordAuthRejected();
   telemetry.recordRequesterRateLimited();
   telemetry.recordTargetRateLimited();
@@ -199,11 +205,17 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.scans.timing.total.maxMs, 45000);
   assert.equal(snapshot.scans.timing.enrichment.p95Ms, 750);
   assert.equal(snapshot.failures.classes.invalid_target_private, 1);
-  assert.equal(snapshot.failures.recent.length, 1);
-  assert.equal(snapshot.failures.recent[0].class, "invalid_target_private");
-  assert.equal(snapshot.failures.recent[0].target, "https://example.com");
-  assert.equal(snapshot.failures.recent[0].message, "Localhost and private network targets are not allowed.");
-  assert.equal(snapshot.failures.recent[0].source, "scan_analysis");
+  assert.equal(snapshot.failures.classes.auth_rejected, 1);
+  assert.equal(snapshot.failures.recent.length, 2);
+  assert.equal(snapshot.failures.recent[0].class, "auth_rejected");
+  assert.equal(snapshot.failures.recent[0].source, "/api/certificates/live");
+  assert.equal(snapshot.failures.recent[0].message, "scan_owner_missing_or_invalid");
+  assert.equal(snapshot.failures.recent[0].client, "cert-watch-ios");
+  assert.equal(snapshot.failures.recent[0].clientVersion, "1.0.3+8");
+  assert.equal(snapshot.failures.recent[1].class, "invalid_target_private");
+  assert.equal(snapshot.failures.recent[1].target, "https://example.com");
+  assert.equal(snapshot.failures.recent[1].message, "Localhost and private network targets are not allowed.");
+  assert.equal(snapshot.failures.recent[1].source, "scan_analysis");
   assert.equal(snapshot.failures.authRejected, 1);
   assert.equal(snapshot.failures.requesterRateLimited, 1);
   assert.equal(snapshot.failures.targetRateLimited, 1);
