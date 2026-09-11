@@ -637,7 +637,12 @@ test("live certificate endpoint validates HTTPS targets before doing a cheap TLS
   const server = await startServer();
 
   try {
-    const missingOwnerResponse = await fetch(`${server.baseUrl}/api/certificates/live?url=https://example.com`);
+    const missingOwnerResponse = await fetch(`${server.baseUrl}/api/certificates/live?url=https://example.com`, {
+      headers: {
+        "X-SecURL-Client": "cert-watch-ios",
+        "X-SecURL-Client-Version": "1.0.3+8",
+      },
+    });
     const missingOwnerPayload = await missingOwnerResponse.json();
     assert.equal(missingOwnerResponse.status, 401);
     assert.match(missingOwnerPayload.error, /scan owner token/i);
@@ -662,6 +667,8 @@ test("live certificate endpoint validates HTTPS targets before doing a cheap TLS
     );
     assert.equal(ownerRejection.source, "/api/certificates/live");
     assert.equal(ownerRejection.message, "scan_owner_missing_or_invalid");
+    assert.equal(ownerRejection.client, "cert-watch-ios");
+    assert.equal(ownerRejection.clientVersion, "1.0.3+8");
     assert.equal(telemetryPayload.funnel.today.live_certificate_failed, 1);
     assert.equal(telemetryPayload.funnel.todayByMode["com.ktbatterham.certwatch"].live_certificate_failed, 1);
     assert.equal(telemetryPayload.funnel.todayByClient["cert-watch-ios"].live_certificate_failed, 1);
