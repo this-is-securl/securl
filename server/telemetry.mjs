@@ -1876,6 +1876,7 @@ const GROWTH_LOOP_EVENTS = {
   handoff_started: "handoffsStarted",
   shared_report_viewed: "sharedReportViews",
   share_link_copied: "shareLinksCopied",
+  link_result_shared: "linkResultsShared",
   share_card_read: "shareCardReads",
 };
 
@@ -2030,6 +2031,7 @@ const FUNNEL_EVENT_NAMES = new Set([
   "report_viewed",
   "shared_report_viewed",
   "share_link_copied",
+  "link_result_shared",
   "share_card_read",
   "export_clicked",
   "monitoring_saved",

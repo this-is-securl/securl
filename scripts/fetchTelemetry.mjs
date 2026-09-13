@@ -26,6 +26,7 @@ const describeGrowthLoop = (summary = {}) => [
   `handoffs ${summary.handoffsStarted ?? 0}`,
   `shared views ${summary.sharedReportViews ?? 0}`,
   `share cards ${summary.shareCardReads ?? 0}`,
+  `link results shared ${summary.linkResultsShared ?? 0}`,
   `copied links ${summary.shareLinksCopied ?? 0}`,
 ].join(", ");
 const describeCohortRow = (row = {}) => [
