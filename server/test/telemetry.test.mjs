@@ -128,6 +128,12 @@ test("telemetry tracker records aggregate counts", () => {
     target: "https://example.com/",
   });
   telemetry.recordFunnelEvent({
+    event: "link_result_shared",
+    source: "backend_api",
+    mode: "link_check",
+    format: "clipboard",
+  });
+  telemetry.recordFunnelEvent({
     event: "share_card_read",
     source: "backend_api",
     target: "https://example.com/",
@@ -261,7 +267,7 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.funnel.todayClientChannelsByMode["com.ktbatterham.certwatch"].testflight, 1);
   assert.equal(snapshot.funnel.recentDays.at(-1).clients["cert-watch-ios"].live_certificate_read, 1);
   assert.equal(snapshot.funnel.recentDays.at(-1).clientVersions["cert-watch-ios@1.1.0+8"].live_certificate_read, 1);
-  assert.equal(snapshot.funnel.recent.length, 8);
+  assert.equal(snapshot.funnel.recent.length, 9);
   assert.equal(snapshot.funnel.recent[0].event, "live_certificate_read");
   assert.equal(snapshot.clients.consumption.backendApiEvents, 5);
   assert.equal(snapshot.clients.consumption.todayBackendApiEvents, 5);
@@ -283,8 +289,11 @@ test("telemetry tracker records aggregate counts", () => {
   assert.equal(snapshot.productPulse.today.clientChannelsByApp["com.ktbatterham.certwatch"].testflight, 1);
   assert.equal(snapshot.growthLoop.today.handoffsStarted, 1);
   assert.equal(snapshot.growthLoop.today.shareCardReads, 1);
+  assert.equal(snapshot.growthLoop.today.linkResultsShared, 1);
   assert.equal(snapshot.growthLoop.todayBySource.backend_api.shareCardReads, 1);
+  assert.equal(snapshot.growthLoop.todayBySource.backend_api.linkResultsShared, 1);
   assert.equal(snapshot.growthLoop.todayByApp.securl_web.shareCardReads, 1);
+  assert.equal(snapshot.growthLoop.todayByApp.link_check.linkResultsShared, 1);
   assert.equal(snapshot.scans.engagement.clients["securl-ios"], 1);
   assert.equal(snapshot.scans.engagement.clientVersions["securl-ios@1.2.0+19"], 1);
   assert.deepEqual(snapshot.clients.consumption.adoptionSignals, {

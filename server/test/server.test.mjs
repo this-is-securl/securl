@@ -921,6 +921,21 @@ test("telemetry event beacon records funnel events", async () => {
     assert.equal(payload.funnel.bySource["utm:launch"].share_link_copied, 1);
     assert.equal(payload.funnel.recent[0].scanId, "scan-one");
 
+    const linkShareResponse = await fetch(`${server.baseUrl}/api/telemetry/event`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Origin: "https://securl.online",
+      },
+      body: JSON.stringify({
+        event: "link_result_shared",
+        currentUrl: "https://securl.online/check-link/",
+        mode: "link_check",
+        format: "native",
+      }),
+    });
+    assert.equal(linkShareResponse.status, 202);
+
     const handoffResponse = await fetch(`${server.baseUrl}/api/telemetry/event`, {
       method: "POST",
       headers: {
@@ -938,7 +953,10 @@ test("telemetry event beacon records funnel events", async () => {
     const updatedTelemetryResponse = await fetch(`${server.baseUrl}/api/telemetry`);
     const updatedPayload = await updatedTelemetryResponse.json();
     assert.equal(updatedPayload.funnel.events.handoff_started, 1);
+    assert.equal(updatedPayload.funnel.events.link_result_shared, 1);
     assert.equal(updatedPayload.funnel.bySource["utm:landing"].handoff_started, 1);
+    assert.equal(updatedPayload.growthLoop.today.linkResultsShared, 1);
+    assert.equal(updatedPayload.growthLoop.todayByApp.link_check.linkResultsShared, 1);
 
     const playgroundResponse = await fetch(`${server.baseUrl}/api/telemetry/event`, {
       method: "POST",
