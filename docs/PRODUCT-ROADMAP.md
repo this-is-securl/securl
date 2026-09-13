@@ -16,7 +16,7 @@ moved, who needs to care, and can I trust the evidence?"
 The roadmap is based on the signals now visible across the product system:
 
 - The `securl` npm package retains provenance and no install scripts. The latest trailing week has
-  113 downloads, but an isolated spike and no public GitHub dependency or reusable-workflow evidence
+  28 downloads, but historical spikes and no public GitHub dependency or reusable-workflow evidence
   mean package-download counts alone must not be treated as developer adoption.
 - The iOS apps have real backend activity, especially Cert Watch live certificate reads,
   SecURL monitoring-target creation, and share-card reads.
@@ -57,6 +57,12 @@ Current priority order is:
    legacy app is removed from sale.
 5. **Keep engine integrity strong**: maintain package provenance, passive boundaries,
    contract compatibility, deploy health and honest telemetry while acquisition runs.
+6. **Run a weekly CLI/package improvement cycle**: review observed friction, failures,
+   ecosystem changes and documentation gaps; select at most one evidence-backed improvement;
+   release only when npm consumers genuinely benefit; demonstrate it through one attributable
+   distribution treatment; then compare completed CLI scans, report opens and downstream actions
+   against the pre-release baseline. Raw npm downloads remain a secondary distribution signal,
+   not a user or retention metric. A week with no worthwhile change should produce no release.
 
 New detection-pack breadth, contributor machinery, team/commercial layers and additional
 monitoring features remain demand-gated. They should not displace acquisition measurement
@@ -103,6 +109,10 @@ Goal: make `securl` the best lightweight outside-in posture engine for public UR
 
 Near-term work:
 
+- Operate a weekly learn, improve, release, demonstrate, measure review rather than creating
+  artificial version churn. Candidate work must answer a real CLI or integration friction point,
+  and package publication still follows SemVer, trusted provenance, installed-package smoke, and
+  the package-affecting closure rules.
 - Improve package-visible workflows that npm users can run without the hosted backend.
 - Keep CLI, JSON, Markdown, SARIF, and CI outputs stable and useful.
 - Promote `observationPolicy` into a first-class policy engine with named profiles, assertion results, and stable failure semantics.
