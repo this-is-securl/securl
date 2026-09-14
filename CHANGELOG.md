@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-09-14 - core 1.29.0 local link inspection
+
+- Added `securl link <url>` with honest summary and JSON output for bounded, passive link
+  resolution from the CLI.
+- Exported `inspectLink` and its result types from the package root and the new
+  `securl/link-inspection` subpath.
+- Kept link checks local and telemetry-free. The command does not execute page scripts,
+  submit forms, download attachments, sign in, or claim that a destination is safe.
+- Updated CLI help to point at the unified SecURL mobile app.
+- Classification: `PACKAGE_AFFECTING`, additive minor release.
+
 ## 2026-07-28 — core 1.27.1 CloudFront detection-pack follow-through
 
 ### Changed

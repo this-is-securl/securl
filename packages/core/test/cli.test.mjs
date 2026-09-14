@@ -196,6 +196,47 @@ test("CLI cert command renders a fast certificate summary", async () => {
   assert.match(stdout, /TLS certificate data is only available for HTTPS targets\./);
 });
 
+test("CLI link command renders an honest passive summary", async () => {
+  const { stdout } = await execFile(process.execPath, [cliPath, "link", "https://example.com@example.org"]);
+
+  assert.match(stdout, /Submitted: https:\/\/example\.com@example\.org/);
+  assert.match(stdout, /Destination: not opened/);
+  assert.match(stdout, /Verdict: Link not opened/);
+  assert.match(stdout, /hides a destination behind an @ sign/);
+  assert.match(stdout, /does not execute page scripts/);
+});
+
+test("CLI link command writes structured JSON output", async () => {
+  const tempDir = await mkdtemp(join(tmpdir(), "securl-link-cli-"));
+  const outputPath = join(tempDir, "link-check.json");
+
+  await execFile(process.execPath, [
+    cliPath,
+    "link",
+    "https://example.com@example.org",
+    "--format",
+    "json",
+    "--output",
+    outputPath,
+  ]);
+  const output = JSON.parse(await readFile(outputPath, "utf8"));
+
+  assert.equal(output.schema, "securl.link-inspection.v1");
+  assert.equal(output.submittedUrl, "https://example.com@example.org");
+  assert.equal(output.destinationUrl, null);
+  assert.equal(output.verdict.level, "blocked");
+});
+
+test("CLI link command rejects scan and certificate options", async () => {
+  await assert.rejects(
+    execFile(process.execPath, [cliPath, "link", "https://example.com", "--quiet"]),
+    (error) => {
+      assert.match(error.stderr, /Link checks only support --format summary\|json and --output\./);
+      return true;
+    },
+  );
+});
+
 test("CLI cert command writes structured JSON output", async () => {
   const tempDir = await mkdtemp(join(tmpdir(), "epi-cli-"));
   const outputPath = join(tempDir, "cert.json");
