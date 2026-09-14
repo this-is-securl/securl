@@ -22,6 +22,7 @@ test("package surface exports expected public functions", async () => {
   const postureInsights = await import("../dist/postureInsights.js");
   const signalClarity = await import("../dist/signalClarity.js");
   const certificate = await import("../dist/certificate.js");
+  const linkInspection = await import("../dist/link-inspection.js");
   const monitoringEvents = await import("../dist/monitoringEvents.js");
   const observations = await import("../dist/observations.js");
   const observationDrift = await import("../dist/observationDrift.js");
@@ -69,6 +70,8 @@ test("package surface exports expected public functions", async () => {
   assert.equal(typeof signalClarity.buildSignalClaritySummary, "function");
   assert.equal(typeof pkg.scanLiveCertificate, "function");
   assert.equal(typeof certificate.scanLiveCertificate, "function");
+  assert.equal(typeof pkg.inspectLink, "function");
+  assert.equal(typeof linkInspection.inspectLink, "function");
   assert.equal(typeof pkg.buildMonitoringEventsFromSnapshots, "function");
   assert.equal(typeof pkg.buildCertificateMonitoringEvents, "function");
   assert.equal(typeof monitoringEvents.buildMonitoringEventsFromSnapshots, "function");
@@ -82,6 +85,7 @@ test("package surface exports expected public functions", async () => {
   assert.equal(typeof observationPolicy.validateObservationPolicy, "function");
   assert.equal(typeof pkg.formatErrorMessage, "function");
   assert.equal(packageManifest.exports["./exposure-inventory"].default, "./dist/vendorExposure.js");
+  assert.equal(packageManifest.exports["./link-inspection"].default, "./dist/link-inspection.js");
 });
 
 test("package surface includes a working CLI help entrypoint", async () => {

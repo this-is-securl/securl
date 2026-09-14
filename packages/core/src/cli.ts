@@ -11,12 +11,14 @@ import {
   buildPortableEvidence,
   buildPostureManifest,
   formatErrorMessage,
+  inspectLink,
   MOBILE_RESOURCE_SCHEMAS,
   PORTABLE_EVIDENCE_SCHEMA,
   POSTURE_MANIFEST_SCHEMA,
   scanLiveCertificate,
   snapshotFromAnalysis,
 } from "./index.js";
+import type { LinkInspectionResult } from "./link-inspection.js";
 import type { AnalysisResult, HistoryDiff, LiveCertificateResult, ScanIssue } from "./types.js";
 import {
   acceptsMonitoringHandoff,
@@ -50,6 +52,12 @@ type CertPolicySummary = CertPolicyOptions & {
 };
 type ParsedArgs =
   | { command: "help" }
+  | {
+      command: "link";
+      target: string;
+      format: "json" | "summary";
+      outputPath: string | null;
+    }
   | {
       command: "schema";
       schema: "manifest" | "evidence" | keyof typeof MOBILE_RESOURCE_SCHEMAS;
@@ -93,6 +101,7 @@ Usage:
   securl scan <target...> [--publish|--notify] [--format json|markdown|summary|sarif|ci-json|manifest|evidence|exposure] [--baseline <report.json>] [--output <file>] [--github-summary <file>] [--quiet|--deep-passive] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
   securl compare <current-report.json> <baseline-report.json> [--format json|markdown|summary|sarif|ci-json] [--output <file>] [--fail-on info|warning|critical] [--fail-on-regression] [--fail-if-score-below <0-100>]
   securl cert <target> [--format json|markdown|summary|ci-json] [--output <file>] [--policy production|strict|renewal-watch] [--fail-if-invalid] [--fail-if-expiring-within <days>] [--fail-if-legacy-tls] [--expect-issuer <text>]
+  securl link <url> [--format summary|json] [--output <file>]
   securl schema manifest|evidence|mobile-summary|monitoring-mobile-summary|monitoring-cert-summary [--output <file>]
 
 Examples:
@@ -123,6 +132,8 @@ Examples:
   npx securl cert example.com --format json
   npx securl cert example.com --policy production --format ci-json
   npx securl cert example.com --format ci-json --fail-if-expiring-within 21 --fail-if-invalid
+  npx securl link https://bit.ly/example
+  npx securl link https://example.com --format json --output link-check.json
 
 Scan modes:
   default scan   Fetches the primary response plus bounded passive enrichment: HTML, DNS/mail, CT, OSV, exposure, CORS, API-surface, and public trust signals.
@@ -150,8 +161,8 @@ CI policy modes:
                              For cert checks, fail when the observed issuer does not contain the expected text.
 
 Next step:
-  Run securl in CI? Save the same target in the SecURL mobile apps to get certificate,
-  header, and posture drift alerts on your phone: https://securl.online/downloads
+  Check unfamiliar links with securl link. For QR checks and monitoring on your phone,
+  install the unified SecURL app: https://securl.online/downloads
 `;
 
 process.once("SIGINT", () => {
@@ -198,7 +209,7 @@ const parseArgs = (argv: string[]): ParsedArgs => {
     return { command: "help" as const };
   }
 
-  if (!["scan", "compare", "cert", "schema"].includes(command)) {
+  if (!["scan", "compare", "cert", "link", "schema"].includes(command)) {
     throw new Error(`Unknown command: ${command}`);
   }
 
@@ -448,6 +459,29 @@ const parseArgs = (argv: string[]): ParsedArgs => {
     };
   }
 
+  if (command === "link") {
+    const [target, unexpected] = positionals;
+    if (!target || unexpected) {
+      throw new Error("Link checks support exactly one target. Usage: securl link <url>");
+    }
+    if (format !== "summary" && format !== "json") {
+      throw new Error("Link checks support summary or json output.");
+    }
+    if (
+      githubSummaryPath
+      || baselinePath
+      || failOnSeverity
+      || failOnRegression
+      || failIfScoreBelow !== null
+      || scanMode !== "standard"
+      || certPolicyActive(certPolicy)
+      || publish
+    ) {
+      throw new Error("Link checks only support --format summary|json and --output.");
+    }
+    return { command: "link", target, format, outputPath };
+  }
+
   if (command === "cert") {
     const [target, unexpected] = positionals;
     if (!target) {
@@ -542,6 +576,25 @@ const formatDiffSummary = (diff: HistoryDiff | null) => {
     ).map((item) => `- ${item}`),
   ].join("\n");
 };
+
+const formatLinkSummary = (result: LinkInspectionResult) => [
+  `Submitted: ${result.submittedUrl}`,
+  `Destination: ${result.destinationUrl ?? "not opened"}`,
+  `Verdict: ${result.verdict.title}`,
+  result.verdict.summary,
+  "",
+  `Redirects: ${Math.max(0, result.redirects.length - 1)}`,
+  `Response: ${result.response?.statusCode ?? "not available"}${result.response?.contentType ? ` (${result.response.contentType})` : ""}`,
+  "",
+  "Signals:",
+  ...(result.signals.length
+    ? result.signals.map((item) => `- [${item.level}] ${item.title}: ${item.detail}`)
+    : ["- No additional link-level signals found."]),
+  "",
+  "Limits:",
+  ...result.limitations.map((item) => `- ${item}`),
+  "",
+].join("\n");
 
 const formatComparisonSummary = (current: AnalysisResult, baseline: AnalysisResult, diff: HistoryDiff) =>
   [
@@ -1219,6 +1272,19 @@ const main = async () => {
           ? PORTABLE_EVIDENCE_SCHEMA
           : MOBILE_RESOURCE_SCHEMAS[parsed.schema];
       output = `${JSON.stringify(schema, null, 2)}\n`;
+      if (parsed.outputPath) {
+        await writeFile(parsed.outputPath, output, "utf8");
+      } else {
+        process.stdout.write(output);
+      }
+      return;
+    }
+
+    if (parsed.command === "link") {
+      const result = await inspectLink(parsed.target);
+      output = parsed.format === "json"
+        ? `${JSON.stringify(result, null, 2)}\n`
+        : formatLinkSummary(result);
       if (parsed.outputPath) {
         await writeFile(parsed.outputPath, output, "utf8");
       } else {

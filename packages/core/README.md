@@ -68,6 +68,18 @@ Run an interactive summary scan:
 npx securl scan example.com
 ```
 
+Check an unfamiliar or shortened link without opening it in a browser:
+
+```bash
+npx securl link https://bit.ly/example
+npx securl link https://example.com --format json --output link-check.json
+```
+
+The link command follows a bounded redirect chain, reveals the destination, and reports
+URL, transport, redirect and response characteristics. It does not execute page scripts,
+submit forms, download attachments, sign in, or claim that a destination is safe. The
+inspection runs locally and sends no product telemetry.
+
 After the local result, SecURL asks whether you want to watch the site for security drift.
 An explicit Yes prints an attributed, target-prefilled web link. Opening it runs a fresh
 browser-owned hosted scan, then lets you save the target as a daily or weekly watch. The

@@ -79,6 +79,8 @@ export {
   buildMonitoringEventsFromSnapshots,
 } from "./monitoringEvents.js";
 export { buildPostureDigest } from "./postureDigest.js";
+export { inspectLink } from "./link-inspection.js";
+export type { LinkInspectionResult, LinkSignal, LinkSignalLevel } from "./link-inspection.js";
 export { buildPostureManifest, POSTURE_MANIFEST_SCHEMA } from "./postureManifest.js";
 export {
   buildPortableEvidence,
