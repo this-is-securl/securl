@@ -9,6 +9,8 @@ const CLIENT_CHANNEL_ALIASES = new Map([
   ["app_store", "app-store"],
   ["app-store", "app-store"],
   ["store", "app-store"],
+  ["sideload", "sideload"],
+  ["side-load", "sideload"],
   ["testflight", "testflight"],
   ["test-flight", "testflight"],
   ["tf", "testflight"],
@@ -24,8 +26,11 @@ const CLIENT_CHANNEL_ALIASES = new Map([
 
 const CLIENT_APP_IDS = new Map([
   ["securl-ios", "com.ktbatterham.securl"],
+  ["securl-android", "com.ktbatterham.securl"],
   ["header-watch-ios", "com.ktbatterham.headerwatch"],
+  ["header-watch-android", "com.ktbatterham.headerwatch"],
   ["cert-watch-ios", "com.ktbatterham.certwatch"],
+  ["cert-watch-android", "com.ktbatterham.certwatch"],
 ]);
 const UUID_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const LONG_HEX_PATTERN = /^[a-f0-9]{16,}$/i;

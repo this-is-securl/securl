@@ -21,14 +21,36 @@ test("client metadata accepts bounded product identifiers without collecting dev
   assert.equal(normalizeClientVersion("version with spaces"), null);
   assert.equal(normalizeClientVersion("550e8400-e29b-41d4-a716-446655440000"), null);
   assert.equal(normalizeClientChannel("App_Store"), "app-store");
+  assert.equal(normalizeClientChannel("sideload"), "sideload");
+  assert.equal(normalizeClientChannel("side-load"), "sideload");
   assert.equal(normalizeClientChannel("tf"), "testflight");
   assert.equal(normalizeClientChannel("debug"), "development");
   assert.equal(normalizeClientChannel("ci"), "automation");
   assert.equal(normalizeClientChannel("random"), null);
   assert.equal(inferAppIdFromClient("securl-ios"), "com.ktbatterham.securl");
+  assert.equal(inferAppIdFromClient("securl-android"), "com.ktbatterham.securl");
   assert.equal(inferAppIdFromClient("header-watch-ios"), "com.ktbatterham.headerwatch");
+  assert.equal(inferAppIdFromClient("header-watch-android"), "com.ktbatterham.headerwatch");
   assert.equal(inferAppIdFromClient("cert-watch-ios"), "com.ktbatterham.certwatch");
+  assert.equal(inferAppIdFromClient("cert-watch-android"), "com.ktbatterham.certwatch");
   assert.equal(inferClientChannel({ client: "securl-api-smoke", version: "1.0.0" }), "automation");
+});
+
+test("Android sideload metadata remains platform-distinct while mapping to the shared app", () => {
+  assert.deepEqual(readClientMetadata({
+    headers: {
+      "x-securl-client": "securl-android",
+      "x-securl-client-version": "1.6.0+5",
+      "x-securl-client-channel": "sideload",
+    },
+  }, { authState: { authMode: "scan-owner" } }), {
+    client: "securl-android",
+    version: "1.6.0+5",
+    channel: "sideload",
+    appId: "com.ktbatterham.securl",
+    category: "verified",
+    provenance: "owner-bound",
+  });
 });
 
 test("client metadata is optional, ignores malformed headers, and supports app id fallback", () => {

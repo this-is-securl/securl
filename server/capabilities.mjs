@@ -40,7 +40,12 @@ export function buildCapabilitiesPayload({
           version: "X-SecURL-Client-Version",
           channel: "X-SecURL-Client-Channel",
         },
-        channels: ["app-store", "testflight", "development", "automation"],
+        channels: ["app-store", "testflight", "sideload", "development", "automation"],
+        features: ["android-client-attribution-v1"],
+        firstPartyClients: {
+          ios: ["securl-ios", "header-watch-ios", "cert-watch-ios"],
+          android: ["securl-android", "header-watch-android", "cert-watch-android"],
+        },
         attribution: {
           categories: ["verified", "unverified", "automation"],
           verifiedBy: ["session", "api-key", "owner-bound", "server-inferred"],

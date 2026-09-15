@@ -66,9 +66,9 @@ These scan resources still default to **in-memory** storage for local developmen
 
 Mobile clients should send the optional aggregate telemetry headers on each request:
 
-- `X-SecURL-Client`: `securl-ios`, `header-watch-ios`, or `cert-watch-ios`
+- `X-SecURL-Client`: `securl-ios`, `securl-android`, `header-watch-ios`, `header-watch-android`, `cert-watch-ios`, or `cert-watch-android`
 - `X-SecURL-Client-Version`: release/build identifier such as `1.0.4+19`
-- `X-SecURL-Client-Channel`: `app-store`, `testflight`, `development`, or `automation`
+- `X-SecURL-Client-Channel`: `app-store`, `testflight`, `sideload`, `development`, or `automation`
 
 The backend uses these for product-pulse attribution only. UUID-like and long hexadecimal values are rejected so device identifiers are not collected by mistake.
 

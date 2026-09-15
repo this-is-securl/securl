@@ -32,11 +32,16 @@ For mobile-to-web acquisition and sharing, use the scanner handoff, public repor
 
 First-party clients should send the optional product metadata headers on every backend request:
 
-- `X-SecURL-Client`: `securl-ios`, `header-watch-ios`, `cert-watch-ios`, `securl-web`, or another stable product identifier.
+- `X-SecURL-Client`: `securl-ios`, `securl-android`, `header-watch-ios`, `header-watch-android`, `cert-watch-ios`, `cert-watch-android`, `securl-web`, or another stable product identifier.
 - `X-SecURL-Client-Version`: release/build identifier such as `1.0.4+19`.
-- `X-SecURL-Client-Channel`: `app-store`, `testflight`, `development`, or `automation`.
+- `X-SecURL-Client-Channel`: `app-store`, `testflight`, `sideload`, `development`, or `automation`.
 
 These headers are additive and privacy-safe. They are used for aggregate product pulse and adoption readouts only. The backend rejects UUID-like or long hexadecimal values so clients do not accidentally send device identifiers.
+
+Android mobile clients should first check for `android-client-attribution-v1` in
+`service.clientTelemetry.features`. When present, use the matching `*-android` client id and
+`sideload` for a production APK installed from `securl.online`. If the feature is absent, retain the
+previous client id and channel so older backends continue accepting the request unchanged.
 
 ## Mobile Monitoring And Cert Watch
 
