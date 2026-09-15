@@ -502,7 +502,12 @@ test("capabilities endpoint exposes additive client feature metadata", async () 
       version: "X-SecURL-Client-Version",
       channel: "X-SecURL-Client-Channel",
     });
-    assert.deepEqual(payload.service.clientTelemetry.channels, ["app-store", "testflight", "development", "automation"]);
+    assert.deepEqual(payload.service.clientTelemetry.channels, ["app-store", "testflight", "sideload", "development", "automation"]);
+    assert.deepEqual(payload.service.clientTelemetry.features, ["android-client-attribution-v1"]);
+    assert.deepEqual(payload.service.clientTelemetry.firstPartyClients, {
+      ios: ["securl-ios", "header-watch-ios", "cert-watch-ios"],
+      android: ["securl-android", "header-watch-android", "cert-watch-android"],
+    });
     assert.deepEqual(payload.service.clientTelemetry.attribution.categories, ["verified", "unverified", "automation"]);
     assert.equal(payload.service.clientTelemetry.attribution.selfReportedHeadersAreUnverified, true);
     assert.equal(payload.service.clientTelemetry.attribution.automationOverridesReportedIdentity, true);
