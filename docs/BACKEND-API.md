@@ -61,7 +61,7 @@ Successful `POST /api/scans` responses include a `resources` object with relativ
 
 `POST /api/link-checks` accepts `{ "url": "https://example.com/path?next=..." }` and the
 same owner authentication used by scan resources. Clients may also send the optional,
-bounded `entryPoint` value `share_extension`, `browser_extension`, `qr`, `paste`, or
+bounded `entryPoint` value `share_extension`, `browser_extension`, `web_share_target`, `qr`, `paste`, or
 `manual`; omitted or invalid values are aggregated as `unknown`. Existing clients remain
 compatible. It returns
 `securl.link-inspection.v1`: the normalized exact URL, lexical attention signals, every
@@ -77,6 +77,8 @@ QR payload, redirect destination, device identifier, owner credential, IP or raw
 For compatibility with SecURL 1.5 build 30, the native Share Extension's bounded
 `X-SecURL-Client-Surface: share-extension` header is accepted as an alias for
 `entryPoint: "share_extension"`. A body `entryPoint` remains authoritative when present.
+The installed Android web app uses `web_share_target` after its service worker converts the
+operating-system share payload into a fragment-only checker prefill; it never auto-runs a check.
 
 Runtime controls:
 

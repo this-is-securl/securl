@@ -1158,6 +1158,32 @@ test("link checks preserve the bounded browser-extension entry point", async () 
   }
 });
 
+test("link checks preserve the installed-web-app share-target entry point", async () => {
+  const server = await startServer();
+
+  try {
+    const response = await postLinkCheck(server.baseUrl, "https://example.com", {
+      entryPoint: "web_share_target",
+      headers: {
+        "X-SecURL-Client": "securl-link-checker",
+        "X-SecURL-Client-Version": "2.1.0",
+      },
+    });
+    assert.equal(response.status, 200);
+
+    const telemetryResponse = await fetch(`${server.baseUrl}/api/telemetry`);
+    const telemetryPayload = await telemetryResponse.json();
+    assert.equal(
+      telemetryPayload.funnel.byEntryPoint.web_share_target.link_inspection_completed,
+      1,
+    );
+    assert.equal(telemetryPayload.funnel.recent[0].entryPoint, "web_share_target");
+    assert.equal(telemetryPayload.funnel.recent[0].target, null);
+  } finally {
+    await server.stop();
+  }
+});
+
 test("link checks stop before requesting URLs with embedded credentials", async () => {
   const server = await startServer();
 
