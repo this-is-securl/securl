@@ -2050,6 +2050,10 @@ const FUNNEL_EVENT_NAMES = new Set([
   "link_inspection_completed",
   "link_inspection_blocked",
   "link_inspection_failed",
+  "link_share_created",
+  "link_share_card_viewed",
+  "link_share_recipient_recheck_started",
+  "link_share_recipient_recheck_completed",
   "playground_action",
 ]);
 

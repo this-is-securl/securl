@@ -1,4 +1,5 @@
 import { inspectLink } from "../packages/core/dist/link-inspection.js";
+import { createInspectionProof } from "./linkShareContract.mjs";
 
 function readEntryPoint(request, body) {
   if (typeof body.entryPoint === "string") {
@@ -21,6 +22,7 @@ export async function handleLinkInspectionRequest({
   normalizeScanErrorMessage,
   telemetry,
   readClientMetadata,
+  inspectionProofSalt,
 }) {
   if (request.method !== "POST") {
     sendMethodNotAllowed(response, ["POST", "OPTIONS"]);
@@ -74,7 +76,11 @@ export async function handleLinkInspectionRequest({
         : "link_inspection_completed",
       ...telemetryContext,
     });
-    sendJson(response, 200, { apiVersion: "2026-08-14", inspection });
+    sendJson(response, 200, {
+      apiVersion: "2026-08-14",
+      inspection,
+      shareProof: createInspectionProof(inspection, inspectionProofSalt),
+    });
   } catch (error) {
     telemetry.recordFunnelEvent({
       event: "link_inspection_failed",
