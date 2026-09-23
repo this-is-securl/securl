@@ -591,6 +591,30 @@ test("scan repository fences terminal writes from a recovered stale worker", asy
   assert.equal(replacementCompletion.result.grade, "A");
 });
 
+test("link-share storage retains only redacted evidence and a revocation hash", async () => {
+  const repository = createInMemoryScanRepository();
+  const record = await repository.createLinkShare({
+    publicId: "public-id",
+    revokeTokenHash: "hash-only",
+    preview: { schema: "securl.link-share.v1", source: { hostname: "example.com" } },
+    createdAt: "2026-09-23T00:00:00.000Z",
+    expiresAt: "2026-10-23T00:00:00.000Z",
+  });
+  assert.deepEqual(record, {
+    publicId: "public-id",
+    revokeTokenHash: "hash-only",
+    preview: { schema: "securl.link-share.v1", source: { hostname: "example.com" } },
+    createdAt: "2026-09-23T00:00:00.000Z",
+    expiresAt: "2026-10-23T00:00:00.000Z",
+    revokedAt: null,
+  });
+  assert.equal(Object.hasOwn(record, "ownerId"), false);
+  assert.equal(Object.hasOwn(record, "url"), false);
+  assert.equal(await repository.revokeLinkShare("public-id", "2026-09-24T00:00:00.000Z"), true);
+  assert.equal((await repository.getLinkShare("public-id")).revokedAt, "2026-09-24T00:00:00.000Z");
+  assert.equal(await repository.revokeLinkShare("public-id", "2026-09-25T00:00:00.000Z"), false);
+});
+
 test("scan repository schema statements create the scans table and scoped indexes", () => {
   const statements = buildScanRepositorySchemaStatements("public");
 
@@ -604,6 +628,11 @@ test("scan repository schema statements create the scans table and scoped indexe
   assert.ok(statements.some((statement) => /create table if not exists public\.alert_destinations/i.test(statement)));
   assert.ok(statements.some((statement) => /create table if not exists public\.alert_outbox/i.test(statement)));
   assert.ok(statements.some((statement) => /create table if not exists public\.push_devices/i.test(statement)));
+  const linkSharesStatement = statements.find((statement) => /create table if not exists public\.link_shares/i.test(statement));
+  assert.ok(linkSharesStatement);
+  assert.match(linkSharesStatement, /preview jsonb not null/i);
+  assert.match(linkSharesStatement, /expires_at timestamptz not null/i);
+  assert.doesNotMatch(linkSharesStatement, /owner_id|requester_scope|\burl\b/i);
   assert.ok(statements.some((statement) => /last_push_attempted_at timestamptz null/i.test(statement)));
   assert.ok(statements.some((statement) => /last_push_status text null/i.test(statement)));
   const scansStatement = statements.find((statement) => /create table if not exists public\.scans/i.test(statement));

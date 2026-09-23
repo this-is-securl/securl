@@ -18,6 +18,15 @@ describe("parseAppRoute", () => {
     });
   });
 
+  it("routes only valid shareable link result identifiers", () => {
+    const publicId = "aBcDeFgHiJkLmNoPqRsTuVwXyZ_12345";
+    expect(parseAppRoute(`/shared/link/${publicId}`)).toEqual({
+      kind: "shared-link",
+      publicId,
+    });
+    expect(parseAppRoute("/shared/link/too-short")).toEqual({ kind: "not-found" });
+  });
+
   it("keeps unknown and malformed paths out of known routes", () => {
     expect(parseAppRoute("/unknown")).toEqual({ kind: "not-found" });
     expect(parseAppRoute("/report/")).toEqual({ kind: "not-found" });

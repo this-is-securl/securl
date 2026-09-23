@@ -67,6 +67,7 @@ import { handleAlertDestinationCollectionRequest, handleAlertDestinationItemRequ
 import { handleAuthRequest, resolveAuthenticatedApiKey, resolveAuthenticatedSession } from "./authHandlers.mjs";
 import { handleScanCollectionRequest, handleScanResourceRequest, runQueuedScan } from "./scanResourceHandlers.mjs";
 import { handleLinkInspectionRequest } from "./linkInspectionHandlers.mjs";
+import { handleLinkShareCollection, handleLinkShareItem, handleLinkSharePreview, handleLinkShareRecheckEvent } from "./linkShareHandlers.mjs";
 import { createScanScheduler } from "./scanScheduler.mjs";
 import { createStaticHandler } from "./staticServer.mjs";
 import { enforceStartupConfiguration, initializeScanRepository } from "./startupValidation.mjs";
@@ -115,6 +116,8 @@ const databaseUrl = (process.env.DATABASE_URL || "").trim();
 const allowedOrigins = resolveAllowedOrigins(process.env.ALLOWED_ORIGINS, isProduction);
 const SCAN_OWNER_HEADER = "x-scan-owner";
 const AUTH_TOKEN_FINGERPRINT_SALT = process.env.AUTH_TOKEN_FINGERPRINT_SALT || "epi-auth-token-fingerprint-v1";
+const LINK_SHARE_REVOKE_SALT = process.env.LINK_SHARE_REVOKE_SALT || AUTH_TOKEN_FINGERPRINT_SALT;
+const PUBLIC_WEB_BASE_URL = (process.env.PUBLIC_WEB_BASE_URL || "https://app.securl.online").replace(/\/$/, "");
 const TELEMETRY_TOKEN = (process.env.TELEMETRY_TOKEN || process.env.ADMIN_TELEMETRY_TOKEN || "").trim();
 const TELEMETRY_VISITOR_SALT = process.env.TELEMETRY_VISITOR_SALT || "epi-visitor-count-v1";
 const TELEMETRY_STORAGE_PATH = (process.env.TELEMETRY_STORAGE_PATH || "").trim();
@@ -377,6 +380,28 @@ const authRateLimiter = createRateLimiter({
   upstashUrl: upstashRestUrl,
   upstashToken: upstashRestToken,
   prefix: "epi:rate-limit:auth",
+  log,
+});
+
+const linkShareCreateRateLimiter = createRateLimiter({
+  backend: rateLimitBackend,
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 20,
+  maxBuckets: RATE_LIMIT_MAX_BUCKETS,
+  upstashUrl: upstashRestUrl,
+  upstashToken: upstashRestToken,
+  prefix: "epi:rate-limit:link-share-create",
+  log,
+});
+
+const linkShareReadRateLimiter = createRateLimiter({
+  backend: rateLimitBackend,
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 120,
+  maxBuckets: RATE_LIMIT_MAX_BUCKETS,
+  upstashUrl: upstashRestUrl,
+  upstashToken: upstashRestToken,
+  prefix: "epi:rate-limit:link-share-read",
   log,
 });
 
@@ -721,9 +746,52 @@ const server = http.createServer(async (request, response) => {
       normalizeScanErrorMessage,
       telemetry,
       readClientMetadata,
+      inspectionProofSalt: LINK_SHARE_REVOKE_SALT,
     });
     return;
   }
+
+  if (await handleLinkSharePreview({
+    request, response, requestUrl,
+    authorizeAnalysisRequest: (options) => withAuthResolvers({
+      ...options,
+      sendJsonResponse: sendApiJson,
+      sendRateLimitedResponse: sendApiRateLimited,
+    }),
+    readJsonBody, sendJson: sendApiJson, sendMethodNotAllowed: sendApiMethodNotAllowed,
+    revokeSalt: LINK_SHARE_REVOKE_SALT,
+  })) return;
+
+  if (requestUrl.pathname === "/api/link-shares") {
+    await handleLinkShareCollection({
+      request, response, requestUrl, repository: scanRepository,
+      authorizeAnalysisRequest: (options) => withAuthResolvers({
+        ...options,
+        sendJsonResponse: sendApiJson,
+        sendRateLimitedResponse: sendApiRateLimited,
+      }),
+      readJsonBody, createRateLimiter: linkShareCreateRateLimiter,
+      sendJson: sendApiJson, sendMethodNotAllowed: sendApiMethodNotAllowed,
+      telemetry, publicBaseUrl: PUBLIC_WEB_BASE_URL, revokeSalt: LINK_SHARE_REVOKE_SALT,
+      readClientMetadata,
+    });
+    return;
+  }
+
+  if (await handleLinkShareRecheckEvent({
+    request, response, requestUrl, repository: scanRepository, readJsonBody,
+    readRateLimiter: linkShareReadRateLimiter, sendJson: sendApiJson,
+    sendMethodNotAllowed: sendApiMethodNotAllowed, telemetry, revokeSalt: LINK_SHARE_REVOKE_SALT,
+    readClientMetadata,
+  })) return;
+
+  if (await handleLinkShareItem({
+    request, response, requestUrl, repository: scanRepository, readJsonBody,
+    readRateLimiter: linkShareReadRateLimiter, sendJson: sendApiJson,
+    sendMethodNotAllowed: sendApiMethodNotAllowed, telemetry,
+    publicBaseUrl: PUBLIC_WEB_BASE_URL, revokeSalt: LINK_SHARE_REVOKE_SALT,
+    readClientMetadata,
+  })) return;
 
   if (requestUrl.pathname === "/api/scans") {
     await handleScanCollectionRequest({

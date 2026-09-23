@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.stubGlobal("__API_BASE_URL__", "");
+vi.stubGlobal("__APP_VERSION__", "1.0.1-test");
 vi.mock("@/lib/browserStorage", () => ({
   readBrowserStorage: vi.fn(),
   writeBrowserStorage: vi.fn(),
@@ -128,6 +129,58 @@ describe("api client URL helpers", () => {
     const { getCapabilities } = await import("./apiClient");
     await expect(getCapabilities()).resolves.toEqual(capabilities);
     expect(fetchMock).toHaveBeenCalledWith("/api/capabilities");
+  });
+
+  it("loads shared link results and records an attributable fresh-check journey", async () => {
+    const browserStorage = await import("@/lib/browserStorage");
+    vi.mocked(browserStorage.readBrowserStorage).mockResolvedValue("shared-link-owner-token");
+    const publicId = "aBcDeFgHiJkLmNoPqRsTuVwXyZ_12345";
+    const share = {
+      schema: "securl.link-share.v1",
+      publicId,
+      createdAt: "2026-09-23T07:00:00.000Z",
+      expiresAt: "2026-10-23T07:00:00.000Z",
+      publicUrl: `https://app.securl.online/shared/link/${publicId}`,
+      source: { scheme: "https", hostname: "example.com", path: "/", displayUrl: "https://example.com/" },
+      destination: null,
+      redirects: [],
+      verdict: { level: "review", title: "Review before opening", summary: "Review it." },
+      signals: [],
+      response: null,
+      limitations: [],
+    };
+    const inspection = {
+      schema: "securl.link-inspection.v1",
+      normalizedUrl: "https://example.com/",
+      destinationUrl: "https://example.com/",
+      verdict: share.verdict,
+      signals: [],
+    };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ share }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 202 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ inspection }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 202 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { getSharedLinkResult, recordSharedLinkRecheck, recheckSharedLink } = await import("./apiClient");
+    await expect(getSharedLinkResult(publicId)).resolves.toEqual({ share });
+    await recordSharedLinkRecheck(publicId, "started");
+    await expect(recheckSharedLink(share.source.displayUrl)).resolves.toEqual({ inspection });
+    await recordSharedLinkRecheck(publicId, "completed");
+
+    expect(fetchMock.mock.calls[0][1].headers).toMatchObject({
+      "X-SecURL-Client": "securl-web",
+      "X-SecURL-Client-Version": "1.0.1-test",
+    });
+    expect(fetchMock.mock.calls[2][1].headers).toMatchObject({
+      "X-Scan-Owner": "shared-link-owner-token",
+      "X-SecURL-Client": "securl-web",
+    });
+    expect(JSON.parse(fetchMock.mock.calls[2][1].body)).toEqual({
+      url: "https://example.com/",
+      entryPoint: "shared_link",
+    });
   });
 
   it("uses a CORS-safelisted MIME type for cross-origin telemetry beacons", async () => {

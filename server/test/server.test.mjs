@@ -5,6 +5,7 @@ import http from "node:http";
 import net from "node:net";
 import test from "node:test";
 import { once } from "node:events";
+import { createInspectionProof } from "../linkShareContract.mjs";
 
 const SERVER_ENTRY = new URL("../index.mjs", import.meta.url);
 const CORE_PACKAGE = JSON.parse(await readFile(new URL("../../packages/core/package.json", import.meta.url), "utf8"));
@@ -3017,6 +3018,133 @@ test("scan owner tokens that are too short or low-entropy are rejected", async (
       headers: scanOwnerHeaders("3f2504e0-4f89-41d3-9a0c-0305e82c3301"),
     });
     assert.equal(okResponse.status, 200);
+  } finally {
+    await server.stop();
+  }
+});
+
+test("link shares create an exact redacted preview, read publicly, emit aggregate events, and revoke by creator secret", async () => {
+  const proofSalt = "test-link-share-proof-salt";
+  const server = await startServer({ PUBLIC_WEB_BASE_URL: "https://app.securl.online", LINK_SHARE_REVOKE_SALT: proofSalt });
+  const inspection = {
+    schema: "securl.link-inspection.v1",
+    normalizedUrl: "https://user:password@example.com/reset/abcdefghijklmnopqrstuvwxyz012345?token=secret#fragment",
+    destinationUrl: "https://destination.example/welcome?recipient=person@example.com#private",
+    verdict: { level: "review", title: "untrusted", summary: "untrusted" },
+    redirects: [{ url: "https://destination.example/welcome?token=secret", statusCode: 302, originChanged: true }],
+    response: { statusCode: 200, contentType: "text/html" },
+    signals: [{ id: "known_shortener", title: "untrusted", detail: "secret" }],
+  };
+  const shareProof = createInspectionProof(inspection, proofSalt);
+
+  try {
+    const previewResponse = await fetch(`${server.baseUrl}/api/link-shares/preview`, {
+      method: "POST",
+      headers: scanOwnerJsonHeaders(),
+      body: JSON.stringify({ inspection, shareProof }),
+    });
+    const preview = await previewResponse.json();
+    assert.equal(previewResponse.status, 200);
+
+    const createResponse = await fetch(`${server.baseUrl}/api/link-shares`, {
+      method: "POST",
+      headers: {
+        ...scanOwnerJsonHeaders(),
+        "X-SecURL-Client": "securl-smoke",
+        "X-SecURL-Client-Version": "e1-smoke",
+        "X-SecURL-Client-Channel": "automation",
+      },
+      body: JSON.stringify({ inspection, shareProof }),
+    });
+    const created = await createResponse.json();
+    assert.equal(createResponse.status, 201);
+    assert.equal(created.share.schema, "securl.link-share.v1");
+    assert.deepEqual(created.share.source, preview.preview.source);
+    assert.deepEqual(created.share.destination, preview.preview.destination);
+    assert.deepEqual(created.share.verdict, preview.preview.verdict);
+    assert.equal(created.share.source.displayUrl, "https://example.com/reset/:redacted");
+    assert.equal(created.share.destination.displayUrl, "https://destination.example/welcome");
+    assert.match(created.share.publicId, /^[A-Za-z0-9_-]{32}$/);
+    assert.match(created.revokeToken, /^[A-Za-z0-9_-]{43}$/);
+    assert.equal(JSON.stringify(created).includes("password"), false);
+    assert.equal(JSON.stringify(created).includes("token=secret"), false);
+
+    const forgedResponse = await fetch(`${server.baseUrl}/api/link-shares`, {
+      method: "POST",
+      headers: scanOwnerJsonHeaders(),
+      body: JSON.stringify({ inspection: { ...inspection, destinationUrl: "https://forged.example/" }, shareProof }),
+    });
+    assert.equal(forgedResponse.status, 400);
+    assert.equal((await forgedResponse.json()).code, "link_share_proof_invalid");
+
+    const readResponse = await fetch(`${server.baseUrl}/api/link-shares/${created.share.publicId}`, {
+      headers: { "X-SecURL-Client": "securl-smoke", "X-SecURL-Client-Channel": "automation" },
+    });
+    const read = await readResponse.json();
+    assert.equal(readResponse.status, 200);
+    assert.equal(readResponse.headers.get("x-robots-tag"), "noindex, nofollow, noarchive");
+    assert.deepEqual(read.share, created.share);
+
+    for (const stage of ["started", "completed"]) {
+      const response = await fetch(`${server.baseUrl}/api/link-shares/${created.share.publicId}/recheck-events`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-SecURL-Client": "securl-smoke",
+          "X-SecURL-Client-Channel": "automation",
+        },
+        body: JSON.stringify({ stage }),
+      });
+      assert.equal(response.status, 202);
+    }
+
+    const forbidden = await fetch(`${server.baseUrl}/api/link-shares/${created.share.publicId}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ revokeToken: "wrong" }),
+    });
+    assert.equal(forbidden.status, 403);
+
+    const revoked = await fetch(`${server.baseUrl}/api/link-shares/${created.share.publicId}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ revokeToken: created.revokeToken }),
+    });
+    assert.equal(revoked.status, 200);
+    const afterRevoke = await fetch(`${server.baseUrl}/api/link-shares/${created.share.publicId}`);
+    assert.equal(afterRevoke.status, 410);
+    assert.equal((await afterRevoke.json()).code, "link_share_revoked");
+
+    const missing = await fetch(`${server.baseUrl}/api/link-shares/${"A".repeat(32)}`);
+    assert.equal(missing.status, 404);
+    assert.equal((await missing.json()).code, "link_share_not_found");
+
+    const telemetryPayload = await (await fetch(`${server.baseUrl}/api/telemetry`)).json();
+    assert.equal(telemetryPayload.funnel.events.link_share_created, 1);
+    assert.equal(telemetryPayload.funnel.events.link_share_card_viewed, 1);
+    assert.equal(telemetryPayload.funnel.events.link_share_recipient_recheck_started, 1);
+    assert.equal(telemetryPayload.funnel.events.link_share_recipient_recheck_completed, 1);
+    const shareEvents = telemetryPayload.funnel.recent.filter((event) => event.event.startsWith("link_share_"));
+    assert.equal(shareEvents.length, 4);
+    assert.equal(shareEvents.every((event) => event.client === "securl-smoke"), true);
+    assert.equal(shareEvents.every((event) => event.clientChannel === "automation"), true);
+    assert.equal(shareEvents.every((event) => event.clientAttribution === "automation"), true);
+    assert.equal(JSON.stringify(telemetryPayload).includes(created.share.publicId), false);
+    assert.equal(JSON.stringify(telemetryPayload).includes("destination.example"), false);
+  } finally {
+    await server.stop();
+  }
+});
+
+test("link sharing is versioned in capabilities and does not retain owner identity in its schema", async () => {
+  const server = await startServer();
+  try {
+    const payload = await (await fetch(`${server.baseUrl}/api/capabilities`)).json();
+    assert.equal(payload.linkSharing.schema, "securl.link-share.v1");
+    assert.equal(payload.linkSharing.privacy.redactedOnly, true);
+    assert.equal(payload.linkSharing.privacy.storesOwnerIdentity, false);
+    assert.equal(payload.linkSharing.privacy.storesRawUrl, false);
+    assert.ok(payload.linkSharing.resources.includes("POST /api/link-shares"));
   } finally {
     await server.stop();
   }

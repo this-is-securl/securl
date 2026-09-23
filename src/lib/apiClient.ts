@@ -47,6 +47,63 @@ export const buildApiUrl = (path: string) => {
   return baseUrl ? `${baseUrl}${normalizedPath}` : normalizedPath;
 };
 
+const buildWebClientHeaders = () => ({
+  "X-SecURL-Client": "securl-web",
+  "X-SecURL-Client-Version": __APP_VERSION__,
+});
+
+export interface SharedLinkResult {
+  schema: "securl.link-share.v1";
+  publicId: string;
+  createdAt: string;
+  expiresAt: string;
+  publicUrl: string;
+  source: { scheme: string; hostname: string; path: string; displayUrl: string };
+  destination: { scheme: string; hostname: string; path: string; displayUrl: string } | null;
+  redirects: Array<{ position: number; hostname: string; statusCode: number; originChanged: boolean; downgradedToHttp: boolean }>;
+  verdict: { level: "no_obvious_concern" | "review" | "high_attention" | "blocked"; title: string; summary: string };
+  signals: Array<{ id: string; level: "info" | "attention" | "high"; title: string }>;
+  response: { statusCode: number; contentType: string | null } | null;
+  limitations: string[];
+}
+
+export interface LinkInspectionResult {
+  schema: "securl.link-inspection.v1";
+  verdict: SharedLinkResult["verdict"];
+  normalizedUrl: string;
+  destinationUrl: string | null;
+  signals: Array<{ id: string; level?: string; title?: string }>;
+}
+
+export const getSharedLinkResult = async (publicId: string) => {
+  const response = await fetch(buildApiUrl(`/api/link-shares/${encodeURIComponent(publicId)}`), {
+    headers: buildWebClientHeaders(),
+  });
+  return readJsonResponse<{ share: SharedLinkResult }>(response);
+};
+
+export const recordSharedLinkRecheck = async (publicId: string, stage: "started" | "completed") => {
+  const response = await fetch(buildApiUrl(`/api/link-shares/${encodeURIComponent(publicId)}/recheck-events`), {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...buildWebClientHeaders() },
+    body: JSON.stringify({ stage }),
+  });
+  return readJsonResponse<{ ok: true }>(response);
+};
+
+export const recheckSharedLink = async (url: string) => {
+  const response = await fetch(buildApiUrl("/api/link-checks"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...buildWebClientHeaders(),
+      ...(await buildRequestAuthHeaders({ requireScanOwner: true })),
+    },
+    body: JSON.stringify({ url, entryPoint: "shared_link" }),
+  });
+  return readJsonResponse<{ inspection: LinkInspectionResult }>(response);
+};
+
 export const getCapabilities = async (): Promise<CapabilitiesResponse> => {
   const response = await fetch(buildApiUrl("/api/capabilities"));
   return readJsonResponse<CapabilitiesResponse>(response);

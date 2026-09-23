@@ -13,6 +13,7 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
   const qualifiedNotificationOutboxTable = `${schema}.notification_outbox`;
   const qualifiedAlertDestinationsTable = `${schema}.alert_destinations`;
   const qualifiedAlertOutboxTable = `${schema}.alert_outbox`;
+  const qualifiedLinkSharesTable = `${schema}.link_shares`;
   return [
     `create schema if not exists ${schema}`,
     `create table if not exists ${qualifiedUsersTable} (
@@ -114,6 +115,14 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
       updated_at timestamptz not null,
       completed_at timestamptz null
     )`,
+    `create table if not exists ${qualifiedLinkSharesTable} (
+      public_id text primary key,
+      revoke_token_hash text not null,
+      preview jsonb not null,
+      created_at timestamptz not null,
+      expires_at timestamptz not null,
+      revoked_at timestamptz null
+    )`,
     `create table if not exists ${qualifiedTable} (
       id uuid primary key,
       owner_id text null,
@@ -194,6 +203,7 @@ export function buildScanRepositorySchemaStatements(schema = "public") {
     `create index if not exists alert_outbox_pending_idx on ${qualifiedAlertOutboxTable} (status, available_at) where status in ('queued', 'processing')`,
     `create index if not exists alert_outbox_destination_created_idx on ${qualifiedAlertOutboxTable} (destination_id, created_at desc)`,
     `create index if not exists alert_outbox_completed_idx on ${qualifiedAlertOutboxTable} (completed_at) where completed_at is not null`,
+    `create index if not exists link_shares_expires_idx on ${qualifiedLinkSharesTable} (expires_at)`,
   ];
 }
 
@@ -531,6 +541,18 @@ function hydrateAlertDestinationFromRow(row, { includeSecrets = false } = {}) {
   return includeSecrets ? destination : publicAlertDestination(destination);
 }
 
+function hydrateLinkShareFromRow(row) {
+  if (!row) return null;
+  return {
+    publicId: row.public_id,
+    revokeTokenHash: row.revoke_token_hash,
+    preview: row.preview,
+    createdAt: row.created_at?.toISOString?.() ?? row.created_at,
+    expiresAt: row.expires_at?.toISOString?.() ?? row.expires_at,
+    revokedAt: row.revoked_at?.toISOString?.() ?? row.revoked_at ?? null,
+  };
+}
+
 function buildAlertOutboxRecord({
   id = crypto.randomUUID(),
   destination,
@@ -826,6 +848,7 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
   const alertDestinations = new Map();
   const alertOutbox = new Map();
   const alertOutboxByDedupeKey = new Map();
+  const linkShares = new Map();
 
   const touchOrder = (id) => {
     const index = order.indexOf(id);
@@ -864,6 +887,21 @@ export function createInMemoryScanRepository({ maxEntries = 200 } = {}) {
       return true;
     },
     async ping() {
+      return true;
+    },
+    async createLinkShare(record) {
+      const stored = { ...structuredClone(record), revokedAt: null };
+      linkShares.set(stored.publicId, stored);
+      return structuredClone(stored);
+    },
+    async getLinkShare(publicId) {
+      const record = linkShares.get(publicId);
+      return record ? structuredClone(record) : null;
+    },
+    async revokeLinkShare(publicId, revokedAt) {
+      const record = linkShares.get(publicId);
+      if (!record || record.revokedAt) return false;
+      record.revokedAt = revokedAt;
       return true;
     },
     async createUser({ email, displayName = null, passwordHash }) {
@@ -1673,6 +1711,7 @@ export function createPostgresScanRepository({
   const notificationOutboxTable = `${schema}.notification_outbox`;
   const alertDestinationsTable = `${schema}.alert_destinations`;
   const alertOutboxTable = `${schema}.alert_outbox`;
+  const linkSharesTable = `${schema}.link_shares`;
   const schemaStatements = buildScanRepositorySchemaStatements(schema);
 
   const repository = {
@@ -1692,6 +1731,27 @@ export function createPostgresScanRepository({
       await pool.query("SELECT 1");
       await pool.query(`select 1 from ${table} limit 1`);
       return true;
+    },
+    async createLinkShare(record) {
+      const { rows } = await pool.query(
+        `insert into ${linkSharesTable}
+          (public_id, revoke_token_hash, preview, created_at, expires_at, revoked_at)
+         values ($1, $2, $3::jsonb, $4::timestamptz, $5::timestamptz, null)
+         returning *`,
+        [record.publicId, record.revokeTokenHash, JSON.stringify(record.preview), record.createdAt, record.expiresAt],
+      );
+      return hydrateLinkShareFromRow(rows[0]);
+    },
+    async getLinkShare(publicId) {
+      const { rows } = await pool.query(`select * from ${linkSharesTable} where public_id = $1 limit 1`, [publicId]);
+      return hydrateLinkShareFromRow(rows[0]);
+    },
+    async revokeLinkShare(publicId, revokedAt) {
+      const result = await pool.query(
+        `update ${linkSharesTable} set revoked_at = $2::timestamptz where public_id = $1 and revoked_at is null`,
+        [publicId, revokedAt],
+      );
+      return result.rowCount > 0;
     },
     async createUser({ email, displayName = null, passwordHash }) {
       const user = buildUserRecord({

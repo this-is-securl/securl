@@ -89,6 +89,13 @@ export function PrivacyPage() {
               If you copy or open a shared report link, the completed scan can be viewed by
               anyone who has that link. Shared report links do not require an account.
             </p>
+            <p className="mt-4">
+              If you explicitly create a shared link-check result, we store only a server-redacted
+              evidence card for 30 days. Query strings, fragments, embedded credentials,
+              token-like path values, owner identity, and the original unredacted URL are not
+              stored in that card. Anyone with the unguessable link can view it until it expires
+              or you revoke it using the creator token kept by your client.
+            </p>
           </section>
 
           <section>

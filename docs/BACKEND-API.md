@@ -61,7 +61,7 @@ Successful `POST /api/scans` responses include a `resources` object with relativ
 
 `POST /api/link-checks` accepts `{ "url": "https://example.com/path?next=..." }` and the
 same owner authentication used by scan resources. Clients may also send the optional,
-bounded `entryPoint` value `share_extension`, `browser_extension`, `web_share_target`, `qr`, `paste`, or
+bounded `entryPoint` value `share_extension`, `browser_extension`, `web_share_target`, `shared_link`, `qr`, `paste`, or
 `manual`; omitted or invalid values are aggregated as `unknown`. Existing clients remain
 compatible. It returns
 `securl.link-inspection.v1`: the normalized exact URL, lexical attention signals, every
@@ -79,6 +79,63 @@ For compatibility with SecURL 1.5 build 30, the native Share Extension's bounded
 `entryPoint: "share_extension"`. A body `entryPoint` remains authoritative when present.
 The installed Android web app uses `web_share_target` after its service worker converts the
 operating-system share payload into a fragment-only checker prefill; it never auto-runs a check.
+
+### Redacted link-result sharing (`securl.link-share.v1`)
+
+Clients must feature-detect `linkSharing.schema === "securl.link-share.v1"` from
+`GET /api/capabilities`. Older deployments have no sharing affordance; link inspection itself
+continues to work unchanged.
+
+- Successful `POST /api/link-checks` responses include a stateless `shareProof` HMAC bound to every
+  byte of the backend-produced inspection. The proof contains no URL data and lets preview/create
+  reject forged or modified evidence without persisting the raw inspection.
+- `POST /api/link-shares/preview` requires owner/session/API-key authorization and accepts
+  `{ "inspection": <completed securl.link-inspection.v1>, "shareProof": "..." }`. It returns the
+  exact redacted public card without creating or publishing anything. Clients show this response
+  before confirmation.
+- `POST /api/link-shares` requires the same authorization and the same inspection/proof pair
+  only after an explicit user
+  action. The backend rebuilds the result from a strict allowlist and returns `201` with
+  `{ "share": <exact public preview>, "revokeToken": "..." }`. The token is returned once and
+  must be kept locally by the creating client if it wants to offer revocation.
+- `GET /api/link-shares/:publicId` is public and returns that same preview while active. Responses
+  include `X-Robots-Tag: noindex, nofollow, noarchive`. Unknown IDs return deterministic
+  `404/link_share_not_found`; expired and revoked records return deterministic
+  `410/link_share_expired` and `410/link_share_revoked` respectively.
+- `DELETE /api/link-shares/:publicId` accepts `{ "revokeToken": "..." }`. A wrong or missing token
+  returns `403/link_share_revoke_forbidden`; a successful revocation returns `{ "ok": true,
+  "state": "revoked" }`.
+- `POST /api/link-shares/:publicId/recheck-events` accepts `stage: "started" | "completed"` so the
+  public recipient journey can measure its single primary continuation without storing the public ID
+  or URL in telemetry.
+
+The returned `publicUrl` opens `/shared/link/:publicId` on `app.securl.online`. That page renders only
+the server-authored redacted fields, carries both an HTML robots directive and an `X-Robots-Tag`
+header, repeats the passive-check limitations, and offers one primary action: run a fresh link check
+against the redacted source URL. It records the bounded `started` and `completed` continuation events
+around that actual check. Missing, expired, and revoked cards have distinct recipient states.
+
+V1 is redacted-only. Stored/public evidence is limited to scheme, lowercased hostname, a path with
+token-like segments replaced by `:redacted`, redirect hostnames and status/transition flags,
+server-authored verdict and signal language, response status/type, and fixed limitations. Query,
+fragment, embedded credentials, redirect locations, client-provided prose, raw URL, revocation token,
+and creator identity are not stored or returned. Public IDs contain 192 random bits; revocation tokens
+contain 256 random bits and only their HMAC hashes are retained. Records expire exactly 30 days after
+creation and remain as state tombstones so expired/revoked/not-found responses stay deterministic.
+
+Creation is bounded to 20 attempts per creator scope per hour. Public reads and recipient-event writes
+share a 120-request-per-public-result, 15-minute limit; the limiter key is a salted hash, not the public
+ID. In multi-instance deployments these controls use the configured distributed rate-limit backend.
+Telemetry contains aggregate `link_share_created`, `link_share_card_viewed`,
+`link_share_recipient_recheck_started`, and `link_share_recipient_recheck_completed` counters only.
+It never receives public IDs, shared URLs, owner credentials, or recipient identifiers.
+
+Runtime setting:
+
+- `PUBLIC_WEB_BASE_URL`: origin used for returned `/shared/link/:publicId` URLs; defaults to
+  `https://app.securl.online`.
+- `LINK_SHARE_REVOKE_SALT`: deployment-specific HMAC secret for inspection proofs, revocation-token
+  hashes, and limiter-key hashes. It falls back to `AUTH_TOKEN_FINGERPRINT_SALT` for compatibility.
 
 Runtime controls:
 

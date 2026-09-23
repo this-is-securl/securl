@@ -146,6 +146,29 @@ export function buildCapabilitiesPayload({
         "GET /api/scans/:id/events",
       ],
     },
+    linkSharing: {
+      schema: "securl.link-share.v1",
+      features: [
+        "link-share-redacted-v1",
+        "explicit-create",
+        "creator-revocation-token",
+        "30-day-expiry",
+        "recipient-recheck-events-v1",
+      ],
+      privacy: {
+        redactedOnly: true,
+        storesOwnerIdentity: false,
+        storesRawUrl: false,
+        excluded: ["query", "fragment", "embedded-credentials", "tokens"],
+      },
+      resources: [
+        "POST /api/link-shares",
+        "POST /api/link-shares/preview",
+        "GET /api/link-shares/:publicId",
+        "DELETE /api/link-shares/:publicId",
+        "POST /api/link-shares/:publicId/recheck-events",
+      ],
+    },
     certificates: {
       features: [
         "live-certificate",
