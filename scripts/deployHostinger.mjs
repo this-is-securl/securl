@@ -12,7 +12,7 @@ const config = {
   distDir: resolve(process.cwd(), "dist"),
   requiredFiles: ["index.html", ".htaccess"],
   preservePatterns: ["google*.html", ".well-known/acme-challenge/***"],
-  sshHost: process.env.HOSTINGER_SSH_HOST || "141.136.43.111",
+  sshHost: process.env.HOSTINGER_SSH_HOST || "194.36.184.23",
   sshPort: process.env.HOSTINGER_SSH_PORT || "65002",
   sshUser: process.env.HOSTINGER_SSH_USER || "u765511792",
   remotePath: process.env.HOSTINGER_REMOTE_PATH || "/home/u765511792/domains/app.securl.online/public_html",
