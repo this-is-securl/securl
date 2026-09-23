@@ -3048,7 +3048,12 @@ test("link shares create an exact redacted preview, read publicly, emit aggregat
 
     const createResponse = await fetch(`${server.baseUrl}/api/link-shares`, {
       method: "POST",
-      headers: scanOwnerJsonHeaders(),
+      headers: {
+        ...scanOwnerJsonHeaders(),
+        "X-SecURL-Client": "securl-smoke",
+        "X-SecURL-Client-Version": "e1-smoke",
+        "X-SecURL-Client-Channel": "automation",
+      },
       body: JSON.stringify({ inspection, shareProof }),
     });
     const created = await createResponse.json();
@@ -3072,7 +3077,9 @@ test("link shares create an exact redacted preview, read publicly, emit aggregat
     assert.equal(forgedResponse.status, 400);
     assert.equal((await forgedResponse.json()).code, "link_share_proof_invalid");
 
-    const readResponse = await fetch(`${server.baseUrl}/api/link-shares/${created.share.publicId}`);
+    const readResponse = await fetch(`${server.baseUrl}/api/link-shares/${created.share.publicId}`, {
+      headers: { "X-SecURL-Client": "securl-smoke", "X-SecURL-Client-Channel": "automation" },
+    });
     const read = await readResponse.json();
     assert.equal(readResponse.status, 200);
     assert.equal(readResponse.headers.get("x-robots-tag"), "noindex, nofollow, noarchive");
@@ -3081,7 +3088,11 @@ test("link shares create an exact redacted preview, read publicly, emit aggregat
     for (const stage of ["started", "completed"]) {
       const response = await fetch(`${server.baseUrl}/api/link-shares/${created.share.publicId}/recheck-events`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-SecURL-Client": "securl-smoke",
+          "X-SecURL-Client-Channel": "automation",
+        },
         body: JSON.stringify({ stage }),
       });
       assert.equal(response.status, 202);
@@ -3113,6 +3124,11 @@ test("link shares create an exact redacted preview, read publicly, emit aggregat
     assert.equal(telemetryPayload.funnel.events.link_share_card_viewed, 1);
     assert.equal(telemetryPayload.funnel.events.link_share_recipient_recheck_started, 1);
     assert.equal(telemetryPayload.funnel.events.link_share_recipient_recheck_completed, 1);
+    const shareEvents = telemetryPayload.funnel.recent.filter((event) => event.event.startsWith("link_share_"));
+    assert.equal(shareEvents.length, 4);
+    assert.equal(shareEvents.every((event) => event.client === "securl-smoke"), true);
+    assert.equal(shareEvents.every((event) => event.clientChannel === "automation"), true);
+    assert.equal(shareEvents.every((event) => event.clientAttribution === "automation"), true);
     assert.equal(JSON.stringify(telemetryPayload).includes(created.share.publicId), false);
     assert.equal(JSON.stringify(telemetryPayload).includes("destination.example"), false);
   } finally {

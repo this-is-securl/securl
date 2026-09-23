@@ -773,6 +773,7 @@ const server = http.createServer(async (request, response) => {
       readJsonBody, createRateLimiter: linkShareCreateRateLimiter,
       sendJson: sendApiJson, sendMethodNotAllowed: sendApiMethodNotAllowed,
       telemetry, publicBaseUrl: PUBLIC_WEB_BASE_URL, revokeSalt: LINK_SHARE_REVOKE_SALT,
+      readClientMetadata,
     });
     return;
   }
@@ -781,6 +782,7 @@ const server = http.createServer(async (request, response) => {
     request, response, requestUrl, repository: scanRepository, readJsonBody,
     readRateLimiter: linkShareReadRateLimiter, sendJson: sendApiJson,
     sendMethodNotAllowed: sendApiMethodNotAllowed, telemetry, revokeSalt: LINK_SHARE_REVOKE_SALT,
+    readClientMetadata,
   })) return;
 
   if (await handleLinkShareItem({
@@ -788,6 +790,7 @@ const server = http.createServer(async (request, response) => {
     readRateLimiter: linkShareReadRateLimiter, sendJson: sendApiJson,
     sendMethodNotAllowed: sendApiMethodNotAllowed, telemetry,
     publicBaseUrl: PUBLIC_WEB_BASE_URL, revokeSalt: LINK_SHARE_REVOKE_SALT,
+    readClientMetadata,
   })) return;
 
   if (requestUrl.pathname === "/api/scans") {

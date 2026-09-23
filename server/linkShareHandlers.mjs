@@ -3,6 +3,17 @@ import { buildLinkSharePreview, createLinkShareRecord, hashRevokeToken, classify
 
 const ERROR_STATUS = Object.freeze({ not_found: 404, revoked: 410, expired: 410 });
 
+function telemetryContext(request, readClientMetadata, authState = null) {
+  const metadata = readClientMetadata?.(request, { authState }) || {};
+  return {
+    client: metadata.client,
+    clientVersion: metadata.version,
+    clientChannel: metadata.channel,
+    clientAttribution: metadata.category,
+    clientProvenance: metadata.provenance,
+  };
+}
+
 function sendState(response, sendJson, state) {
   sendJson(response, ERROR_STATUS[state], {
     error: state === "not_found" ? "Shared link result not found." : `Shared link result ${state}.`,
@@ -13,6 +24,7 @@ function sendState(response, sendJson, state) {
 export async function handleLinkShareCollection({
   request, response, requestUrl, authorizeAnalysisRequest, readJsonBody, repository,
   createRateLimiter, sendJson, sendMethodNotAllowed, telemetry, publicBaseUrl, revokeSalt,
+  readClientMetadata,
 }) {
   if (request.method !== "POST") {
     sendMethodNotAllowed(response, ["POST", "OPTIONS"]);
@@ -39,7 +51,11 @@ export async function handleLinkShareCollection({
       createdAt: record.createdAt,
       expiresAt: record.expiresAt,
     });
-    telemetry.recordFunnelEvent({ event: "link_share_created", source: "backend_api" });
+    telemetry.recordFunnelEvent({
+      event: "link_share_created",
+      source: "backend_api",
+      ...telemetryContext(request, readClientMetadata, authState),
+    });
     sendJson(response, 201, {
       share: publicLinkShare(record, publicBaseUrl),
       revokeToken: record.revokeToken,
@@ -76,7 +92,7 @@ export async function handleLinkSharePreview({
 
 export async function handleLinkShareItem({
   request, response, requestUrl, repository, readJsonBody, readRateLimiter, sendJson,
-  sendMethodNotAllowed, telemetry, publicBaseUrl, revokeSalt,
+  sendMethodNotAllowed, telemetry, publicBaseUrl, revokeSalt, readClientMetadata,
 }) {
   const match = requestUrl.pathname.match(/^\/api\/link-shares\/([A-Za-z0-9_-]{32})$/);
   if (!match) return false;
@@ -91,7 +107,11 @@ export async function handleLinkShareItem({
 
   if (request.method === "GET") {
     if (state !== "active") return sendState(response, sendJson, state), true;
-    telemetry.recordFunnelEvent({ event: "link_share_card_viewed", source: "shared_link" });
+    telemetry.recordFunnelEvent({
+      event: "link_share_card_viewed",
+      source: "shared_link",
+      ...telemetryContext(request, readClientMetadata),
+    });
     response.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
     sendJson(response, 200, { share: publicLinkShare(record, publicBaseUrl) });
     return true;
@@ -119,7 +139,7 @@ function cryptoSafeEqual(left, right) {
   return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
 }
 
-export async function handleLinkShareRecheckEvent({ request, response, requestUrl, repository, readJsonBody, readRateLimiter, sendJson, sendMethodNotAllowed, telemetry, revokeSalt }) {
+export async function handleLinkShareRecheckEvent({ request, response, requestUrl, repository, readJsonBody, readRateLimiter, sendJson, sendMethodNotAllowed, telemetry, revokeSalt, readClientMetadata }) {
   const match = requestUrl.pathname.match(/^\/api\/link-shares\/([A-Za-z0-9_-]{32})\/recheck-events$/);
   if (!match) return false;
   if (request.method !== "POST") {
@@ -138,7 +158,11 @@ export async function handleLinkShareRecheckEvent({ request, response, requestUr
     sendJson(response, 400, { error: "stage must be started or completed.", code: "link_share_recheck_invalid" });
     return true;
   }
-  telemetry.recordFunnelEvent({ event: `link_share_recipient_recheck_${body.stage}`, source: "shared_link" });
+  telemetry.recordFunnelEvent({
+    event: `link_share_recipient_recheck_${body.stage}`,
+    source: "shared_link",
+    ...telemetryContext(request, readClientMetadata),
+  });
   sendJson(response, 202, { ok: true });
   return true;
 }

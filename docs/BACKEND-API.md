@@ -61,7 +61,7 @@ Successful `POST /api/scans` responses include a `resources` object with relativ
 
 `POST /api/link-checks` accepts `{ "url": "https://example.com/path?next=..." }` and the
 same owner authentication used by scan resources. Clients may also send the optional,
-bounded `entryPoint` value `share_extension`, `browser_extension`, `web_share_target`, `qr`, `paste`, or
+bounded `entryPoint` value `share_extension`, `browser_extension`, `web_share_target`, `shared_link`, `qr`, `paste`, or
 `manual`; omitted or invalid values are aggregated as `unknown`. Existing clients remain
 compatible. It returns
 `securl.link-inspection.v1`: the normalized exact URL, lexical attention signals, every
@@ -108,6 +108,12 @@ continues to work unchanged.
 - `POST /api/link-shares/:publicId/recheck-events` accepts `stage: "started" | "completed"` so the
   public recipient journey can measure its single primary continuation without storing the public ID
   or URL in telemetry.
+
+The returned `publicUrl` opens `/shared/link/:publicId` on `app.securl.online`. That page renders only
+the server-authored redacted fields, carries both an HTML robots directive and an `X-Robots-Tag`
+header, repeats the passive-check limitations, and offers one primary action: run a fresh link check
+against the redacted source URL. It records the bounded `started` and `completed` continuation events
+around that actual check. Missing, expired, and revoked cards have distinct recipient states.
 
 V1 is redacted-only. Stored/public evidence is limited to scheme, lowercased hostname, a path with
 token-like segments replaced by `:redacted`, redirect hostnames and status/transition flags,

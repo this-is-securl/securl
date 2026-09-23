@@ -18,3 +18,7 @@ Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), 
 Header always set Cross-Origin-Opener-Policy "same-origin"
 Header always set Cross-Origin-Resource-Policy "same-origin"
 Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://securl-app-production.up.railway.app; base-uri 'self'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
+
+# Shared link-result pages are deliberately private-by-link, not search content.
+SetEnvIf Request_URI "^/shared/link/" securl_shared_link
+Header always set X-Robots-Tag "noindex, nofollow, noarchive" env=securl_shared_link
