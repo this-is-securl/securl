@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import test from "node:test";
 import {
   LINK_SHARE_SCHEMA,
@@ -82,11 +83,22 @@ test("revocation tokens are stored only as salted hashes", () => {
   assert.equal(hashRevokeToken("token", "salt").includes("token"), false);
 });
 
-test("inspection proofs bind every byte of backend evidence", () => {
+test("inspection proofs bind backend evidence independent of object key order", () => {
   const value = inspection();
   const proof = createInspectionProof(value, "proof-salt");
+  const reordered = Object.fromEntries(Object.entries(value).reverse());
   assert.equal(verifyInspectionProof(value, proof, "proof-salt"), true);
+  assert.equal(verifyInspectionProof(reordered, proof, "proof-salt"), true);
   assert.equal(verifyInspectionProof({ ...value, destinationUrl: "https://attacker.example/" }, proof, "proof-salt"), false);
   assert.equal(verifyInspectionProof(value, proof, "other-salt"), false);
   assert.equal(verifyInspectionProof(value, "malformed", "proof-salt"), false);
+});
+
+test("inspection proof verification accepts insertion-order proofs issued before canonicalization", () => {
+  const value = inspection();
+  const legacyProof = crypto.createHmac("sha256", "proof-salt")
+    .update(JSON.stringify(value))
+    .digest("base64url");
+
+  assert.equal(verifyInspectionProof(value, legacyProof, "proof-salt"), true);
 });

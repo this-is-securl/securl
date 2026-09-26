@@ -149,15 +149,38 @@ export function hashRevokeToken(token, salt) {
   return crypto.createHmac("sha256", salt).update(String(token || "")).digest("hex");
 }
 
+function canonicalJson(value) {
+  if (Array.isArray(value)) return value.map(canonicalJson);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.keys(value).sort().map((key) => [key, canonicalJson(value[key])]),
+    );
+  }
+  return value;
+}
+
+function hmacInspection(inspection, salt, canonical) {
+  const payload = JSON.stringify(canonical ? canonicalJson(inspection) : inspection);
+  return crypto.createHmac("sha256", salt).update(payload).digest("base64url");
+}
+
+function proofsMatch(expectedProof, presentedProof) {
+  const expected = Buffer.from(expectedProof);
+  const presented = Buffer.from(presentedProof);
+  return expected.length === presented.length && crypto.timingSafeEqual(expected, presented);
+}
+
 export function createInspectionProof(inspection, salt) {
-  return crypto.createHmac("sha256", salt).update(JSON.stringify(inspection)).digest("base64url");
+  return hmacInspection(inspection, salt, true);
 }
 
 export function verifyInspectionProof(inspection, proof, salt) {
   if (typeof proof !== "string") return false;
-  const expected = Buffer.from(createInspectionProof(inspection, salt));
-  const presented = Buffer.from(proof);
-  return expected.length === presented.length && crypto.timingSafeEqual(expected, presented);
+  if (proofsMatch(createInspectionProof(inspection, salt), proof)) return true;
+
+  // Proofs issued before canonical serialization used insertion-order JSON. Keep accepting
+  // them for the short preview/create window so the hosted rollout is non-breaking.
+  return proofsMatch(hmacInspection(inspection, salt, false), proof);
 }
 
 export function classifyLinkShare(record, now = new Date()) {
