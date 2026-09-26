@@ -86,9 +86,12 @@ Clients must feature-detect `linkSharing.schema === "securl.link-share.v1"` from
 `GET /api/capabilities`. Older deployments have no sharing affordance; link inspection itself
 continues to work unchanged.
 
-- Successful `POST /api/link-checks` responses include a stateless `shareProof` HMAC bound to every
-  byte of the backend-produced inspection. The proof contains no URL data and lets preview/create
-  reject forged or modified evidence without persisting the raw inspection.
+- Successful `POST /api/link-checks` responses include a stateless `shareProof` HMAC bound to the
+  canonical JSON form of the complete backend-produced inspection. Object key order does not affect
+  verification, but removing or changing any field invalidates the proof. The proof contains no URL
+  data and lets preview/create reject forged or modified evidence without persisting the raw
+  inspection. Clients must retain and return the complete inspection object rather than rebuild a
+  narrower model.
 - `POST /api/link-shares/preview` requires owner/session/API-key authorization and accepts
   `{ "inspection": <completed securl.link-inspection.v1>, "shareProof": "..." }`. It returns the
   exact redacted public card without creating or publishing anything. Clients show this response
@@ -122,6 +125,9 @@ fragment, embedded credentials, redirect locations, client-provided prose, raw U
 and creator identity are not stored or returned. Public IDs contain 192 random bits; revocation tokens
 contain 256 random bits and only their HMAC hashes are retained. Records expire exactly 30 days after
 creation and remain as state tombstones so expired/revoked/not-found responses stay deterministic.
+The preview's `source` and `destination` fields are structured public-URL objects containing
+`scheme`, `hostname`, `path`, and `displayUrl`; they are not URL strings. `destination` may be `null`
+when the completed inspection has no valid public HTTP(S) destination.
 
 Creation is bounded to 20 attempts per creator scope per hour. Public reads and recipient-event writes
 share a 120-request-per-public-result, 15-minute limit; the limiter key is a salted hash, not the public
