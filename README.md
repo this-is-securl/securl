@@ -59,7 +59,7 @@ evidence artifact, use [`docs/GITHUB-ACTIONS.md`](docs/GITHUB-ACTIONS.md).
 
 ## Current Engine Surface
 
-`securl@1.28.6` is the current repository package version. It includes:
+`securl@1.29.0` is the current repository package version. It includes:
 
 - Detection-pack architecture foundation with a constrained first-party rules seam, schema validation, and output-equivalence checks.
 - External Exposure Inventory v1 across visible third-party, infrastructure, identity, and AI dependencies, with stable IDs, data-flow purpose, confidence, evidence, SRI status, and review priority.
@@ -239,7 +239,7 @@ Sponsorship helps fund continued work on the passive analysis engine, hosted sca
 
 ## Package status
 
-- Latest package release: `securl@1.24.0`
+- Latest package release: `securl@1.29.0`
 - Previous package name: `@ktbatterham/external-posture-core` is deprecated in favour of `securl`
 - npm tag: `latest`
 - Package signal check: `npm run package:signals`
